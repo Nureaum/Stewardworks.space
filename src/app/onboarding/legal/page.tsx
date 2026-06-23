@@ -5,15 +5,44 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { Save } from 'lucide-react';
 import Image from 'next/image';
+import { createClient } from '@/utils/supabase/client';
 
 export default function LegalNotice() {
   const { t } = useLanguage();
   const router = useRouter();
   const [accepted, setAccepted] = useState(false);
   const [signature, setSignature] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const supabase = createClient();
 
-  const handleSaveProgress = () => {
-    alert('Progress saved to your email!');
+  const handleSaveAndContinue = async (isContinue: boolean) => {
+    setIsSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user && signature.trim()) {
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.email,
+        full_name: signature.trim(),
+      });
+    }
+
+    setIsSaving(false);
+    if (isContinue) {
+      router.push('/onboarding/objectives');
+    } else {
+      alert('Progress saved to Database!');
+    }
+  };
+
+  const handleAttemptContinue = () => {
+    if (!signature.trim()) {
+      setShowError(true);
+      return;
+    }
+    setShowError(false);
+    handleSaveAndContinue(true);
   };
 
   return (
@@ -35,10 +64,11 @@ export default function LegalNotice() {
         
         {/* 3. Button (Save Progress, top right) */}
         <button 
-          onClick={handleSaveProgress}
-          className="bg-steward-green hover:bg-steward-orange text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm transition-all active:scale-95"
+          onClick={() => handleSaveAndContinue(false)}
+          disabled={isSaving}
+          className="bg-steward-green hover:bg-steward-orange text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50"
         >
-          Save Progress
+          {isSaving ? 'Saving...' : 'Save Progress'}
         </button>
       </header>
 
@@ -118,10 +148,20 @@ export default function LegalNotice() {
                 <input 
                   type="text" 
                   value={signature}
-                  onChange={(e) => setSignature(e.target.value)}
-                  className="w-full bg-transparent border-b-2 border-dashed border-steward-blue py-2 focus:outline-none font-medium text-steward-dark font-exo"
+                  onChange={(e) => {
+                    setSignature(e.target.value);
+                    if (showError) setShowError(false);
+                  }}
+                  className={`w-full bg-transparent border-b-2 border-dashed py-2 focus:outline-none font-medium text-steward-dark font-exo transition-colors ${
+                    showError ? 'border-red-500' : 'border-steward-blue'
+                  }`}
                   placeholder="Type your name here..."
                 />
+                {showError && (
+                  <span className="text-xs font-bold text-red-500 animate-pulse mt-1">
+                    Please type your name to accept the terms.
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -129,15 +169,11 @@ export default function LegalNotice() {
           {/* 2. Button (Continue, bottom right) */}
           <div className="flex justify-end">
             <button 
-              disabled={!signature.trim()}
-              onClick={() => router.push('/onboarding/objectives')}
-              className={`w-full md:w-auto px-12 py-4 rounded-xl shadow-lg transition-all duration-300 font-bold text-lg uppercase tracking-widest ${
-                signature.trim() 
-                ? 'bg-steward-blue hover:bg-steward-orange text-white hover:scale-[1.02] active:scale-95' 
-                : 'bg-steward-gold/20 text-steward-gold/50 cursor-not-allowed'
-              }`}
+              disabled={isSaving}
+              onClick={handleAttemptContinue}
+              className={`w-full md:w-auto px-12 py-4 rounded-xl shadow-lg transition-all duration-300 font-bold text-lg uppercase tracking-widest bg-steward-blue hover:bg-steward-orange text-white hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed`}
             >
-              I Accept & Continue
+              {isSaving ? 'Saving...' : 'I Accept & Continue'}
             </button>
           </div>
         </div>

@@ -1,26 +1,50 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/context/AdminContext';
 import { Upload, Image as ImageIcon, RotateCcw, Lock, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
+import { createClient } from '@/utils/supabase/client';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { settings, updateSettings, resetSettings } = useAdmin();
   const router = useRouter();
+  const supabase = createClient();
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsAuthenticated(true);
+      }
+      setIsCheckingAuth(false);
+    };
+    checkUser();
+  }, [supabase.auth]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple hardcoded password for client demo
-    if (password === 'steward2026') {
-      setIsAuthenticated(true);
-      setError('');
+    setIsLoading(true);
+    setError('');
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
     } else {
-      setError('Invalid access code');
+      setIsAuthenticated(true);
+      setIsLoading(false);
     }
   };
 
@@ -35,6 +59,10 @@ export default function AdminPage() {
     }
   };
 
+  if (isCheckingAuth) {
+    return <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center"><p className="font-bold text-gray-400">Loading...</p></div>;
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center font-exo px-4">
@@ -47,22 +75,34 @@ export default function AdminPage() {
             <p className="text-sm text-gray-400 mt-2 text-center">Please enter your access code to customize the Hub portal.</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Admin Email"
+                required
+                className="w-full px-6 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-steward-gold focus:ring-2 focus:ring-steward-gold/20 outline-none transition-all font-bold text-steward-dark"
+              />
+            </div>
             <div>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Access Code"
+                placeholder="Password"
+                required
                 className="w-full px-6 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-steward-gold focus:ring-2 focus:ring-steward-gold/20 outline-none transition-all font-bold text-steward-dark"
               />
               {error && <p className="text-red-500 text-xs mt-2 ml-2 font-bold uppercase tracking-widest">{error}</p>}
             </div>
             <button
               type="submit"
-              className="w-full bg-steward-dark text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-black transition-colors shadow-lg shadow-steward-dark/20"
+              disabled={isLoading}
+              className="w-full bg-steward-dark text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-black transition-colors shadow-lg shadow-steward-dark/20 mt-2 disabled:opacity-50"
             >
-              Enter Portal
+              {isLoading ? 'Authenticating...' : 'Enter Portal'}
             </button>
           </form>
 

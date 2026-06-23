@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
+import { createClient } from '@/utils/supabase/client';
 
 export default function HubPage() {
   const { t } = useLanguage();
@@ -31,6 +32,12 @@ export default function HubPage() {
   const [selectedTopic, setSelectedTopic] = useState<string>('getting-started');
   const [statusMessage, setStatusMessage] = useState('Exploring the environmental literacy hub...');
   const [currentTime, setCurrentTime] = useState<string>('');
+  const supabase = createClient();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   useEffect(() => {
     // Set initial time on mount to avoid hydration mismatch
@@ -153,6 +160,7 @@ export default function HubPage() {
                   src="/logo 1.jpg" 
                   alt="Background Logo" 
                   fill 
+                  sizes="100vw"
                   className="object-contain"
                 />
               </div>
@@ -198,14 +206,23 @@ export default function HubPage() {
               </div>
 
               {/* Bottom Taskbar */}
-              <div className="h-14 bg-white/60 backdrop-blur-md border-t border-steward-dark/5 mt-auto flex items-center px-8 gap-6">
-                <div className="w-10 h-10 relative cursor-pointer hover:scale-110 transition-transform active:scale-95" onClick={() => router.push('/')}>
-                  <Image src="/logo 1.jpg" alt="Logo" fill className="object-contain rounded-md drop-shadow-sm" />
+              <div className="h-14 bg-white/60 backdrop-blur-md border-t border-steward-dark/5 mt-auto flex items-center px-8 justify-between">
+                <div className="flex items-center gap-6">
+                  <div className="w-10 h-10 relative cursor-pointer hover:scale-110 transition-transform active:scale-95" onClick={() => router.push('/')}>
+                    <Image src="/logo 1.jpg" alt="Logo" fill sizes="40px" className="object-contain rounded-md drop-shadow-sm" />
+                  </div>
+                  <div className="h-6 w-[1px] bg-steward-dark/10" />
+                  <div className="text-[10px] text-steward-dark/30 font-black uppercase tracking-[0.2em] hidden md:block">
+                    Stewardship Active
+                  </div>
                 </div>
-                <div className="h-6 w-[1px] bg-steward-dark/10" />
-                <div className="text-[10px] text-steward-dark/30 font-black uppercase tracking-[0.2em]">
-                  Stewardship Active
-                </div>
+                
+                <button 
+                  onClick={handleLogout}
+                  className="text-[10px] font-black uppercase tracking-widest text-red-500/70 hover:text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
+                >
+                  Log Out
+                </button>
               </div>
             </div>
           </div>

@@ -40,7 +40,7 @@ export default function InfoPage() {
         </div>
 
         <div className="flex justify-center pt-12">
-          <Link href="/onboarding/language">
+          <Link href="/login">
             <button className="px-12 py-4 bg-steward-green text-steward-offwhite font-bold rounded-full hover:bg-steward-orange transition-all shadow-lg text-xl">
               {t('enter.site')}
             </button>

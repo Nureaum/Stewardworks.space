@@ -1,11 +1,21 @@
 'use client';
 
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
+import { useRouter } from 'next/navigation';
 
 export default function PreHome() {
   const { t } = useLanguage();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleEnterSite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    router.push('/login');
+  };
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden">
@@ -19,6 +29,7 @@ export default function PreHome() {
                 src="/logo 1.jpg" 
                 alt="StewardWorks Logo" 
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 style={{ objectFit: 'contain' }}
                 priority
                 className="drop-shadow-2xl"
@@ -75,11 +86,22 @@ export default function PreHome() {
             <span className="relative z-10">{t('learn.more')}</span>
           </button>
         </Link>
-        <Link href="/onboarding/language">
-          <button className="group relative overflow-hidden px-16 py-4 text-lg font-bold tracking-[0.1em] transition-all duration-300 bg-steward-green text-steward-offwhite hover:bg-steward-orange rounded-full shadow-lg">
-            <span className="relative z-10">{t('enter.site')}</span>
-          </button>
-        </Link>
+        <button 
+          onClick={handleEnterSite}
+          disabled={isLoading}
+          className="group relative overflow-hidden px-16 py-4 text-lg font-bold tracking-[0.1em] transition-all duration-300 bg-steward-green text-steward-offwhite hover:bg-steward-orange rounded-full shadow-lg disabled:opacity-70 flex items-center justify-center min-w-[200px]"
+        >
+          <span className="relative z-10 flex items-center gap-2">
+            {isLoading ? (
+              <>
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                LOADING...
+              </>
+            ) : (
+              t('enter.site')
+            )}
+          </span>
+        </button>
         <Link href="/onboarding/bulletin">
           <button className="group relative overflow-hidden px-8 py-4 text-sm font-bold tracking-[0.1em] transition-all duration-300 border border-steward-dark/30 text-steward-dark hover:bg-steward-dark hover:text-steward-offwhite bg-white/50 rounded-full">
             <span className="relative z-10">Project Bulletin</span>

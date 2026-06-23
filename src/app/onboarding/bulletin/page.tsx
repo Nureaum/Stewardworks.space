@@ -5,9 +5,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import { ArrowDown, Pin, Info, HelpCircle, Calendar, Users, Cpu, Database } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function BulletinPage() {
   const { t } = useLanguage();
+  const router = useRouter();
 
   const sections = [
     {
@@ -116,11 +118,12 @@ export default function BulletinPage() {
 
         {/* Bottom Back Button */}
         <div className="mt-20 flex justify-center pb-20">
-          <Link href="/hub">
-            <button className="bg-steward-dark text-white px-12 py-4 rounded-full font-bold hover:bg-steward-green transition-all shadow-xl hover:scale-105 active:scale-95 uppercase tracking-widest text-sm flex items-center gap-3">
-              ← Back to Hub
-            </button>
-          </Link>
+          <button 
+            onClick={() => router.back()} 
+            className="bg-steward-dark text-white px-12 py-4 rounded-full font-bold hover:bg-steward-green transition-all shadow-xl hover:scale-105 active:scale-95 uppercase tracking-widest text-sm flex items-center gap-3"
+          >
+            ← Go Back
+          </button>
         </div>
       </div>
     </main>
