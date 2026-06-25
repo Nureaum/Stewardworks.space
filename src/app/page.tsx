@@ -80,16 +80,16 @@ export default function PreHome() {
       </div>
 
       {/* 6. Buttons (Center Bottom) */}
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex flex-col md:flex-row gap-6 items-center">
-        <Link href="/info">
-          <button className="group relative overflow-hidden px-12 py-4 text-lg font-bold tracking-[0.1em] transition-all duration-300 border-2 border-steward-gold text-steward-gold hover:bg-steward-gold hover:text-steward-offwhite bg-transparent rounded-full">
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex flex-col md:flex-row gap-4 lg:gap-6 items-center w-full px-4 md:px-0 md:w-auto">
+        <Link href="/info" className="w-full md:w-auto">
+          <button className="w-full md:w-auto group relative overflow-hidden px-6 lg:px-8 py-4 text-base lg:text-lg font-bold tracking-[0.1em] transition-all duration-300 border-2 border-steward-gold text-steward-gold hover:bg-steward-gold hover:text-steward-offwhite bg-transparent rounded-full whitespace-nowrap">
             <span className="relative z-10">{t('learn.more')}</span>
           </button>
         </Link>
         <button 
           onClick={handleEnterSite}
           disabled={isLoading}
-          className="group relative overflow-hidden px-16 py-4 text-lg font-bold tracking-[0.1em] transition-all duration-300 bg-steward-green text-steward-offwhite hover:bg-steward-orange rounded-full shadow-lg disabled:opacity-70 flex items-center justify-center min-w-[200px]"
+          className="w-full md:w-auto group relative overflow-hidden px-8 lg:px-12 py-4 text-base lg:text-lg font-bold tracking-[0.1em] transition-all duration-300 bg-steward-green text-steward-offwhite hover:bg-steward-orange rounded-full shadow-lg disabled:opacity-70 flex items-center justify-center whitespace-nowrap"
         >
           <span className="relative z-10 flex items-center gap-2">
             {isLoading ? (
@@ -102,8 +102,8 @@ export default function PreHome() {
             )}
           </span>
         </button>
-        <Link href="/onboarding/bulletin">
-          <button className="group relative overflow-hidden px-8 py-4 text-sm font-bold tracking-[0.1em] transition-all duration-300 border border-steward-dark/30 text-steward-dark hover:bg-steward-dark hover:text-steward-offwhite bg-white/50 rounded-full">
+        <Link href="/onboarding/bulletin" className="w-full md:w-auto">
+          <button className="w-full md:w-auto group relative overflow-hidden px-6 lg:px-8 py-4 text-sm lg:text-base font-bold tracking-[0.1em] transition-all duration-300 border border-steward-dark/30 text-steward-dark hover:bg-steward-dark hover:text-steward-offwhite bg-white/50 rounded-full whitespace-nowrap">
             <span className="relative z-10">Project Bulletin</span>
           </button>
         </Link>
