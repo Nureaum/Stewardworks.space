@@ -76,12 +76,12 @@ export async function updateSession(request: NextRequest) {
   if (user && isVipRoute) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('preferred_language')
       .eq('id', user.id)
       .single()
 
-    if (!profile || !profile.full_name) {
-      // User hasn't finished onboarding, force them to do it
+    if (!profile || !profile.preferred_language) {
+      // User hasn't finished the questionnaire, force them to do it
       const url = request.nextUrl.clone()
       url.pathname = '/onboarding/language'
       return NextResponse.redirect(url)

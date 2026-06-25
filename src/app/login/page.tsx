@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'magic_success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const router = useRouter();
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -29,7 +30,7 @@ export default function LoginPage() {
       setErrorMessage(error.message);
     } else {
       setStatus('success');
-      router.push('/auth/callback'); // This will trigger the hub redirect
+      router.push('/hub');
     }
   };
 
