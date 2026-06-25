@@ -42,6 +42,13 @@ export default function SignupPage() {
       return;
     }
 
+    // Check if email already exists (Supabase email enumeration protection check)
+    if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+      setStatus('error');
+      setErrorMessage("An account with this email already exists. Please log in instead.");
+      return;
+    }
+
     // 2. Insert into profiles table
     if (authData.user) {
       const { error: profileError } = await supabase.from('profiles').upsert({
