@@ -27,20 +27,8 @@ export async function GET(request: Request) {
     const { error, data: sessionData } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error && sessionData?.session) {
-      // Check if this user already completed onboarding
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', sessionData.session.user.id)
-        .single()
-
-      if (profile && profile.full_name) {
-        // Returning user - go straight to Hub
-        return NextResponse.redirect(`${origin}/hub`)
-      } else {
-        // New user - go to Onboarding
-        return NextResponse.redirect(`${origin}/onboarding/language`)
-      }
+      // Redirect all users directly to the Hub after login
+      return NextResponse.redirect(`${origin}/hub`)
     }
   }
 
