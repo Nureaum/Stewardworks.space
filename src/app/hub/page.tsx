@@ -19,7 +19,8 @@ import {
   HelpingHand,
   Hammer,
   Wrench,
-  Settings
+  Settings,
+  LogOut
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
@@ -219,8 +220,9 @@ export default function HubPage() {
                 
                 <button 
                   onClick={handleLogout}
-                  className="text-[10px] font-black uppercase tracking-widest text-red-500/70 hover:text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-steward-dark bg-white border-2 border-steward-dark/10 hover:border-red-500 hover:text-red-600 px-4 py-2 rounded-lg transition-all shadow-sm active:scale-95"
                 >
+                  <LogOut size={14} />
                   Log Out
                 </button>
               </div>
