@@ -64,9 +64,9 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-steward-blue rounded-full flex items-center justify-center mb-4 text-white font-black text-xl shadow-inner">
             SW
           </div>
-          <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tight">Participant Login</h1>
+          <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tight">Log In</h1>
           <p className="text-sm text-steward-dark/60 mt-2 text-center font-medium">
-            Enter your email to receive a secure magic link to sign in or create an account.
+            Enter your email and password to access the StewardWorks Hub.
           </p>
         </div>
 
