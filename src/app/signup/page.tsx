@@ -16,7 +16,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'magic_success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'magic_success' | 'signup_success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
   const supabase = createClient();
@@ -36,6 +36,14 @@ export default function SignupPage() {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone,
+          full_name: `${firstName} ${lastName}`.trim(),
+        }
+      }
     });
 
     if (authError) {
@@ -51,8 +59,8 @@ export default function SignupPage() {
       return;
     }
 
-    // 2. Insert into profiles table
-    if (authData.user) {
+    // 2. Insert into profiles table IF we have a session (meaning email confirmation is off)
+    if (authData.session) {
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: authData.user.id,
         email: authData.user.email,
@@ -65,11 +73,13 @@ export default function SignupPage() {
       if (profileError) {
         console.error("Profile creation error:", profileError);
       }
+      
+      setStatus('success');
+      router.push('/hub');
+    } else {
+      // Email confirmation is required! They are not logged in yet.
+      setStatus('signup_success');
     }
-
-    setStatus('success');
-    // We redirect to the callback to run our smart routing / hub redirect logic.
-    router.push('/auth/callback');
   };
 
   const handleMagicLink = async () => {
@@ -118,6 +128,16 @@ export default function SignupPage() {
             <h3 className="text-lg font-bold text-steward-dark">Account Created!</h3>
             <p className="text-sm text-steward-dark/80">
               Welcome to StewardWorks. Redirecting you to the Hub...
+            </p>
+          </div>
+        ) : status === 'signup_success' ? (
+          <div className="bg-steward-green/10 border border-steward-green/30 rounded-2xl p-6 text-center space-y-4 animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-center">
+              <CheckCircle className="text-steward-green" size={48} />
+            </div>
+            <h3 className="text-lg font-bold text-steward-dark">Verify your email!</h3>
+            <p className="text-sm text-steward-dark/80">
+              We've sent a confirmation link to <span className="font-bold">{email}</span>. Click the link in that email to activate your account and log in.
             </p>
           </div>
         ) : status === 'magic_success' ? (
