@@ -3,6 +3,7 @@ import React from "react";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AdminProvider } from "@/context/AdminContext";
+import { ClerkProvider } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
   title: "Lit Hub | StewardWorks",
@@ -15,14 +16,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="min-h-screen relative font-exo" suppressHydrationWarning>
-        <LanguageProvider>
-          <AdminProvider>
-            {children}
-          </AdminProvider>
-        </LanguageProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body className="min-h-screen relative font-exo" suppressHydrationWarning>
+          <LanguageProvider>
+            <AdminProvider>
+              {children}
+            </AdminProvider>
+          </LanguageProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

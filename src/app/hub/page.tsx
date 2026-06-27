@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
-import { createClient } from '@/utils/supabase/client';
+import { useClerk } from '@clerk/nextjs';
 
 export default function HubPage() {
   const { t } = useLanguage();
@@ -33,11 +33,10 @@ export default function HubPage() {
   const [selectedTopic, setSelectedTopic] = useState<string>('getting-started');
   const [statusMessage, setStatusMessage] = useState('Exploring the environmental literacy hub...');
   const [currentTime, setCurrentTime] = useState<string>('');
-  const supabase = createClient();
+  const { signOut } = useClerk();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
+    await signOut({ redirectUrl: '/login' });
   };
 
   useEffect(() => {

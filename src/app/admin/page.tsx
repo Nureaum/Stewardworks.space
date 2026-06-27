@@ -1,57 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/context/AdminContext';
-import { Upload, Image as ImageIcon, RotateCcw, Lock, ChevronLeft } from 'lucide-react';
+import { Upload, Image as ImageIcon, RotateCcw, Lock, ChevronLeft, LogIn } from 'lucide-react';
 import Link from 'next/link';
-import { createClient } from '@/utils/supabase/client';
+import { useUser } from '@clerk/nextjs';
+
+/** The admin email address that has access to the customization panel. */
+const ADMIN_EMAIL = 'vaniibodasingu@gmail.com';
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const { settings, updateSettings, resetSettings } = useAdmin();
+  const { user, isLoaded } = useUser();
   const router = useRouter();
-  const supabase = createClient();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user.email === 'vaniibodasingu@gmail.com') {
-        setIsAuthenticated(true);
-      }
-      setIsCheckingAuth(false);
-    };
-    checkUser();
-  }, [supabase.auth]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message);
-      setIsLoading(false);
-    } else if (data.user?.email !== 'vaniibodasingu@gmail.com') {
-      // If a non-admin logs in, sign them back out instantly
-      await supabase.auth.signOut();
-      setError('Access Denied. You are not an admin.');
-      setIsLoading(false);
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    }
-  };
+  const isAdmin = isLoaded && user?.primaryEmailAddress?.emailAddress === ADMIN_EMAIL;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, key: 'wallpaperUrl' | 'leftPosterUrl' | 'rightPosterUrl') => {
     const file = e.target.files?.[0];
@@ -64,11 +28,17 @@ export default function AdminPage() {
     }
   };
 
-  if (isCheckingAuth) {
-    return <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center"><p className="font-bold text-gray-400">Loading...</p></div>;
+  // Loading state
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
+        <p className="font-bold text-gray-400">Loading...</p>
+      </div>
+    );
   }
 
-  if (!isAuthenticated) {
+  // Not logged in - show sign in prompt
+  if (!user) {
     return (
       <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center font-exo px-4">
         <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
@@ -77,39 +47,14 @@ export default function AdminPage() {
               <Lock className="text-steward-gold" size={32} />
             </div>
             <h1 className="text-2xl font-black text-steward-dark uppercase tracking-widest">Client Access</h1>
-            <p className="text-sm text-gray-400 mt-2 text-center">Please enter your access code to customize the Hub portal.</p>
+            <p className="text-sm text-gray-400 mt-2 text-center">Sign in with your admin account to customize the Hub portal.</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Admin Email"
-                required
-                className="w-full px-6 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-steward-gold focus:ring-2 focus:ring-steward-gold/20 outline-none transition-all font-bold text-steward-dark"
-              />
-            </div>
-            <div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                required
-                className="w-full px-6 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-steward-gold focus:ring-2 focus:ring-steward-gold/20 outline-none transition-all font-bold text-steward-dark"
-              />
-              {error && <p className="text-red-500 text-xs mt-2 ml-2 font-bold uppercase tracking-widest">{error}</p>}
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-steward-dark text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-black transition-colors shadow-lg shadow-steward-dark/20 mt-2 disabled:opacity-50"
-            >
-              {isLoading ? 'Authenticating...' : 'Enter Portal'}
-            </button>
-          </form>
+          <div className="flex justify-center mt-6">
+            <Link href="/login" className="bg-steward-dark hover:bg-black text-white px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] shadow-lg shadow-steward-dark/20 transition-colors w-full text-center text-sm">
+              Sign In
+            </Link>
+          </div>
 
           <Link href="/hub" className="mt-8 flex items-center justify-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-steward-dark transition-colors">
             <ChevronLeft size={14} /> Back to Hub
@@ -119,6 +64,27 @@ export default function AdminPage() {
     );
   }
 
+  // Logged in but not admin
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center font-exo px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-100 text-center">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+              <Lock className="text-red-500" size={32} />
+            </div>
+            <h1 className="text-2xl font-black text-steward-dark uppercase tracking-widest">Access Denied</h1>
+            <p className="text-sm text-gray-400 mt-2">You are not authorized to access the admin panel.</p>
+          </div>
+          <Link href="/hub" className="flex items-center justify-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-steward-dark transition-colors">
+            <ChevronLeft size={14} /> Back to Hub
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin panel
   return (
     <div className="min-h-screen bg-[#F5F5F5] font-exo pb-20">
       {/* Header */}

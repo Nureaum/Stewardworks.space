@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSignUp, useAuth } from '@clerk/nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { Mail, CheckCircle, ChevronLeft, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
@@ -19,26 +19,10 @@ export default function SignupPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'magic_success' | 'signup_success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
-  
-  const { isLoaded, signUp, setActive } = useSignUp();
-  const { isSignedIn, signOut } = useAuth();
-
-  useEffect(() => {
-    if (isSignedIn) {
-      router.push('/hub');
-    }
-  }, [isSignedIn, router]);
+  const supabase = createClient();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
-    
-    // Safety check: Clerk throws an error if you try to sign up while already logged in
-    if (isSignedIn) {
-      router.push('/hub');
-      return;
-    }
-
     if (password !== confirmPassword) {
       setStatus('error');
       setErrorMessage("Passwords do not match");
@@ -48,42 +32,59 @@ export default function SignupPage() {
     setStatus('loading');
     setErrorMessage('');
 
-    try {
-      // 1. Create the user
-      await signUp.create({
-        emailAddress: email,
-        password,
-        firstName,
-        lastName,
-        unsafeMetadata: {
-          phone,
+    // 1. Create the user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone,
+          full_name: `${firstName} ${lastName}`.trim(),
         }
+      }
+    });
+
+    if (authError) {
+      setStatus('error');
+      setErrorMessage(authError.message);
+      return;
+    }
+
+    // Check if email already exists (Supabase email enumeration protection check)
+    if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+      setStatus('error');
+      setErrorMessage("An account with this email already exists. Please log in instead.");
+      return;
+    }
+
+    // 2. Insert into profiles table IF we have a session (meaning email confirmation is off)
+    if (authData.session) {
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: authData.user.id,
+        email: authData.user.email,
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim(),
+        phone: phone,
       });
 
-      // 2. Prepare email verification (verification link)
-      await signUp.prepareEmailAddressVerification({ 
-        strategy: "email_link",
-        redirectUrl: `${window.location.origin}/verify?type=signup`
-      });
-      
-      // Go to verification step (we simulate signup_success which asks them to check email)
-      // Note: we can also auto-login if email verification is off, but usually it's on
-      setStatus('signup_success');
-    } catch (err: any) {
-      setStatus('error');
-      const clerkError = err.errors?.[0];
-      if (clerkError?.code === 'form_identifier_exists') {
-        setErrorMessage("An account with this email already exists. Please log in instead.");
-      } else {
-        setErrorMessage(clerkError?.longMessage || 'An unexpected error occurred.');
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
       }
+      
+      setStatus('success');
+      router.push('/hub/my-profile');
+    } else {
+      // Email confirmation is required! They are not logged in yet.
+      setStatus('signup_success');
     }
   };
 
   const handleMagicLink = async () => {
-    if (!isLoaded) return;
-
-    // Client-side validation
+    // 1. Client-side validation for Name and Phone
     if (!firstName.trim() || !lastName.trim()) {
       setStatus('error');
       setErrorMessage("Please enter your First and Last Name.");
@@ -104,29 +105,25 @@ export default function SignupPage() {
     setStatus('loading');
     setErrorMessage('');
 
-    try {
-      // Create user and send magic link at the same time
-      await signUp.create({
-        emailAddress: email,
-        firstName,
-        lastName,
-        unsafeMetadata: { phone },
-      });
+    // 2. Send the Magic Link WITH the user's Name and Phone metadata!
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`.trim(),
+          phone: phone,
+        }
+      },
+    });
 
-      await signUp.prepareEmailAddressVerification({
-        strategy: 'email_link',
-        redirectUrl: `${window.location.origin}/verify?type=signup`,
-      });
-
-      setStatus('magic_success');
-    } catch (err: any) {
+    if (error) {
       setStatus('error');
-      const clerkError = err.errors?.[0];
-      if (clerkError?.code === 'form_identifier_exists') {
-        setErrorMessage("An account with this email already exists. Please log in instead.");
-      } else {
-        setErrorMessage(clerkError?.longMessage || 'An unexpected error occurred.');
-      }
+      setErrorMessage(error.message);
+    } else {
+      setStatus('magic_success');
     }
   };
 
@@ -160,7 +157,7 @@ export default function SignupPage() {
             </div>
             <h3 className="text-lg font-bold text-steward-dark">Verify your email!</h3>
             <p className="text-sm text-steward-dark/80">
-              We've sent a confirmation link/code to <span className="font-bold">{email}</span>. Click the link in that email to activate your account and log in.
+              We've sent a confirmation link to <span className="font-bold">{email}</span>. Click the link in that email to activate your account and log in.
             </p>
           </div>
         ) : status === 'magic_success' ? (
@@ -175,7 +172,6 @@ export default function SignupPage() {
           </div>
         ) : (
           <form onSubmit={handleSignup} className="space-y-4">
-            <div id="clerk-captcha"></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

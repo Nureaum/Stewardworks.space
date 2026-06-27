@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSignIn, useAuth } from '@clerk/nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { Mail, CheckCircle, ChevronLeft, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
@@ -13,19 +13,10 @@ export default function LoginPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'magic_success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
-  
-  const { isLoaded, signIn, setActive } = useSignIn();
-  const { isSignedIn } = useAuth();
-
-  useEffect(() => {
-    if (isSignedIn) {
-      router.push('/hub');
-    }
-  }, [isSignedIn, router]);
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
     setErrorMessage('');
 
     // Client-side validation
@@ -53,75 +44,29 @@ export default function LoginPage() {
 
     setStatus('loading');
 
-    try {
-      const completeSignIn = await signIn.create({
-        identifier: email,
-        password,
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (completeSignIn.status === 'complete') {
-        setStatus('success');
-        await setActive({ session: completeSignIn.createdSessionId });
-        router.push('/hub');
-      } else if (completeSignIn.status === 'needs_first_factor') {
-        // The password was correct, but the email is unverified!
-        // Let's automatically send them a verification link to complete the login.
-        const emailFactor = completeSignIn.supportedFirstFactors.find(
-          (f: any) => f.strategy === 'email_link' && f.safeIdentifier === email
-        ) as any;
-
-        if (emailFactor) {
-          await signIn.prepareFirstFactor({
-            strategy: 'email_link',
-            emailAddressId: emailFactor.emailAddressId,
-            redirectUrl: `${window.location.origin}/verify?type=login`
-          });
-          setStatus('magic_success'); // Reusing the magic link success screen to say "Check Email"
-        } else {
-          setStatus('error');
-          setErrorMessage('Your email is unverified. Please use the Magic Link option to verify it.');
-        }
-      } else if (completeSignIn.status === 'needs_client_trust') {
-        // New device detected. Clerk requires a second factor (Client Trust).
-        const emailFactor = completeSignIn.supportedSecondFactors?.find(
-          (f: any) => f.strategy === 'email_link' && f.safeIdentifier === email
-        ) as any;
-
-        if (emailFactor) {
-          await signIn.prepareSecondFactor({
-            strategy: 'email_link',
-            emailAddressId: emailFactor.emailAddressId,
-            redirectUrl: `${window.location.origin}/verify?type=login`
-          });
-          setStatus('magic_success'); // Check email UI
-        } else {
-          setStatus('error');
-          setErrorMessage('New device detected. Please use the Magic Link to sign in.');
-        }
-      } else {
-        // Needs MFA, etc.
-        setStatus('error');
-        setErrorMessage(`Further verification is required. Status: ${completeSignIn.status}. Please use the Magic Link.`);
-      }
-    } catch (err: any) {
+    if (error) {
       setStatus('error');
-      // Map Clerk errors to user-friendly messages
-      const clerkError = err.errors?.[0];
-      if (clerkError?.code === 'form_password_incorrect') {
+      if (error.message === 'Invalid login credentials') {
         setErrorMessage('INVALID_CREDENTIALS');
-      } else if (clerkError?.code === 'form_identifier_not_found') {
-        setErrorMessage('ACCOUNT_NOT_FOUND');
-      } else if (clerkError?.code === 'session_exists') {
-        // Already logged in
-        router.push('/hub');
+      } else if (error.message === 'Email not confirmed') {
+        setErrorMessage('EMAIL_NOT_CONFIRMED');
+      } else if (error.message.toLowerCase().includes('rate limit')) {
+        setErrorMessage('Too many login attempts. Please wait a moment and try again.');
       } else {
-        setErrorMessage(clerkError?.longMessage || 'An unexpected error occurred.');
+        setErrorMessage(error.message);
       }
+    } else {
+      setStatus('success');
+      router.push('/hub');
     }
   };
 
   const handleMagicLink = async () => {
-    if (!isLoaded) return;
     if (!email) {
       setStatus('error');
       setErrorMessage("Please enter an email address for the magic link.");
@@ -131,34 +76,23 @@ export default function LoginPage() {
     setStatus('loading');
     setErrorMessage('');
 
-    try {
-      const { supportedFirstFactors } = await signIn.create({
-        identifier: email,
-      });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: false, // PREVENT Scenario B: Do not auto-create accounts for strangers
+      },
+    });
 
-      const emailLinkFactor = supportedFirstFactors?.find(
-        (factor) => factor.strategy === 'email_link'
-      );
-
-      if (emailLinkFactor) {
-        await signIn.prepareFirstFactor({
-          strategy: 'email_link',
-          emailAddressId: emailLinkFactor.emailAddressId,
-          redirectUrl: `${window.location.origin}/verify?type=login`,
-        });
-        setStatus('magic_success');
-      } else {
-        setStatus('error');
-        setErrorMessage('ACCOUNT_NOT_FOUND');
-      }
-    } catch (err: any) {
+    if (error) {
       setStatus('error');
-      const clerkError = err.errors?.[0];
-      if (clerkError?.code === 'form_identifier_not_found') {
+      if (error.message.includes('Signups not allowed') || error.message.includes('not found')) {
         setErrorMessage('ACCOUNT_NOT_FOUND');
       } else {
-        setErrorMessage(clerkError?.longMessage || 'An unexpected error occurred.');
+        setErrorMessage(error.message);
       }
+    } else {
+      setStatus('magic_success');
     }
   };
 
@@ -203,7 +137,6 @@ export default function LoginPage() {
           </div>
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">
-            <div id="clerk-captcha"></div>
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Star, User, Edit2, Save, X, Camera, Loader2, Check, ChevronDown } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
+import { ArrowLeft, Star, User, Check, ChevronDown, Camera, Loader2, X } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 
 export default function MyProfilePage() {
   const router = useRouter();
+  const { user, isLoaded } = useUser();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Inline Edit State
   const [isUploading, setIsUploading] = useState(false);
   const [editingField, setEditingField] = useState<'dream_job' | 'learning_style' | null>(null);
@@ -54,64 +55,57 @@ export default function MyProfilePage() {
     "Other (please describe)"
   ];
 
-  const supabase = createClient();
-
-  useEffect(() => {
-    async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (data) {
-          setProfile(data);
-        }
+  // Load profile from API
+  const loadProfile = useCallback(async () => {
+    try {
+      const res = await fetch('/api/profile');
+      const data = await res.json();
+      if (data.profile) {
+        setProfile(data.profile);
       }
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+    } finally {
       setLoading(false);
     }
-    loadProfile();
-  }, [supabase]);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      loadProfile();
+    } else if (isLoaded) {
+      setLoading(false);
+    }
+  }, [isLoaded, user, loadProfile]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    
+
     setIsUploading(true);
-    
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${profile.id}-${Math.random()}.${fileExt}`;
-    const filePath = `${profile.id}/${fileName}`; // MUST be in a folder matching the user's ID for RLS policy
 
-    // Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    if (uploadError) {
-      alert('Error uploading image: ' + uploadError.message);
+      const res = await fetch('/api/upload-avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.publicUrl) {
+        setProfile((prev: any) => ({ ...prev, avatar_url: data.publicUrl }));
+      } else {
+        alert('Error uploading image: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Error uploading image. Please try again.');
+      console.error('Upload error:', error);
+    } finally {
       setIsUploading(false);
-      return;
     }
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(filePath);
-
-    // Save to profile
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ avatar_url: publicUrl })
-      .eq('id', profile.id);
-
-    if (!updateError) {
-      setProfile({ ...profile, avatar_url: publicUrl });
-    }
-    
-    setIsUploading(false);
   };
 
   const startEditing = (field: 'dream_job' | 'learning_style', currentValue: any) => {
@@ -122,8 +116,7 @@ export default function MyProfilePage() {
     } else {
       val = currentValue || '';
     }
-    
-    // Check if it matches a predefined option
+
     const options = field === 'learning_style' ? learningStyleOptions : dreamJobOptions;
     if (val && !options.includes(val)) {
       setTempValue("Other (please describe)");
@@ -137,62 +130,72 @@ export default function MyProfilePage() {
   const handleSaveField = async () => {
     if (!editingField) return;
     setIsSaving(true);
-    
+
     let finalValue = tempValue === "Other (please describe)" ? otherValue : tempValue;
     let updateValue: any = finalValue;
-    
-    // If learning style, convert back to array
+
     if (editingField === 'learning_style') {
       updateValue = finalValue ? [finalValue] : [];
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        [editingField]: updateValue
-      })
-      .eq('id', profile.id);
-
-    if (!error) {
-      setProfile({
-        ...profile,
-        [editingField]: updateValue
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [editingField]: updateValue }),
       });
-      setEditingField(null);
-    } else {
-      alert('Error saving: ' + error.message);
-    }
-    
-    setIsSaving(false);
-  };
 
-  const handleDropdownChange = async (e: React.ChangeEvent<HTMLSelectElement>, field: 'dream_job' | 'learning_style') => {
-    const val = e.target.value;
-    setTempValue(val);
-    
-    if (val !== "Other (please describe)") {
-      setIsSaving(true);
-      let updateValue: any = val;
-      if (field === 'learning_style') {
-        updateValue = val ? [val] : [];
-      }
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ [field]: updateValue })
-        .eq('id', profile.id);
-        
-      if (!error) {
-        setProfile({ ...profile, [field]: updateValue });
+      if (res.ok) {
+        setProfile((prev: any) => ({ ...prev, [editingField!]: updateValue }));
         setEditingField(null);
       } else {
-        alert('Error saving: ' + error.message);
+        const data = await res.json();
+        alert('Error saving: ' + (data.error || 'Unknown error'));
       }
+    } catch (error) {
+      alert('Error saving. Please try again.');
+      console.error('Save error:', error);
+    } finally {
       setIsSaving(false);
     }
   };
 
-  // Helper variables for always-visible selects
+  const handleCustomSelect = async (val: string, field: 'dream_job' | 'learning_style') => {
+    setOpenDropdown(null);
+
+    if (val === "Other (please describe)") {
+      setEditingField(field);
+      setTempValue(val);
+      const currentVal = field === 'learning_style'
+        ? (profile?.learning_style?.[0] || '')
+        : (profile?.dream_job || '');
+      const options = field === 'learning_style' ? learningStyleOptions : dreamJobOptions;
+      setOtherValue(options.includes(currentVal) ? '' : currentVal);
+      return;
+    }
+
+    setIsSaving(true);
+    const updateValue = field === 'learning_style' ? (val ? [val] : []) : val;
+
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: updateValue }),
+      });
+
+      if (res.ok) {
+        setProfile((prev: any) => ({ ...prev, [field]: updateValue }));
+        setEditingField(null);
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Helper variables for selects
   const currentLearningStyle = (profile?.learning_style && profile.learning_style.length > 0)
     ? (Array.isArray(profile.learning_style) ? profile.learning_style[0] : profile.learning_style)
     : "";
@@ -202,27 +205,6 @@ export default function MyProfilePage() {
   const currentDreamJob = profile?.dream_job || "";
   const isDreamJobCustom = currentDreamJob && !dreamJobOptions.includes(currentDreamJob);
   const displayDreamJob = isDreamJobCustom ? "Other (please describe)" : currentDreamJob;
-
-  const handleCustomSelect = async (val: string, field: 'dream_job' | 'learning_style') => {
-    setOpenDropdown(null);
-    
-    if (val === "Other (please describe)") {
-      setEditingField(field);
-      setTempValue(val);
-      setOtherValue(field === 'learning_style' ? (isLearningStyleCustom ? currentLearningStyle : '') : (isDreamJobCustom ? currentDreamJob : ''));
-      return;
-    }
-    
-    // Save to DB immediately
-    setIsSaving(true);
-    const updateValue = field === 'learning_style' ? (val ? [val] : []) : val;
-    const { error } = await supabase.from('profiles').update({ [field]: updateValue }).eq('id', profile.id);
-    if (!error) {
-      setProfile({ ...profile, [field]: updateValue });
-      setEditingField(null);
-    }
-    setIsSaving(false);
-  };
 
   if (loading) {
     return (
@@ -235,7 +217,7 @@ export default function MyProfilePage() {
   return (
     <div className="min-h-screen bg-steward-offwhite p-8 font-exo">
       <div className="max-w-4xl mx-auto flex items-center mb-8">
-        <a 
+        <a
           href="/hub"
           className="flex items-center gap-2 text-steward-dark hover:text-steward-blue transition-colors"
         >
@@ -247,7 +229,7 @@ export default function MyProfilePage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-[40px] shadow-xl border border-steward-dark/5">
           <div className="bg-steward-dark p-12 text-center text-white relative rounded-t-[40px]">
-            
+
             {/* Avatar Section */}
             <div className="relative w-32 h-32 mx-auto mb-6">
               <div className="w-full h-full bg-steward-orange rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
@@ -259,7 +241,7 @@ export default function MyProfilePage() {
                    <User size={64} className="text-white opacity-50" />
                  )}
               </div>
-              
+
               {/* Floating Camera Button */}
               <label className="absolute bottom-0 right-0 bg-steward-blue text-white p-2.5 rounded-full shadow-lg border-2 border-white cursor-pointer hover:bg-steward-orange transition-colors">
                 <Camera size={16} />
@@ -268,14 +250,14 @@ export default function MyProfilePage() {
             </div>
 
             <h1 className="text-3xl font-black uppercase tracking-tight">
-              {profile?.full_name || 'Steward Candidate'}
+              {profile?.full_name || user?.fullName || 'Steward Candidate'}
             </h1>
             <p className="text-white/60 font-bold uppercase tracking-widest text-sm mt-2">Imperial Valley Member</p>
           </div>
-          
+
           <div className="p-12 space-y-12">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              
+
               {/* Learning Style */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -287,7 +269,7 @@ export default function MyProfilePage() {
                       Other (please describe)
                     </div>
                     <div className="flex items-center gap-2 mt-2">
-                      <input 
+                      <input
                         type="text"
                         value={otherValue}
                         onChange={(e) => setOtherValue(e.target.value)}
@@ -305,7 +287,7 @@ export default function MyProfilePage() {
                   </div>
                 ) : (
                   <div className="relative w-full custom-dropdown-container">
-                    <div 
+                    <div
                       onClick={() => setOpenDropdown(openDropdown === 'learning_style' ? null : 'learning_style')}
                       className={`w-full p-4 bg-gray-50 border hover:border-steward-blue/50 rounded-xl font-bold text-steward-dark outline-none transition-all cursor-pointer flex justify-between items-center ${openDropdown === 'learning_style' ? 'border-steward-blue ring-2 ring-steward-blue/20' : 'border-gray-200'}`}
                     >
@@ -315,7 +297,7 @@ export default function MyProfilePage() {
                     {openDropdown === 'learning_style' && (
                       <div className="absolute top-[100%] left-0 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
                         {learningStyleOptions.map(opt => (
-                          <div 
+                          <div
                             key={opt}
                             onClick={() => handleCustomSelect(opt, 'learning_style')}
                             className="p-4 hover:bg-gray-50 font-bold text-steward-dark cursor-pointer transition-colors border-b border-gray-100 last:border-0 break-words whitespace-normal text-sm md:text-base"
@@ -328,7 +310,7 @@ export default function MyProfilePage() {
                   </div>
                 )}
               </div>
-              
+
               {/* Dream Job */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -340,7 +322,7 @@ export default function MyProfilePage() {
                       Other (please describe)
                     </div>
                     <div className="flex items-center gap-2 mt-2">
-                      <input 
+                      <input
                         type="text"
                         value={otherValue}
                         onChange={(e) => setOtherValue(e.target.value)}
@@ -358,7 +340,7 @@ export default function MyProfilePage() {
                   </div>
                 ) : (
                   <div className="relative w-full custom-dropdown-container">
-                    <div 
+                    <div
                       onClick={() => setOpenDropdown(openDropdown === 'dream_job' ? null : 'dream_job')}
                       className={`w-full p-4 bg-gray-50 border hover:border-steward-blue/50 rounded-xl font-bold text-steward-dark outline-none transition-all cursor-pointer flex justify-between items-center ${openDropdown === 'dream_job' ? 'border-steward-blue ring-2 ring-steward-blue/20' : 'border-gray-200'}`}
                     >
@@ -368,7 +350,7 @@ export default function MyProfilePage() {
                     {openDropdown === 'dream_job' && (
                       <div className="absolute top-[100%] left-0 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
                         {dreamJobOptions.map(opt => (
-                          <div 
+                          <div
                             key={opt}
                             onClick={() => handleCustomSelect(opt, 'dream_job')}
                             className="p-4 hover:bg-gray-50 font-bold text-steward-dark cursor-pointer transition-colors border-b border-gray-100 last:border-0 break-words whitespace-normal text-sm md:text-base"

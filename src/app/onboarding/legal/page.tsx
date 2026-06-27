@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { Save } from 'lucide-react';
 import Image from 'next/image';
-import { createClient } from '@/utils/supabase/client';
+import { useUser } from '@clerk/nextjs';
 
 export default function LegalNotice() {
   const { t } = useLanguage();
@@ -14,18 +14,23 @@ export default function LegalNotice() {
   const [signature, setSignature] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showError, setShowError] = useState(false);
-  const supabase = createClient();
+  const { user } = useUser();
 
   const handleSaveAndContinue = async (isContinue: boolean) => {
     setIsSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
 
     if (user && signature.trim()) {
-      await supabase.from('profiles').upsert({
-        id: user.id,
-        email: user.email,
-        full_name: signature.trim(),
-      });
+      try {
+        await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: signature.trim(),
+          }),
+        });
+      } catch (error) {
+        console.error('Save error:', error);
+      }
     }
 
     setIsSaving(false);

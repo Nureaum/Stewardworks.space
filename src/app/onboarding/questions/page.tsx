@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { Plus, Check } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
+import { useUser } from '@clerk/nextjs';
 
 export default function OnboardingQuestions() {
   const { t } = useLanguage();
@@ -18,7 +18,7 @@ export default function OnboardingQuestions() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [errorQId, setErrorQId] = useState<number | null>(null);
-  const supabase = createClient();
+  const { user } = useUser();
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -31,60 +31,66 @@ export default function OnboardingQuestions() {
 
   const handleSaveAndContinue = async (isContinue: boolean) => {
     setIsSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      let finalAvatarUrl = null;
+      try {
+        let finalAvatarUrl = null;
 
-      // Upload the photo if they selected one
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        // Upload the photo if they selected one
+        if (avatarFile) {
+          const formData = new FormData();
+          formData.append('file', avatarFile);
 
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile);
+          const uploadRes = await fetch('/api/upload-avatar', {
+            method: 'POST',
+            body: formData,
+          });
 
-        if (!uploadError) {
-          const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
-          finalAvatarUrl = data.publicUrl;
-        } else {
-          console.error("Upload error:", uploadError);
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            finalAvatarUrl = uploadData.publicUrl;
+          } else {
+            console.error('Upload error:', await uploadRes.text());
+          }
         }
+
+        // Map all 10 questions to our database schema
+        const q1_communityStatus = String(answers[1] || '');
+        const q2_learningStyleArray = Array.isArray(answers[2]) ? answers[2] : (answers[2] ? [String(answers[2])] : []);
+        const q3_dreamJob = String(answers[3] || '');
+        const q4_ageRange = String(answers[4] || '');
+        const q5_preferredLanguage = String(answers[5] || '');
+        const q6_internetAccess = String(answers[6] || '');
+        const q7_trainingInterest = String(answers[7] || '');
+        const q8_employmentStatus = String(answers[8] || '');
+        const q9_timeCommitment = String(answers[9] || '');
+        const q10_barriersArray = Array.isArray(answers[10]) ? answers[10] : (answers[10] ? [String(answers[10])] : []);
+
+        const payload: any = {
+          community_status: q1_communityStatus,
+          learning_style: q2_learningStyleArray,
+          dream_job: q3_dreamJob,
+          age_range: q4_ageRange,
+          preferred_language: q5_preferredLanguage,
+          internet_access: q6_internetAccess,
+          training_interest: q7_trainingInterest,
+          employment_status: q8_employmentStatus,
+          time_commitment: q9_timeCommitment,
+          barriers: q10_barriersArray,
+        };
+
+        if (finalAvatarUrl) {
+          payload.avatar_url = finalAvatarUrl;
+        }
+
+        await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch (error) {
+        console.error('Save error:', error);
       }
-
-      // Map all 10 questions to our database schema
-      const q1_communityStatus = String(answers[1] || '');
-      const q2_learningStyleArray = Array.isArray(answers[2]) ? answers[2] : (answers[2] ? [String(answers[2])] : []);
-      const q3_dreamJob = String(answers[3] || '');
-      const q4_ageRange = String(answers[4] || '');
-      const q5_preferredLanguage = String(answers[5] || '');
-      const q6_internetAccess = String(answers[6] || '');
-      const q7_trainingInterest = String(answers[7] || '');
-      const q8_employmentStatus = String(answers[8] || '');
-      const q9_timeCommitment = String(answers[9] || '');
-      const q10_barriersArray = Array.isArray(answers[10]) ? answers[10] : (answers[10] ? [String(answers[10])] : []);
-
-      const payload: any = {
-        id: user.id,
-        email: user.email,
-        community_status: q1_communityStatus,
-        learning_style: q2_learningStyleArray,
-        dream_job: q3_dreamJob,
-        age_range: q4_ageRange,
-        preferred_language: q5_preferredLanguage,
-        internet_access: q6_internetAccess,
-        training_interest: q7_trainingInterest,
-        employment_status: q8_employmentStatus,
-        time_commitment: q9_timeCommitment,
-        barriers: q10_barriersArray,
-      };
-
-      if (finalAvatarUrl) {
-        payload.avatar_url = finalAvatarUrl;
-      }
-
-      await supabase.from('profiles').upsert(payload);
     }
 
     setIsSaving(false);
