@@ -17,8 +17,32 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus('loading');
     setErrorMessage('');
+
+    // Client-side validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) {
+      setStatus('error');
+      setErrorMessage('Please enter your email address.');
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setStatus('error');
+      setErrorMessage('Please enter a valid email address (e.g. name@example.com).');
+      return;
+    }
+    if (!password) {
+      setStatus('error');
+      setErrorMessage('Please enter your password.');
+      return;
+    }
+    if (password.length < 6) {
+      setStatus('error');
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setStatus('loading');
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -27,10 +51,18 @@ export default function LoginPage() {
 
     if (error) {
       setStatus('error');
-      setErrorMessage(error.message);
+      if (error.message === 'Invalid login credentials') {
+        setErrorMessage('INVALID_CREDENTIALS');
+      } else if (error.message === 'Email not confirmed') {
+        setErrorMessage('EMAIL_NOT_CONFIRMED');
+      } else if (error.message.toLowerCase().includes('rate limit')) {
+        setErrorMessage('Too many login attempts. Please wait a moment and try again.');
+      } else {
+        setErrorMessage(error.message);
+      }
     } else {
       setStatus('success');
-      router.push('/hub');
+      router.push('/hub/my-profile');
     }
   };
 
@@ -48,12 +80,17 @@ export default function LoginPage() {
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: false, // PREVENT Scenario B: Do not auto-create accounts for strangers
       },
     });
 
     if (error) {
       setStatus('error');
-      setErrorMessage(error.message);
+      if (error.message.includes('Signups not allowed') || error.message.includes('not found')) {
+        setErrorMessage('ACCOUNT_NOT_FOUND');
+      } else {
+        setErrorMessage(error.message);
+      }
     } else {
       setStatus('magic_success');
     }
@@ -119,7 +156,7 @@ export default function LoginPage() {
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="text-steward-gold/60" size={20} />
+                  <Lock className="text-steward-gold/60" size={20} />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -138,7 +175,45 @@ export default function LoginPage() {
                 </button>
               </div>
               {status === 'error' && (
-                <p className="text-red-500 text-xs mt-2 ml-2 font-bold uppercase tracking-widest">{errorMessage}</p>
+                <div className="mt-2 ml-1">
+                  {errorMessage === 'INVALID_CREDENTIALS' ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
+                      <p className="text-red-600 text-xs font-bold">
+                        Email or password is incorrect.
+                      </p>
+                      <p className="text-red-500/80 text-[11px]">
+                        Double-check your password. If you originally signed up without a password, please use the <strong>Send Magic Link</strong> button below. Otherwise, you can{' '}
+                        <Link href="/signup" className="font-black underline text-steward-blue hover:text-steward-orange transition-colors">
+                          create a new account
+                        </Link>.
+                      </p>
+                    </div>
+                  ) : errorMessage === 'EMAIL_NOT_CONFIRMED' ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 space-y-2">
+                      <p className="text-yellow-700 text-xs font-bold">
+                        Your email hasn't been verified yet.
+                      </p>
+                      <p className="text-yellow-600/80 text-[11px]">
+                        Check your inbox for the confirmation link we sent when you signed up. Click that link first, then come back and log in.
+                      </p>
+                    </div>
+                  ) : errorMessage === 'ACCOUNT_NOT_FOUND' ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
+                      <p className="text-red-600 text-xs font-bold">
+                        No account found with this email.
+                      </p>
+                      <p className="text-red-500/80 text-[11px]">
+                        You must{' '}
+                        <Link href="/signup" className="font-black underline text-steward-blue hover:text-steward-orange transition-colors">
+                          create an account
+                        </Link>{' '}
+                        first before you can log in with a magic link!
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
+                  )}
+                </div>
               )}
             </div>
             

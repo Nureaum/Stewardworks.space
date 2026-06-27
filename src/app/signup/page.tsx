@@ -76,7 +76,7 @@ export default function SignupPage() {
       }
       
       setStatus('success');
-      router.push('/hub');
+      router.push('/hub/my-profile');
     } else {
       // Email confirmation is required! They are not logged in yet.
       setStatus('signup_success');
@@ -84,19 +84,38 @@ export default function SignupPage() {
   };
 
   const handleMagicLink = async () => {
-    if (!email) {
+    // 1. Client-side validation for Name and Phone
+    if (!firstName.trim() || !lastName.trim()) {
       setStatus('error');
-      setErrorMessage("Please enter an email address for the magic link.");
+      setErrorMessage("Please enter your First and Last Name.");
+      return;
+    }
+    if (!phone.trim()) {
+      setStatus('error');
+      setErrorMessage("Please enter your Phone Number.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim() || !emailRegex.test(email)) {
+      setStatus('error');
+      setErrorMessage("Please enter a valid email address.");
       return;
     }
     
     setStatus('loading');
     setErrorMessage('');
 
+    // 2. Send the Magic Link WITH the user's Name and Phone metadata!
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`.trim(),
+          phone: phone,
+        }
       },
     });
 

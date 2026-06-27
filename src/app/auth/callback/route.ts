@@ -27,8 +27,8 @@ export async function GET(request: Request) {
     const { error, data: sessionData } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error && sessionData?.session) {
-      // Redirect all users directly to the Hub after login
-      return NextResponse.redirect(`${origin}/hub`)
+      // Redirect all users directly to their profile after login/signup
+      return NextResponse.redirect(`${origin}/hub/my-profile`)
     }
   }
 
