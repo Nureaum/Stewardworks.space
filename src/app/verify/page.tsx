@@ -45,16 +45,23 @@ function VerifyPageContent() {
         setStatus('failed');
         setErrorMsg('Verification failed. The link might be invalid or expired.');
       });
-    } else if (clerkStatus === 'verified' && createdSessionId) {
-      // Magic link verified on a different browser, need to set the active session
-      setActive({ session: createdSessionId }).then(() => {
+    } else if (clerkStatus === 'verified') {
+      if (createdSessionId) {
+        // Magic link verified on a different browser, need to set the active session
+        setActive({ session: createdSessionId }).then(() => {
+          setStatus('success');
+          setTimeout(() => window.location.href = targetUrl, 1500);
+        }).catch((err) => {
+          console.error(err);
+          setStatus('failed');
+          setErrorMsg('Failed to activate session.');
+        });
+      } else {
+        // Verified, but no session ID was returned (often happens in cross-device signups).
+        // The account is created and verified! Just redirect to login.
         setStatus('success');
-        setTimeout(() => window.location.href = targetUrl, 1500);
-      }).catch((err) => {
-        console.error(err);
-        setStatus('failed');
-        setErrorMsg('Failed to activate session.');
-      });
+        setTimeout(() => window.location.href = '/login', 1500);
+      }
     } else {
       // If there's no ticket and no error, maybe they are already logged in
       if (client.activeSessions && client.activeSessions.length > 0) {
