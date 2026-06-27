@@ -2,9 +2,9 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function LanguageOnboarding() {
+function LanguageOnboardingContent() {
   const { setLanguage, t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -75,5 +75,18 @@ export default function LanguageOnboarding() {
         </div>
       </div>
     </main>
+  );
+}
+
+
+export default function LanguageOnboarding() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-steward-dark font-bold">Loading...</div>
+      </div>
+    }>
+      <LanguageOnboardingContent />
+    </Suspense>
   );
 }

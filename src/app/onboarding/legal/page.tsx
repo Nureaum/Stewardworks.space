@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { Save } from 'lucide-react';
 import Image from 'next/image';
 import { useUser } from '@clerk/nextjs';
 
-export default function LegalNotice() {
+function LegalNoticeContent() {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -197,5 +197,18 @@ export default function LegalNotice() {
         </p>
       </div>
     </main>
+  );
+}
+
+
+export default function LegalNotice() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-steward-offwhite flex items-center justify-center">
+        <div className="text-steward-dark font-bold">Loading...</div>
+      </div>
+    }>
+      <LegalNoticeContent />
+    </Suspense>
   );
 }

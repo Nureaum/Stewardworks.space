@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { User } from 'lucide-react';
 import Image from 'next/image';
 
-export default function LearningObjectives() {
+function LearningObjectivesContent() {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -160,5 +160,18 @@ export default function LearningObjectives() {
         </div>
       </div>
     </main>
+  );
+}
+
+
+export default function LearningObjectives() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-steward-offwhite flex items-center justify-center">
+        <div className="text-steward-dark font-bold">Loading...</div>
+      </div>
+    }>
+      <LearningObjectivesContent />
+    </Suspense>
   );
 }

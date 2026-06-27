@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { Check } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
-export default function OnboardingQuestions() {
+function OnboardingQuestionsContent() {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -303,5 +303,21 @@ export default function OnboardingQuestions() {
       </div>
       )}
     </div>
+  );
+}
+
+
+export default function OnboardingQuestions() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-steward-offwhite flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-steward-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-steward-dark/60 font-medium">Loading...</p>
+        </div>
+      </div>
+    }>
+      <OnboardingQuestionsContent />
+    </Suspense>
   );
 }
