@@ -12,6 +12,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'magic_success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [forgotPasswordStep, setForgotPasswordStep] = useState<'none' | 'email_sent' | 'success'>('none');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const router = useRouter();
   
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -120,6 +123,65 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!isLoaded) return;
+    if (!email.trim()) {
+      setStatus('error');
+      setErrorMessage('Please enter your email first to reset your password.');
+      return;
+    }
+    setStatus('loading');
+    setErrorMessage('');
+    try {
+      await signIn.create({
+        strategy: 'reset_password_email_code',
+        identifier: email,
+      });
+      setForgotPasswordStep('email_sent');
+      setStatus('idle');
+    } catch (err: any) {
+      setStatus('error');
+      const clerkError = err.errors?.[0];
+      if (clerkError?.code === 'form_identifier_not_found') {
+        setErrorMessage('No account found with this email.');
+      } else {
+        setErrorMessage(clerkError?.longMessage || 'An error occurred sending the reset code.');
+      }
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded) return;
+    if (newPassword.length < 6) {
+      setStatus('error');
+      setErrorMessage('New password must be at least 6 characters long.');
+      return;
+    }
+    setStatus('loading');
+    setErrorMessage('');
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: 'reset_password_email_code',
+        code: resetCode,
+        password: newPassword,
+      });
+
+      if (result.status === 'complete') {
+        setStatus('success');
+        setForgotPasswordStep('success');
+        await setActive({ session: result.createdSessionId });
+        router.push('/hub');
+      } else {
+        setStatus('error');
+        setErrorMessage('Failed to reset password. Check your code and try again.');
+      }
+    } catch (err: any) {
+      setStatus('error');
+      setErrorMessage(err.errors?.[0]?.longMessage || 'Invalid code or password.');
+    }
+  };
+
   const handleMagicLink = async () => {
     if (!isLoaded) return;
     if (!email) {
@@ -169,9 +231,13 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-steward-blue rounded-full flex items-center justify-center mb-4 text-white font-black text-xl shadow-inner">
             SW
           </div>
-          <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tight">Log In</h1>
+          <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tight">
+            {forgotPasswordStep === 'email_sent' ? 'Reset Password' : 'Log In'}
+          </h1>
           <p className="text-sm text-steward-dark/60 mt-2 text-center font-medium">
-            Enter your email and password to access the StewardWorks Hub.
+            {forgotPasswordStep === 'email_sent' 
+              ? 'Enter the 6-digit code sent to your email and your new password.'
+              : 'Enter your email and password to access the StewardWorks Hub.'}
           </p>
         </div>
 
@@ -201,6 +267,68 @@ export default function LoginPage() {
               Use a different email
             </button>
           </div>
+        ) : forgotPasswordStep === 'email_sent' ? (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <CheckCircle className="text-steward-gold/60" size={20} />
+                </div>
+                <input
+                  type="text"
+                  value={resetCode}
+                  onChange={(e) => setResetCode(e.target.value)}
+                  placeholder="6-digit Code"
+                  required
+                  className="w-full pl-12 pr-6 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium tracking-widest"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className="text-steward-gold/60" size={20} />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New Password"
+                  required
+                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-steward-gold/60 hover:text-steward-blue transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              {status === 'error' && (
+                <div className="mt-2 ml-1">
+                  <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={status === 'loading'}
+              className="w-full bg-steward-blue text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] hover:bg-steward-orange transition-colors shadow-lg shadow-steward-blue/20 disabled:opacity-50 mt-2"
+            >
+              {status === 'loading' ? 'Resetting...' : 'Reset Password'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setForgotPasswordStep('none'); setStatus('idle'); }}
+              disabled={status === 'loading'}
+              className="w-full bg-white border-2 border-steward-blue text-steward-blue py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-steward-blue/5 transition-colors disabled:opacity-50 mt-2"
+            >
+              Back to Login
+            </button>
+          </form>
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">
             <div id="clerk-captcha"></div>
@@ -239,6 +367,15 @@ export default function LoginPage() {
                   className="absolute inset-y-0 right-0 pr-4 flex items-center text-steward-gold/60 hover:text-steward-blue transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              <div className="mt-2 flex justify-end px-1">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs font-bold text-steward-blue hover:text-steward-orange transition-colors"
+                >
+                  Forgot Password?
                 </button>
               </div>
               {status === 'error' && (
