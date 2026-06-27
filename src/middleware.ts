@@ -19,10 +19,10 @@ const isPublicRoute = createRouteMatcher([
 
 /**
  * VIP routes that require onboarding completion (preferred_language set).
+ * REMOVED: pilot-workshops and community-listening from VIP routes
+ * Users can now access these directly without completing onboarding
  */
 const isVipRoute = createRouteMatcher([
-  '/hub/pilot-workshops(.*)',
-  '/hub/community-listening(.*)',
   '/hub/ai-lab(.*)',
 ])
 
