@@ -12,9 +12,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'magic_success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [forgotPasswordStep, setForgotPasswordStep] = useState<'none' | 'email_sent' | 'success'>('none');
+  const [forgotPasswordStep, setForgotPasswordStep] = useState<'none' | 'enter_email' | 'email_sent' | 'success'>('none');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -125,11 +127,22 @@ export default function LoginPage() {
 
   const handleForgotPassword = async () => {
     if (!isLoaded) return;
-    if (!email.trim()) {
-      setStatus('error');
-      setErrorMessage('Please enter your email first to reset your password.');
+    
+    // If they just clicked the link, take them to the email entry step
+    if (forgotPasswordStep === 'none') {
+      setForgotPasswordStep('enter_email');
+      setStatus('idle');
+      setErrorMessage('');
       return;
     }
+
+    // If they are on the enter_email step, submit it
+    if (!email.trim()) {
+      setStatus('error');
+      setErrorMessage('Please enter your email to reset your password.');
+      return;
+    }
+    
     setStatus('loading');
     setErrorMessage('');
     try {
@@ -156,6 +169,11 @@ export default function LoginPage() {
     if (newPassword.length < 6) {
       setStatus('error');
       setErrorMessage('New password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setStatus('error');
+      setErrorMessage('Passwords do not match.');
       return;
     }
     setStatus('loading');
@@ -232,11 +250,13 @@ export default function LoginPage() {
             SW
           </div>
           <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tight">
-            {forgotPasswordStep === 'email_sent' ? 'Reset Password' : 'Log In'}
+            {forgotPasswordStep === 'email_sent' ? 'New Password' : forgotPasswordStep === 'enter_email' ? 'Reset Password' : 'Log In'}
           </h1>
           <p className="text-sm text-steward-dark/60 mt-2 text-center font-medium">
             {forgotPasswordStep === 'email_sent' 
               ? 'Enter the 6-digit code sent to your email and your new password.'
+              : forgotPasswordStep === 'enter_email'
+              ? 'Enter your email address and we will send you a reset code.'
               : 'Enter your email and password to access the StewardWorks Hub.'}
           </p>
         </div>
@@ -306,6 +326,29 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+            </div>
+
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className="text-steward-gold/60" size={20} />
+                </div>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm New Password"
+                  required
+                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-steward-gold/60 hover:text-steward-blue transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
               {status === 'error' && (
                 <div className="mt-2 ml-1">
                   <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
@@ -320,13 +363,36 @@ export default function LoginPage() {
             >
               {status === 'loading' ? 'Resetting...' : 'Reset Password'}
             </button>
+          </form>
+        ) : forgotPasswordStep === 'enter_email' ? (
+          <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="text-steward-gold/60" size={20} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  required
+                  className="w-full pl-12 pr-6 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium"
+                />
+              </div>
+              {status === 'error' && (
+                <div className="mt-2 ml-1">
+                  <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
+                </div>
+              )}
+            </div>
+            
             <button
-              type="button"
-              onClick={() => { setForgotPasswordStep('none'); setStatus('idle'); }}
-              disabled={status === 'loading'}
-              className="w-full bg-white border-2 border-steward-blue text-steward-blue py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-steward-blue/5 transition-colors disabled:opacity-50 mt-2"
+              type="submit"
+              disabled={status === 'loading' || !email.trim()}
+              className="w-full bg-steward-blue text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] hover:bg-steward-orange transition-colors shadow-lg shadow-steward-blue/20 disabled:opacity-50 mt-2"
             >
-              Back to Login
+              {status === 'loading' ? 'Sending...' : 'Send Reset Code'}
             </button>
           </form>
         ) : (
@@ -454,9 +520,18 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <Link href="/" className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-steward-gold uppercase tracking-widest hover:text-steward-dark transition-colors">
-          <ChevronLeft size={14} /> Back to Home
-        </Link>
+        {forgotPasswordStep !== 'none' ? (
+          <button 
+            onClick={() => { setForgotPasswordStep('none'); setStatus('idle'); setErrorMessage(''); setConfirmPassword(''); setResetCode(''); setNewPassword(''); }}
+            className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-steward-gold uppercase tracking-widest hover:text-steward-dark transition-colors w-full"
+          >
+            <ChevronLeft size={14} /> Back to Login
+          </button>
+        ) : (
+          <Link href="/" className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-steward-gold uppercase tracking-widest hover:text-steward-dark transition-colors">
+            <ChevronLeft size={14} /> Back to Home
+          </Link>
+        )}
       </div>
       
       {/* Background visual accents */}
