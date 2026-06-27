@@ -235,13 +235,13 @@ export default function MyProfilePage() {
   return (
     <div className="min-h-screen bg-steward-offwhite p-8 font-exo">
       <div className="max-w-4xl mx-auto flex items-center mb-8">
-        <Link 
+        <a 
           href="/hub"
           className="flex items-center gap-2 text-steward-dark hover:text-steward-blue transition-colors"
         >
           <ArrowLeft size={20} />
           <span className="font-bold uppercase tracking-widest text-sm">Back to Hub</span>
-        </Link>
+        </a>
       </div>
 
       <div className="max-w-4xl mx-auto">

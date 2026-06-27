@@ -62,7 +62,7 @@ export default function LoginPage() {
       }
     } else {
       setStatus('success');
-      router.push('/hub/my-profile');
+      router.push('/hub');
     }
   };
 
