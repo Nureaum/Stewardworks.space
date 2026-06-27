@@ -23,8 +23,32 @@ function VerifyPageContent() {
     const flowType = searchParams.get('type');
     const targetUrl = flowType === 'signup' ? '/hub/my-profile' : '/hub';
 
+    console.log('Verify Page Debug:', {
+      clerkStatus,
+      ticket,
+      createdSessionId,
+      flowType,
+      hasClient: !!client,
+      activeSessions: client?.activeSessions?.length || 0
+    });
+
+    // CRITICAL FIX: Handle client_mismatch better - try to recover
     if (clerkStatus === 'client_mismatch') {
-      setStatus('mismatch');
+      console.log('Client mismatch detected - this should not happen with setting disabled');
+      // Instead of showing error, try to handle cross-browser scenario
+      // The user's email is verified, just need them to login again
+      setStatus('success');
+      setErrorMsg('Email verified! Please log in on this browser.');
+      setTimeout(() => {
+        const loginUrl = new URL('/login', window.location.origin);
+        // Pre-fill the email if we can get it from URL
+        const emailHint = searchParams.get('email');
+        if (emailHint) {
+          loginUrl.searchParams.set('email', emailHint);
+          loginUrl.searchParams.set('verified', 'true');
+        }
+        window.location.href = loginUrl.toString();
+      }, 2000);
       return;
     }
     
@@ -34,45 +58,83 @@ function VerifyPageContent() {
       return;
     }
 
+    // CRITICAL FIX: Handle the ticket verification properly
     if (ticket) {
+      console.log('Processing ticket verification...');
       handleEmailLinkVerification({
         redirectUrl: targetUrl,
-      }).then(() => {
+      }).then(async (result: any) => {
+        console.log('Verification result:', result);
+        // CRITICAL: Ensure session is activated
+        if (result?.createdSessionId) {
+          console.log('Activating session:', result.createdSessionId);
+          await setActive({ session: result.createdSessionId });
+        }
         setStatus('success');
         setTimeout(() => window.location.href = targetUrl, 1500);
-      }).catch((err) => {
-        console.error(err);
+      }).catch((err: any) => {
+        console.error('Verification error:', err);
         setStatus('failed');
-        setErrorMsg('Verification failed. The link might be invalid or expired.');
+        setErrorMsg(err.errors?.[0]?.longMessage || 'Verification failed. The link might be invalid or expired.');
       });
     } else if (clerkStatus === 'verified') {
+      console.log('Status is verified, processing...');
+      // CRITICAL FIX: Handle all verified states properly
       if (createdSessionId) {
-        // Magic link verified on a different browser, need to set the active session
-        setActive({ session: createdSessionId }).then(() => {
+        console.log('Activating verified session:', createdSessionId);
+        // Magic link verified, activate the session
+        setActive({ session: createdSessionId }).then(async () => {
+          console.log('Session activated successfully!');
+          
+          // CRITICAL: Wait for Clerk client to fully sync the session
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Force check if session is now active
+          console.log('Checking session status...');
+          console.log('Active sessions:', client?.activeSessions?.length || 0);
+          
+          // Show success immediately
           setStatus('success');
-          setTimeout(() => window.location.href = targetUrl, 1500);
-        }).catch((err) => {
-          console.error(err);
+          
+          // CRITICAL: Use window.location.replace to avoid middleware issues
+          // Replace instead of href to prevent back button issues
+          setTimeout(() => {
+            console.log('Redirecting to:', targetUrl);
+            window.location.replace(targetUrl);
+          }, 1500);
+        }).catch((err: any) => {
+          console.error('Session activation error:', err);
+          // CRITICAL: If session activation fails, it's likely cross-browser
           setStatus('failed');
-          setErrorMsg('Failed to activate session.');
+          setErrorMsg('This magic link was opened in a different browser. For security, magic links only work in the browser where they were requested. Please either: 1) Open the link in your original browser, or 2) Log in with your email and password on this device.');
         });
-      } else {
-        // Verified, but no session ID was returned (often happens in cross-device signups).
-        // The account is created and verified! Just redirect to login.
+      } else if (client?.activeSessions && client.activeSessions.length > 0) {
+        console.log('Session already activated');
+        // Session already activated
         setStatus('success');
-        setTimeout(() => window.location.href = '/login', 1500);
+        setTimeout(() => {
+          window.location.href = targetUrl;
+        }, 1500);
+      } else {
+        console.log('Verified but no createdSessionId in if block - likely cross-browser');
+        // This happens in cross-browser scenarios
+        // Show helpful message instead of error
+        setStatus('success');
+        setErrorMsg('Email verified! Since you opened this link in a different browser, please log in with your email and password on this browser.');
+        // Don't auto-redirect - let user click the button when ready
       }
     } else {
-      // If there's no ticket and no error, maybe they are already logged in
-      if (client.activeSessions && client.activeSessions.length > 0) {
+      console.log('No ticket or verified status, checking active sessions...');
+      // CRITICAL FIX: Check for existing session
+      if (client?.activeSessions && client.activeSessions.length > 0) {
         setStatus('success');
         setTimeout(() => window.location.href = targetUrl, 1500);
       } else {
         setStatus('failed');
-        setErrorMsg('Invalid verification link.');
+        setErrorMsg('Invalid verification link. Please request a new one.');
       }
     }
-  }, [loaded, searchParams, handleEmailLinkVerification, client, router]);
+  }, [loaded, searchParams, handleEmailLinkVerification, setActive, client]);
 
   return (
     <div className="min-h-screen bg-steward-offwhite flex flex-col items-center justify-center font-exo p-4">
@@ -90,7 +152,16 @@ function VerifyPageContent() {
           <div className="flex flex-col items-center space-y-4 animate-in fade-in zoom-in duration-300">
             <CheckCircle className="text-steward-green" size={48} />
             <h1 className="text-xl font-black text-steward-dark uppercase tracking-tight">Success!</h1>
-            <p className="text-sm text-steward-dark/60">You are securely logged in. Redirecting...</p>
+            {errorMsg ? (
+              <>
+                <p className="text-sm text-steward-dark/80">{errorMsg}</p>
+                <Link href="/login" className="w-full mt-4 bg-steward-blue hover:bg-steward-orange text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] shadow-lg shadow-steward-blue/20 transition-colors">
+                  Go to Login
+                </Link>
+              </>
+            ) : (
+              <p className="text-sm text-steward-dark/60">You are securely logged in. Redirecting...</p>
+            )}
           </div>
         )}
 

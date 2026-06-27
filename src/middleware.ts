@@ -27,17 +27,26 @@ const isVipRoute = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, request) => {
+  // CRITICAL FIX: Get auth state without redirecting yet
+  const authResult = await auth();
+  const { userId } = authResult;
+
+  // CRITICAL: Skip auth checks for verify page to allow session activation
+  if (request.nextUrl.pathname.startsWith('/verify')) {
+    return NextResponse.next();
+  }
+
   // Protect non-public routes
   if (!isPublicRoute(request)) {
-    const { userId } = await auth()
     if (!userId) {
-      const signInUrl = new URL('/login', request.url)
-      return NextResponse.redirect(signInUrl)
+      const signInUrl = new URL('/login', request.url);
+      // CRITICAL: Add returnUrl so user can come back after login
+      signInUrl.searchParams.set('redirect_url', request.url);
+      return NextResponse.redirect(signInUrl);
     }
   }
 
   // VIP route check: user must have completed the onboarding questionnaire
-  const { userId } = await auth()
   if (userId && isVipRoute(request)) {
     try {
       const supabase = createClient(
@@ -52,15 +61,18 @@ export default clerkMiddleware(async (auth, request) => {
         .single()
 
       if (!profile || !profile.preferred_language) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/onboarding/language'
-        return NextResponse.redirect(url)
+        const url = request.nextUrl.clone();
+        url.pathname = '/onboarding/language';
+        return NextResponse.redirect(url);
       }
     } catch (error) {
       // If DB check fails, allow access rather than blocking
-      console.error('Middleware VIP check failed:', error)
+      console.error('Middleware VIP check failed:', error);
     }
   }
+
+  // CRITICAL FIX: Return NextResponse.next() to continue processing
+  return NextResponse.next();
 })
 
 export const config = {

@@ -24,10 +24,26 @@ export default function SignupPage() {
   const { isSignedIn, signOut } = useAuth();
 
   useEffect(() => {
+    // If user is already signed in, redirect to hub
     if (isSignedIn) {
       router.push('/hub');
     }
   }, [isSignedIn, router]);
+
+  // Force cleanup any stale sessions on mount
+  useEffect(() => {
+    const cleanupStaleSessions = async () => {
+      if (isLoaded && !isSignedIn && signUp?.status === undefined) {
+        // Clear any stale Clerk state
+        try {
+          await signOut?.();
+        } catch (e) {
+          // Ignore errors - session might not exist
+        }
+      }
+    };
+    cleanupStaleSessions();
+  }, [isLoaded]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +65,13 @@ export default function SignupPage() {
     setErrorMessage('');
 
     try {
+      // CRITICAL FIX: Clear any existing session before creating new account
+      if (isSignedIn) {
+        await signOut();
+        // Wait a bit for session cleanup
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       // 1. Create the user
       await signUp.create({
         emailAddress: email,
@@ -74,56 +97,27 @@ export default function SignupPage() {
       const clerkError = err.errors?.[0];
       if (clerkError?.code === 'form_identifier_exists') {
         setErrorMessage("An account with this email already exists. Please log in instead.");
-      } else {
-        setErrorMessage(clerkError?.longMessage || 'An unexpected error occurred.');
-      }
-    }
-  };
-
-  const handleMagicLink = async () => {
-    if (!isLoaded) return;
-
-    // Client-side validation
-    if (!firstName.trim() || !lastName.trim()) {
-      setStatus('error');
-      setErrorMessage("Please enter your First and Last Name.");
-      return;
-    }
-    if (!phone.trim()) {
-      setStatus('error');
-      setErrorMessage("Please enter your Phone Number.");
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim() || !emailRegex.test(email)) {
-      setStatus('error');
-      setErrorMessage("Please enter a valid email address.");
-      return;
-    }
-    
-    setStatus('loading');
-    setErrorMessage('');
-
-    try {
-      // Create user and send magic link at the same time
-      await signUp.create({
-        emailAddress: email,
-        firstName,
-        lastName,
-        unsafeMetadata: { phone },
-      });
-
-      await signUp.prepareEmailAddressVerification({
-        strategy: 'email_link',
-        redirectUrl: `${window.location.origin}/verify?type=signup`,
-      });
-
-      setStatus('magic_success');
-    } catch (err: any) {
-      setStatus('error');
-      const clerkError = err.errors?.[0];
-      if (clerkError?.code === 'form_identifier_exists') {
-        setErrorMessage("An account with this email already exists. Please log in instead.");
+      } else if (clerkError?.code === 'session_exists') {
+        // Session exists - clear it and retry
+        try {
+          await signOut();
+          await new Promise(resolve => setTimeout(resolve, 500));
+          // Retry the signup
+          await signUp.create({
+            emailAddress: email,
+            password,
+            firstName,
+            lastName,
+            unsafeMetadata: { phone }
+          });
+          await signUp.prepareEmailAddressVerification({ 
+            strategy: "email_link",
+            redirectUrl: `${window.location.origin}/verify?type=signup`
+          });
+          setStatus('signup_success');
+        } catch (retryErr: any) {
+          setErrorMessage(retryErr.errors?.[0]?.longMessage || 'Unable to create account. Please try again.');
+        }
       } else {
         setErrorMessage(clerkError?.longMessage || 'An unexpected error occurred.');
       }
@@ -282,20 +276,6 @@ export default function SignupPage() {
               className="w-full bg-steward-blue text-white py-4 rounded-xl font-black uppercase tracking-widest hover:bg-steward-orange transition-colors shadow-lg shadow-steward-blue/20 disabled:opacity-50 mt-2"
             >
               {status === 'loading' ? 'Processing...' : 'Create Account'}
-            </button>
-            
-            <div className="relative py-4 flex items-center justify-center">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-              <div className="relative bg-white px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">OR</div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleMagicLink}
-              disabled={status === 'loading' || !email}
-              className="w-full bg-white border-2 border-steward-blue text-steward-blue py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-steward-blue/5 transition-colors disabled:opacity-50"
-            >
-              Send Magic Link
             </button>
           </form>
         )}

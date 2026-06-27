@@ -17,16 +17,57 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [crossBrowserHint, setCrossBrowserHint] = useState(false);
   const router = useRouter();
   
   const { isLoaded, signIn, setActive } = useSignIn();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, signOut } = useAuth();
 
   useEffect(() => {
+    // If user is already signed in, redirect to hub
     if (isSignedIn) {
       router.push('/hub');
     }
   }, [isSignedIn, router]);
+
+  // Check for cross-browser verification hint
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const emailParam = urlParams.get('email');
+      const fromVerify = urlParams.get('verified');
+      
+      if (emailParam) {
+        setEmail(emailParam);
+      }
+      
+      if (fromVerify === 'true') {
+        setCrossBrowserHint(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // If user is already signed in, redirect to hub
+    if (isSignedIn) {
+      router.push('/hub');
+    }
+  }, [isSignedIn, router]);
+
+  // Force cleanup any stale sessions on mount
+  useEffect(() => {
+    const cleanupStaleSessions = async () => {
+      if (isLoaded && !isSignedIn && signIn?.status === undefined) {
+        // Clear any stale Clerk state
+        try {
+          await signOut?.();
+        } catch (e) {
+          // Ignore errors - session might not exist
+        }
+      }
+    };
+    cleanupStaleSessions();
+  }, [isLoaded]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,32 +253,62 @@ export default function LoginPage() {
     setErrorMessage('');
 
     try {
-      const { supportedFirstFactors } = await signIn.create({
+      // CRITICAL FIX: ALWAYS force a complete reset before magic link
+      // This handles all edge cases: password filled, password touched, existing sessions
+      console.log('Forcing complete Clerk state reset...');
+      
+      try {
+        // Force sign out regardless of current state
+        await signOut();
+        console.log('Sign out completed');
+      } catch (signOutErr) {
+        console.log('Sign out not needed or already signed out');
+      }
+      
+      // Wait for Clerk to fully reset (increased delay)
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      console.log('Creating fresh signIn for magic link:', email);
+      const signInResult = await signIn.create({
         identifier: email,
       });
 
-      const emailLinkFactor = supportedFirstFactors?.find(
+      console.log('SignIn created, looking for email link factor...');
+      const emailLinkFactor = signInResult.supportedFirstFactors?.find(
         (factor) => factor.strategy === 'email_link'
-      );
+      ) as any;
 
       if (emailLinkFactor) {
+        console.log('Sending magic link...');
         await signIn.prepareFirstFactor({
           strategy: 'email_link',
           emailAddressId: emailLinkFactor.emailAddressId,
           redirectUrl: `${window.location.origin}/verify?type=login`,
         });
+        console.log('Magic link sent successfully!');
         setStatus('magic_success');
       } else {
+        console.log('No email link factor found');
         setStatus('error');
         setErrorMessage('ACCOUNT_NOT_FOUND');
       }
     } catch (err: any) {
+      console.error('Magic link error:', err);
       setStatus('error');
       const clerkError = err.errors?.[0];
+      
       if (clerkError?.code === 'form_identifier_not_found') {
         setErrorMessage('ACCOUNT_NOT_FOUND');
+      } else if (clerkError?.code === 'session_exists' || clerkError?.message?.includes('active session') || clerkError?.message?.includes('authenticate')) {
+        // Any session-related error - force page reload to completely reset
+        console.log('Session conflict detected, reloading page...');
+        setStatus('error');
+        setErrorMessage('Resetting session... Please wait.');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
-        setErrorMessage(clerkError?.longMessage || 'An unexpected error occurred.');
+        setErrorMessage(clerkError?.longMessage || 'An unexpected error occurred. Please refresh the page and try again.');
       }
     }
   };
@@ -260,6 +331,15 @@ export default function LoginPage() {
               : 'Enter your email and password to access the StewardWorks Hub.'}
           </p>
         </div>
+
+        {crossBrowserHint && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center">
+            <p className="text-blue-800 text-sm font-bold mb-1">✓ Email Verified!</p>
+            <p className="text-blue-600 text-xs">
+              Your email is verified. Please log in on this browser to continue.
+            </p>
+          </div>
+        )}
 
         {status === 'success' ? (
           <div className="bg-steward-green/10 border border-steward-green/30 rounded-2xl p-6 text-center space-y-4 animate-in fade-in zoom-in duration-300">
