@@ -27,16 +27,19 @@ export default function IntroAIContentPage() {
           if (data.profile?.community_status) {
             setHasCompleted(true);
           } else {
-            // Redirect to onboarding
-            router.push('/onboarding/language');
+            // Redirect to onboarding with return URL
+            const returnUrl = encodeURIComponent('/hub/pilot-workshops/intro-ai-content');
+            router.push(`/onboarding/language?returnUrl=${returnUrl}`);
           }
         } else {
-          // No profile yet, redirect to onboarding
-          router.push('/onboarding/language');
+          // No profile yet, redirect to onboarding with return URL
+          const returnUrl = encodeURIComponent('/hub/pilot-workshops/intro-ai-content');
+          router.push(`/onboarding/language?returnUrl=${returnUrl}`);
         }
       } catch (error) {
         console.error('Failed to check onboarding status:', error);
-        router.push('/onboarding/language');
+        const returnUrl = encodeURIComponent('/hub/pilot-workshops/intro-ai-content');
+        router.push(`/onboarding/language?returnUrl=${returnUrl}`);
       } finally {
         setIsChecking(false);
       }

@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { User } from 'lucide-react';
 import Image from 'next/image';
@@ -9,6 +9,23 @@ import Image from 'next/image';
 export default function LearningObjectives() {
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = searchParams.get('returnUrl');
+    setReturnUrl(url);
+  }, [searchParams]);
+
+  const handleEnterHub = () => {
+    if (returnUrl) {
+      // Redirect back to where user came from (workshop page)
+      router.push(decodeURIComponent(returnUrl));
+    } else {
+      // Default redirect to hub
+      router.push('/hub');
+    }
+  };
 
   const objectives = [
     {
@@ -121,14 +138,14 @@ export default function LearningObjectives() {
         {/* Navigation to Hub */}
         <div className="flex flex-col items-center space-y-4 pt-12">
           <button 
-            onClick={() => router.push('/hub')}
+            onClick={handleEnterHub}
             className="w-full max-w-sm py-5 bg-steward-green hover:bg-steward-orange text-white font-black rounded-xl shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-3 group"
           >
-            Enter Career Hub
+            {returnUrl ? 'Continue to Workshop' : 'Enter Career Hub'}
             <span className="group-hover:translate-x-1 transition-transform">→</span>
           </button>
           <p className="text-[10px] text-steward-gold font-bold uppercase tracking-widest">
-            Begin your journey into stewardship
+            {returnUrl ? 'Complete your registration' : 'Begin your journey into stewardship'}
           </p>
         </div>
       </div>

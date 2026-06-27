@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { Check } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
@@ -9,6 +9,7 @@ import { useUser } from '@clerk/nextjs';
 export default function OnboardingQuestions() {
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // State for all 10 questions
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({
@@ -17,7 +18,15 @@ export default function OnboardingQuestions() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorQId, setErrorQId] = useState<number | null>(null);
+  const [hasLoadedFromProfile, setHasLoadedFromProfile] = useState(false);
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
   const { user } = useUser();
+
+  // Get returnUrl from search params
+  useEffect(() => {
+    const url = searchParams.get('returnUrl');
+    setReturnUrl(url);
+  }, [searchParams]);
 
   // Load existing answers from database on mount
   React.useEffect(() => {
@@ -32,21 +41,32 @@ export default function OnboardingQuestions() {
         if (response.ok) {
           const data = await response.json();
           
-          // Map database fields back to question answers
-          const loadedAnswers: Record<number, string | string[]> = {
-            1: data.community_status || '',
-            2: data.learning_style || [],
-            3: data.dream_job || '',
-            4: data.age_range || '',
-            5: data.preferred_language || '',
-            6: data.internet_access || '',
-            7: data.training_interest || '',
-            8: data.employment_status || '',
-            9: data.time_commitment || '',
-            10: data.barriers || [],
-          };
+          if (data.profile) {
+            // Check if user has any existing profile data
+            const hasExistingData = data.profile.community_status || 
+                                   data.profile.learning_style?.length > 0 || 
+                                   data.profile.dream_job;
 
-          setAnswers(loadedAnswers);
+            if (hasExistingData) {
+              setHasLoadedFromProfile(true);
+            }
+
+            // Map database fields back to question answers
+            const loadedAnswers: Record<number, string | string[]> = {
+              1: data.profile.community_status || '',
+              2: Array.isArray(data.profile.learning_style) ? data.profile.learning_style : [],
+              3: data.profile.dream_job || '',
+              4: data.profile.age_range || '',
+              5: data.profile.preferred_language || '',
+              6: data.profile.internet_access || '',
+              7: data.profile.training_interest || '',
+              8: data.profile.employment_status || '',
+              9: data.profile.time_commitment || '',
+              10: Array.isArray(data.profile.barriers) ? data.profile.barriers : [],
+            };
+
+            setAnswers(loadedAnswers);
+          }
         }
       } catch (error) {
         console.error('Failed to load existing answers:', error);
@@ -100,7 +120,8 @@ export default function OnboardingQuestions() {
 
     setIsSaving(false);
     if (isContinue) {
-      router.push('/onboarding/legal');
+      const url = returnUrl ? `/onboarding/legal?returnUrl=${returnUrl}` : '/onboarding/legal';
+      router.push(url);
     } else {
       alert('Progress saved to Database!');
     }
@@ -169,7 +190,10 @@ export default function OnboardingQuestions() {
         </h1>
         <div className="flex gap-3">
           <button 
-            onClick={() => router.push('/onboarding/legal')}
+            onClick={() => {
+              const url = returnUrl ? `/onboarding/legal?returnUrl=${returnUrl}` : '/onboarding/legal';
+              router.push(url);
+            }}
             className="text-white/60 hover:text-white px-3 py-1.5 rounded-md text-xs font-bold transition-all"
           >
             {t('onboarding.skip')}
@@ -222,6 +246,17 @@ export default function OnboardingQuestions() {
                     )}
                   </div>
                 </div>
+
+                {/* Show profile message for Question 2 (Learning Style) and Question 3 (Dream Job) */}
+                {(q.id === 2 || q.id === 3) && hasLoadedFromProfile && (
+                  Array.isArray(currentAnswer) ? currentAnswer.length > 0 : currentAnswer
+                ) && (
+                  <div className="bg-steward-blue/10 border border-steward-blue/30 rounded-xl p-3">
+                    <p className="text-xs font-bold text-steward-dark text-center">
+                      📋 You already added this in your profile. Need to update?
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 gap-3">
                   {options.map((option, idx) => {

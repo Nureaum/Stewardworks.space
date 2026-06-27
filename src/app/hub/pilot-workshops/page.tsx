@@ -10,7 +10,7 @@ export default function PilotWorkshopsPage() {
   return (
     <div className="min-h-screen bg-steward-offwhite p-8 font-exo">
       <button 
-        onClick={() => router.back()}
+        onClick={() => router.push('/hub')}
         className="flex items-center gap-2 text-steward-dark hover:text-steward-blue transition-colors mb-12"
       >
         <ArrowLeft size={20} />

@@ -1,15 +1,24 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { useEffect, useState } from 'react';
 
 export default function LanguageOnboarding() {
   const { setLanguage, t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = searchParams.get('returnUrl');
+    setReturnUrl(url);
+  }, [searchParams]);
 
   const handleLanguageSelect = (lang: 'en' | 'es') => {
     setLanguage(lang);
-    router.push('/onboarding/questions');
+    const url = returnUrl ? `/onboarding/questions?returnUrl=${returnUrl}` : '/onboarding/questions';
+    router.push(url);
   };
 
   return (

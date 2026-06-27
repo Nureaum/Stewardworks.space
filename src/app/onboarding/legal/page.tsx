@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { Save } from 'lucide-react';
 import Image from 'next/image';
@@ -10,11 +10,18 @@ import { useUser } from '@clerk/nextjs';
 export default function LegalNotice() {
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [accepted, setAccepted] = useState(false);
   const [signature, setSignature] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
   const { user } = useUser();
+
+  useEffect(() => {
+    const url = searchParams.get('returnUrl');
+    setReturnUrl(url);
+  }, [searchParams]);
 
   const handleSaveAndContinue = async (isContinue: boolean) => {
     setIsSaving(true);
@@ -35,7 +42,8 @@ export default function LegalNotice() {
 
     setIsSaving(false);
     if (isContinue) {
-      router.push('/onboarding/objectives');
+      const url = returnUrl ? `/onboarding/objectives?returnUrl=${returnUrl}` : '/onboarding/objectives';
+      router.push(url);
     } else {
       alert('Progress saved to Database!');
     }
