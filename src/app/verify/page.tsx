@@ -47,7 +47,7 @@ function VerifyPageContent() {
       // Magic link verified on a different browser, need to set the active session
       setActive({ session: createdSessionId }).then(() => {
         setStatus('success');
-        setTimeout(() => router.push(targetUrl), 1500);
+        setTimeout(() => window.location.href = targetUrl, 1500);
       }).catch((err) => {
         console.error(err);
         setStatus('failed');
@@ -57,7 +57,7 @@ function VerifyPageContent() {
       // If there's no ticket and no error, maybe they are already logged in
       if (client.activeSessions && client.activeSessions.length > 0) {
         setStatus('success');
-        setTimeout(() => router.push(targetUrl), 1500);
+        setTimeout(() => window.location.href = targetUrl, 1500);
       } else {
         setStatus('failed');
         setErrorMsg('Invalid verification link.');
