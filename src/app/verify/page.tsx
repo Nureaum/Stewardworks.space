@@ -37,7 +37,9 @@ function VerifyPageContent() {
     if (ticket) {
       handleEmailLinkVerification({
         redirectUrl: targetUrl,
-        redirectUrlComplete: targetUrl,
+      }).then(() => {
+        setStatus('success');
+        setTimeout(() => window.location.href = targetUrl, 1500);
       }).catch((err) => {
         console.error(err);
         setStatus('failed');
