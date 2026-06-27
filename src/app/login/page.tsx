@@ -81,7 +81,7 @@ export default function LoginPage() {
           setStatus('error');
           setErrorMessage('Your email is unverified. Please use the Magic Link option to verify it.');
         }
-      } else if (completeSignIn.status === 'needs_client_trust') {
+      } else if ((completeSignIn.status as string) === 'needs_client_trust') {
         // New device detected. Clerk requires a second factor (Client Trust).
         const emailFactor = completeSignIn.supportedSecondFactors?.find(
           (f: any) => f.strategy === 'email_link' && f.safeIdentifier === email

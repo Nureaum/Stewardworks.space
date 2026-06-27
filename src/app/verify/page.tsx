@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function VerifyPage() {
+function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loaded, client, handleMagicLinkVerification, setActive } = useClerk();
+  const { loaded, client, handleEmailLinkVerification, setActive } = useClerk();
   
   const [status, setStatus] = useState<'verifying' | 'success' | 'failed' | 'mismatch'>('verifying');
   const [errorMsg, setErrorMsg] = useState('');
@@ -35,7 +35,7 @@ export default function VerifyPage() {
     }
 
     if (ticket) {
-      handleMagicLinkVerification({
+      handleEmailLinkVerification({
         redirectUrl: targetUrl,
         redirectUrlComplete: targetUrl,
       }).catch((err) => {
@@ -63,7 +63,7 @@ export default function VerifyPage() {
         setErrorMsg('Invalid verification link.');
       }
     }
-  }, [loaded, searchParams, handleMagicLinkVerification, client, router]);
+  }, [loaded, searchParams, handleEmailLinkVerification, client, router]);
 
   return (
     <div className="min-h-screen bg-steward-offwhite flex flex-col items-center justify-center font-exo p-4">
@@ -114,5 +114,13 @@ export default function VerifyPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-steward-offwhite flex items-center justify-center"><Loader2 className="w-8 h-8 text-steward-blue animate-spin" /></div>}>
+      <VerifyPageContent />
+    </Suspense>
   );
 }
