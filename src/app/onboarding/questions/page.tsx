@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
-import { Plus, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
 export default function OnboardingQuestions() {
@@ -14,46 +14,55 @@ export default function OnboardingQuestions() {
   const [answers, setAnswers] = useState<Record<number, string | string[]>>({
     1: '', 2: [], 3: '', 4: '', 5: '', 6: '', 7: '', 8: '', 9: '', 10: []
   });
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorQId, setErrorQId] = useState<number | null>(null);
   const { user } = useUser();
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarUrl(url);
-      setAvatarFile(file);
-    }
-  };
+  // Load existing answers from database on mount
+  React.useEffect(() => {
+    const loadExistingAnswers = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Map database fields back to question answers
+          const loadedAnswers: Record<number, string | string[]> = {
+            1: data.community_status || '',
+            2: data.learning_style || [],
+            3: data.dream_job || '',
+            4: data.age_range || '',
+            5: data.preferred_language || '',
+            6: data.internet_access || '',
+            7: data.training_interest || '',
+            8: data.employment_status || '',
+            9: data.time_commitment || '',
+            10: data.barriers || [],
+          };
+
+          setAnswers(loadedAnswers);
+        }
+      } catch (error) {
+        console.error('Failed to load existing answers:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadExistingAnswers();
+  }, [user]);
 
   const handleSaveAndContinue = async (isContinue: boolean) => {
     setIsSaving(true);
 
     if (user) {
       try {
-        let finalAvatarUrl = null;
-
-        // Upload the photo if they selected one
-        if (avatarFile) {
-          const formData = new FormData();
-          formData.append('file', avatarFile);
-
-          const uploadRes = await fetch('/api/upload-avatar', {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json();
-            finalAvatarUrl = uploadData.publicUrl;
-          } else {
-            console.error('Upload error:', await uploadRes.text());
-          }
-        }
-
         // Map all 10 questions to our database schema
         const q1_communityStatus = String(answers[1] || '');
         const q2_learningStyleArray = Array.isArray(answers[2]) ? answers[2] : (answers[2] ? [String(answers[2])] : []);
@@ -78,10 +87,6 @@ export default function OnboardingQuestions() {
           time_commitment: q9_timeCommitment,
           barriers: q10_barriersArray,
         };
-
-        if (finalAvatarUrl) {
-          payload.avatar_url = finalAvatarUrl;
-        }
 
         await fetch('/api/profile', {
           method: 'POST',
@@ -171,7 +176,7 @@ export default function OnboardingQuestions() {
           </button>
         <button 
             onClick={() => handleSaveAndContinue(false)}
-            disabled={isSaving}
+            disabled={isSaving || isLoading}
             className="bg-steward-green hover:bg-steward-orange text-white px-4 py-1.5 rounded-md text-sm font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50"
         >
             {isSaving ? 'Saving...' : t('onboarding.save')}
@@ -179,24 +184,15 @@ export default function OnboardingQuestions() {
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col space-y-12 py-10 px-6">
-        <section className="flex flex-col items-center space-y-2">
-          <div className="w-28 h-28 bg-white border-2 border-steward-blue rounded-full flex flex-col items-center justify-center text-steward-blue cursor-pointer hover:bg-steward-cream transition-colors relative group overflow-hidden shadow-inner">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Profile preview" className="w-full h-full object-cover" />
-            ) : (
-              <Plus size={32} />
-            )}
-            <input 
-              type="file" 
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              className="absolute inset-0 opacity-0 cursor-pointer" 
-            />
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="w-12 h-12 border-4 border-steward-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-steward-dark/60 font-medium">Loading your answers...</p>
           </div>
-          <span className="text-[10px] font-bold text-steward-gold uppercase">Upload Photo</span>
-        </section>
-
+        </div>
+      ) : (
+        <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col space-y-12 py-10 px-6">
         <div className="space-y-16">
           {questions.map((q) => {
             const options = t(`onboarding.q${q.id}.options`).split(',');
@@ -262,7 +258,7 @@ export default function OnboardingQuestions() {
 
         <div className="flex justify-center pt-12 pb-20">
           <button 
-            disabled={isSaving}
+            disabled={isSaving || isLoading}
             onClick={handleAttemptContinue}
             className={`w-full max-w-sm py-5 rounded-2xl shadow-xl transition-all duration-300 font-black uppercase tracking-widest text-base bg-steward-blue hover:bg-steward-orange text-white hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed`}
           >
@@ -270,6 +266,7 @@ export default function OnboardingQuestions() {
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

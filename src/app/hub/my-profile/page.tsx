@@ -16,6 +16,7 @@ export default function MyProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [editingField, setEditingField] = useState<'dream_job' | 'learning_style' | null>(null);
   const [tempValue, setTempValue] = useState('');
+  const [tempMultiValue, setTempMultiValue] = useState<string[]>([]); // For multi-select
   const [otherValue, setOtherValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<'dream_job' | 'learning_style' | null>(null);
@@ -110,20 +111,31 @@ export default function MyProfilePage() {
 
   const startEditing = (field: 'dream_job' | 'learning_style', currentValue: any) => {
     setEditingField(field);
-    let val = '';
-    if (field === 'learning_style' && Array.isArray(currentValue)) {
-      val = currentValue.join(', ');
+    
+    if (field === 'learning_style') {
+      // For learning style, initialize tempMultiValue with current selections
+      const currentArray = Array.isArray(currentValue) ? currentValue : [];
+      setTempMultiValue(currentArray);
+      
+      // Check if any value is custom (not in options)
+      const hasCustom = currentArray.some((v: string) => !learningStyleOptions.includes(v));
+      if (hasCustom) {
+        const customValue = currentArray.find((v: string) => !learningStyleOptions.includes(v));
+        setOtherValue(customValue || '');
+      } else {
+        setOtherValue('');
+      }
     } else {
-      val = currentValue || '';
-    }
-
-    const options = field === 'learning_style' ? learningStyleOptions : dreamJobOptions;
-    if (val && !options.includes(val)) {
-      setTempValue("Other (please describe)");
-      setOtherValue(val);
-    } else {
-      setTempValue(val);
-      setOtherValue('');
+      // For dream_job, use single select logic
+      let val = currentValue || '';
+      const options = dreamJobOptions;
+      if (val && !options.includes(val)) {
+        setTempValue("Other (please describe)");
+        setOtherValue(val);
+      } else {
+        setTempValue(val);
+        setOtherValue('');
+      }
     }
   };
 
@@ -131,11 +143,22 @@ export default function MyProfilePage() {
     if (!editingField) return;
     setIsSaving(true);
 
-    let finalValue = tempValue === "Other (please describe)" ? otherValue : tempValue;
-    let updateValue: any = finalValue;
-
+    let updateValue: any;
+    
     if (editingField === 'learning_style') {
-      updateValue = finalValue ? [finalValue] : [];
+      // For learning style multi-select, save the array with custom value if "Other" is selected
+      if (tempMultiValue.includes("Other (please describe)") && otherValue) {
+        // Replace "Other" with the actual custom value
+        updateValue = tempMultiValue
+          .filter(v => v !== "Other (please describe)")
+          .concat([otherValue]);
+      } else {
+        updateValue = tempMultiValue;
+      }
+    } else {
+      // For dream_job single select
+      let finalValue = tempValue === "Other (please describe)" ? otherValue : tempValue;
+      updateValue = finalValue;
     }
 
     try {
@@ -148,6 +171,8 @@ export default function MyProfilePage() {
       if (res.ok) {
         setProfile((prev: any) => ({ ...prev, [editingField!]: updateValue }));
         setEditingField(null);
+        setTempMultiValue([]);
+        setOtherValue('');
       } else {
         const data = await res.json();
         alert('Error saving: ' + (data.error || 'Unknown error'));
@@ -157,6 +182,14 @@ export default function MyProfilePage() {
       console.error('Save error:', error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleMultiSelectToggle = (option: string) => {
+    if (tempMultiValue.includes(option)) {
+      setTempMultiValue(tempMultiValue.filter(v => v !== option));
+    } else {
+      setTempMultiValue([...tempMultiValue, option]);
     }
   };
 
@@ -196,11 +229,14 @@ export default function MyProfilePage() {
   };
 
   // Helper variables for selects
-  const currentLearningStyle = (profile?.learning_style && profile.learning_style.length > 0)
-    ? (Array.isArray(profile.learning_style) ? profile.learning_style[0] : profile.learning_style)
-    : "";
-  const isLearningStyleCustom = currentLearningStyle && !learningStyleOptions.includes(currentLearningStyle);
-  const displayLearningStyle = isLearningStyleCustom ? "Other (please describe)" : currentLearningStyle;
+  const currentLearningStyles = Array.isArray(profile?.learning_style) ? profile.learning_style : [];
+  const standardLearningStyles = currentLearningStyles.filter((style: string) => learningStyleOptions.includes(style));
+  const customLearningStyles = currentLearningStyles.filter((style: string) => !learningStyleOptions.includes(style));
+  const displayLearningStyle = currentLearningStyles.length > 0 
+    ? currentLearningStyles.map((style: string) => 
+        learningStyleOptions.includes(style) ? style : `Other: ${style}`
+      ).join(', ')
+    : '';
 
   const currentDreamJob = profile?.dream_job || "";
   const isDreamJobCustom = currentDreamJob && !dreamJobOptions.includes(currentDreamJob);
@@ -262,51 +298,100 @@ export default function MyProfilePage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-steward-dark uppercase tracking-[0.2em]">Learning Style</h3>
+                  <span className="text-[10px] font-bold text-steward-blue/60 uppercase tracking-wider">Select all that apply</span>
                 </div>
                 {editingField === 'learning_style' ? (
-                  <div className="flex flex-col gap-2">
-                    <div className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl font-bold text-steward-dark opacity-50">
-                      Other (please describe)
+                  <div className="flex flex-col gap-3">
+                    {/* Multi-select checkboxes */}
+                    <div className="space-y-2">
+                      {learningStyleOptions.map((opt) => {
+                        const isSelected = tempMultiValue.includes(opt);
+                        const isOther = opt === "Other (please describe)";
+                        
+                        return (
+                          <div key={opt}>
+                            <button
+                              type="button"
+                              onClick={() => handleMultiSelectToggle(opt)}
+                              className={`w-full flex items-center p-3 border-2 rounded-xl transition-all text-left ${
+                                isSelected 
+                                  ? 'border-steward-blue bg-steward-cream text-steward-blue' 
+                                  : 'border-gray-200 bg-gray-50 text-steward-dark hover:border-steward-blue/50'
+                              }`}
+                            >
+                              <div className={`w-5 h-5 rounded-md border-2 mr-3 flex items-center justify-center transition-colors ${
+                                isSelected ? 'bg-steward-blue border-steward-blue' : 'border-gray-300'
+                              }`}>
+                                {isSelected && <Check size={14} className="text-white" />}
+                              </div>
+                              <span className="text-sm font-bold">{opt}</span>
+                            </button>
+                            
+                            {/* Show text input if "Other" is selected */}
+                            {isOther && isSelected && (
+                              <input
+                                type="text"
+                                value={otherValue}
+                                onChange={(e) => setOtherValue(e.target.value)}
+                                placeholder="Please describe..."
+                                className="mt-2 w-full p-3 bg-white border border-steward-blue rounded-xl font-medium text-steward-dark outline-none focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 transition-all"
+                                autoFocus
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <input
-                        type="text"
-                        value={otherValue}
-                        onChange={(e) => setOtherValue(e.target.value)}
-                        placeholder="Please describe..."
-                        className="flex-1 p-4 bg-gray-50 border border-steward-blue rounded-xl font-bold text-steward-dark outline-none focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 transition-all"
-                        autoFocus
-                      />
-                      <button onClick={handleSaveField} disabled={isSaving || !otherValue} className="p-4 bg-steward-green text-white rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50 shadow-lg shadow-steward-green/20 h-[56px]">
-                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Check size={20} />}
+                    
+                    {/* Save/Cancel buttons */}
+                    <div className="flex items-center gap-2 mt-4">
+                      <button 
+                        onClick={handleSaveField} 
+                        disabled={isSaving || tempMultiValue.length === 0 || (tempMultiValue.includes("Other (please describe)") && !otherValue)} 
+                        className="flex-1 p-4 bg-steward-green text-white rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50 shadow-lg shadow-steward-green/20 font-bold"
+                      >
+                        {isSaving ? <Loader2 size={20} className="animate-spin mx-auto" /> : 'Save Changes'}
                       </button>
-                      <button onClick={() => { setEditingField(null); setTempValue(''); }} disabled={isSaving} className="p-4 bg-gray-200 text-steward-dark rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50 h-[56px]">
+                      <button 
+                        onClick={() => { 
+                          setEditingField(null); 
+                          setTempMultiValue([]); 
+                          setOtherValue('');
+                        }} 
+                        disabled={isSaving} 
+                        className="p-4 bg-gray-200 text-steward-dark rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
+                      >
                         <X size={20} />
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="relative w-full custom-dropdown-container">
-                    <div
-                      onClick={() => setOpenDropdown(openDropdown === 'learning_style' ? null : 'learning_style')}
-                      className={`w-full p-4 bg-gray-50 border hover:border-steward-blue/50 rounded-xl font-bold text-steward-dark outline-none transition-all cursor-pointer flex justify-between items-center ${openDropdown === 'learning_style' ? 'border-steward-blue ring-2 ring-steward-blue/20' : 'border-gray-200'}`}
-                    >
-                      {displayLearningStyle ? <span className="truncate pr-4">{displayLearningStyle}</span> : <span className="text-gray-400 font-medium truncate pr-4">Select your learning style...</span>}
-                      <ChevronDown size={20} className={`flex-shrink-0 transition-transform ${openDropdown === 'learning_style' ? 'rotate-180' : ''}`} />
+                  <div className="space-y-3">
+                    {/* Display selected learning styles as individual badges */}
+                    <div className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl min-h-[56px]">
+                      {currentLearningStyles.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {currentLearningStyles.map((style: string, idx: number) => (
+                            <div 
+                              key={idx}
+                              className="px-3 py-1.5 bg-steward-blue/10 border border-steward-blue/30 rounded-lg text-sm font-bold text-steward-dark"
+                            >
+                              {learningStyleOptions.includes(style) ? style : `Other: ${style}`}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 font-medium text-sm">No learning styles selected...</p>
+                      )}
                     </div>
-                    {openDropdown === 'learning_style' && (
-                      <div className="absolute top-[100%] left-0 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
-                        {learningStyleOptions.map(opt => (
-                          <div
-                            key={opt}
-                            onClick={() => handleCustomSelect(opt, 'learning_style')}
-                            className="p-4 hover:bg-gray-50 font-bold text-steward-dark cursor-pointer transition-colors border-b border-gray-100 last:border-0 break-words whitespace-normal text-sm md:text-base"
-                          >
-                            {opt === "Other (please describe)" && isLearningStyleCustom ? `Other: ${currentLearningStyle}` : opt}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    
+                    {/* Edit button */}
+                    <button
+                      onClick={() => startEditing('learning_style', profile?.learning_style)}
+                      className="w-full p-3 bg-steward-blue text-white rounded-xl hover:bg-steward-orange transition-colors font-bold text-sm shadow-md"
+                    >
+                      Edit Learning Style
+                    </button>
                   </div>
                 )}
               </div>

@@ -30,20 +30,26 @@ export default function PilotWorkshopsPage() {
         <div className="mt-12 bg-white p-12 rounded-3xl shadow-sm border border-steward-dark/5">
           <h2 className="text-2xl font-black text-steward-dark mb-6">Upcoming Schedule</h2>
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 border-b border-steward-dark/5">
-              <div className="text-left">
+            <button 
+              onClick={() => router.push('/hub/pilot-workshops/intro-ai-content')}
+              className="w-full flex justify-between items-center p-4 border-b border-steward-dark/5 hover:bg-gray-50 transition-colors rounded-lg text-left"
+            >
+              <div>
                 <p className="font-black text-steward-dark">Intro to AI Content</p>
                 <p className="text-sm text-steward-dark/40 uppercase font-bold">March 2026</p>
               </div>
               <span className="px-4 py-1 bg-steward-green/10 text-steward-green rounded-full text-xs font-black uppercase">Open</span>
-            </div>
-            <div className="flex justify-between items-center p-4 border-b border-steward-dark/5">
-              <div className="text-left">
+            </button>
+            <button 
+              onClick={() => router.push('/hub/pilot-workshops/bilingual-media')}
+              className="w-full flex justify-between items-center p-4 border-b border-steward-dark/5 hover:bg-gray-50 transition-colors rounded-lg text-left"
+            >
+              <div>
                 <p className="font-black text-steward-dark">Bilingual Media Storytelling</p>
                 <p className="text-sm text-steward-dark/40 uppercase font-bold">April 2026</p>
               </div>
               <span className="px-4 py-1 bg-steward-dark/5 text-steward-dark/30 rounded-full text-xs font-black uppercase">Waitlist</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>

@@ -19,11 +19,13 @@ const isPublicRoute = createRouteMatcher([
 
 /**
  * VIP routes that require onboarding completion (preferred_language set).
- * REMOVED: pilot-workshops and community-listening from VIP routes
- * Users can now access these directly without completing onboarding
+ * REMOVED: pilot-workshops, community-listening, and ai-lab from VIP routes
+ * Users can VIEW these pages without onboarding
+ * Individual workshop pages and AI Lab module access require onboarding (handled in components)
  */
 const isVipRoute = createRouteMatcher([
-  '/hub/ai-lab(.*)',
+  // Empty - all /hub routes are now accessible for viewing
+  // Onboarding checks are handled within individual components
 ])
 
 export default clerkMiddleware(async (auth, request) => {
