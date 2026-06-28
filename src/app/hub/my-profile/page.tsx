@@ -273,6 +273,9 @@ export default function MyProfilePage() {
                      <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                    ) : (
                      <User size={64} className="text-white opacity-50" />
+                   )}
+                </div>
+
                 {/* Floating Camera Button */}
                 <div className="absolute bottom-0 right-0">
                   <label className="flex bg-steward-blue text-white p-2.5 rounded-full shadow-lg border-2 border-white cursor-pointer hover:bg-steward-orange transition-colors relative z-10">
