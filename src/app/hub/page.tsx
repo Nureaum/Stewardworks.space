@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
-import { useClerk } from '@clerk/nextjs';
+import { useClerk, useUser } from '@clerk/nextjs';
 
 export default function HubPage() {
   const { t } = useLanguage();
@@ -35,7 +35,35 @@ export default function HubPage() {
   const [statusMessage, setStatusMessage] = useState('Exploring the environmental literacy hub...');
   const [currentTime, setCurrentTime] = useState<string>('');
   const { signOut } = useClerk();
+  const { user, isLoaded } = useUser();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAdminRole() {
+      if (!isLoaded || !user) return;
+      
+      const ADMIN_EMAIL = 'vaniibodasingu@gmail.com';
+      if (user.primaryEmailAddress?.emailAddress === ADMIN_EMAIL) {
+        setIsAdmin(true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/profile');
+        if (res.ok) {
+          const data = await res.json();
+          const profile = data.profile;
+          if (profile?.role_name === 'admin' || profile?.role === 'admin') {
+            setIsAdmin(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking admin role:', error);
+      }
+    }
+    checkAdminRole();
+  }, [isLoaded, user]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -63,7 +91,7 @@ export default function HubPage() {
     { id: 'my-profile', title: 'My Profile', icon: <Star size={32} />, path: '/hub/my-profile', pos: 'top-[2%] left-1/2 -translate-x-1/2' },
     { id: 'workforce-pathways', title: 'Workforce Pathways', icon: <Map size={32} />, path: '/hub/workforce-pathways', pos: 'top-[18%] left-[12%]' },
     { id: 'help-desk', title: 'Help Desk', icon: <HelpingHand size={32} />, path: '/onboarding/bulletin', pos: 'top-[18%] right-[12%]' },
-    { id: 'ai-lab', title: 'AI Lab', icon: <Beaker size={32} />, path: '/hub/ai-lab', pos: 'top-[50%] -translate-y-1/2 left-1/2 -translate-x-1/2' },
+    { id: 'ai-lab', title: 'AI Lab', icon: <Beaker size={32} />, path: '/hub/ai-lab', pos: 'top-[38%] left-1/2 -translate-x-1/2' },
     { id: 'env-literacy', title: 'Environmental Literacy', icon: <Palmtree size={32} />, path: '/hub/environmental-literacy', pos: 'bottom-[18%] left-[12%]' },
     { id: 'pilot-workshops', title: 'Pilot Workshops', icon: <Hammer size={32} />, path: '/hub/pilot-workshops', pos: 'bottom-[18%] right-[12%]' },
     { id: 'listening-sessions', title: 'Community Listening Sessions', icon: <Users size={32} />, path: '/hub/community-listening', pos: 'bottom-[2%] left-1/2 -translate-x-1/2' },
@@ -79,17 +107,20 @@ export default function HubPage() {
         backgroundPosition: 'center'
       }}
     >
-      {/* Hidden Link to Admin (for clients) - Positioned subtly at the very bottom corner */}
-      <Link href="/admin" className="absolute bottom-2 left-2 z-[100] opacity-0 hover:opacity-100 transition-opacity p-2 text-steward-dark/20 hover:text-steward-dark">
-        <Settings size={16} />
-      </Link>
+      {/* Admin Button */}
+      {isAdmin && (
+        <Link href="/admin" className="absolute bottom-6 left-6 z-[100] bg-steward-dark text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-transform shadow-xl border border-white/10 flex items-center gap-2">
+          <Settings size={14} />
+          Switch to Admin
+        </Link>
+      )}
 
       {/* DESKTOP LAYOUT (Hidden on mobile/tablet) */}
       <div className="hidden lg:block absolute inset-0 w-full h-full">
 
       {/* 1. WALL ART: VINTAGE POSTERS (z-index: 1) */}
       {/* Left Poster: Topographic/Geological Map */}
-      <div className="absolute top-[5%] left-[5%] w-[350px] h-[480px] border-[12px] border-[#3D2B1F] bg-[#F4ECD8] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.25]">
+      <div className="absolute top-[5%] left-[5%] w-[350px] h-[480px] border-[12px] border-[#3D2B1F] bg-[#F4ECD8] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.7]">
         {settings.leftPosterUrl ? (
           <div className="relative w-full h-full">
             <Image src={settings.leftPosterUrl} alt="Custom Left Poster" fill className="object-cover" />
@@ -111,7 +142,7 @@ export default function HubPage() {
         <div className="absolute inset-0 bg-gradient-to-tr from-black/5 to-transparent pointer-events-none" />
       </div>
       {/* Right Poster: Botanical/Scientific Diagram */}
-      <div className="absolute top-[5%] right-[5%] w-[380px] h-[520px] border-[12px] border-[#3D2B1F] bg-[#2D1B0D] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.25]">
+      <div className="absolute top-[5%] right-[5%] w-[380px] h-[520px] border-[12px] border-[#3D2B1F] bg-[#2D1B0D] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.7]">
         {settings.rightPosterUrl ? (
           <div className="relative w-full h-full">
             <Image src={settings.rightPosterUrl} alt="Custom Right Poster" fill className="object-cover" />
@@ -156,7 +187,7 @@ export default function HubPage() {
       </div>
 
       {/* 3. LAPTOP CENTER (Sitting ON the desk, z-index: 10) */}
-      <div className="laptop-outer-shell max-w-[900px] w-full absolute bottom-[-58px] md:bottom-[-70px] min-[2560px]:bottom-[-20px] left-0 right-0 mx-auto z-[10] transition-all duration-500 drop-shadow-[0_25px_25px_rgba(0,0,0,0.5)] scale-[0.72] 2xl:scale-[0.9] min-[2560px]:scale-[1.25] origin-bottom">
+      <div className="laptop-outer-shell max-w-[900px] w-full absolute bottom-[-58px] md:bottom-[-70px] min-[2560px]:bottom-[-20px] left-0 right-0 mx-auto z-[10] transition-all duration-500 drop-shadow-[0_25px_25px_rgba(0,0,0,0.5)] scale-[0.72] 2xl:scale-[0.9] min-[2560px]:scale-[1.7] origin-bottom">
         {/* Upper Part: Screen */}
         <div className="laptop-bezel relative aspect-[16/9] block rounded-t-3xl border-[10px] md:border-[20px] shadow-2xl overflow-hidden" style={{ borderColor: '#FFFFFF', backgroundColor: '#FFFFFF' }}>
           <div className="absolute inset-0 flex flex-col">
@@ -232,9 +263,9 @@ export default function HubPage() {
                 <button 
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-steward-dark bg-white border-2 border-steward-dark/10 hover:border-red-500 hover:text-red-600 px-4 py-2 rounded-lg transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-red-600 bg-white border-2 border-red-500 hover:bg-red-50 px-4 py-2 rounded-lg transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoggingOut ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
+                  {isLoggingOut ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} className="text-red-500" />}
                   {isLoggingOut ? 'Logging Out...' : 'Log Out'}
                 </button>
               </div>
@@ -266,7 +297,7 @@ export default function HubPage() {
 
       {/* 4. FRONT DECORATIONS (z-index: 4) */}
       {/* LEFT SIDE: Art Deco Lamp */}
-      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] left-[5%] md:left-[10%] z-[4] flex items-end pointer-events-none origin-bottom-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.25]">
+      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] left-[5%] md:left-[10%] z-[4] flex items-end pointer-events-none origin-bottom-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.7]">
         {/* Art Deco Table Lamp - Scaled up */}
         <div className="relative flex flex-col items-center">
           {/* Arched Dome */}
@@ -285,7 +316,7 @@ export default function HubPage() {
       </div>
 
       {/* RIGHT SIDE: Books & Potted Cacti */}
-      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] right-[0px] md:right-[2%] z-[4] flex items-end gap-1 pointer-events-none origin-bottom-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.25]">
+      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] right-[0px] md:right-[2%] z-[4] flex items-end gap-1 pointer-events-none origin-bottom-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.7]">
         {/* Left Bookend (Floral Brass Wire) */}
         <div className="relative w-12 h-40 flex items-end justify-center mb-[-10px] mr-1">
           <div className="w-1 h-32 bg-amber-600 rounded-full absolute bottom-0 left-1/2 -translate-x-1/2" />
@@ -428,7 +459,7 @@ export default function HubPage() {
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="w-full bg-white/90 backdrop-blur-md border-[4px] border-red-100/40 hover:border-red-500/50 rounded-2xl p-5 flex flex-col items-center justify-center text-center gap-3 shadow-lg active:scale-95 transition-all cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white/90 backdrop-blur-md border-[4px] border-red-500 hover:bg-red-50 rounded-2xl p-5 flex flex-col items-center justify-center text-center gap-3 shadow-lg active:scale-95 transition-all cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="p-3 bg-red-50 rounded-full group-hover:scale-110 group-hover:bg-red-100 transition-transform text-red-500 shadow-sm">
               {isLoggingOut ? <Loader2 size={32} className="animate-spin" /> : <LogOut size={32} />}
