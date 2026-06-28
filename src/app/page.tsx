@@ -66,23 +66,7 @@ export default function PreHome() {
             </p>
           </div>
 
-          {/* 4. Horizontal Line element */}
-          <div className="w-full h-[1px] bg-steward-gold/30" />
-
-          {/* 5. Credits - Center Right below line */}
-          <div className="flex flex-col space-y-4 animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-500">
-            <p className="text-[10px] font-lofi uppercase tracking-[0.3em] text-steward-gold">
-              {t('credits')}
-            </p>
-            <div className="relative w-64 h-16 grayscale opacity-60 hover:opacity-100 transition-all duration-500">
-              <Image 
-                src="/partner_logo_strip_current.jpg" 
-                alt="Partner Logos" 
-                fill
-                style={{ objectFit: 'contain', objectPosition: 'left' }}
-              />
-            </div>
-          </div>
+          {/* Credits and horizontal line removed per user request */}
         </div>
       </div>
 
