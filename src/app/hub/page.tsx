@@ -52,13 +52,13 @@ export default function HubPage() {
   }, []);
 
   const topics = [
-    { id: 'my-profile', title: 'My Profile', icon: <Star size={32} />, path: '/hub/my-profile', pos: 'top-[5%] left-1/2 -translate-x-1/2' },
-    { id: 'workforce-pathways', title: 'Workforce Pathways', icon: <Map size={32} />, path: '/hub/workforce-pathways', pos: 'top-[22%] left-[20%]' },
-    { id: 'help-desk', title: 'Help Desk', icon: <HelpingHand size={32} />, path: '/onboarding/bulletin', pos: 'top-[22%] right-[20%]' },
-    { id: 'ai-lab', title: 'AI Lab', icon: <Beaker size={32} />, path: '/hub/ai-lab', pos: 'top-[42%] left-1/2 -translate-x-1/2' },
-    { id: 'env-literacy', title: 'Environmental Literacy', icon: <Palmtree size={32} />, path: '/hub/environmental-literacy', pos: 'bottom-[25%] left-[15%]' },
-    { id: 'pilot-workshops', title: 'Pilot Workshops', icon: <Hammer size={32} />, path: '/hub/pilot-workshops', pos: 'bottom-[25%] right-[15%]' },
-    { id: 'listening-sessions', title: 'Community Listening Sessions', icon: <Users size={32} />, path: '/hub/community-listening', pos: 'bottom-[5%] left-1/2 -translate-x-1/2' },
+    { id: 'my-profile', title: 'My Profile', icon: <Star size={32} />, path: '/hub/my-profile', pos: 'top-[2%] left-1/2 -translate-x-1/2' },
+    { id: 'workforce-pathways', title: 'Workforce Pathways', icon: <Map size={32} />, path: '/hub/workforce-pathways', pos: 'top-[18%] left-[12%]' },
+    { id: 'help-desk', title: 'Help Desk', icon: <HelpingHand size={32} />, path: '/onboarding/bulletin', pos: 'top-[18%] right-[12%]' },
+    { id: 'ai-lab', title: 'AI Lab', icon: <Beaker size={32} />, path: '/hub/ai-lab', pos: 'top-[50%] -translate-y-1/2 left-1/2 -translate-x-1/2' },
+    { id: 'env-literacy', title: 'Environmental Literacy', icon: <Palmtree size={32} />, path: '/hub/environmental-literacy', pos: 'bottom-[18%] left-[12%]' },
+    { id: 'pilot-workshops', title: 'Pilot Workshops', icon: <Hammer size={32} />, path: '/hub/pilot-workshops', pos: 'bottom-[18%] right-[12%]' },
+    { id: 'listening-sessions', title: 'Community Listening Sessions', icon: <Users size={32} />, path: '/hub/community-listening', pos: 'bottom-[2%] left-1/2 -translate-x-1/2' },
   ];
 
   return (
@@ -76,9 +76,12 @@ export default function HubPage() {
         <Settings size={16} />
       </Link>
 
+      {/* DESKTOP LAYOUT (Hidden on mobile/tablet) */}
+      <div className="hidden lg:block absolute inset-0 w-full h-full">
+
       {/* 1. WALL ART: VINTAGE POSTERS (z-index: 1) */}
       {/* Left Poster: Topographic/Geological Map */}
-      <div className="absolute top-[5%] left-[5%] w-[350px] h-[480px] border-[12px] border-[#3D2B1F] bg-[#F4ECD8] shadow-2xl z-1 flex flex-col overflow-hidden group">
+      <div className="absolute top-[5%] left-[5%] w-[350px] h-[480px] border-[12px] border-[#3D2B1F] bg-[#F4ECD8] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.25]">
         {settings.leftPosterUrl ? (
           <div className="relative w-full h-full">
             <Image src={settings.leftPosterUrl} alt="Custom Left Poster" fill className="object-cover" />
@@ -100,7 +103,7 @@ export default function HubPage() {
         <div className="absolute inset-0 bg-gradient-to-tr from-black/5 to-transparent pointer-events-none" />
       </div>
       {/* Right Poster: Botanical/Scientific Diagram */}
-      <div className="absolute top-[5%] right-[5%] w-[380px] h-[520px] border-[12px] border-[#3D2B1F] bg-[#2D1B0D] shadow-2xl z-1 flex flex-col overflow-hidden group">
+      <div className="absolute top-[5%] right-[5%] w-[380px] h-[520px] border-[12px] border-[#3D2B1F] bg-[#2D1B0D] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.25]">
         {settings.rightPosterUrl ? (
           <div className="relative w-full h-full">
             <Image src={settings.rightPosterUrl} alt="Custom Right Poster" fill className="object-cover" />
@@ -139,30 +142,31 @@ export default function HubPage() {
       </div>
 
       {/* 2. FULL-WIDTH WOODEN DESK (z-index: 2) */}
-      <div className="absolute bottom-0 w-full h-[250px] z-[2] shadow-[inset_0_15px_30px_rgba(0,0,0,0.2)] border-t-[6px] border-[#C1935F]" style={{ backgroundColor: '#D4A574' }}>
+      <div className="absolute bottom-0 w-full h-[150px] md:h-[250px] min-[2560px]:h-[350px] z-[2] shadow-[inset_0_15px_30px_rgba(0,0,0,0.2)] border-t-[6px] border-[#C1935F]" style={{ backgroundColor: '#D4A574' }}>
         {/* Wood Texture Detail */}
         <div className="absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(0,0,0,0.5) 13px)' }} />
       </div>
 
-      {/* 3. LAPTOP CENTER (Sitting ON the desk, z-index: 3) */}
-      <div className="laptop-outer-shell max-w-[900px] w-full absolute bottom-[-58px] md:bottom-[-70px] left-0 right-0 mx-auto z-[3] transition-all duration-500 drop-shadow-[0_25px_25px_rgba(0,0,0,0.5)] scale-[0.72] md:scale-[0.72] origin-bottom">
+      {/* 3. LAPTOP CENTER (Sitting ON the desk, z-index: 10) */}
+      <div className="laptop-outer-shell max-w-[900px] w-full absolute bottom-[-58px] md:bottom-[-70px] min-[2560px]:bottom-[-20px] left-0 right-0 mx-auto z-[10] transition-all duration-500 drop-shadow-[0_25px_25px_rgba(0,0,0,0.5)] scale-[0.72] 2xl:scale-[0.9] min-[2560px]:scale-[1.25] origin-bottom">
         {/* Upper Part: Screen */}
-        <div className="laptop-bezel relative aspect-[16/9] flex flex-col rounded-t-3xl border-[10px] md:border-[20px] shadow-2xl overflow-hidden" style={{ borderColor: '#FFFFFF', backgroundColor: '#FFFFFF' }}>
-          <div className="absolute top-2 md:top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-steward-dark opacity-30 uppercase tracking-[0.5em] z-30">
-            StewardWorks Portable
-          </div>
-          
-          <div className="flex-1 relative flex flex-col bg-white overflow-hidden">
-            {/* Blurred Logo Background */}
-            <div className="absolute inset-0 z-0 opacity-[0.6] flex items-center justify-center p-12 md:p-24">
-              <div className="relative w-full h-full">
-                <Image 
-                  src="/logo 1.jpg" 
-                  alt="Background Logo" 
-                  fill 
-                  sizes="100vw"
-                  className="object-contain"
-                />
+        <div className="laptop-bezel relative aspect-[16/9] block rounded-t-3xl border-[10px] md:border-[20px] shadow-2xl overflow-hidden" style={{ borderColor: '#FFFFFF', backgroundColor: '#FFFFFF' }}>
+          <div className="absolute inset-0 flex flex-col">
+            <div className="absolute top-2 md:top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-steward-dark opacity-30 uppercase tracking-[0.5em] z-30">
+              StewardWorks Portable
+            </div>
+            
+            <div className="flex-1 relative flex flex-col bg-white overflow-hidden">
+              {/* Blurred Logo Background */}
+              <div className="absolute inset-0 z-0 opacity-[0.6] flex items-center justify-center p-12 md:p-24">
+                <div className="relative w-full h-full">
+                  <Image 
+                    src="/logo 1.jpg" 
+                    alt="Background Logo" 
+                    fill 
+                    sizes="100vw"
+                    className="object-contain"
+                  />
               </div>
             </div>
 
@@ -225,6 +229,7 @@ export default function HubPage() {
                   Log Out
                 </button>
               </div>
+              </div>
             </div>
           </div>
         </div>
@@ -252,7 +257,7 @@ export default function HubPage() {
 
       {/* 4. FRONT DECORATIONS (z-index: 4) */}
       {/* LEFT SIDE: Art Deco Lamp */}
-      <div className="absolute bottom-[250px] left-[5%] md:left-[10%] z-[4] flex items-end pointer-events-none">
+      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] left-[5%] md:left-[10%] z-[4] flex items-end pointer-events-none origin-bottom-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.25]">
         {/* Art Deco Table Lamp - Scaled up */}
         <div className="relative flex flex-col items-center">
           {/* Arched Dome */}
@@ -271,7 +276,7 @@ export default function HubPage() {
       </div>
 
       {/* RIGHT SIDE: Books & Potted Cacti */}
-      <div className="absolute bottom-[250px] right-[0px] md:right-[2%] z-[4] flex items-end gap-1 pointer-events-none">
+      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] right-[0px] md:right-[2%] z-[4] flex items-end gap-1 pointer-events-none origin-bottom-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.25]">
         {/* Left Bookend (Floral Brass Wire) */}
         <div className="relative w-12 h-40 flex items-end justify-center mb-[-10px] mr-1">
           <div className="w-1 h-32 bg-amber-600 rounded-full absolute bottom-0 left-1/2 -translate-x-1/2" />
@@ -385,6 +390,40 @@ export default function HubPage() {
             <div className="w-20 h-14 bg-[#A0522D] rounded-b-2xl border-t-8 border-[#8B4513] shadow-lg relative">
               <div className="absolute inset-0 opacity-10 bg-black/20" />
             </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      {/* MOBILE/TABLET LAYOUT (Hidden on desktop) */}
+      <div className="lg:hidden absolute inset-0 z-50 w-full min-h-[100dvh] pt-12 px-4 pb-24 flex flex-col items-center justify-center bg-steward-cream overflow-y-auto">
+        <div className="w-24 h-24 relative mb-6 rounded-3xl overflow-hidden shadow-2xl border-4 border-steward-dark/10">
+          <Image src="/logo 1.jpg" alt="Logo" fill className="object-cover" />
+        </div>
+        <h1 className="text-4xl font-black text-steward-dark drop-shadow-sm mb-2 text-center">Steward.Works</h1>
+        <p className="text-sm font-bold text-steward-dark/60 uppercase tracking-[0.2em] mb-12 text-center">Portable Edition</p>
+        
+        <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+          {topics.map((topic) => (
+            <div
+              key={topic.id}
+              onClick={() => router.push(topic.path)}
+              className="bg-white/90 backdrop-blur-md border-[4px] border-white/60 hover:border-steward-dark/20 rounded-2xl p-5 flex flex-col items-center justify-center text-center gap-3 shadow-lg active:scale-95 transition-all cursor-pointer group"
+            >
+              <div className="p-3 bg-steward-cream/30 rounded-full group-hover:scale-110 group-hover:bg-[#FFD700] transition-transform text-steward-dark shadow-sm">
+                {topic.icon}
+              </div>
+              <span className="text-[11px] font-black text-steward-dark uppercase tracking-widest">{topic.title}</span>
+            </div>
+          ))}
+          <div
+            onClick={handleLogout}
+            className="bg-white/90 backdrop-blur-md border-[4px] border-red-100/40 hover:border-red-500/50 rounded-2xl p-5 flex flex-col items-center justify-center text-center gap-3 shadow-lg active:scale-95 transition-all cursor-pointer group"
+          >
+            <div className="p-3 bg-red-50 rounded-full group-hover:scale-110 group-hover:bg-red-100 transition-transform text-red-500 shadow-sm">
+              <LogOut size={32} />
+            </div>
+            <span className="text-[11px] font-black text-red-600 uppercase tracking-widest">Log Out</span>
           </div>
         </div>
       </div>

@@ -124,20 +124,7 @@ body {
 }
 
 .laptop-outer-shell {
-  @apply relative w-full max-w-[1100px] flex flex-col z-20;
   perspective: 1500px;
-  animation: laptop-appear 0.7s ease-out forwards;
-}
-
-@keyframes laptop-appear {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
 }
 
 .laptop-bezel {
