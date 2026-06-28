@@ -5,16 +5,23 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 
 export default function PreHome() {
   const { t } = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const { isLoaded, userId } = useAuth();
+  const isAuthenticated = isLoaded && !!userId;
 
   const handleEnterSite = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    router.push('/login');
+    if (isAuthenticated) {
+      router.push('/hub');
+    } else {
+      router.push('/login');
+    }
   };
 
   return (
@@ -88,7 +95,7 @@ export default function PreHome() {
         </Link>
         <button 
           onClick={handleEnterSite}
-          disabled={isLoading}
+          disabled={isLoading || !isLoaded}
           className="w-full md:w-auto group relative overflow-hidden px-8 lg:px-12 py-4 text-base lg:text-lg font-bold tracking-[0.1em] transition-all duration-300 bg-steward-green text-steward-offwhite hover:bg-steward-orange rounded-full shadow-lg disabled:opacity-70 flex items-center justify-center whitespace-nowrap"
         >
           <span className="relative z-10 flex items-center gap-2">
@@ -98,7 +105,7 @@ export default function PreHome() {
                 LOADING...
               </>
             ) : (
-              t('enter.site')
+              isAuthenticated ? 'DASHBOARD' : t('enter.site')
             )}
           </span>
         </button>
