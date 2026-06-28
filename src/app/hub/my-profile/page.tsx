@@ -19,6 +19,7 @@ export default function MyProfilePage() {
   const [tempMultiValue, setTempMultiValue] = useState<string[]>([]); // For multi-select
   const [otherValue, setOtherValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<'dream_job' | 'learning_style' | null>(null);
 
   // Close custom dropdowns when clicking outside
@@ -228,6 +229,12 @@ export default function MyProfilePage() {
     }
   };
 
+  const handleConfirmCompletion = async () => {
+    setIsConfirming(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    router.push('/hub');
+  };
+
   // Helper variables for selects
   const currentLearningStyles = Array.isArray(profile?.learning_style) ? profile.learning_style : [];
   const standardLearningStyles = currentLearningStyles.filter((style: string) => learningStyleOptions.includes(style));
@@ -252,37 +259,37 @@ export default function MyProfilePage() {
 
   return (
     <div className="min-h-screen bg-steward-offwhite p-8 font-exo">
-      <div className="max-w-4xl mx-auto flex items-center mb-8">
-        <a
-          href="/hub"
-          className="flex items-center gap-2 text-steward-dark hover:text-steward-blue transition-colors"
-        >
-          <ArrowLeft size={20} />
-          <span className="font-bold uppercase tracking-widest text-sm">Back to Hub</span>
-        </a>
-      </div>
-
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-[40px] shadow-xl border border-steward-dark/5">
           <div className="bg-steward-dark p-12 text-center text-white relative rounded-t-[40px]">
 
             {/* Avatar Section */}
-            <div className="relative w-32 h-32 mx-auto mb-6">
-              <div className="w-full h-full bg-steward-orange rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
-                 {isUploading ? (
-                   <Loader2 size={32} className="animate-spin text-white" />
-                 ) : profile?.avatar_url ? (
-                   <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                 ) : (
-                   <User size={64} className="text-white opacity-50" />
-                 )}
-              </div>
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative w-32 h-32 mx-auto mb-3">
+                <div className="w-full h-full bg-steward-orange rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
+                   {isUploading ? (
+                     <Loader2 size={32} className="animate-spin text-white" />
+                   ) : profile?.avatar_url ? (
+                     <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                   ) : (
+                     <User size={64} className="text-white opacity-50" />
+                   )}
+                </div>
 
-              {/* Floating Camera Button */}
-              <label className="absolute bottom-0 right-0 bg-steward-blue text-white p-2.5 rounded-full shadow-lg border-2 border-white cursor-pointer hover:bg-steward-orange transition-colors">
-                <Camera size={16} />
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
-              </label>
+                {/* Floating Camera Button with Tooltip */}
+                <div className="absolute bottom-0 right-0 group">
+                  <label className="flex bg-steward-blue text-white p-2.5 rounded-full shadow-lg border-2 border-white cursor-pointer hover:bg-steward-orange transition-colors relative z-10">
+                    <Camera size={16} />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
+                  </label>
+                  
+                  {/* Tooltip Note */}
+                  <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 px-3 py-1.5 bg-white text-steward-dark text-[10px] font-black uppercase tracking-widest rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                    Edit Profile Pic
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white" />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <h1 className="text-3xl font-black uppercase tracking-tight">
@@ -460,6 +467,27 @@ export default function MyProfilePage() {
                     </div>
                   ))}
                 </div>
+              </div>
+              
+              {/* Confirm Completion Button */}
+              <div className="pt-8 mt-4 border-t border-gray-100 flex justify-center">
+                <button
+                  onClick={handleConfirmCompletion}
+                  disabled={isConfirming}
+                  className="w-full md:w-auto px-12 py-4 bg-steward-orange text-white rounded-xl hover:bg-orange-600 transition-colors font-black uppercase tracking-widest text-sm shadow-lg shadow-steward-orange/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isConfirming ? (
+                    <>
+                      Saving Profile...
+                      <Loader2 size={18} className="animate-spin" />
+                    </>
+                  ) : (
+                    <>
+                      Confirm Profile Completion
+                      <Check size={18} />
+                    </>
+                  )}
+                </button>
               </div>
           </div>
         </div>

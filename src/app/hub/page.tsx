@@ -20,7 +20,8 @@ import {
   Hammer,
   Wrench,
   Settings,
-  LogOut
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdmin } from '@/context/AdminContext';
@@ -34,9 +35,16 @@ export default function HubPage() {
   const [statusMessage, setStatusMessage] = useState('Exploring the environmental literacy hub...');
   const [currentTime, setCurrentTime] = useState<string>('');
   const { signOut } = useClerk();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    await signOut({ redirectUrl: '/login' });
+    setIsLoggingOut(true);
+    try {
+      await signOut({ redirectUrl: '/login' });
+    } catch (error) {
+      console.error('Logout error:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   useEffect(() => {
@@ -223,10 +231,11 @@ export default function HubPage() {
                 
                 <button 
                   onClick={handleLogout}
-                  className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-steward-dark bg-white border-2 border-steward-dark/10 hover:border-red-500 hover:text-red-600 px-4 py-2 rounded-lg transition-all shadow-sm active:scale-95"
+                  disabled={isLoggingOut}
+                  className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-steward-dark bg-white border-2 border-steward-dark/10 hover:border-red-500 hover:text-red-600 px-4 py-2 rounded-lg transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <LogOut size={14} />
-                  Log Out
+                  {isLoggingOut ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
+                  {isLoggingOut ? 'Logging Out...' : 'Log Out'}
                 </button>
               </div>
               </div>
@@ -416,15 +425,18 @@ export default function HubPage() {
               <span className="text-[11px] font-black text-steward-dark uppercase tracking-widest">{topic.title}</span>
             </div>
           ))}
-          <div
+          <button
             onClick={handleLogout}
-            className="bg-white/90 backdrop-blur-md border-[4px] border-red-100/40 hover:border-red-500/50 rounded-2xl p-5 flex flex-col items-center justify-center text-center gap-3 shadow-lg active:scale-95 transition-all cursor-pointer group"
+            disabled={isLoggingOut}
+            className="w-full bg-white/90 backdrop-blur-md border-[4px] border-red-100/40 hover:border-red-500/50 rounded-2xl p-5 flex flex-col items-center justify-center text-center gap-3 shadow-lg active:scale-95 transition-all cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="p-3 bg-red-50 rounded-full group-hover:scale-110 group-hover:bg-red-100 transition-transform text-red-500 shadow-sm">
-              <LogOut size={32} />
+              {isLoggingOut ? <Loader2 size={32} className="animate-spin" /> : <LogOut size={32} />}
             </div>
-            <span className="text-[11px] font-black text-red-600 uppercase tracking-widest">Log Out</span>
-          </div>
+            <span className="text-[11px] font-black text-red-600 uppercase tracking-widest">
+              {isLoggingOut ? 'Logging Out...' : 'Log Out'}
+            </span>
+          </button>
         </div>
       </div>
     </div>
