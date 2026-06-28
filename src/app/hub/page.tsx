@@ -115,12 +115,12 @@ export default function HubPage() {
         </Link>
       )}
 
-      {/* DESKTOP LAYOUT (Hidden on mobile/tablet) */}
-      <div className="hidden lg:block absolute inset-0 w-full h-full">
+      {/* DESKTOP LAYOUT (Hidden on mobile) */}
+      <div className="hidden md:block absolute inset-0 w-full h-full">
 
       {/* 1. WALL ART: VINTAGE POSTERS (z-index: 1) */}
       {/* Left Poster: Topographic/Geological Map */}
-      <div className="absolute top-[5%] left-[5%] w-[350px] h-[480px] border-[12px] border-[#3D2B1F] bg-[#F4ECD8] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.7]">
+      <div className="absolute top-[5%] left-[5%] w-[350px] h-[480px] border-[12px] border-[#3D2B1F] bg-[#F4ECD8] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.5]">
         {settings.leftPosterUrl ? (
           <div className="relative w-full h-full">
             <Image src={settings.leftPosterUrl} alt="Custom Left Poster" fill className="object-cover" />
@@ -142,7 +142,7 @@ export default function HubPage() {
         <div className="absolute inset-0 bg-gradient-to-tr from-black/5 to-transparent pointer-events-none" />
       </div>
       {/* Right Poster: Botanical/Scientific Diagram */}
-      <div className="absolute top-[5%] right-[5%] w-[380px] h-[520px] border-[12px] border-[#3D2B1F] bg-[#2D1B0D] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.7]">
+      <div className="absolute top-[5%] right-[5%] w-[380px] h-[520px] border-[12px] border-[#3D2B1F] bg-[#2D1B0D] shadow-2xl z-1 flex flex-col overflow-hidden group origin-top-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.5]">
         {settings.rightPosterUrl ? (
           <div className="relative w-full h-full">
             <Image src={settings.rightPosterUrl} alt="Custom Right Poster" fill className="object-cover" />
@@ -187,7 +187,7 @@ export default function HubPage() {
       </div>
 
       {/* 3. LAPTOP CENTER (Sitting ON the desk, z-index: 10) */}
-      <div className="laptop-outer-shell max-w-[900px] w-full absolute bottom-[-58px] md:bottom-[-70px] min-[2560px]:bottom-[-20px] left-0 right-0 mx-auto z-[10] transition-all duration-500 drop-shadow-[0_25px_25px_rgba(0,0,0,0.5)] scale-[0.72] 2xl:scale-[0.9] min-[2560px]:scale-[1.7] origin-bottom">
+      <div className="laptop-outer-shell max-w-[900px] w-full absolute bottom-[-58px] md:bottom-[-10px] xl:bottom-[10px] 2xl:bottom-[30px] min-[2560px]:bottom-[120px] left-0 right-0 mx-auto z-[10] transition-all duration-500 drop-shadow-[0_25px_25px_rgba(0,0,0,0.5)] scale-[0.72] xl:scale-[0.85] 2xl:scale-[0.9] min-[2560px]:scale-[1.5] origin-bottom">
         {/* Upper Part: Screen */}
         <div className="laptop-bezel relative aspect-[16/9] block rounded-t-3xl border-[10px] md:border-[20px] shadow-2xl overflow-hidden" style={{ borderColor: '#FFFFFF', backgroundColor: '#FFFFFF' }}>
           <div className="absolute inset-0 flex flex-col">
@@ -228,20 +228,20 @@ export default function HubPage() {
               </div>
 
               {/* Desktop Area with Icons in a Circle Arrangement */}
-              <div className="flex-1 relative p-4 md:p-8">
+              <div className="flex-1 relative p-4 lg:p-8">
                 {topics.map((topic) => (
                   <Link 
                     key={topic.id} 
                     href={topic.path} 
-                    className={`absolute ${topic.pos} group flex flex-col items-center gap-2 w-32 md:w-40 text-center z-20 transition-all duration-300 hover:-translate-y-1`}
+                    className={`absolute ${topic.pos} group flex flex-col items-center gap-2 w-32 lg:w-40 text-center z-20 transition-all duration-300 hover:-translate-y-1`}
                   >
-                    <div className="bg-[#FFD700] w-14 h-14 md:w-20 md:h-20 rounded-xl flex items-center justify-center text-steward-dark shadow-[0_8px_0_#D1AA4E,0_15px_20px_rgba(0,0,0,0.2)] transition-all duration-300 group-hover:scale-110 group-active:translate-y-1 group-active:shadow-none border-2 border-white/20 relative overflow-hidden">
+                    <div className="bg-[#FFD700] w-14 h-14 lg:w-20 lg:h-20 rounded-xl flex items-center justify-center text-steward-dark shadow-[0_8px_0_#D1AA4E,0_15px_20px_rgba(0,0,0,0.2)] transition-all duration-300 group-hover:scale-110 group-active:translate-y-1 group-active:shadow-none border-2 border-white/20 relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-tr from-black/5 to-transparent pointer-events-none" />
-                      <div className="relative z-10 scale-90 md:scale-110">
+                      <div className="relative z-10 scale-90 lg:scale-110">
                         {topic.icon}
                       </div>
                     </div>
-                    <span className="text-[9px] md:text-[11px] font-black text-steward-dark uppercase tracking-tight leading-tight drop-shadow-sm bg-white/90 px-2 py-0.5 rounded-md border border-gray-100 shadow-sm">
+                    <span className="text-[9px] lg:text-[11px] font-black text-steward-dark uppercase tracking-tight leading-tight drop-shadow-sm bg-white/90 px-2 py-0.5 rounded-md border border-gray-100 shadow-sm">
                       {topic.title}
                     </span>
                   </Link>
@@ -297,7 +297,7 @@ export default function HubPage() {
 
       {/* 4. FRONT DECORATIONS (z-index: 4) */}
       {/* LEFT SIDE: Art Deco Lamp */}
-      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] left-[5%] md:left-[10%] z-[4] flex items-end pointer-events-none origin-bottom-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.7]">
+      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] left-[5%] md:left-[10%] z-[4] flex items-end pointer-events-none origin-bottom-left scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.5]">
         {/* Art Deco Table Lamp - Scaled up */}
         <div className="relative flex flex-col items-center">
           {/* Arched Dome */}
@@ -316,7 +316,7 @@ export default function HubPage() {
       </div>
 
       {/* RIGHT SIDE: Books & Potted Cacti */}
-      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] right-[0px] md:right-[2%] z-[4] flex items-end gap-1 pointer-events-none origin-bottom-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.7]">
+      <div className="absolute bottom-[250px] min-[2560px]:bottom-[350px] right-[0px] md:right-[2%] z-[4] flex items-end gap-1 pointer-events-none origin-bottom-right scale-[0.7] lg:scale-[0.75] 2xl:scale-[0.9] min-[2560px]:scale-[1.5]">
         {/* Left Bookend (Floral Brass Wire) */}
         <div className="relative w-12 h-40 flex items-end justify-center mb-[-10px] mr-1">
           <div className="w-1 h-32 bg-amber-600 rounded-full absolute bottom-0 left-1/2 -translate-x-1/2" />
@@ -435,8 +435,8 @@ export default function HubPage() {
       </div>
       </div>
 
-      {/* MOBILE/TABLET LAYOUT (Hidden on desktop) */}
-      <div className="lg:hidden absolute inset-0 z-50 w-full min-h-[100dvh] pt-12 px-4 pb-24 flex flex-col items-center justify-center bg-steward-cream overflow-y-auto">
+      {/* MOBILE LAYOUT (Hidden on tablet/desktop) */}
+      <div className="md:hidden absolute inset-0 z-50 w-full min-h-[100dvh] pt-12 px-4 pb-24 flex flex-col items-center justify-center bg-steward-cream overflow-y-auto">
         <div className="w-24 h-24 relative mb-6 rounded-3xl overflow-hidden shadow-2xl border-4 border-steward-dark/10">
           <Image src="/logo 1.jpg" alt="Logo" fill className="object-cover" />
         </div>
