@@ -273,23 +273,20 @@ export default function MyProfilePage() {
                      <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                    ) : (
                      <User size={64} className="text-white opacity-50" />
-                   )}
-                </div>
-
-                {/* Floating Camera Button with Tooltip */}
-                <div className="absolute bottom-0 right-0 group">
+                {/* Floating Camera Button */}
+                <div className="absolute bottom-0 right-0">
                   <label className="flex bg-steward-blue text-white p-2.5 rounded-full shadow-lg border-2 border-white cursor-pointer hover:bg-steward-orange transition-colors relative z-10">
                     <Camera size={16} />
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
                   </label>
-                  
-                  {/* Tooltip Note */}
-                  <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 px-3 py-1.5 bg-white text-steward-dark text-[10px] font-black uppercase tracking-widest rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                    Edit Profile Pic
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white" />
-                  </div>
                 </div>
               </div>
+              
+              {/* Permanent Visible Note */}
+              <label className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer hover:text-white transition-colors bg-white/10 px-4 py-1.5 rounded-full border border-white/10">
+                Edit Profile Pic
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
+              </label>
             </div>
 
             <h1 className="text-3xl font-black uppercase tracking-tight">
