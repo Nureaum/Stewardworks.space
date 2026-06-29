@@ -11,13 +11,21 @@
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",
     "@supabase/supabase-js": "^2.108.2",
+    "@tiptap/extension-image": "^3.27.1",
+    "@tiptap/extension-link": "^3.27.1",
+    "@tiptap/extension-youtube": "^3.27.1",
+    "@tiptap/pm": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
     "dotenv": "^17.4.2",
     "lucide-react": "^0.454.0",
     "next": "^14.2.15",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "svix": "^1.96.1"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

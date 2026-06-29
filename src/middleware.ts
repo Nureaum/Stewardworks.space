@@ -12,9 +12,16 @@ const isPublicRoute = createRouteMatcher([
   '/signup(.*)',
   '/verify(.*)',
   '/info(.*)',
-  '/admin(.*)',
   '/onboarding/bulletin(.*)',
   '/api(.*)',
+])
+
+const isAdminRoute = createRouteMatcher([
+  '/admin(.*)'
+])
+
+const isSuperAdminRoute = createRouteMatcher([
+  '/admin/users(.*)'
 ])
 
 /**
@@ -39,12 +46,36 @@ export default clerkMiddleware(async (auth, request) => {
   }
 
   // Protect non-public routes
-  if (!isPublicRoute(request)) {
+  if (!isPublicRoute(request) && !isAdminRoute(request)) {
     if (!userId) {
       const signInUrl = new URL('/login', request.url);
       // CRITICAL: Add returnUrl so user can come back after login
       signInUrl.searchParams.set('redirect_url', request.url);
       return NextResponse.redirect(signInUrl);
+    }
+  }
+
+  // Admin route check
+  if (isAdminRoute(request)) {
+    if (!userId) {
+      const signInUrl = new URL('/login', request.url);
+      signInUrl.searchParams.set('redirect_url', request.url);
+      return NextResponse.redirect(signInUrl);
+    }
+    
+    // Check Clerk session claims for role (relies on Clerk session template configuring public_metadata)
+    const role = (authResult.sessionClaims?.metadata as any)?.role || (authResult.sessionClaims as any)?.public_metadata?.role;
+    
+    if (role !== 'admin' && role !== 'super_admin') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
+  // Super admin route check
+  if (isSuperAdminRoute(request)) {
+    const role = (authResult.sessionClaims?.metadata as any)?.role || (authResult.sessionClaims as any)?.public_metadata?.role;
+    if (role !== 'super_admin') {
+      return NextResponse.redirect(new URL('/admin', request.url));
     }
   }
 
@@ -59,7 +90,7 @@ export default clerkMiddleware(async (auth, request) => {
       const { data: profile } = await supabase
         .from('profiles')
         .select('preferred_language')
-        .eq('id', userId)
+        .eq('clerk_user_id', userId)
         .single()
 
       if (!profile || !profile.preferred_language) {

@@ -18,7 +18,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('clerk_user_id', userId)
       .single()
 
     if (error && error.code !== 'PGRST116') {
@@ -35,7 +35,7 @@ export async function GET() {
       const phone = user?.unsafeMetadata?.phone as string | undefined
 
       const newProfile = {
-        id: userId,
+        clerk_user_id: userId,
         email: email || '',
         first_name: firstName,
         last_name: lastName,
@@ -45,7 +45,7 @@ export async function GET() {
 
       const { data: createdData, error: createError } = await supabase
         .from('profiles')
-        .upsert(newProfile)
+        .upsert(newProfile, { onConflict: 'clerk_user_id' })
         .select()
         .single()
 
@@ -87,13 +87,13 @@ export async function POST(request: NextRequest) {
     // Always enforce the authenticated user's ID and email
     const payload = {
       ...body,
-      id: userId,
+      clerk_user_id: userId,
       ...(email && { email }),
     }
 
     const { data, error } = await supabase
       .from('profiles')
-      .upsert(payload)
+      .upsert(payload, { onConflict: 'clerk_user_id' })
       .select()
       .single()
 
@@ -123,13 +123,13 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const supabase = createServerSupabaseClient()
 
-    // Don't allow overriding id or email via PATCH
-    const { id: _id, email: _email, ...safeBody } = body
+    // Don't allow overriding id, clerk_user_id or email via PATCH
+    const { id: _id, clerk_user_id: _cuid, email: _email, ...safeBody } = body
 
     const { data, error } = await supabase
       .from('profiles')
       .update(safeBody)
-      .eq('id', userId)
+      .eq('clerk_user_id', userId)
       .select()
       .single()
 
