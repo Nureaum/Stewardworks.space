@@ -219,7 +219,7 @@ function OnboardingQuestionsContent() {
         <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col space-y-12 py-10 px-6">
         <div className="space-y-16">
           {questions.map((q) => {
-            const options = t(`onboarding.q${q.id}.options`).split(',');
+            const options = t(`onboarding.q${q.id}.options`).split('|');
             const currentAnswer = answers[q.id];
 
             return (
