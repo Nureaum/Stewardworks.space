@@ -4,12 +4,17 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Beaker, Lock } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import { getAILabs } from '@/app/actions/ai-labs';
+import { AILabWithCohort } from '@/types/workshops';
+import toast from 'react-hot-toast';
 
 export default function AiLabPage() {
   const router = useRouter();
   const { user } = useUser();
   const [hasCompleted, setHasCompleted] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const [labs, setLabs] = useState<AILabWithCohort[]>([]);
+  const [loadingLabs, setLoadingLabs] = useState(true);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -22,50 +27,49 @@ export default function AiLabPage() {
         const response = await fetch('/api/profile');
         if (response.ok) {
           const data = await response.json();
-          // Check if user has completed onboarding questionnaire
-          // community_status is a required field from question 1
-          setHasCompleted(!!data.profile?.community_status);
+          if (data.profile?.community_status) {
+            setHasCompleted(true);
+          } else {
+            const returnUrl = encodeURIComponent('/hub/ai-lab');
+            router.push(`/onboarding/language?returnUrl=${returnUrl}`);
+          }
+        } else {
+          const returnUrl = encodeURIComponent('/hub/ai-lab');
+          router.push(`/onboarding/language?returnUrl=${returnUrl}`);
         }
       } catch (error) {
         console.error('Failed to check onboarding status:', error);
+        const returnUrl = encodeURIComponent('/hub/ai-lab');
+        router.push(`/onboarding/language?returnUrl=${returnUrl}`);
       } finally {
         setIsChecking(false);
       }
     };
 
     checkOnboardingStatus();
-  }, [user]);
+  }, [user, router]);
 
-  const handleModuleClick = (moduleId: string) => {
+  useEffect(() => {
+    const fetchLabs = async () => {
+      try {
+        const data = await getAILabs();
+        setLabs(data);
+      } catch (error) {
+        toast.error('Failed to load AI Labs');
+      } finally {
+        setLoadingLabs(false);
+      }
+    };
+    fetchLabs();
+  }, []);
+
+  const handleModuleClick = (labId: string) => {
     if (!hasCompleted) {
-      // Redirect to onboarding if not completed
       router.push('/onboarding/language');
     } else {
-      // Navigate to module
-      router.push(`/hub/ai-lab/${moduleId}`);
+      router.push(`/hub/ai-lab/${labId}`);
     }
   };
-
-  const modules = [
-    {
-      id: 'prompt-engineering',
-      title: 'Prompt Engineering Basics',
-      description: 'Learn to write effective prompts for AI tools',
-      status: 'available'
-    },
-    {
-      id: 'content-creation',
-      title: 'AI Content Creation',
-      description: 'Create text, images, and videos using AI',
-      status: 'available'
-    },
-    {
-      id: 'bilingual-ai',
-      title: 'Bilingual AI Tools',
-      description: 'Use AI for English-Spanish translation and content',
-      status: 'coming-soon'
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-steward-offwhite p-8 font-exo">
@@ -103,39 +107,36 @@ export default function AiLabPage() {
 
         {/* Modules Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
-          {modules.map((module) => (
-            <button
-              key={module.id}
-              onClick={() => module.status === 'available' && handleModuleClick(module.id)}
-              disabled={module.status === 'coming-soon'}
-              className={`relative bg-white p-8 rounded-2xl shadow-lg border-2 transition-all text-left ${
-                module.status === 'coming-soon'
-                  ? 'border-steward-dark/10 opacity-50 cursor-not-allowed'
-                  : hasCompleted
-                  ? 'border-steward-green/30 hover:border-steward-green hover:shadow-xl hover:scale-[1.02]'
-                  : 'border-steward-dark/10 hover:border-steward-blue/50 hover:shadow-xl'
-              }`}
-            >
-              {/* Lock Icon for Non-Onboarded Users */}
-              {!hasCompleted && module.status === 'available' && (
-                <div className="absolute top-4 right-4">
-                  <Lock size={24} className="text-steward-dark/30" />
+          {loadingLabs ? (
+            <div className="col-span-1 md:col-span-2 text-center text-steward-dark/50 p-8 font-bold">
+              Loading AI Labs...
+            </div>
+          ) : labs.length === 0 ? (
+            <div className="col-span-1 md:col-span-2 text-center text-steward-dark/50 p-8 font-bold bg-white rounded-2xl border-2 border-steward-dark/10">
+              No AI Labs available right now. Please check back later.
+            </div>
+          ) : (
+            labs.map((lab) => (
+              <button
+                key={lab.id}
+                onClick={() => handleModuleClick(lab.id)}
+                className={`relative bg-white p-8 rounded-2xl shadow-lg border-2 transition-all text-left ${
+                  hasCompleted
+                    ? 'border-steward-green/30 hover:border-steward-green hover:shadow-xl hover:scale-[1.02]'
+                    : 'border-steward-dark/10 hover:border-steward-blue/50 hover:shadow-xl'
+                }`}
+              >
+                {!hasCompleted && (
+                  <div className="absolute top-4 right-4">
+                    <Lock size={24} className="text-steward-dark/30" />
+                  </div>
+                )}
+                
+                <div className="text-xs font-bold uppercase tracking-widest text-steward-blue mb-2">
+                  {lab.cohort_name}
                 </div>
-              )}
+                <h3 className="text-2xl font-black text-steward-dark mb-3">{lab.title}</h3>
 
-              {/* Coming Soon Badge */}
-              {module.status === 'coming-soon' && (
-                <div className="absolute top-4 right-4">
-                  <span className="px-3 py-1 bg-steward-dark/10 text-steward-dark/40 rounded-full text-xs font-black uppercase">
-                    Coming Soon
-                  </span>
-                </div>
-              )}
-
-              <h3 className="text-2xl font-black text-steward-dark mb-3">{module.title}</h3>
-              <p className="text-steward-dark/60 font-medium leading-relaxed">{module.description}</p>
-
-              {module.status === 'available' && (
                 <div className="mt-6">
                   <span className={`text-sm font-black uppercase tracking-wider ${
                     hasCompleted ? 'text-steward-green' : 'text-steward-blue'
@@ -143,9 +144,9 @@ export default function AiLabPage() {
                     {hasCompleted ? 'Click to Start →' : 'Complete Onboarding to Access →'}
                   </span>
                 </div>
-              )}
-            </button>
-          ))}
+              </button>
+            ))
+          )}
         </div>
       </div>
     </div>

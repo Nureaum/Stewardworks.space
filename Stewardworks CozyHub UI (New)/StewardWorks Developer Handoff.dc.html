@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,300..800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#e7d3bd;font-family:'Exo',sans-serif;}
+  *{box-sizing:border-box;}
+  @media print{ html,body{background:#fff;} .sheet{box-shadow:none !important;margin:0 !important;} }
+</style>
+</helmet>
+
+<div style="display:flex;justify-content:center;padding:40px 20px;background:linear-gradient(180deg,#ecdcc8,#dcc4a8);min-height:100vh;">
+<div class="sheet" style="width:880px;max-width:100%;background:#FEFAE0;border-radius:14px;box-shadow:0 30px 80px rgba(60,40,20,.28);overflow:hidden;">
+
+  <!-- ============ HEADER ============ -->
+  <div style="background:linear-gradient(160deg,#2b2018,#3a2a1c);color:#FEFAE0;padding:40px 52px 34px;">
+    <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.32em;color:#FDDD9A;">DEVELOPER HANDOFF · v1</div>
+    <h1 style="margin:10px 0 6px;font-size:38px;font-weight:700;letter-spacing:-.01em;">StewardWorks — Cozy Hub</h1>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:rgba(254,250,224,.82);max-width:640px;">A "room" dashboard. Every object on the wall and desk is a clickable entry point into a section of the app. This document maps each object to a route and lists exactly what the backend must provide.</p>
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:11px;">
+      <span style="background:rgba(253,221,154,.16);border:1px solid rgba(253,221,154,.3);border-radius:20px;padding:5px 13px;">www.stewardworks.space</span>
+      <span style="background:rgba(253,221,154,.16);border:1px solid rgba(253,221,154,.3);border-radius:20px;padding:5px 13px;">Frontend: interactive HTML prototype</span>
+    </div>
+  </div>
+
+  <div style="padding:38px 52px 48px;">
+
+  <!-- ============ HOW TO READ ============ -->
+  <div style="background:rgba(65,124,152,.08);border:1px solid rgba(65,124,152,.25);border-radius:12px;padding:16px 20px;margin-bottom:34px;font-size:13.5px;line-height:1.6;color:#3a4a52;">
+    <strong style="color:#21282E;">How to use this:</strong> The attached HTML file is the live, clickable design — open it in a browser to feel the interactions. This page is the spec behind it. The prototype fakes navigation with a small "you're entering…" pop-up; in production, a click just navigates to the route shown.
+  </div>
+
+  <!-- ============ A. SCREEN MODEL ============ -->
+  <div style="margin-bottom:38px;">
+    <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.22em;color:#A27532;margin-bottom:4px;">SECTION A</div>
+    <h2 style="margin:0 0 14px;font-size:24px;font-weight:700;color:#3a2412;">The screen model</h2>
+    <p style="margin:0 0 18px;font-size:14px;line-height:1.65;color:#5a4630;">The hub is a single-page experience with one "home" screen (the room) and a handful of full-screen views layered on top. Closing any view returns to the room.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:14px 16px;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#2E5534;letter-spacing:.06em;">HOME</div>
+        <div style="font-weight:700;color:#3a2412;font-size:15px;margin-top:2px;">The Room (hub)</div>
+        <div style="font-size:12.5px;color:#7a5a3a;line-height:1.5;margin-top:3px;">Wall + desk with all the clickable objects. The default view.</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:14px 16px;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#417C98;letter-spacing:.06em;">OVERLAY</div>
+        <div style="font-weight:700;color:#3a2412;font-size:15px;margin-top:2px;">Monitor sub-hub</div>
+        <div style="font-size:12.5px;color:#7a5a3a;line-height:1.5;margin-top:3px;">A "desktop" with 3 program icons (Workshops / AI Lab / Workforce).</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:14px 16px;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#417C98;letter-spacing:.06em;">OVERLAY</div>
+        <div style="font-weight:700;color:#3a2412;font-size:15px;margin-top:2px;">Meditation space</div>
+        <div style="font-size:12.5px;color:#7a5a3a;line-height:1.5;margin-top:3px;">Breathing timer + wellness resources. Self-contained feature.</div>
+      </div>
+      <div style="background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:14px 16px;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#417C98;letter-spacing:.06em;">OVERLAY</div>
+        <div style="font-weight:700;color:#3a2412;font-size:15px;margin-top:2px;">Progress &amp; Generations</div>
+        <div style="font-size:12.5px;color:#7a5a3a;line-height:1.5;margin-top:3px;">Progress meter + the user's saved bookmarks &amp; AI creations.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ B. OBJECT → ROUTE MAP ============ -->
+  <div style="margin-bottom:38px;">
+    <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.22em;color:#A27532;margin-bottom:4px;">SECTION B</div>
+    <h2 style="margin:0 0 14px;font-size:24px;font-weight:700;color:#3a2412;">What each object links to</h2>
+    <p style="margin:0 0 18px;font-size:14px;line-height:1.65;color:#5a4630;">Routes are suggestions — rename to match your router. Three objects open the in-app feature screens above instead of navigating away (marked <em>feature screen</em>).</p>
+
+    <div style="border:1.5px solid rgba(33,40,46,.12);border-radius:12px;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;background:#21282E;color:#FDDD9A;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;padding:11px 16px;">
+        <div>OBJECT</div><div>ROUTE</div><div>OPENS</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fff;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">My Profile</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/hub/my-profile</div><div style="color:#6a523a;">Profile: photo, learner type, dream job</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fbf6e8;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">Steward Library</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/hub/library</div><div style="color:#6a523a;">Resource hub — readings &amp; guides</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fff;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">Environmental Literacy</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/hub/environmental-literacy</div><div style="color:#6a523a;">Salton Sea ecology modules</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fbf6e8;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">Community Listening</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/hub/community-listening</div><div style="color:#6a523a;">Listening sessions &amp; sign-ups</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fff;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">Help Desk</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/hub/help-desk</div><div style="color:#6a523a;">Help, FAQs, support bulletin</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fbf6e8;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">Monitor (Workshops)</div><div style="font-family:'DM Mono',monospace;font-size:11.5px;color:#2E5534;">feature screen → 3 apps</div><div style="color:#6a523a;">Opens sub-hub: Pilot Workshops, AI Lab, Workforce</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:11px 16px 11px 32px;font-size:12.5px;background:#fff;border-bottom:1px solid rgba(33,40,46,.06);align-items:center;color:#7a5a3a;">
+        <div>↳ Pilot Workshops</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/hub/pilot-workshops</div><div>Bilingual media &amp; intro-to-AI</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:11px 16px 11px 32px;font-size:12.5px;background:#fff;border-bottom:1px solid rgba(33,40,46,.06);align-items:center;color:#7a5a3a;">
+        <div>↳ AI Lab</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/hub/ai-lab</div><div>AI tools for content &amp; learning</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:11px 16px 11px 32px;font-size:12.5px;background:#fff;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;color:#7a5a3a;">
+        <div>↳ Workforce Dev.</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/hub/workforce-pathways</div><div>Career roadmap &amp; pathways</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fbf6e8;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">Wellness &amp; Meditation</div><div style="font-family:'DM Mono',monospace;font-size:11.5px;color:#2E5534;">feature screen</div><div style="color:#6a523a;">Breathing timer + wellness resources</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fff;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">Progress &amp; Generations</div><div style="font-family:'DM Mono',monospace;font-size:11.5px;color:#2E5534;">feature screen</div><div style="color:#6a523a;">Progress meter + saved/generated items</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fbf0df;border-bottom:1px solid rgba(33,40,46,.07);align-items:center;">
+        <div style="font-weight:700;color:#A27532;">Admin Console <span style="font-size:10px;font-family:'DM Mono',monospace;background:#A27532;color:#fff;padding:2px 6px;border-radius:10px;vertical-align:middle;">ADMIN</span></div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/admin</div><div style="color:#6a523a;">User management &amp; settings (role-gated)</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.4fr;padding:13px 16px;font-size:13px;background:#fff;align-items:center;">
+        <div style="font-weight:700;color:#3a2412;">Log Out</div><div style="font-family:'DM Mono',monospace;font-size:12px;color:#417C98;">/login</div><div style="color:#6a523a;">Clears session → login screen</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ C. USER vs ADMIN ============ -->
+  <div style="margin-bottom:38px;">
+    <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.22em;color:#A27532;margin-bottom:4px;">SECTION C</div>
+    <h2 style="margin:0 0 14px;font-size:24px;font-weight:700;color:#3a2412;">User vs Admin — the one rule that matters</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="background:#fff;border:1.5px solid rgba(46,85,52,.3);border-radius:13px;padding:20px;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;background:#2E5534;color:#fff;display:inline-block;padding:4px 11px;border-radius:20px;">EVERY USER</div>
+        <p style="font-size:13.5px;line-height:1.6;color:#4a3a26;margin:12px 0 0;">Sees the full room and every object <em>except</em> the small key on the wall. Profile, Library, Environmental Literacy, Community, Help Desk, the Monitor programs, Meditation, Progress, and Log Out are all available.</p>
+      </div>
+      <div style="background:#fff;border:1.5px solid rgba(162,117,50,.4);border-radius:13px;padding:20px;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;background:#A27532;color:#fff;display:inline-block;padding:4px 11px;border-radius:20px;">ADMIN ONLY</div>
+        <p style="font-size:13.5px;line-height:1.6;color:#4a3a26;margin:12px 0 0;">Additionally sees the <strong>brass key</strong> on the wall → <span style="font-family:'DM Mono',monospace;font-size:12px;background:rgba(33,40,46,.07);padding:1px 6px;border-radius:5px;">/admin</span> (user management &amp; settings). The key is <strong>not rendered at all</strong> for non-admins — don't just hide it client-side, gate it on the role.</p>
+      </div>
+    </div>
+    <div style="background:rgba(192,73,47,.07);border:1px solid rgba(192,73,47,.28);border-radius:11px;padding:15px 18px;margin-top:16px;font-size:13.5px;line-height:1.6;color:#6a3326;">
+      <strong style="color:#21282E;">Backend contract:</strong> the user session carries one boolean — <span style="font-family:'DM Mono',monospace;background:rgba(33,40,46,.07);padding:1px 6px;border-radius:5px;">is_admin</span> (or a role). The frontend reads it to decide whether to render the key. The <span style="font-family:'DM Mono',monospace;background:rgba(33,40,46,.07);padding:1px 6px;border-radius:5px;">/admin</span> route itself must <em>also</em> be protected server-side — never trust the hidden key alone.
+    </div>
+  </div>
+
+  <!-- ============ D. WHAT THE BACKEND PROVIDES ============ -->
+  <div style="margin-bottom:38px;">
+    <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.22em;color:#A27532;margin-bottom:4px;">SECTION D</div>
+    <h2 style="margin:0 0 14px;font-size:24px;font-weight:700;color:#3a2412;">What the backend needs to supply</h2>
+    <div style="display:flex;flex-direction:column;gap:11px;">
+
+      <div style="display:flex;gap:14px;background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:15px 18px;">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:#fff;background:#21282E;border-radius:8px;padding:5px 9px;height:fit-content;white-space:nowrap;">AUTH</div>
+        <div><div style="font-weight:700;color:#3a2412;font-size:14.5px;">Login &amp; session</div><div style="font-size:13px;color:#6a523a;line-height:1.55;margin-top:2px;">A login page at <span style="font-family:'DM Mono',monospace;">/login</span>. Log Out clears the session and returns there. Session exposes the user identity + <span style="font-family:'DM Mono',monospace;">is_admin</span>.</div></div>
+      </div>
+
+      <div style="display:flex;gap:14px;background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:15px 18px;">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:#fff;background:#417C98;border-radius:8px;padding:5px 9px;height:fit-content;white-space:nowrap;">PROFILE</div>
+        <div><div style="font-weight:700;color:#3a2412;font-size:14.5px;">User profile</div><div style="font-size:13px;color:#6a523a;line-height:1.55;margin-top:2px;">Photo (shown in the wall portrait), learner type, dream job, and saved settings. Powers <span style="font-family:'DM Mono',monospace;">/hub/my-profile</span>.</div></div>
+      </div>
+
+      <div style="display:flex;gap:14px;background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:15px 18px;">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:#fff;background:#2E5534;border-radius:8px;padding:5px 9px;height:fit-content;white-space:nowrap;">PROGRESS</div>
+        <div><div style="font-weight:700;color:#3a2412;font-size:14.5px;">Progress value (0–100)</div><div style="font-size:13px;color:#6a523a;line-height:1.55;margin-top:2px;">One number per user. Drives the progress bar <em>and</em> the height of the chia sprouts on the desk statue. Updated as the user completes milestones.</div></div>
+      </div>
+
+      <div style="display:flex;gap:14px;background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:15px 18px;">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:#fff;background:#A27532;border-radius:8px;padding:5px 9px;height:fit-content;white-space:nowrap;">LIBRARY</div>
+        <div><div style="font-weight:700;color:#3a2412;font-size:14.5px;">Saved &amp; generated items</div><div style="font-size:13px;color:#6a523a;line-height:1.55;margin-top:2px;">A list per user, each item: <span style="font-family:'DM Mono',monospace;">type</span> (bookmark / generation / note), <span style="font-family:'DM Mono',monospace;">title</span>, and <span style="font-family:'DM Mono',monospace;">source</span>. Shown on the Progress page.</div></div>
+      </div>
+
+      <div style="display:flex;gap:14px;background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:15px 18px;">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:#fff;background:#c0492f;border-radius:8px;padding:5px 9px;height:fit-content;white-space:nowrap;">ADMIN</div>
+        <div><div style="font-weight:700;color:#3a2412;font-size:14.5px;">User management</div><div style="font-size:13px;color:#6a523a;line-height:1.55;margin-top:2px;">Behind <span style="font-family:'DM Mono',monospace;">/admin</span>: list/manage users and global settings. Role-gated server-side.</div></div>
+      </div>
+
+      <div style="display:flex;gap:14px;background:#fff;border:1.5px solid rgba(33,40,46,.1);border-radius:11px;padding:15px 18px;">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:#fff;background:#6a523a;border-radius:8px;padding:5px 9px;height:fit-content;white-space:nowrap;">PAGES</div>
+        <div><div style="font-weight:700;color:#3a2412;font-size:14.5px;">The content routes</div><div style="font-size:13px;color:#6a523a;line-height:1.55;margin-top:2px;">Each remaining object just needs its page to exist (Library, Environmental Literacy, Community Listening, Help Desk, the 3 Monitor programs). The hub only links to them.</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ E. IGNORE THESE ============ -->
+  <div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.22em;color:#A27532;margin-bottom:4px;">SECTION E</div>
+    <h2 style="margin:0 0 14px;font-size:24px;font-weight:700;color:#3a2412;">Prototype-only — safe to ignore</h2>
+    <p style="margin:0 0 14px;font-size:14px;line-height:1.65;color:#5a4630;">These exist to make the demo feel alive. They are <strong>not</strong> backend features.</p>
+    <ul style="margin:0;padding-left:20px;font-size:13.5px;line-height:1.9;color:#5a4630;">
+      <li>The <strong>day / dusk / night</strong> toggle and the color-cycling lamp — purely ambient visuals.</li>
+      <li>The <strong>"you're entering…" pop-up</strong> — a demo interstitial; real clicks just navigate.</li>
+      <li><strong>Local browser storage</strong> (<span style="font-family:'DM Mono',monospace;font-size:12px;">sw_progress</span>, <span style="font-family:'DM Mono',monospace;font-size:12px;">sw_timeofday</span>) — fake persistence for the demo; replace with real user data.</li>
+      <li>The meditation <strong>tone &amp; timer</strong> run entirely in the browser — no server needed.</li>
+    </ul>
+  </div>
+
+  <div style="margin-top:40px;padding-top:18px;border-top:1px solid rgba(33,40,46,.12);font-family:'DM Mono',monospace;font-size:11px;color:#9a7a4a;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <span>StewardWorks.Space · Cozy Hub handoff</span><span>© 2026 Nureaum</span>
+  </div>
+
+  </div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

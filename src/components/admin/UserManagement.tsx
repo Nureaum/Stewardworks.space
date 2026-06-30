@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Shield, User as UserIcon, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Shield, User as UserIcon, AlertCircle, Loader2, Plus, X } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -21,22 +21,62 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addFormData, setAddFormData] = useState({ email: '', role: 'participant', password: '' });
+  const [isAdding, setIsAdding] = useState(false);
+  const [addError, setAddError] = useState('');
 
   useEffect(() => {
+    console.log("UserManagement mounted, fetching users...");
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
+    console.log("fetchUsers called");
     try {
       setLoading(true);
       const res = await fetch('/api/admin/users');
-      if (!res.ok) throw new Error('Failed to fetch users');
+      console.log("fetchUsers response status:", res.status);
+      if (!res.ok) {
+        const errText = await res.text();
+        console.log("fetchUsers error response:", errText);
+        throw new Error('Failed to fetch users');
+      }
       const data = await res.json();
+      console.log("fetchUsers success, count:", data.users?.length);
       setUsers(data.users || []);
     } catch (err: any) {
+      console.error("fetchUsers caught error:", err.message);
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddError('');
+    setIsAdding(true);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addFormData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to add user');
+      }
+
+      setAddFormData({ email: '', role: 'participant', password: '' });
+      setIsAddModalOpen(false);
+      fetchUsers();
+    } catch (err: any) {
+      setAddError(err.message);
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -46,7 +86,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
       return;
     }
     
-    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    const newRole = currentRole === 'admin' ? 'participant' : 'admin';
     try {
       setUpdatingId(userId);
       const res = await fetch('/api/admin/users', {
@@ -107,18 +147,28 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
           <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Total Users: {users.length}</p>
         </div>
         
-        {/* Search Bar */}
-        <div className="relative w-full md:w-72">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={16} className="text-gray-400" />
+        {/* Actions & Search */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          {isMainAdmin && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-steward-dark text-steward-gold px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-black transition-colors"
+            >
+              <Plus size={16} /> Add User
+            </button>
+          )}
+          <div className="relative w-full md:w-72">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={16} className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent transition-all text-sm font-bold"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent transition-all text-sm font-bold"
-            placeholder="Search users..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
         </div>
       </div>
 
@@ -134,10 +184,10 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
           </thead>
           <tbody className="bg-white divide-y divide-gray-50">
             {filteredUsers.map((u) => {
-              const currentRole = u.role || u.role_name || 'user';
-              const isAdmin = currentRole === 'admin';
+              const currentRole = u.role || 'participant';
+              const isAdmin = currentRole === 'admin' || currentRole === 'super_admin';
               const isUpdating = updatingId === u.id;
-              const isUserMainAdmin = u.email === 'vaniibodasingu@gmail.com';
+              const isUserMainAdmin = currentRole === 'super_admin';
               const canEditRole = isMainAdmin && !isUserMainAdmin;
               
               return (
@@ -161,7 +211,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
                       {isAdmin ? (
                         <span className="flex items-center gap-1"><Shield size={10} /> Admin</span>
                       ) : (
-                        <span className="flex items-center gap-1"><UserIcon size={10} /> User</span>
+                        <span className="flex items-center gap-1"><UserIcon size={10} /> Participant</span>
                       )}
                     </span>
                   </td>
@@ -198,6 +248,76 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
           </tbody>
         </table>
       </div>
+
+      {/* Add User Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full relative">
+            <button
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute right-6 top-6 text-gray-400 hover:text-gray-900 transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <h3 className="text-2xl font-black text-steward-dark uppercase tracking-tight mb-6">Add New User</h3>
+
+            {addError && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold mb-6">
+                {addError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={addFormData.email}
+                  onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                  placeholder="Enter email address"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Role</label>
+                <select
+                  value={addFormData.role}
+                  onChange={(e) => setAddFormData({ ...addFormData, role: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                >
+                  <option value="participant">Participant</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={addFormData.password}
+                  onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                  placeholder="Create a password"
+                  minLength={8}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isAdding}
+                className="w-full bg-steward-dark text-steward-gold py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4 flex justify-center items-center gap-2"
+              >
+                {isAdding && <Loader2 size={16} className="animate-spin" />}
+                {isAdding ? 'Creating...' : 'Create User'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

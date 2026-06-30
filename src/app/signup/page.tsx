@@ -73,6 +73,7 @@ export default function SignupPage() {
       }
 
       // 1. Create the user
+      console.log("Attempting to create user with Clerk:", { emailAddress: email, firstName, lastName, phone });
       await signUp.create({
         emailAddress: email,
         password,
@@ -82,6 +83,7 @@ export default function SignupPage() {
           phone,
         }
       });
+      console.log("User created successfully on Clerk backend.");
 
       // 2. Prepare email verification (verification link)
       await signUp.prepareEmailAddressVerification({ 
@@ -93,6 +95,8 @@ export default function SignupPage() {
       // Note: we can also auto-login if email verification is off, but usually it's on
       setStatus('signup_success');
     } catch (err: any) {
+      console.error("Clerk Signup Error Complete Object:", JSON.stringify(err, null, 2));
+      console.error("Full Error:", err);
       setStatus('error');
       const clerkError = err.errors?.[0];
       if (clerkError?.code === 'form_identifier_exists') {

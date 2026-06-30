@@ -14,15 +14,14 @@ const isPublicRoute = createRouteMatcher([
   '/info(.*)',
   '/onboarding/bulletin(.*)',
   '/api(.*)',
+  '/fonts(.*)',
 ])
 
 const isAdminRoute = createRouteMatcher([
-  '/admin(.*)'
+  '/admin(.*)',
+  '/admin/pilot-workshops(.*)'
 ])
 
-const isSuperAdminRoute = createRouteMatcher([
-  '/admin/users(.*)'
-])
 
 /**
  * VIP routes that require onboarding completion (preferred_language set).
@@ -63,19 +62,25 @@ export default clerkMiddleware(async (auth, request) => {
       return NextResponse.redirect(signInUrl);
     }
     
-    // Check Clerk session claims for role (relies on Clerk session template configuring public_metadata)
-    const role = (authResult.sessionClaims?.metadata as any)?.role || (authResult.sessionClaims as any)?.public_metadata?.role;
-    
-    if (role !== 'admin' && role !== 'super_admin') {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-  }
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('clerk_user_id', userId)
+        .single()
+        
+      const role = profile?.role;
+      if (role !== 'admin' && role !== 'super_admin') {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
 
-  // Super admin route check
-  if (isSuperAdminRoute(request)) {
-    const role = (authResult.sessionClaims?.metadata as any)?.role || (authResult.sessionClaims as any)?.public_metadata?.role;
-    if (role !== 'super_admin') {
-      return NextResponse.redirect(new URL('/admin', request.url));
+    } catch (error) {
+      console.error('Middleware admin check failed:', error);
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 

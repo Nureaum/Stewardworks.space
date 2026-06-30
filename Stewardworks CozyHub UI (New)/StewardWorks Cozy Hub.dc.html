@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,300..800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#1c140f;overflow:hidden;font-family:'Exo',sans-serif;}
+  *{box-sizing:border-box;}
+  @keyframes sw-breathe{0%,100%{transform:scale(0.66)}50%{transform:scale(1.04)}}
+  @keyframes sw-neon{0%,18%,22%,25%,70%,100%{opacity:1}20%,23%,72%{opacity:.62}}
+  @keyframes sw-shimmer{0%{transform:translateX(-6%)}100%{transform:translateX(6%)}}
+  @keyframes sw-sway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+  @keyframes sw-drift{0%,100%{transform:translateX(0)}50%{transform:translateX(-14px)}}
+  @keyframes sw-lamppulse{0%,100%{opacity:.85}50%{opacity:1}}
+  @keyframes sw-flow{0%{transform:translateY(-9px)}100%{transform:translateY(0)}}
+  @keyframes sw-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes sw-label{from{opacity:0;transform:translate(-50%,-100%) translateY(6px)}to{opacity:1;transform:translate(-50%,-100%) translateY(0)}}
+  @keyframes sw-fadein{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+
+<div style="{{ outerStyle }}">
+
+  <!-- =================== HUB STAGE =================== -->
+  <div data-screen-label="Cozy Hub" style="{{ stageStyle }}">
+
+    <!-- WALL -->
+    <div style="{{ wallStyle }}"></div>
+    <div style="position:absolute;inset:0;z-index:0;background:radial-gradient(120% 80% at 50% 18%, rgba(255,240,220,.35), transparent 60%), radial-gradient(140% 90% at 50% 110%, rgba(80,40,20,.28), transparent 55%);"></div>
+    <!-- time-of-day tint -->
+    <div style="{{ tint }}"></div>
+
+    <!-- ============ WALL OBJECTS ============ -->
+
+    <!-- PROFILE PORTRAIT (My Profile) -->
+    <div style="position:absolute;left:62px;top:54px;width:280px;height:352px;z-index:6;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-6px) scale(1.02);filter:drop-shadow(0 14px 22px rgba(219,155,47,.55));" onMouseEnter="{{ o.profile.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.profile.click }}">
+      <sc-if value="{{ o.profile.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-12px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">My Profile<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#21282E;"></span></div></sc-if>
+      <div style="position:absolute;inset:0;background:linear-gradient(150deg,#5a3a24,#3d2817);border-radius:5px;box-shadow:0 16px 30px rgba(0,0,0,.32);padding:16px;">
+        <div style="position:absolute;inset:9px;border:2px solid rgba(0,0,0,.25);border-radius:3px;"></div>
+        <div style="position:relative;width:100%;height:100%;background:linear-gradient(165deg,#c4b2d8,#9180ac);border-radius:2px;overflow:hidden;">
+          <!-- illustrated portrait (default; dev swaps in the user's uploaded photo) -->
+          <div style="position:absolute;left:50%;bottom:0;width:230px;height:282px;transform:translateX(-50%);">
+            <div style="position:absolute;left:50%;bottom:118px;width:160px;height:158px;transform:translateX(-50%);border-radius:50% 50% 46% 46%;background:#2b2330;box-shadow:inset -8px -10px 18px rgba(0,0,0,.25);"></div>
+            <div style="position:absolute;left:50%;bottom:0;width:210px;height:120px;transform:translateX(-50%);border-radius:78px 78px 0 0;overflow:hidden;display:flex;box-shadow:inset 0 5px 12px rgba(0,0,0,.14);">
+              <div style="flex:1;background:linear-gradient(160deg,#46b3a2,#2f8d7e);"></div>
+              <div style="flex:1;background:linear-gradient(160deg,#cf6bb0,#a84d8e);"></div>
+            </div>
+            <div style="position:absolute;left:50%;bottom:74px;width:30px;height:34px;transform:translateX(-50%) rotate(45deg);background:linear-gradient(135deg,#3f9d8e 50%,#bd5fa0 50%);"></div>
+            <div style="position:absolute;left:46px;bottom:34px;width:38px;height:13px;background:rgba(255,255,255,.85);border-radius:2px;"></div>
+            <div style="position:absolute;left:50%;bottom:104px;width:44px;height:34px;transform:translateX(-50%);background:#9c6b46;border-radius:0 0 14px 14px;"></div>
+            <div style="position:absolute;left:50%;bottom:118px;width:104px;height:120px;transform:translateX(-50%);background:linear-gradient(160deg,#bb8359,#9c6b46);border-radius:50px 50px 46px 46px;box-shadow:inset -6px -8px 14px rgba(0,0,0,.16);">
+              <div style="position:absolute;top:46px;left:26px;width:10px;height:11px;border-radius:50%;background:#33241a;"></div>
+              <div style="position:absolute;top:46px;right:26px;width:10px;height:11px;border-radius:50%;background:#33241a;"></div>
+              <div style="position:absolute;top:39px;left:18px;width:18px;height:5px;border-radius:3px;background:rgba(51,36,26,.5);"></div>
+              <div style="position:absolute;top:39px;right:18px;width:18px;height:5px;border-radius:3px;background:rgba(51,36,26,.5);"></div>
+              <div style="position:absolute;top:66px;left:50%;width:16px;height:8px;transform:translateX(-50%);background:rgba(190,90,90,.4);border-radius:0 0 10px 10px;"></div>
+              <div style="position:absolute;top:70px;left:50%;width:30px;height:15px;transform:translateX(-50%);border-bottom:3px solid #7a4730;border-radius:0 0 18px 18px;"></div>
+            </div>
+            <div style="position:absolute;left:40px;bottom:120px;width:15px;height:15px;border-radius:50%;border:3px solid #e0b34a;"></div>
+            <div style="position:absolute;right:40px;bottom:120px;width:15px;height:15px;border-radius:50%;border:3px solid #e0b34a;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WINDOW → SEA PHOTO (Environmental Literacy) -->
+    <div style="position:absolute;left:404px;top:20px;width:486px;height:266px;z-index:6;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-5px) scale(1.012);filter:drop-shadow(0 16px 26px rgba(65,124,152,.55));z-index:30;" onMouseEnter="{{ o.env.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.env.click }}">
+      <sc-if value="{{ o.env.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);background:rgba(33,40,46,.94);color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;border:1px solid rgba(254,250,224,.45);box-shadow:0 4px 14px rgba(0,0,0,.55);z-index:50;pointer-events:none;animation:sw-fadein .15s ease;">Environmental Literacy</div></sc-if>
+      <!-- outer wood frame -->
+      <div style="position:absolute;inset:0;background:linear-gradient(160deg,#efe4cd,#d2bf9a);border-radius:8px;box-shadow:0 18px 34px rgba(0,0,0,.3),inset 0 0 0 1px rgba(120,90,50,.25);padding:16px;">
+        <!-- glass / sea photo (synced to time-of-day toggle) -->
+        <div style="position:relative;width:100%;height:100%;border-radius:4px;overflow:hidden;box-shadow:inset 0 0 0 3px rgba(120,90,50,.4);background:linear-gradient(180deg,#f6b56a,#5e93a0);">
+          <div style="{{ envPhotoStyle }}"></div>
+          <div style="position:absolute;top:-10%;left:-10%;width:55%;height:130%;background:linear-gradient(120deg,rgba(255,255,255,.16),transparent 62%);transform:rotate(8deg);pointer-events:none;"></div>
+        </div>
+        <!-- pulled-back curtains (full opaque fabric, tied to the sides) -->
+        <div style="{{ curtainLeftStyle }}"></div>
+        <div style="position:absolute;left:14px;top:46%;width:74px;height:13px;background:linear-gradient(180deg,#ecc163,#9a772f);border-radius:7px;box-shadow:0 3px 6px rgba(90,55,26,.4),inset 0 1px 0 rgba(255,255,255,.45);pointer-events:none;z-index:3;"></div>
+        <div style="{{ curtainRightStyle }}"></div>
+        <div style="position:absolute;right:14px;top:46%;width:74px;height:13px;background:linear-gradient(180deg,#ecc163,#9a772f);border-radius:7px;box-shadow:0 3px 6px rgba(90,55,26,.4),inset 0 1px 0 rgba(255,255,255,.45);pointer-events:none;z-index:3;"></div>
+      </div>
+      <!-- robust windowsill -->
+      <div style="position:absolute;left:-18px;right:-18px;bottom:-15px;height:17px;background:linear-gradient(180deg,#efdfbe,#d6c193);border-radius:4px 4px 3px 3px;box-shadow:0 10px 16px rgba(0,0,0,.24);"></div>
+      <div style="position:absolute;left:-9px;right:-9px;bottom:-23px;height:9px;background:linear-gradient(180deg,#cbb287,#a98f63);border-radius:0 0 4px 4px;box-shadow:0 6px 10px rgba(0,0,0,.2);"></div>
+      <!-- sill corbels -->
+      <div style="position:absolute;left:18px;bottom:-31px;width:15px;height:12px;background:linear-gradient(180deg,#b89a6a,#937a50);border-radius:0 0 3px 3px;"></div>
+      <div style="position:absolute;right:18px;bottom:-31px;width:15px;height:12px;background:linear-gradient(180deg,#b89a6a,#937a50);border-radius:0 0 3px 3px;"></div>
+      <!-- potted flower on sill -->
+      <div style="position:absolute;right:4px;bottom:1px;width:52px;height:36px;background:linear-gradient(180deg,#c67a48,#9c5630);border-radius:5px 5px 12px 12px;z-index:2;box-shadow:inset 0 4px 0 rgba(255,255,255,.16),0 4px 7px rgba(0,0,0,.22);"></div>
+      <div style="position:absolute;right:4px;bottom:35px;width:52px;height:9px;background:linear-gradient(180deg,#dd8e56,#b56c40);border-radius:4px;z-index:2;"></div>
+      <!-- stem -->
+      <div style="position:absolute;right:27px;bottom:42px;width:4px;height:46px;background:linear-gradient(180deg,#6f9e2e,#4f7d1f);border-radius:3px;z-index:2;transform-origin:bottom;animation:sw-sway 6s ease-in-out infinite;"></div>
+      <!-- leaves -->
+      <div style="position:absolute;right:10px;bottom:50px;width:21px;height:13px;border-radius:0 70% 0 70%;background:linear-gradient(160deg,#6f9e2e,#4f7d1f);transform:rotate(-22deg);z-index:2;transform-origin:bottom right;animation:sw-sway 7s ease-in-out infinite;"></div>
+      <div style="position:absolute;right:33px;bottom:54px;width:21px;height:13px;border-radius:70% 0 70% 0;background:linear-gradient(160deg,#7caa34,#5f8d2a);transform:rotate(22deg);z-index:2;transform-origin:bottom left;animation:sw-sway 6.5s ease-in-out infinite;"></div>
+      <!-- flower bloom -->
+      <div style="position:absolute;right:11px;bottom:74px;width:42px;height:42px;z-index:3;transform-origin:bottom center;animation:sw-sway 5.5s ease-in-out infinite;">
+        <div style="position:absolute;left:23px;top:12px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 40% 38%,#f6a8c2,#df6f9a);"></div>
+        <div style="position:absolute;left:15px;top:1px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 40% 38%,#f6a8c2,#df6f9a);"></div>
+        <div style="position:absolute;left:3px;top:1px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 40% 38%,#f29bba,#d8628f);"></div>
+        <div style="position:absolute;left:0;top:12px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 40% 38%,#f29bba,#d8628f);"></div>
+        <div style="position:absolute;left:7px;top:22px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 40% 38%,#ee93b3,#d35c8a);"></div>
+        <div style="position:absolute;left:19px;top:22px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 40% 38%,#ee93b3,#d35c8a);"></div>
+        <div style="position:absolute;left:12px;top:12px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 42% 40%,#ffe79c,#f0b53e);box-shadow:inset 0 0 0 2px rgba(180,120,30,.25);"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN KEY (only for admins) -->
+    <sc-if value="{{ showAdmin }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;left:1109px;top:208px;width:46px;height:104px;z-index:7;cursor:pointer;transition:transform .28s ease,filter .28s ease;transform-origin:top center;" style-hover="transform:rotate(6deg) scale(1.08);filter:drop-shadow(0 8px 12px rgba(162,117,50,.7));" onMouseEnter="{{ o.admin.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.admin.click }}">
+        <sc-if value="{{ o.admin.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-8px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;padding:5px 10px;border-radius:7px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">Admin Console<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:9px;height:9px;background:#21282E;"></span></div></sc-if>
+        <div style="position:absolute;left:50%;top:0;width:6px;height:6px;border-radius:50%;background:#3a2a18;transform:translateX(-50%);"></div>
+        <div style="position:absolute;left:50%;top:3px;width:2px;height:30px;background:#9a8056;transform:translateX(-50%);"></div>
+        <div style="position:absolute;left:50%;top:30px;transform:translateX(-50%);">
+          <div style="width:22px;height:22px;border-radius:50%;border:5px solid #b8923f;background:transparent;"></div>
+          <div style="width:5px;height:34px;background:#b8923f;margin:0 auto;"></div>
+          <div style="width:14px;height:5px;background:#b8923f;margin-left:8px;margin-top:-12px;"></div>
+          <div style="width:10px;height:5px;background:#b8923f;margin-left:8px;margin-top:4px;"></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- EXIT SIGN (Log Out) -->
+    <div style="position:absolute;left:1004px;top:46px;width:256px;height:150px;z-index:6;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-5px) scale(1.03);filter:drop-shadow(0 14px 22px rgba(219,80,60,.5));" onMouseEnter="{{ o.logout.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.logout.click }}">
+      <sc-if value="{{ o.logout.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-12px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">Log Out<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#21282E;"></span></div></sc-if>
+
+      <!-- NEON version — frameless tubing mounted on the wall -->
+      <sc-if value="{{ isNeon }}" hint-placeholder-val="{{ true }}">
+        <!-- small backing plate sized to the sign -->
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:236px;height:118px;border-radius:16px;background:linear-gradient(160deg,rgba(120,92,72,.30),rgba(96,72,56,.34));box-shadow:0 6px 14px rgba(0,0,0,.14),inset 0 0 0 1px rgba(255,210,150,.12);"></div>
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;animation:sw-neon 4s linear infinite;">
+          <div style="font-family:'DM Mono',monospace;font-weight:500;font-size:44px;letter-spacing:.05em;color:#fff5cf;text-shadow:0 0 6px #ffd24a,0 0 16px #ff9a3a,0 0 30px #ff6a2a;line-height:.9;">EXIT</div>
+          <div style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:.04em;color:#b6edff;text-shadow:0 0 6px #5fd0ff,0 0 15px #2a9fe0;margin-top:8px;">STEWARD.WORKS</div>
+        </div>
+        <!-- mounting screws on plate corners -->
+        <div style="position:absolute;left:50%;top:50%;width:236px;height:118px;transform:translate(-50%,-50%);pointer-events:none;">
+          <div style="position:absolute;left:8px;top:8px;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#cfd3da,#7d8595);"></div>
+          <div style="position:absolute;right:8px;top:8px;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#cfd3da,#7d8595);"></div>
+          <div style="position:absolute;left:8px;bottom:8px;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#cfd3da,#7d8595);"></div>
+          <div style="position:absolute;right:8px;bottom:8px;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#cfd3da,#7d8595);"></div>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- ============ DESK ============ -->
+    <div style="position:absolute;left:0;right:0;top:512px;height:188px;z-index:5;background:linear-gradient(180deg,#a8663f 0%,#8c4f30 24%,#7c4327 100%);box-shadow:inset 0 16px 28px rgba(0,0,0,.2);">
+      <div style="position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(180deg,rgba(255,222,180,.28),transparent);"></div>
+      <div style="position:absolute;inset:0;opacity:.1;background-image:repeating-linear-gradient(90deg,transparent 0 40px,rgba(0,0,0,.55) 41px 42px);"></div>
+      <!-- front face -->
+      <div style="position:absolute;left:0;right:0;top:88px;bottom:0;background:linear-gradient(180deg,#713d23,#582d18);border-top:5px solid #46220f;">
+        <div style="position:absolute;left:46px;top:24px;width:300px;height:96px;background:linear-gradient(180deg,#norm,#5a2e18);background:linear-gradient(180deg,#7a4327,#5a2e18);border-radius:7px;box-shadow:inset 0 3px 8px rgba(0,0,0,.4),inset 0 -2px 0 rgba(255,200,150,.12);"></div>
+        <div style="position:absolute;left:166px;top:62px;width:64px;height:11px;background:#cdb083;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,.4);"></div>
+        <div style="position:absolute;right:46px;top:24px;width:300px;height:96px;background:linear-gradient(180deg,#7a4327,#5a2e18);border-radius:7px;box-shadow:inset 0 3px 8px rgba(0,0,0,.4),inset 0 -2px 0 rgba(255,200,150,.12);"></div>
+        <div style="position:absolute;right:166px;top:62px;width:64px;height:11px;background:#cdb083;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,.4);"></div>
+        <div style="position:absolute;left:50%;top:18px;width:240px;height:120px;transform:translateX(-50%);background:linear-gradient(180deg,#5e3119,#48250f);border-radius:8px 8px 0 0;box-shadow:inset 0 4px 10px rgba(0,0,0,.45);"></div>
+      </div>
+    </div>
+
+    <!-- ambient lamp glow -->
+    <div style="{{ lampGlowStyle }}"></div>
+
+    <!-- ============ DESK OBJECTS ============ -->
+
+    <!-- LAMP (Help Desk) — iridescent dome -->
+    <div style="position:absolute;left:64px;bottom:126px;width:172px;height:212px;z-index:9;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(255,190,120,.7));" onMouseEnter="{{ o.helpdesk.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.helpdesk.click }}">
+      <sc-if value="{{ o.helpdesk.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-10px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">Help Desk<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#21282E;"></span></div></sc-if>
+      <!-- glass dome -->
+      <div style="position:absolute;left:50%;bottom:2px;width:152px;height:20px;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(0,0,0,.34),transparent 70%);filter:blur(3px);z-index:-1;pointer-events:none;"></div>
+      <div style="position:absolute;left:50%;top:6px;width:128px;height:150px;transform:translateX(-50%);border-radius:64px 64px 30px 30px / 80px 80px 26px 26px;background:linear-gradient(165deg, rgba(247,205,224,.62), rgba(214,168,200,.5) 45%, rgba(160,200,210,.4));box-shadow:inset 0 12px 30px rgba(255,255,255,.55),inset 0 -10px 24px rgba(120,90,140,.35),0 8px 20px rgba(0,0,0,.18);overflow:hidden;">
+        <div style="position:absolute;left:18px;top:14px;width:30px;height:90px;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.6),transparent);filter:blur(2px);"></div>
+      </div>
+      <!-- inner glowing orb -->
+      <div style="{{ lampOrbStyle }}"></div>
+      <!-- chrome base -->
+      <div style="position:absolute;left:50%;bottom:8px;width:120px;height:30px;transform:translateX(-50%);border-radius:50%;background:linear-gradient(180deg,#e7e9ee,#aab0bd 55%,#7d8595);box-shadow:0 8px 14px rgba(0,0,0,.3),inset 0 2px 3px rgba(255,255,255,.8);"></div>
+      <div style="position:absolute;left:50%;bottom:22px;width:120px;height:16px;transform:translateX(-50%);border-radius:50%;background:linear-gradient(180deg,#cdd2dc,#9aa1ae);"></div>
+    </div>
+
+    <!-- ZEN WATER FOUNTAIN (Wellness & Meditation) -->
+    <div style="position:absolute;left:228px;bottom:162px;width:138px;height:172px;z-index:6;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(80,170,190,.6));" onMouseEnter="{{ o.wellness.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.wellness.click }}">
+      <sc-if value="{{ o.wellness.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-10px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">Wellness &amp; Meditation<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#21282E;"></span></div></sc-if>
+      <!-- ground shadow -->
+      <div style="position:absolute;left:50%;bottom:2px;width:118px;height:18px;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(0,0,0,.32),transparent 70%);filter:blur(3px);z-index:-1;pointer-events:none;"></div>
+      <!-- basin bowl -->
+      <div style="position:absolute;left:50%;bottom:6px;width:116px;height:50px;transform:translateX(-50%);background:linear-gradient(180deg,#3f7488,#2c5566);box-shadow:0 10px 16px rgba(0,0,0,.3),inset 0 -4px 8px rgba(0,0,0,.25);clip-path:polygon(7% 0,93% 0,83% 100%,17% 100%);z-index:1;"></div>
+      <div style="position:absolute;left:50%;bottom:46px;width:122px;height:22px;transform:translateX(-50%);border-radius:50%;background:linear-gradient(180deg,#4f8a9e,#356074);box-shadow:inset 0 2px 0 rgba(255,255,255,.22);z-index:2;"></div>
+      <!-- greenery sprigs at back rim -->
+      <div style="position:absolute;left:14px;bottom:50px;z-index:2;animation:sw-sway 6s ease-in-out infinite;transform-origin:bottom center;">
+        <div style="width:19px;height:19px;border-radius:60% 0 60% 60%;background:#6B8E23;transform:rotate(18deg);"></div>
+        <div style="width:15px;height:15px;border-radius:0 60% 60% 60%;background:#7c9e2e;transform:rotate(-26deg);margin-top:-9px;margin-left:9px;"></div>
+      </div>
+      <div style="position:absolute;right:14px;bottom:50px;z-index:2;animation:sw-sway 7.5s ease-in-out infinite;transform-origin:bottom center;">
+        <div style="width:17px;height:17px;border-radius:0 60% 60% 60%;background:#5f7d1f;transform:rotate(-16deg);"></div>
+        <div style="width:14px;height:14px;border-radius:60% 0 60% 60%;background:#8bb03e;transform:rotate(22deg);margin-top:-8px;margin-right:7px;"></div>
+      </div>
+      <!-- water surface -->
+      <div style="position:absolute;left:50%;bottom:50px;width:102px;height:13px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,#c4e9f1,#7fc0d2 72%);box-shadow:inset 0 2px 4px rgba(255,255,255,.5);overflow:hidden;z-index:3;">
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg, rgba(255,255,255,.28) 0 2px, transparent 2px 9px);animation:sw-shimmer 6s ease-in-out infinite alternate;"></div>
+      </div>
+      <!-- stacked river stones -->
+      <div style="position:absolute;left:50%;bottom:55px;width:58px;height:19px;transform:translateX(-50%);border-radius:50%;background:linear-gradient(180deg,#b3b9bf,#7c828a);box-shadow:0 4px 7px rgba(0,0,0,.28),inset 0 2px 2px rgba(255,255,255,.4);z-index:4;"></div>
+      <div style="position:absolute;left:50%;bottom:68px;width:44px;height:16px;transform:translateX(-50%);border-radius:50%;background:linear-gradient(180deg,#c0c6cc,#868c94);box-shadow:0 4px 6px rgba(0,0,0,.26),inset 0 2px 2px rgba(255,255,255,.45);z-index:4;"></div>
+      <div style="position:absolute;left:50%;bottom:80px;width:30px;height:13px;transform:translateX(-50%);border-radius:50%;background:linear-gradient(180deg,#cad0d6,#929aa2);box-shadow:0 3px 5px rgba(0,0,0,.24),inset 0 2px 2px rgba(255,255,255,.5);z-index:4;"></div>
+      <!-- cascading water sheet -->
+      <div style="position:absolute;left:50%;bottom:56px;width:24px;height:34px;transform:translateX(-50%);border-radius:8px;background:linear-gradient(180deg,rgba(210,240,248,.12),rgba(165,218,234,.5));box-shadow:0 0 6px rgba(180,225,240,.4);overflow:hidden;z-index:5;">
+        <div style="position:absolute;left:-4px;right:-4px;top:-9px;bottom:-9px;background:repeating-linear-gradient(180deg, rgba(255,255,255,.38) 0 2px, transparent 2px 9px);animation:sw-flow .8s linear infinite;"></div>
+      </div>
+      <!-- spout bubble at top -->
+      <div style="position:absolute;left:50%;bottom:89px;width:16px;height:8px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,#eafaff,#c4e9f1);box-shadow:0 0 8px rgba(190,235,245,.7);z-index:6;animation:sw-lamppulse 4s ease-in-out infinite;"></div>
+    </div>
+
+    <!-- STATUE + CHIA (Progress & Generations) -->
+    <div style="position:absolute;left:392px;bottom:128px;width:108px;height:226px;z-index:9;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(107,142,35,.6));" onMouseEnter="{{ o.progress.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.progress.click }}">
+      <sc-if value="{{ o.progress.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-10px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">Progress &amp; Generations<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#21282E;"></span></div></sc-if>
+      <!-- chia sprouts (grow with progress) -->
+      <div style="position:absolute;left:50%;bottom:2px;width:90px;height:16px;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(0,0,0,.34),transparent 70%);filter:blur(3px);z-index:-1;pointer-events:none;"></div>
+      <!-- plinth base -->
+      <div style="position:absolute;left:50%;bottom:6px;width:84px;height:20px;transform:translateX(-50%);background:linear-gradient(180deg,#4a3f33,#33291f);border-radius:4px;box-shadow:0 9px 14px rgba(0,0,0,.34),inset 0 3px 0 rgba(255,230,190,.18);"></div>
+      <!-- plinth upper -->
+      <div style="position:absolute;left:50%;bottom:24px;width:68px;height:22px;transform:translateX(-50%);background:linear-gradient(180deg,#5a4a3a,#3f3326);border-radius:3px;box-shadow:inset 0 2px 0 rgba(255,230,190,.22);"></div>
+      <!-- award nameplate -->
+      <div style="position:absolute;left:50%;bottom:30px;width:48px;height:10px;transform:translateX(-50%);background:linear-gradient(180deg,#ecce7c,#bd9637);border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.3);"></div>
+      <!-- shoulders / bust -->
+      <div style="position:absolute;left:50%;bottom:44px;width:86px;height:74px;transform:translateX(-50%);background:linear-gradient(160deg,#d8b969,#9c7a2c);border-radius:42px 42px 10px 10px;clip-path:polygon(33% 0,67% 0,100% 100%,0 100%);box-shadow:inset -7px -5px 13px rgba(86,62,18,.5),inset 6px 5px 9px rgba(255,242,205,.28);"></div>
+      <!-- drape neckline -->
+      <div style="position:absolute;left:50%;bottom:64px;width:50px;height:34px;transform:translateX(-50%);border-radius:50%;border-top:2px solid rgba(86,62,18,.4);"></div>
+      <!-- neck -->
+      <div style="position:absolute;left:50%;bottom:100px;width:24px;height:30px;transform:translateX(-50%);background:linear-gradient(180deg,#c9a24b,#9c7a2c);box-shadow:inset -3px 0 5px rgba(86,62,18,.4);"></div>
+      <!-- head -->
+      <div style="position:absolute;left:50%;bottom:122px;width:50px;height:60px;transform:translateX(-50%);border-radius:48% 48% 44% 44%;background:linear-gradient(160deg,#dcc079,#a8842f);box-shadow:inset -5px -6px 13px rgba(86,62,18,.5),inset 5px 5px 9px rgba(255,242,205,.4);">
+        <div style="position:absolute;left:50%;top:26px;width:5px;height:13px;transform:translateX(-50%);background:linear-gradient(180deg,#bb9540,#8f6e26);border-radius:3px;"></div>
+        <div style="position:absolute;left:11px;top:24px;width:7px;height:4px;border-radius:50%;background:rgba(86,62,18,.45);"></div>
+        <div style="position:absolute;right:11px;top:24px;width:7px;height:4px;border-radius:50%;background:rgba(86,62,18,.45);"></div>
+      </div>
+      <!-- chia sprouts (hair) grow with progress -->
+      <div style="{{ chiaStyle }}">
+        <div style="width:4px;height:60%;background:linear-gradient(180deg,#9bc04a,#5f7d1f);border-radius:3px;transform:rotate(-16deg);transform-origin:bottom;"></div>
+        <div style="width:4px;height:84%;background:linear-gradient(180deg,#a6cb55,#6B8E23);border-radius:3px;transform:rotate(-7deg);transform-origin:bottom;"></div>
+        <div style="width:4px;height:100%;background:linear-gradient(180deg,#b4d65f,#74992a);border-radius:3px;transform-origin:bottom;"></div>
+        <div style="width:4px;height:86%;background:linear-gradient(180deg,#a6cb55,#6B8E23);border-radius:3px;transform:rotate(7deg);transform-origin:bottom;"></div>
+        <div style="width:4px;height:62%;background:linear-gradient(180deg,#9bc04a,#5f7d1f);border-radius:3px;transform:rotate(16deg);transform-origin:bottom;"></div>
+      </div>
+    </div>
+
+    <!-- MONITOR (Workshops · AI Lab · Workforce) -->
+    <div style="position:absolute;left:524px;bottom:140px;width:330px;height:248px;z-index:7;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-5px) scale(1.015);filter:drop-shadow(0 16px 22px rgba(65,124,152,.5));" onMouseEnter="{{ o.monitor.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.monitor.click }}">
+      <sc-if value="{{ o.monitor.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-10px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">Workshops · AI Lab · Workforce<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#21282E;"></span></div></sc-if>
+      <!-- stand -->
+      <div style="position:absolute;left:50%;bottom:-4px;width:160px;height:22px;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(0,0,0,.34),transparent 70%);filter:blur(4px);z-index:-1;pointer-events:none;"></div>
+      <div style="position:absolute;left:50%;bottom:0;width:120px;height:18px;transform:translateX(-50%);background:linear-gradient(180deg,#dfe2e8,#aab0bd);border-radius:6px;box-shadow:0 8px 12px rgba(0,0,0,.28);"></div>
+      <div style="position:absolute;left:50%;bottom:14px;width:34px;height:46px;transform:translateX(-50%);background:linear-gradient(90deg,#c9ccd4,#eef0f3,#c9ccd4);"></div>
+      <!-- body -->
+      <div style="position:absolute;left:0;top:0;right:0;bottom:52px;background:linear-gradient(165deg,#f4f1ea,#dcd8cf);border-radius:18px;box-shadow:0 14px 26px rgba(0,0,0,.3),inset 0 2px 0 rgba(255,255,255,.7);padding:14px;">
+        <!-- screen -->
+        <div style="position:relative;width:100%;height:100%;border-radius:8px;overflow:hidden;background:linear-gradient(160deg,#2b3a44,#3c5360 60%,#46606e);box-shadow:inset 0 0 0 3px rgba(0,0,0,.25);">
+          <!-- wallpaper -->
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,#e88c52 0%,#d9a35e 42%,#5e93a0 62%,#3a5560 100%);opacity:.92;"></div>
+          <!-- centered StewardWorks logo -->
+          <div style="position:absolute;left:0;right:0;top:47%;transform:translateY(-50%);display:flex;justify-content:center;">
+            <div style="width:82px;height:82px;border-radius:18px;background:rgba(255,255,255,.94);box-shadow:0 8px 20px rgba(0,0,0,.3);padding:6px;display:flex;align-items:center;justify-content:center;">
+              <img src="assets/sw-logo.png" alt="StewardWorks AI Labs" style="width:100%;height:100%;object-fit:contain;display:block;" />
+            </div>
+          </div>
+          <!-- topbar -->
+          <div style="position:absolute;top:0;left:0;right:0;height:22px;background:rgba(255,255,255,.78);display:flex;align-items:center;justify-content:space-between;padding:0 9px;">
+            <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.18em;color:#21282E;opacity:.7;">STEWARD OS</span>
+            <span style="display:flex;gap:3px;"><i style="width:7px;height:7px;border-radius:50%;background:#e07a6a;display:block;"></i><i style="width:7px;height:7px;border-radius:50%;background:#e6c25a;display:block;"></i><i style="width:7px;height:7px;border-radius:50%;background:#7fb06a;display:block;"></i></span>
+          </div>
+          <!-- bottom label -->
+          <div style="position:absolute;left:0;right:0;bottom:13px;text-align:center;">
+            <div style="font-family:'DM Mono',monospace;font-weight:400;font-size:11px;color:#fff;letter-spacing:.08em;text-shadow:0 1px 4px rgba(0,0,0,.5);">Stewardworks AI Labs</div>
+            <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;color:rgba(255,255,255,.85);margin-top:3px;text-shadow:0 1px 3px rgba(0,0,0,.4);">CLICK TO ENTER</div>
+          </div>
+          <!-- glare -->
+          <div style="position:absolute;top:-10%;left:-20%;width:60%;height:140%;background:linear-gradient(120deg,rgba(255,255,255,.22),transparent 60%);transform:rotate(8deg);pointer-events:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEYBOARD (decor, in front of monitor) -->
+    <div style="position:absolute;left:524px;bottom:112px;width:330px;z-index:8;pointer-events:none;display:flex;justify-content:center;">
+      <div style="width:228px;height:58px;border-radius:9px;background:linear-gradient(180deg,#eceef2,#c7ccd5);box-shadow:0 12px 18px rgba(0,0,0,.32),inset 0 2px 0 rgba(255,255,255,.85);transform:perspective(360px) rotateX(40deg);transform-origin:bottom;padding:8px 10px;">
+        <div style="width:100%;height:34px;border-radius:4px;background-color:#f4f6f9;background-image:repeating-linear-gradient(90deg, rgba(120,120,140,.32) 0 1.5px, transparent 1.5px 17px), repeating-linear-gradient(0deg, rgba(120,120,140,.32) 0 1.5px, transparent 1.5px 11px);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);"></div>
+        <div style="width:46%;height:7px;margin:5px auto 0;border-radius:3px;background:#e2e6ec;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);"></div>
+      </div>
+    </div>
+
+    <!-- GROUP PHOTO FRAME (Community Listening) -->
+    <div style="position:absolute;left:874px;bottom:126px;width:152px;height:168px;z-index:7;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(219,155,47,.6));" onMouseEnter="{{ o.community.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.community.click }}">
+      <sc-if value="{{ o.community.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-10px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">Community Listening<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#21282E;"></span></div></sc-if>
+      <div style="position:absolute;inset:0;transform:rotate(6deg) scale(0.82);transform-origin:bottom center;">
+      <div style="position:absolute;left:0;right:0;top:0;height:140px;background:linear-gradient(150deg,#caa45a,#9c7636);border-radius:64px 64px 7px 7px;box-shadow:0 12px 20px rgba(0,0,0,.3);padding:11px;">
+        <div style="position:relative;width:100%;height:100%;background:linear-gradient(180deg,#f4b06a 0%,#efce8e 34%,#8fb6b0 52%,#5e93a0 100%);border-radius:57px 57px 3px 3px;overflow:hidden;box-shadow:inset 0 0 0 2px rgba(0,0,0,.18);">
+          <!-- Salton Sea backdrop (no sun) -->
+          <div style="position:absolute;left:0;right:0;top:34%;height:20px;background:linear-gradient(180deg,#b87b54,#8a5638);clip-path:polygon(0 100%,14% 46%,30% 80%,46% 34%,62% 72%,78% 40%,92% 74%,100% 52%,100% 100%);opacity:.85;"></div>
+          <div style="position:absolute;left:0;right:0;top:50%;bottom:0;background:repeating-linear-gradient(180deg, rgba(255,255,255,.16) 0 2px, transparent 2px 10px);opacity:.55;"></div>
+          <!-- back row -->
+          <div style="position:absolute;left:8px;bottom:0;width:38px;height:56px;"><div style="position:absolute;left:50%;bottom:0;width:38px;height:36px;transform:translateX(-50%);border-radius:19px 19px 0 0;background:#c79f3e;"></div><div style="position:absolute;left:50%;bottom:26px;width:24px;height:26px;transform:translateX(-50%);border-radius:50%;background:#b88a64;"></div><div style="position:absolute;left:50%;bottom:42px;width:28px;height:15px;transform:translateX(-50%);border-radius:14px 14px 0 0;background:#3a2c20;"></div></div>
+          <div style="position:absolute;right:8px;bottom:0;width:38px;height:56px;"><div style="position:absolute;left:50%;bottom:0;width:38px;height:36px;transform:translateX(-50%);border-radius:19px 19px 0 0;background:#3f8e7e;"></div><div style="position:absolute;left:50%;bottom:26px;width:24px;height:26px;transform:translateX(-50%);border-radius:50%;background:#9c6b48;"></div><div style="position:absolute;left:50%;bottom:42px;width:28px;height:14px;transform:translateX(-50%);border-radius:14px 14px 0 0;background:#241c16;"></div></div>
+          <!-- front row (taller, overlapping) -->
+          <div style="position:absolute;left:24px;bottom:0;width:44px;height:70px;"><div style="position:absolute;left:50%;bottom:0;width:44px;height:46px;transform:translateX(-50%);border-radius:22px 22px 0 0;background:#bd5f4a;"></div><div style="position:absolute;left:50%;bottom:34px;width:28px;height:30px;transform:translateX(-50%);border-radius:50%;background:#c08a5c;"></div><div style="position:absolute;left:50%;bottom:52px;width:32px;height:18px;transform:translateX(-50%);border-radius:16px 16px 0 0;background:#2b2018;"></div></div>
+          <div style="position:absolute;right:22px;bottom:0;width:44px;height:70px;"><div style="position:absolute;left:50%;bottom:0;width:44px;height:46px;transform:translateX(-50%);border-radius:22px 22px 0 0;background:#4f7aa6;"></div><div style="position:absolute;left:50%;bottom:34px;width:28px;height:30px;transform:translateX(-50%);border-radius:50%;background:#8a5e3e;"></div><div style="position:absolute;left:50%;bottom:52px;width:32px;height:17px;transform:translateX(-50%);border-radius:16px 16px 0 0;background:#1e1812;"></div></div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- BOOKS (Steward Library) -->
+    <div style="position:absolute;left:1046px;bottom:130px;width:204px;height:206px;z-index:9;cursor:pointer;transition:transform .28s ease,filter .28s ease;" style-hover="transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(162,117,50,.6));" onMouseEnter="{{ o.library.enter }}" onMouseLeave="{{ leave }}" onClick="{{ o.library.click }}">
+      <sc-if value="{{ o.library.show }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:-10px;transform:translate(-50%,-100%);background:#21282E;color:#FEFAE0;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.05em;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 18px rgba(0,0,0,.35);z-index:40;pointer-events:none;animation:sw-label .18s ease;">Steward Library<span style="position:absolute;left:50%;bottom:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#21282E;"></span></div></sc-if>
+      <div style="position:absolute;left:50%;bottom:-4px;width:188px;height:20px;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(0,0,0,.32),transparent 70%);filter:blur(4px);z-index:-1;pointer-events:none;"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:100%;display:flex;align-items:flex-end;justify-content:center;gap:5px;">
+        <!-- bookend -->
+        <div style="width:8px;height:120px;background:linear-gradient(90deg,#9a7b3a,#c2a052);border-radius:3px 3px 0 0;"></div>
+        <div style="width:30px;height:178px;background:linear-gradient(90deg,#2D4B3E,#3c6452);border-radius:3px 3px 0 0;box-shadow:inset 2px 0 0 rgba(255,255,255,.1);position:relative;"><div style="position:absolute;left:5px;right:5px;top:22px;height:2px;background:rgba(253,221,154,.55);"></div><div style="position:absolute;left:5px;right:5px;top:30px;height:2px;background:rgba(253,221,154,.4);"></div></div>
+        <div style="width:26px;height:160px;background:linear-gradient(90deg,#A27532,#c79545);border-radius:3px 3px 0 0;position:relative;"><div style="position:absolute;left:5px;right:5px;top:24px;height:2px;background:rgba(33,40,46,.3);"></div></div>
+        <div style="width:34px;height:188px;background:linear-gradient(90deg,#417C98,#5a97b3);border-radius:3px 3px 0 0;position:relative;transform:rotate(-2deg);transform-origin:bottom;"><div style="position:absolute;left:6px;right:6px;top:30px;height:14px;border:1.5px solid rgba(255,255,255,.35);border-radius:3px;"></div></div>
+        <div style="width:24px;height:150px;background:linear-gradient(90deg,#DB9B2F,#eab44f);border-radius:3px 3px 0 0;"></div>
+        <div style="width:30px;height:170px;background:linear-gradient(90deg,#a8472f,#c75d40);border-radius:3px 3px 0 0;position:relative;"><div style="position:absolute;left:5px;right:5px;top:26px;height:2px;background:rgba(253,221,154,.5);"></div><div style="position:absolute;left:5px;right:5px;top:34px;height:2px;background:rgba(253,221,154,.4);"></div></div>
+        <!-- bookend -->
+        <div style="width:8px;height:120px;background:linear-gradient(90deg,#c2a052,#9a7b3a);border-radius:3px 3px 0 0;"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =================== PROTOTYPE CONTROL PANEL =================== -->
+  <sc-if value="{{ isHub }}" hint-placeholder-val="{{ true }}">
+  <div style="position:fixed;left:18px;bottom:18px;z-index:90;display:flex;gap:5px;align-items:center;background:rgba(33,40,46,.6);backdrop-filter:blur(8px);border:1px solid rgba(253,221,154,.18);border-radius:11px;padding:5px;box-shadow:0 8px 20px rgba(0,0,0,.3);">
+    <button style="width:32px;height:32px;background:rgba(253,221,154,.12);color:#FEFAE0;border:1px solid rgba(253,221,154,.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:15px;cursor:pointer;transition:background .2s;" style-hover="background:rgba(253,221,154,.3);" onClick="{{ setDay }}">☀</button>
+    <button style="width:32px;height:32px;background:rgba(253,221,154,.12);color:#FEFAE0;border:1px solid rgba(253,221,154,.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:15px;cursor:pointer;transition:background .2s;" style-hover="background:rgba(253,221,154,.3);" onClick="{{ setDusk }}">◑</button>
+    <button style="width:32px;height:32px;background:rgba(253,221,154,.12);color:#FEFAE0;border:1px solid rgba(253,221,154,.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:15px;cursor:pointer;transition:background .2s;" style-hover="background:rgba(253,221,154,.3);" onClick="{{ setNight }}">☾</button>
+  </div>
+  <div style="position:fixed;right:16px;bottom:14px;z-index:90;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.04em;color:rgba(255,255,255,.55);text-shadow:0 1px 2px rgba(0,0,0,.4);pointer-events:none;">Copyright Stewardworks.Space 2026 by Nureaum</div>
+  </sc-if>
+
+  <!-- =================== MONITOR SUB-HUB =================== -->
+  <sc-if value="{{ isMonitor }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Monitor Sub-Hub" style="position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:#10161b;animation:sw-fade .25s ease;font-family:'Exo',sans-serif;">
+    <!-- OS top bar -->
+    <div style="height:46px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 1px 0 rgba(0,0,0,.08);flex:none;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="display:flex;gap:6px;"><i style="width:11px;height:11px;border-radius:50%;background:#e07a6a;display:block;"></i><i style="width:11px;height:11px;border-radius:50%;background:#e6c25a;display:block;"></i><i style="width:11px;height:11px;border-radius:50%;background:#7fb06a;display:block;"></i></span>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.22em;color:#21282E;opacity:.65;">STEWARD OS · WORKSHOPS</span>
+      </div>
+      <button style="background:none;border:1px solid rgba(33,40,46,.2);border-radius:8px;padding:6px 13px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;color:#21282E;opacity:.75;" style-hover="background:rgba(33,40,46,.06);" onClick="{{ goHub }}">✕ Close screen</button>
+    </div>
+    <!-- desktop -->
+    <div style="flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#13202a;overflow:hidden;">
+      <!-- Salton Sea aerial map wallpaper (semi-opaque) -->
+      <img src="assets/salton-map.jpg" alt="Salton Sea aerial" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.4;" />
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(19,32,42,.45),rgba(19,32,42,.72));pointer-events:none;"></div>
+      <div style="text-align:center;color:#fff;margin-bottom:46px;position:relative;z-index:2;">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.34em;opacity:.85;">DESKTOP</div>
+        <div style="font-size:40px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.3);margin-top:4px;">Choose a Program</div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:64px;flex-wrap:wrap;position:relative;z-index:2;">
+        <button style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:16px;width:200px;transition:transform .2s;" style-hover="transform:translateY(-10px);" onClick="{{ openPilot }}">
+          <div style="width:128px;height:128px;border-radius:30px;background:linear-gradient(160deg,#c89248,#8c6125);box-shadow:0 18px 32px rgba(0,0,0,.4),inset 0 4px 0 rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;position:relative;">
+            <div style="width:46px;height:8px;background:#3a2a16;border-radius:3px;transform:rotate(-42deg);position:absolute;"></div>
+            <div style="width:8px;height:30px;background:#f3e6cf;border-radius:3px;transform:rotate(-42deg);position:absolute;top:30px;left:42px;"></div>
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:14px;color:#fff;letter-spacing:.05em;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.45);">Pilot Workshops</span>
+        </button>
+        <button style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:16px;width:200px;transition:transform .2s;" style-hover="transform:translateY(-10px);" onClick="{{ openAi }}">
+          <div style="width:128px;height:128px;border-radius:30px;background:linear-gradient(160deg,#4f93ad,#356074);box-shadow:0 18px 32px rgba(0,0,0,.4),inset 0 4px 0 rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;">
+            <div style="width:30px;height:54px;border:5px solid #eaf6fb;border-radius:0 0 16px 16px;border-top:none;position:relative;background:linear-gradient(180deg,transparent 42%,#9be0a8 42%);"><div style="position:absolute;top:-9px;left:50%;width:18px;height:5px;background:#eaf6fb;transform:translateX(-50%);border-radius:2px;"></div></div>
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:14px;color:#fff;letter-spacing:.05em;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.45);">AI Lab</span>
+        </button>
+        <button style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:16px;width:200px;transition:transform .2s;" style-hover="transform:translateY(-10px);" onClick="{{ openWf }}">
+          <div style="width:128px;height:128px;border-radius:30px;background:linear-gradient(160deg,#41855a,#285537);box-shadow:0 18px 32px rgba(0,0,0,.4),inset 0 4px 0 rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;">
+            <div style="width:54px;height:42px;position:relative;">
+              <div style="position:absolute;inset:0;border:4px solid #eaf6e8;border-radius:5px;"></div>
+              <div style="position:absolute;left:18px;top:-2px;bottom:-2px;width:3px;background:#eaf6e8;"></div>
+              <div style="position:absolute;right:14px;top:-2px;bottom:-2px;width:3px;background:#eaf6e8;"></div>
+              <div style="position:absolute;left:8px;top:24px;width:7px;height:7px;border-radius:50%;background:#ffd24a;"></div>
+            </div>
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:14px;color:#fff;letter-spacing:.05em;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.45);">Workforce Development</span>
+        </button>
+      </div>
+      <div style="position:relative;z-index:2;margin-top:44px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:rgba(255,255,255,.78);">CLICK AN APP TO OPEN</div>
+    </div>
+    <!-- taskbar -->
+    <div style="height:56px;background:rgba(16,22,27,.92);display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex:none;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 3px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:3px;"><img src="assets/sw-logo.png" alt="StewardWorks" style="width:100%;height:100%;object-fit:contain;display:block;" /></div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.22em;color:rgba(255,255,255,.5);">STEWARDSHIP ACTIVE</span>
+      </div>
+      <button style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:9px;padding:8px 16px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;color:#FEFAE0;" style-hover="background:rgba(255,255,255,.2);" onClick="{{ goHub }}">← Back to desk</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- =================== MEDITATION SPACE =================== -->
+  <sc-if value="{{ isMeditation }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Meditation Space" style="{{ medBgStyle }}">
+    <button style="position:absolute;top:24px;left:24px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:9px 15px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.06em;color:#fff;backdrop-filter:blur(6px);" onClick="{{ goHub }}">← Back to desk</button>
+
+    <div style="{{ medHeadStyle }}">
+      <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.34em;opacity:.7;">WELLNESS · MEDITATION</div>
+      <div style="font-size:26px;font-weight:600;letter-spacing:.02em;">Take a breath</div>
+    </div>
+
+    <!-- breathing circle + timer -->
+    <div style="position:relative;width:280px;height:280px;display:flex;align-items:center;justify-content:center;margin:14px 0 26px;">
+      <div style="position:absolute;width:240px;height:240px;border-radius:50%;border:2px solid rgba(255,255,255,.35);"></div>
+      <div style="{{ medRingStyle }}"></div>
+      <div style="{{ medTimerStyle }}">
+        <div style="font-family:'DM Mono',monospace;font-size:54px;font-weight:500;letter-spacing:.04em;">{{ medDisplay }}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.3em;opacity:.7;">BREATHE IN · OUT</div>
+      </div>
+    </div>
+
+    <!-- presets -->
+    <div style="display:flex;gap:10px;margin-bottom:14px;">
+      <button style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:9px;padding:8px 16px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;color:#fff;backdrop-filter:blur(6px);" onClick="{{ med1 }}">1 min</button>
+      <button style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:9px;padding:8px 16px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;color:#fff;backdrop-filter:blur(6px);" onClick="{{ med5 }}">5 min</button>
+      <button style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:9px;padding:8px 16px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;color:#fff;backdrop-filter:blur(6px);" onClick="{{ med10 }}">10 min</button>
+    </div>
+    <!-- play controls -->
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:22px;">
+      <button style="background:#FEFAE0;border:none;border-radius:11px;padding:13px 34px;cursor:pointer;font-family:'DM Mono',monospace;font-weight:500;font-size:14px;letter-spacing:.08em;color:#21282E;box-shadow:0 8px 18px rgba(0,0,0,.25);" onClick="{{ medToggle }}">{{ medPlayLabel }}</button>
+      <button style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:11px;padding:13px 18px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;color:#fff;backdrop-filter:blur(6px);" onClick="{{ medReset }}">Reset</button>
+      <button style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:11px;padding:13px 18px;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;color:#fff;backdrop-filter:blur(6px);" onClick="{{ medToneToggle }}">{{ medToneLabel }}</button>
+    </div>
+
+    <!-- ambient theme swatches -->
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;color:#fff;opacity:.7;">AMBIENT</span>
+      <button title="Desert Dawn" style="width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.7);cursor:pointer;background:linear-gradient(140deg,#F7CDA6,#DB9B2F);" onClick="{{ medTheme0 }}"></button>
+      <button title="Salton Dusk" style="width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.7);cursor:pointer;background:linear-gradient(140deg,#E7A07E,#5A4A6A);" onClick="{{ medTheme1 }}"></button>
+      <button title="Sage Calm" style="width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.7);cursor:pointer;background:linear-gradient(140deg,#9DB39A,#2D4B3E);" onClick="{{ medTheme2 }}"></button>
+      <button title="Night Field" style="width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.7);cursor:pointer;background:linear-gradient(140deg,#4A5A6E,#21282E);" onClick="{{ medTheme3 }}"></button>
+    </div>
+
+    <!-- resources -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:680px;">
+      <div style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:12px 16px;backdrop-filter:blur(6px);color:#fff;width:200px;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;opacity:.7;margin-bottom:4px;">GROUNDING</div>
+        <div style="font-size:14px;font-weight:600;">4-7-8 Breathing</div>
+        <div style="font-size:12px;opacity:.85;line-height:1.4;">Inhale 4 · hold 7 · exhale 8.</div>
+      </div>
+      <div style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:12px 16px;backdrop-filter:blur(6px);color:#fff;width:200px;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;opacity:.7;margin-bottom:4px;">SUPPORT</div>
+        <div style="font-size:14px;font-weight:600;">988 Lifeline</div>
+        <div style="font-size:12px;opacity:.85;line-height:1.4;">Call or text 988 anytime, free &amp; confidential.</div>
+      </div>
+      <div style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:12px 16px;backdrop-filter:blur(6px);color:#fff;width:200px;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;opacity:.7;margin-bottom:4px;">TEXT</div>
+        <div style="font-size:14px;font-weight:600;">Crisis Text Line</div>
+        <div style="font-size:12px;opacity:.85;line-height:1.4;">Text HOME to 741741.</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- =================== PROGRESS & GENERATIONS =================== -->
+  <sc-if value="{{ isProgress }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Progress & Generations" style="position:fixed;inset:0;z-index:100;overflow-y:auto;background:linear-gradient(180deg,#f6ddc4,#e8c2a0);animation:sw-fade .3s ease;font-family:'Exo',sans-serif;">
+    <div style="max-width:920px;margin:0 auto;padding:30px 26px 60px;">
+      <button style="background:#21282E;border:none;border-radius:10px;padding:9px 15px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.06em;color:#FEFAE0;margin-bottom:24px;" onClick="{{ goHub }}">← Back to desk</button>
+
+      <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.3em;color:#8a5a2e;">PROGRESS &amp; GENERATIONS</div>
+      <h1 style="margin:4px 0 24px;font-size:34px;font-weight:700;color:#3a2412;">Your chia is growing.</h1>
+
+      <!-- progress meter + chia -->
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:stretch;margin-bottom:30px;">
+        <div style="flex:1;min-width:280px;background:#FEFAE0;border:1.5px solid rgba(33,40,46,.12);border-radius:16px;padding:22px;box-shadow:0 12px 26px rgba(0,0,0,.08);">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.18em;color:#8a5a2e;">OVERALL PROGRESS</span>
+            <span style="font-size:32px;font-weight:700;color:#3a2412;">{{ progressPct }}</span>
+          </div>
+          <div style="height:18px;background:rgba(33,40,46,.08);border-radius:10px;overflow:hidden;margin-bottom:18px;">
+            <div style="{{ progressBarStyle }}"></div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button style="flex:1;background:#2E5534;color:#FEFAE0;border:none;border-radius:9px;padding:11px 0;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;" onClick="{{ incProg }}">+ Grow (+5%)</button>
+            <button style="flex:1;background:rgba(33,40,46,.08);color:#3a2412;border:none;border-radius:9px;padding:11px 0;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;" onClick="{{ decProg }}">− Reset (−5%)</button>
+          </div>
+          <div style="font-size:12px;color:#7a5a3a;margin-top:12px;line-height:1.5;">Progress is shared with the chia statue on your desk — its sprouts grow taller as you complete milestones.</div>
+        </div>
+        <!-- mirrored chia visual -->
+        <div style="width:200px;background:#FEFAE0;border:1.5px solid rgba(33,40,46,.12);border-radius:16px;padding:18px;box-shadow:0 12px 26px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
+          <div style="{{ chiaBigStyle }}">
+            <div style="width:6px;height:60%;background:linear-gradient(180deg,#9bc04a,#5f7d1f);border-radius:4px;transform:rotate(-14deg);transform-origin:bottom;"></div>
+            <div style="width:6px;height:88%;background:linear-gradient(180deg,#a6cb55,#6B8E23);border-radius:4px;transform:rotate(-5deg);transform-origin:bottom;"></div>
+            <div style="width:6px;height:100%;background:linear-gradient(180deg,#b4d65f,#74992a);border-radius:4px;"></div>
+            <div style="width:6px;height:84%;background:linear-gradient(180deg,#a6cb55,#6B8E23);border-radius:4px;transform:rotate(7deg);transform-origin:bottom;"></div>
+            <div style="width:6px;height:62%;background:linear-gradient(180deg,#9bc04a,#5f7d1f);border-radius:4px;transform:rotate(15deg);transform-origin:bottom;"></div>
+          </div>
+          <div style="width:64px;height:60px;border-radius:50% 50% 46% 46%;background:linear-gradient(160deg,#c3b4d4,#9384ad);"></div>
+          <div style="width:80px;height:18px;border-radius:5px;background:linear-gradient(180deg,#3f7488,#2c5566);margin-top:-2px;"></div>
+        </div>
+      </div>
+
+      <!-- saved / generated -->
+      <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:#8a5a2e;margin-bottom:12px;">SAVED &amp; GENERATED — your library of bookmarks and creations</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;">
+        <div style="background:#FEFAE0;border:1.5px solid rgba(33,40,46,.1);border-radius:13px;padding:16px;box-shadow:0 8px 18px rgba(0,0,0,.06);">
+          <span style="display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;background:#417C98;color:#fff;padding:3px 8px;border-radius:20px;margin-bottom:10px;">BOOKMARK</span>
+          <div style="font-weight:700;color:#3a2412;font-size:15px;line-height:1.3;">Salton Sea Restoration Guide</div>
+          <div style="font-size:12px;color:#7a5a3a;margin-top:5px;">Saved from Steward Library</div>
+        </div>
+        <div style="background:#FEFAE0;border:1.5px solid rgba(33,40,46,.1);border-radius:13px;padding:16px;box-shadow:0 8px 18px rgba(0,0,0,.06);">
+          <span style="display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;background:#2E5534;color:#fff;padding:3px 8px;border-radius:20px;margin-bottom:10px;">GENERATION</span>
+          <div style="font-weight:700;color:#3a2412;font-size:15px;line-height:1.3;">My Eco-Career Roadmap</div>
+          <div style="font-size:12px;color:#7a5a3a;margin-top:5px;">Created in AI Lab</div>
+        </div>
+        <div style="background:#FEFAE0;border:1.5px solid rgba(33,40,46,.1);border-radius:13px;padding:16px;box-shadow:0 8px 18px rgba(0,0,0,.06);">
+          <span style="display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;background:#A27532;color:#fff;padding:3px 8px;border-radius:20px;margin-bottom:10px;">NOTE</span>
+          <div style="font-weight:700;color:#3a2412;font-size:15px;line-height:1.3;">Workshop reflections</div>
+          <div style="font-size:12px;color:#7a5a3a;margin-top:5px;">Pilot Workshops · bilingual media</div>
+        </div>
+        <div style="background:#FEFAE0;border:1.5px solid rgba(33,40,46,.1);border-radius:13px;padding:16px;box-shadow:0 8px 18px rgba(0,0,0,.06);">
+          <span style="display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;background:#417C98;color:#fff;padding:3px 8px;border-radius:20px;margin-bottom:10px;">BOOKMARK</span>
+          <div style="font-weight:700;color:#3a2412;font-size:15px;line-height:1.3;">Imperial County Green Jobs</div>
+          <div style="font-size:12px;color:#7a5a3a;margin-top:5px;">Saved from Workforce Development</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- =================== BRIDGE / LINK SCREEN =================== -->
+  <sc-if value="{{ isBridge }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Link Bridge" style="position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(20,12,8,.7);backdrop-filter:blur(5px);animation:sw-fade .25s ease;font-family:'Exo',sans-serif;">
+    <div style="width:min(460px,92vw);background:linear-gradient(170deg,#FEFAE0,#f3e7c8);border-radius:20px;box-shadow:0 30px 70px rgba(0,0,0,.5);padding:34px 30px 28px;text-align:center;border:1px solid rgba(162,117,50,.3);">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.26em;color:#8a5a2e;margin-bottom:6px;">YOU'RE ENTERING</div>
+      <h2 style="margin:0 0 14px;font-size:28px;font-weight:700;color:#3a2412;">{{ bridgeTitle }}</h2>
+      <div style="display:inline-block;font-family:'DM Mono',monospace;font-size:12px;background:#21282E;color:#FDDD9A;padding:6px 14px;border-radius:20px;margin-bottom:18px;">{{ bridgeRoute }}</div>
+      <p style="font-size:14px;line-height:1.6;color:#5a4226;margin:0 0 26px;">{{ bridgeBlurb }}</p>
+      <div style="display:flex;gap:10px;">
+        <button style="flex:1;background:rgba(33,40,46,.08);color:#3a2412;border:none;border-radius:11px;padding:13px 0;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;" onClick="{{ bridgeBack }}">← Back</button>
+        <sc-if value="{{ isLogout }}" hint-placeholder-val="{{ false }}"><button style="flex:1;background:#c0492f;color:#fff;border:none;border-radius:11px;padding:13px 0;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;" onClick="{{ confirmLogout }}">Confirm log out</button></sc-if>
+        <sc-if value="{{ isLink }}" hint-placeholder-val="{{ true }}"><button style="flex:1;background:#2E5534;color:#FEFAE0;border:none;border-radius:11px;padding:13px 0;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;" onClick="{{ () => router.push(bridgeRoute) }}">Open page →</button></sc-if>
+      </div>
+      <div style="font-size:11px;color:#9a7a4a;margin-top:14px;font-family:'DM Mono',monospace;">Prototype · links to the route above in the live app</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- =================== LOGGED OUT =================== -->
+  <sc-if value="{{ isLoggedOut }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Signed Out" style="position:fixed;inset:0;z-index:110;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 36%, #2a3744 0%, #1a232c 60%, #11171c 100%);animation:sw-fade .3s ease;font-family:'Exo',sans-serif;color:#FEFAE0;text-align:center;">
+    <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(160deg,#DB9B2F,#A27532);box-shadow:0 10px 24px rgba(0,0,0,.45);margin-bottom:24px;"></div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.32em;color:#9fe6ff;text-shadow:0 0 10px rgba(90,200,255,.5);">STEWARD.WORKS</div>
+    <h1 style="margin:10px 0 8px;font-size:34px;font-weight:700;">You're signed out</h1>
+    <p style="margin:0 0 28px;font-size:15px;color:rgba(254,250,224,.7);max-width:380px;line-height:1.6;">In the live app this clears your session and returns you to the login screen (<span style="font-family:'DM Mono',monospace;color:#FDDD9A;">/login</span>).</p>
+    <button style="background:#FEFAE0;color:#21282E;border:none;border-radius:12px;padding:14px 30px;cursor:pointer;font-family:'DM Mono',monospace;font-weight:500;font-size:14px;letter-spacing:.06em;box-shadow:0 8px 20px rgba(0,0,0,.35);" onClick="{{ goHub }}">Log back in →</button>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" fill="#3a2a1c"/>
+  <rect x="30" y="30" width="40" height="40" rx="6" fill="#FDDD9A"/>
+  <rect x="42" y="42" width="16" height="16" rx="3" fill="#3a2a1c"/>
+</svg>
+</template>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: {&quot;width&quot;: &quot;100%&quot;, &quot;height&quot;: &quot;100%&quot;},
+  &quot;curtainColor&quot;: {
+    &quot;editor&quot;: &quot;color&quot;,
+    &quot;default&quot;: [&quot;#e0d4f2&quot;, &quot;#c3b0e4&quot;, &quot;#9f86cf&quot;],
+    &quot;options&quot;: [
+      [&quot;#e0d4f2&quot;, &quot;#c3b0e4&quot;, &quot;#9f86cf&quot;],
+      [&quot;#ecd9f3&quot;, &quot;#d6b8e6&quot;, &quot;#bd93d6&quot;],
+      [&quot;#dcd6f5&quot;, &quot;#bcb0e8&quot;, &quot;#9a8cd6&quot;],
+      [&quot;#efe4f7&quot;, &quot;#dcc6ec&quot;, &quot;#c4a6df&quot;]
+    ],
+    &quot;tsType&quot;: &quot;string[]&quot;,
+    &quot;section&quot;: &quot;Window&quot;
+  },
+  &quot;lampColorCycle&quot;: {
+    &quot;editor&quot;: &quot;boolean&quot;,
+    &quot;default&quot;: true,
+    &quot;tsType&quot;: &quot;boolean&quot;,
+    &quot;section&quot;: &quot;Lamp&quot;
+  }
+}">
+class Component extends DCLogic {
+  state = {
+    screen: 'hub', hovered: null,
+    progress: 35, timeOfDay: 'day', exitStyle: 'neon', showAdmin: true,
+    scale: 1, bridgeId: null,
+    medTotal: 300, medLeft: 300, medRunning: false, medTheme: 0, medTone: false,
+    lampIndex: 0,
+  };
+
+  componentDidMount() {
+    try { const p = localStorage.getItem('sw_progress'); if (p !== null && !isNaN(parseInt(p))) this.setState({ progress: Math.max(0, Math.min(100, parseInt(p))) }); } catch (e) {}
+    try { const t = localStorage.getItem('sw_timeofday'); if (t) this.setState({ timeOfDay: t }); } catch (e) {}
+    try { const ex = localStorage.getItem('sw_exit'); if (ex) this.setState({ exitStyle: ex }); } catch (e) {}
+    this._fit = () => { const s = Math.min(window.innerWidth / 1300, window.innerHeight / 700); this.setState({ scale: s }); };
+    this._fit();
+    window.addEventListener('resize', this._fit);
+    // lamp color steps to the next light tone every 5 minutes
+    this._lampTimer = setInterval(() => {
+      if (this.props.lampColorCycle === false) return;
+      this.setState(st => ({ lampIndex: st.lampIndex + 1 }));
+    }, 300000);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._fit);
+    if (this._lampTimer) clearInterval(this._lampTimer);
+    if (this._timer) clearInterval(this._timer);
+    if (this._stopTone) this._stopTone();
+  }
+
+  persist(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+  setProgress(v) { v = Math.max(0, Math.min(100, Math.round(v))); this.setState({ progress: v }); this.persist('sw_progress', v); }
+  setTime(t) { this.setState({ timeOfDay: t }); this.persist('sw_timeofday', t); }
+  setExit(x) { this.setState({ exitStyle: x }); this.persist('sw_exit', x); }
+
+  open(d) {
+    if (d.kind === 'monitor') return this.setState({ screen: 'monitor', hovered: null });
+    if (d.kind === 'meditation') return this.setState({ screen: 'meditation', hovered: null });
+    if (d.kind === 'progress') return this.setState({ screen: 'progress', hovered: null });
+    return this.setState({ screen: 'bridge', bridgeId: d.id, hovered: null });
+  }
+  goHub() { this.pauseMed(); if (this._stopTone) { this._stopTone(); this.setState({ medTone: false }); } this.setState({ screen: 'hub', bridgeId: null, hovered: null }); }
+  openBridge(id) { this.setState({ screen: 'bridge', bridgeId: id, hovered: null }); }
+
+  fmt(sec) { const m = Math.floor(sec / 60), s = sec % 60; return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s; }
+  setMed(total) { this.pauseMed(); this.setState({ medTotal: total, medLeft: total }); }
+  toggleMed() { if (this.state.medRunning) this.pauseMed(); else this.startMed(); }
+  startMed() {
+    if (this.state.medLeft <= 0) this.setState({ medLeft: this.state.medTotal });
+    this.setState({ medRunning: true });
+    if (this._timer) clearInterval(this._timer);
+    this._timer = setInterval(() => {
+      this.setState(st => {
+        const left = st.medLeft - 1;
+        if (left <= 0) { clearInterval(this._timer); this._timer = null; return { medLeft: 0, medRunning: false }; }
+        return { medLeft: left };
+      });
+    }, 1000);
+  }
+  pauseMed() { if (this._timer) { clearInterval(this._timer); this._timer = null; } if (this.state.medRunning) this.setState({ medRunning: false }); }
+  resetMed() { this.pauseMed(); this.setState({ medLeft: this.state.medTotal }); }
+  setMedTheme(i) { this.setState({ medTheme: i }); }
+  toggleTone() {
+    if (this.state.medTone) { if (this._stopTone) this._stopTone(); this.setState({ medTone: false }); return; }
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext; const ctx = new Ctx();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 174; g.gain.value = 0; o.connect(g); g.connect(ctx.destination); o.start();
+      g.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 1.5);
+      this._stopTone = () => { try { g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4); setTimeout(() => { o.stop(); ctx.close(); }, 500); } catch (e) {} this._stopTone = null; };
+      this.setState({ medTone: true });
+    } catch (e) {}
+  }
+
+  renderVals() {
+    const s = this.state;
+    const defs = [
+      { id: 'profile', label: 'My Profile', kind: 'bridge' },
+      { id: 'library', label: 'Steward Library', kind: 'bridge' },
+      { id: 'env', label: 'Environmental Literacy', kind: 'bridge' },
+      { id: 'monitor', label: 'Workshops · AI Lab · Workforce', kind: 'monitor' },
+      { id: 'community', label: 'Community Listening', kind: 'bridge' },
+      { id: 'wellness', label: 'Wellness & Meditation', kind: 'meditation' },
+      { id: 'progress', label: 'Progress & Generations', kind: 'progress' },
+      { id: 'helpdesk', label: 'Help Desk', kind: 'bridge' },
+      { id: 'logout', label: 'Log Out', kind: 'logout' },
+      { id: 'admin', label: 'Admin Console', kind: 'bridge' },
+    ];
+    const o = {};
+    defs.forEach(d => { o[d.id] = { enter: () => this.setState({ hovered: d.id }), click: () => this.open(d), show: s.hovered === d.id }; });
+
+    const walls = { day: ['#F8CDA6', '#EFAE84'], dusk: ['#E7A07E', '#B97C68'], night: ['#5E5070', '#3C3450'] };
+    const w = walls[s.timeOfDay] || walls.day;
+    const tintMap = {
+      day: { background: 'transparent' },
+      dusk: { background: 'linear-gradient(180deg, rgba(120,60,90,.12), rgba(60,40,80,.22))' },
+      night: { background: 'linear-gradient(180deg, rgba(20,20,60,.42), rgba(10,10,40,.56))' },
+    };
+    const lampGlow = s.timeOfDay === 'night' ? 0.95 : s.timeOfDay === 'dusk' ? 0.6 : 0.32;
+
+    const chia = 10 + (s.progress / 100) * 70;
+    const chiaBig = 24 + (s.progress / 100) * 96;
+
+    const bridges = {
+      profile: { title: 'My Profile', route: '/hub/my-profile', blurb: 'Your portrait on the wall. Opens your profile — onboarding photo, learner type, dream job, and saved settings.' },
+      library: { title: 'Steward Library', route: '/hub/library', blurb: 'The shelf of books. Opens the Resource Hub — curated readings, guides, and lessons.' },
+      env: { title: 'Environmental Literacy', route: '/hub/environmental-literacy', blurb: 'The window to the Salton Sea. Opens environmental literacy modules and local ecology.' },
+      community: { title: 'Community Listening', route: '/hub/community-listening', blurb: 'The framed group photo on the desk. Opens community listening sessions and event sign-ups.' },
+      helpdesk: { title: 'Help Desk', route: '/hub/help-desk', blurb: 'The lamp that lights the desk. Opens help, FAQs, and the support bulletin.' },
+      admin: { title: 'Admin Console', route: '/admin', blurb: 'A quiet key on the wall, visible only to admins. Opens user management and settings.' },
+      logout: { title: 'Log Out', route: '/login', blurb: 'The EXIT sign on the wall. Signs you out of StewardWorks and returns you to the login screen.' },
+      pilot: { title: 'Pilot Workshops', route: '/hub/pilot-workshops', blurb: 'Hands-on workshop modules — bilingual media and intro to AI content.' },
+      ailab: { title: 'AI Lab', route: '/hub/ai-lab', blurb: 'Experiment with AI tools for content creation and learning.' },
+      workforce: { title: 'Workforce Development', route: '/hub/workforce-pathways', blurb: 'Your career roadmap and pathways into environmental work.' },
+    };
+    const bridge = bridges[s.bridgeId] || bridges.profile;
+    const subIds = ['pilot', 'ailab', 'workforce'];
+
+    const medThemes = [
+      { name: 'Desert Dawn', bg: 'radial-gradient(circle at 50% 42%, #F7CDA6 0%, #DB9B2F 55%, #A27532 100%)', ring: 'rgba(255,250,224,.5)', text: '#3A2A12' },
+      { name: 'Salton Dusk', bg: 'radial-gradient(circle at 50% 42%, #E7A07E 0%, #B97C68 45%, #5A4A6A 100%)', ring: 'rgba(255,255,255,.4)', text: '#FBEAD8' },
+      { name: 'Sage Calm', bg: 'radial-gradient(circle at 50% 45%, #9DB39A 0%, #4D6B57 55%, #2D4B3E 100%)', ring: 'rgba(255,255,255,.35)', text: '#EAF0E6' },
+      { name: 'Night Field', bg: 'radial-gradient(circle at 50% 40%, #4A5A6E 0%, #2A3340 55%, #21282E 100%)', ring: 'rgba(253,221,154,.3)', text: '#E6ECF2' },
+    ];
+    const mt = medThemes[s.medTheme] || medThemes[0];
+
+    // ---- Curtain color (light purple by default) ----
+    const cc = this.props.curtainColor || ['#e0d4f2', '#c3b0e4', '#9f86cf'];
+    const c0 = cc[0], c1 = cc[1] || cc[0], c2 = cc[2] || cc[1] || cc[0];
+    const curtainTex = 'repeating-linear-gradient(90deg,rgba(70,48,110,.28) 0 4px,rgba(70,48,110,.10) 8px,rgba(238,228,252,.26) 12px,rgba(70,48,110,.12) 16px,rgba(70,48,110,.28) 20px)';
+    const curtainBaseL = `linear-gradient(90deg,${c2} 0%,${c1} 26%,${c0} 52%,${c1} 76%,${c2} 100%)`;
+    const curtainBaseR = `linear-gradient(270deg,${c2} 0%,${c1} 26%,${c0} 52%,${c1} 76%,${c2} 100%)`;
+
+    // ---- Lamp light tones (mostly white center, faint color cast) ----
+    const lampTones = [
+      { light: '#fff4e2', mid: '#ffe2bd', glow: '255,210,140' },
+      { light: '#ffeef4', mid: '#ffd2e6', glow: '255,176,206' },
+      { light: '#f4eeff', mid: '#ddccff', glow: '196,166,255' },
+      { light: '#e9fbf2', mid: '#c8f0db', glow: '150,222,184' },
+      { light: '#eaf4ff', mid: '#cfe4ff', glow: '156,198,255' },
+      { light: '#fff0ea', mid: '#ffd8c6', glow: '255,184,150' },
+    ];
+    const lampCycle = this.props.lampColorCycle !== false;
+    const lt = lampCycle ? lampTones[s.lampIndex % lampTones.length] : lampTones[0];
+
+    return {
+      curtainLeftStyle: { position: 'absolute', left: '16px', top: '13px', bottom: '13px', width: '74px', backgroundImage: curtainTex + ',' + curtainBaseL, borderRadius: '3px 10px 10px 3px', clipPath: 'polygon(0 0,100% 0,100% 43%,62% 50%,100% 57%,100% 100%,0 100%)', boxShadow: 'inset -11px 0 22px rgba(80,56,128,.4),0 4px 9px rgba(60,42,100,.3)', pointerEvents: 'none', zIndex: 2, opacity: 0.82 },
+      curtainRightStyle: { position: 'absolute', right: '16px', top: '13px', bottom: '13px', width: '74px', backgroundImage: curtainTex + ',' + curtainBaseR, borderRadius: '10px 3px 3px 10px', clipPath: 'polygon(0 0,100% 0,100% 100%,0 100%,0 57%,38% 50%,0 43%)', boxShadow: 'inset 11px 0 22px rgba(80,56,128,.4),0 4px 9px rgba(60,42,100,.3)', pointerEvents: 'none', zIndex: 2, opacity: 0.82 },
+      lampOrbStyle: { position: 'absolute', left: '50%', top: '64px', width: '66px', height: '66px', transform: 'translateX(-50%)', borderRadius: '50%', background: `radial-gradient(circle at 42% 38%, #fffdf4, ${lt.light} 50%, ${lt.mid} 100%)`, boxShadow: `0 0 26px 8px rgba(${lt.glow},.85),0 0 60px 18px rgba(${lt.glow},.5)`, transition: 'background 1.6s ease, box-shadow 1.6s ease', animation: 'sw-lamppulse 5s ease-in-out infinite' },
+      o, leave: () => this.setState({ hovered: null }),
+      envPhotoStyle: { position: 'absolute', inset: 0, backgroundImage: `url('${({ day: 'assets/sea-day.jpg', dusk: 'assets/sea-sunset.jpg', night: 'assets/sea-night-pink2.jpg' })[s.timeOfDay] || 'assets/sea-day.jpg'}')`, backgroundSize: 'cover', backgroundPosition: ({ day: 'center 27%', dusk: 'center', night: 'center' })[s.timeOfDay] || 'center', transition: 'opacity .6s ease' },
+      outerStyle: { position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: `linear-gradient(180deg, ${w[0]} 0%, ${w[0]} 46%, #6a3a22 70%, #532b18 100%)` },
+      stageStyle: { position: 'relative', width: '1300px', height: '700px', flex: 'none', transformOrigin: 'center center', boxShadow: '0 40px 120px rgba(0,0,0,.5)', overflow: 'hidden', transform: `scale(${s.scale})` },
+      wallStyle: { position: 'absolute', inset: 0, zIndex: 0, background: `linear-gradient(180deg, ${w[0]} 0%, ${w[1]} 100%)` },
+      tint: { position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', transition: 'background .9s ease', background: (tintMap[s.timeOfDay] || tintMap.day).background },
+      lampGlowStyle: { position: 'absolute', left: '60px', bottom: '70px', width: '420px', height: '360px', zIndex: 6, pointerEvents: 'none', background: `radial-gradient(circle at 40% 50%, rgba(${lt.glow},.5), rgba(${lt.glow},0) 65%)`, transition: 'opacity .9s ease, background 1.6s ease', animation: 'sw-lamppulse 5s ease-in-out infinite', opacity: lampGlow },
+      chiaStyle: { position: 'absolute', left: '50%', bottom: '168px', width: '56px', transform: 'translateX(-50%)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '3px', transition: 'height .5s ease', overflow: 'visible', height: chia + 'px' },
+      chiaBigStyle: { display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '4px', transition: 'height .5s ease', marginBottom: '6px', height: chiaBig + 'px' },
+      progress: s.progress, progressPct: s.progress + '%',
+      progressBarStyle: { height: '100%', background: 'linear-gradient(90deg,#6B8E23,#A27532)', borderRadius: '10px', transition: 'width .5s ease', width: s.progress + '%' },
+      isNeon: s.exitStyle === 'neon', isWood: s.exitStyle === 'wood',
+      showAdmin: s.showAdmin,
+      isHub: s.screen === 'hub', isMonitor: s.screen === 'monitor', isMeditation: s.screen === 'meditation',
+      isProgress: s.screen === 'progress', isBridge: s.screen === 'bridge',
+      isLogout: s.bridgeId === 'logout', isLink: s.bridgeId !== 'logout',
+      isLoggedOut: s.screen === 'loggedout', confirmLogout: () => this.setState({ screen: 'loggedout', bridgeId: null, hovered: null }),
+      bridgeTitle: bridge.title, bridgeRoute: bridge.route, bridgeBlurb: bridge.blurb,
+      bridgeBack: () => { if (subIds.indexOf(s.bridgeId) >= 0) this.setState({ screen: 'monitor', bridgeId: null }); else this.goHub(); },
+      setDay: () => this.setTime('day'), setDusk: () => this.setTime('dusk'), setNight: () => this.setTime('night'),
+      setNeon: () => this.setExit('neon'), setWood: () => this.setExit('wood'),
+      goHub: () => this.goHub(),
+      openPilot: () => this.openBridge('pilot'), openAi: () => this.openBridge('ailab'), openWf: () => this.openBridge('workforce'),
+      medDisplay: this.fmt(s.medLeft), medRunning: s.medRunning,
+      medBgStyle: { position: 'fixed', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transition: 'background .8s ease', animation: 'sw-fade .3s ease', background: mt.bg },
+      medRingStyle: { position: 'absolute', width: '240px', height: '240px', borderRadius: '50%', background: `radial-gradient(circle, ${mt.ring}, rgba(255,255,255,.05))`, animation: 'sw-breathe 9s ease-in-out infinite' },
+      medHeadStyle: { textAlign: 'center', marginBottom: '8px', color: mt.text },
+      medTimerStyle: { position: 'relative', textAlign: 'center', color: mt.text },
+      medThemeName: mt.name,
+      med1: () => this.setMed(60), med5: () => this.setMed(300), med10: () => this.setMed(600),
+      medToggle: () => this.toggleMed(), medReset: () => this.resetMed(), medToneToggle: () => this.toggleTone(),
+      medTheme0: () => this.setMedTheme(0), medTheme1: () => this.setMedTheme(1), medTheme2: () => this.setMedTheme(2), medTheme3: () => this.setMedTheme(3),
+      medPlayLabel: s.medRunning ? 'Pause' : 'Begin',
+      medToneLabel: s.medTone ? '♪ Tone on' : '♪ Tone off',
+    };
+  }
+}
+</script>
+</body>
+</html>

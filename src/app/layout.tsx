@@ -4,6 +4,7 @@ import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AdminProvider } from "@/context/AdminContext";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "Lit Hub | StewardWorks",
@@ -28,6 +29,15 @@ export default function RootLayout({
           <LanguageProvider>
             <AdminProvider>
               {children}
+              <Toaster position="bottom-right" toastOptions={{
+                className: 'font-exo font-bold text-sm',
+                success: {
+                  style: {
+                    background: '#133A2B',
+                    color: '#fff',
+                  }
+                }
+              }} />
             </AdminProvider>
           </LanguageProvider>
         </body>

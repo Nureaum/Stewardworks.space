@@ -2,29 +2,29 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 
-async function verifySuperAdmin() {
+async function verifyAdminAccess() {
   const { userId } = await auth()
   if (!userId) return { authorized: false, error: 'Unauthorized', status: 401 }
 
   const supabase = createServerSupabaseClient()
   
-  // Verify super_admin role in DB
+  // Verify admin or super_admin role in DB
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, role')
     .eq('clerk_user_id', userId)
     .single()
   
-  if (profile?.role === 'super_admin') {
-    return { authorized: true, supabase, superAdminId: profile.id }
+  if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+    return { authorized: true, supabase, adminId: profile.id, role: profile.role }
   }
 
-  return { authorized: false, error: 'Forbidden: Requires super_admin role', status: 403 }
+  return { authorized: false, error: 'Forbidden: Requires admin access', status: 403 }
 }
 
 export async function GET() {
   try {
-    const { authorized, error, status, supabase } = await verifySuperAdmin()
+    const { authorized, error, status, supabase } = await verifyAdminAccess()
     if (!authorized || !supabase) {
       return NextResponse.json({ error }, { status })
     }
@@ -50,11 +50,16 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { authorized, error, status, supabase, superAdminId } = await verifySuperAdmin()
-    if (!authorized || !supabase || !superAdminId) {
+    const { authorized, error, status, supabase, adminId, role: adminRole } = await verifyAdminAccess()
+    if (!authorized || !supabase || !adminId) {
       return NextResponse.json({ error }, { status })
     }
+    
+    if (adminRole !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden: Requires super_admin role' }, { status: 403 })
+    }
 
+    const superAdminId = adminId;
     const body = await request.json()
     // Here userId is the clerk_user_id of the target user
     const { userId, role } = body
@@ -129,5 +134,60 @@ export async function PATCH(request: NextRequest) {
   } catch (err: any) {
     console.error('PATCH /api/admin/users error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { authorized, error, status, supabase, role: adminRole } = await verifyAdminAccess()
+    if (!authorized || !supabase) {
+      return NextResponse.json({ error }, { status })
+    }
+    
+    if (adminRole !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden: Requires super_admin role' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { email, role, password } = body
+
+    if (!email || !role || !password) {
+      return NextResponse.json({ error: 'Missing email, role, or password' }, { status: 400 })
+    }
+
+    const client = await clerkClient()
+    
+    // Create the user in Clerk
+    const newUser = await client.users.createUser({
+      emailAddress: [email],
+      password,
+      publicMetadata: {
+        role
+      }
+    })
+
+    // Upsert the profile in Supabase to ensure they get the right role
+    // even before or after the webhook runs
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        clerk_user_id: newUser.id,
+        email: email,
+        role: role,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'clerk_user_id' })
+      .select()
+      .single()
+
+    if (profileError) {
+      console.error('Error creating profile for new user in DB:', profileError)
+      // We don't fail since Clerk user was created, but ideally this succeeds.
+    }
+
+    return NextResponse.json({ success: true, user: profileData || { clerk_user_id: newUser.id, email, role } })
+  } catch (err: any) {
+    console.error('POST /api/admin/users error:', err)
+    // Send back a friendly error message from Clerk if possible
+    return NextResponse.json({ error: err.errors?.[0]?.message || err.message || 'Internal server error' }, { status: 500 })
   }
 }

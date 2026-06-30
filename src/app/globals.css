@@ -228,3 +228,16 @@ body {
 .lofi-vertical-line {
   @apply w-[1.5px] bg-current h-full mx-4;
 }
+
+/* Cozy Hub Animations */
+@keyframes sw-breathe{0%,100%{transform:scale(0.66)}50%{transform:scale(1.04)}}
+@keyframes sw-neon{0%,18%,22%,25%,70%,100%{opacity:1}20%,23%,72%{opacity:.62}}
+@keyframes sw-shimmer{0%{transform:translateX(-6%)}100%{transform:translateX(6%)}}
+@keyframes sw-sway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+@keyframes sw-drift{0%,100%{transform:translateX(0)}50%{transform:translateX(-14px)}}
+@keyframes sw-lamppulse{0%,100%{opacity:.85}50%{opacity:1}}
+@keyframes sw-flow{0%{transform:translateY(-9px)}100%{transform:translateY(0)}}
+@keyframes sw-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sw-label{from{opacity:0;transform:translate(-50%,-100%) translateY(6px)}to{opacity:1;transform:translate(-50%,-100%) translateY(0)}}
+@keyframes sw-fadein{from{opacity:0}to{opacity:1}}
+
