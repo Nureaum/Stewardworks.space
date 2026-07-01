@@ -1,6 +1,8 @@
 import { getCategories, getTags } from '@/app/actions/helpdeskActions'
 import AskQuestionForm from '@/components/helpdesk/AskQuestionForm'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Ask a Question - Help Desk'
 }

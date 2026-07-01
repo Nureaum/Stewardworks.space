@@ -6,17 +6,37 @@ import { AILab, AILabWithCohort, CreateAILabParams, UpdateAILabParams } from '@/
 import { revalidatePath } from 'next/cache'
 
 export async function getAILabs(): Promise<AILabWithCohort[]> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Authentication required')
+
   const supabase = createServerSupabaseClient()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, role')
+    .eq('clerk_user_id', userId)
+    .single()
+
+  if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
+    throw new Error('Admin access required')
+  }
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('ai_labs')
     .select(`
       *,
       cohorts (
         name
-      )
+      ),
+      creator:profiles!ai_labs_created_by_fkey(id, full_name, email)
     `)
     .order('created_at', { ascending: false })
+
+  if (profile.role !== 'super_admin') {
+    query = query.eq('created_by', profile.id)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching AI labs:', error)

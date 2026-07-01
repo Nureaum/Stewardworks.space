@@ -425,6 +425,11 @@ export interface AILab {
  */
 export interface AILabWithCohort extends AILab {
   cohort_name: string;
+  creator?: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 export interface CreateAILabParams {

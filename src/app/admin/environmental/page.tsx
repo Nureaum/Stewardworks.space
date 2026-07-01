@@ -11,6 +11,7 @@ export default function EnvLiteracyAdminPage() {
   const [items, setItems] = useState<any[]>([])
   const { setIsLoading } = useAdminLoading()
   const [processing, setProcessing] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   
   const [deleteModalState, setDeleteModalState] = useState<{isOpen: boolean, id: string | null}>({ isOpen: false, id: null })
 
@@ -25,6 +26,7 @@ export default function EnvLiteracyAdminPage() {
       .then(res => res.json())
       .then(data => {
         setItems(data.items || [])
+        if (data.userRole) setUserRole(data.userRole)
         setIsLoading(false)
       })
       .catch(err => {
@@ -200,6 +202,9 @@ export default function EnvLiteracyAdminPage() {
                   <tr>
                     <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Title</th>
                     <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Topic</th>
+                    {userRole === 'super_admin' && (
+                      <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Posted By</th>
+                    )}
                     <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Status</th>
                     <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Date</th>
                     <th className="px-8 py-5 text-right text-[11px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
@@ -225,6 +230,14 @@ export default function EnvLiteracyAdminPage() {
                             {item.topic?.label || 'No Topic'}
                           </span>
                         </td>
+                        {userRole === 'super_admin' && (
+                          <td className="px-8 py-5 whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span className="text-[13px] font-black text-steward-blue">{item.author?.full_name || 'Unknown Admin'}</span>
+                              <span className="text-[11px] text-gray-500 mt-0.5">{item.author?.email}</span>
+                            </div>
+                          </td>
+                        )}
                         <td className="px-8 py-5 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             <button 

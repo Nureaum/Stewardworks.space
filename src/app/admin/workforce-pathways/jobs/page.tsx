@@ -9,6 +9,7 @@ import { useAdminLoading } from '@/context/AdminLoadingContext';
 export default function JobProfilesAdminPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const { setIsLoading } = useAdminLoading();
+  const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function JobProfilesAdminPage() {
       .then(res => res.json())
       .then(data => {
         setJobs(data.items || []);
+        if (data.userRole) setUserRole(data.userRole);
         setIsLoading(false);
       })
       .catch(err => {
@@ -77,6 +79,9 @@ export default function JobProfilesAdminPage() {
             <tr>
               <th className="px-6 py-4 text-left text-[11px] font-black text-steward-dark uppercase tracking-widest">Job Title</th>
               <th className="px-6 py-4 text-left text-[11px] font-black text-steward-dark uppercase tracking-widest">Company</th>
+              {userRole === 'super_admin' && (
+                <th className="px-6 py-4 text-left text-[11px] font-black text-steward-dark uppercase tracking-widest">Posted By</th>
+              )}
               <th className="px-6 py-4 text-left text-[11px] font-black text-steward-dark uppercase tracking-widest">Status</th>
               <th className="px-6 py-4 text-right text-[11px] font-black text-steward-dark uppercase tracking-widest">Actions</th>
             </tr>
@@ -97,6 +102,14 @@ export default function JobProfilesAdminPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-steward-dark/70">
                     {job.company_name || 'N/A'}
                   </td>
+                  {userRole === 'super_admin' && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-black text-steward-blue">{job.author?.full_name || 'Unknown Admin'}</span>
+                        <span className="text-[11px] text-gray-500 mt-0.5">{job.author?.email}</span>
+                      </div>
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                       job.status === 'published' 

@@ -2,6 +2,8 @@ import { getAILabs } from '@/app/actions/ai-labs'
 import Link from 'next/link'
 import { Plus, Beaker } from 'lucide-react'
 import { AILabActions } from '@/components/admin/AILabActions'
+import { auth } from '@clerk/nextjs/server'
+import { createServerSupabaseClient } from '@/utils/supabase/server'
 
 export const metadata = {
   title: 'AI Labs Management - Admin',
@@ -11,6 +13,11 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminAILabsPage() {
   try {
+    const { userId } = await auth()
+    const supabase = createServerSupabaseClient()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('clerk_user_id', userId).single()
+    const userRole = profile?.role
+
     const aiLabs = await getAILabs()
 
     return (
@@ -45,6 +52,9 @@ export default async function AdminAILabsPage() {
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="p-4 font-semibold text-gray-600">Title</th>
                   <th className="p-4 font-semibold text-gray-600">Cohort (Workshop)</th>
+                  {userRole === 'super_admin' && (
+                    <th className="p-4 font-semibold text-gray-600">Posted By</th>
+                  )}
                   <th className="p-4 font-semibold text-gray-600">Created At</th>
                   <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
                 </tr>
@@ -54,6 +64,14 @@ export default async function AdminAILabsPage() {
                   <tr key={lab.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 font-medium text-gray-900">{lab.title}</td>
                     <td className="p-4 text-gray-600">{lab.cohort_name}</td>
+                    {userRole === 'super_admin' && (
+                      <td className="p-4 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-steward-blue">{lab.creator?.full_name || 'Unknown Admin'}</span>
+                          <span className="text-xs text-gray-500 mt-0.5">{lab.creator?.email}</span>
+                        </div>
+                      </td>
+                    )}
                     <td className="p-4 text-gray-600">
                       {new Date(lab.created_at).toLocaleDateString()}
                     </td>

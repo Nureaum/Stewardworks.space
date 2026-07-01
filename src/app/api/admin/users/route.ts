@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { email, role, password } = body
+    const { email, role, password, first_name, last_name } = body
 
     if (!email || !role || !password) {
       return NextResponse.json({ error: 'Missing email, role, or password' }, { status: 400 })
@@ -161,6 +161,8 @@ export async function POST(request: NextRequest) {
     const newUser = await client.users.createUser({
       emailAddress: [email],
       password,
+      firstName: first_name,
+      lastName: last_name,
       publicMetadata: {
         role
       }
@@ -174,6 +176,9 @@ export async function POST(request: NextRequest) {
         clerk_user_id: newUser.id,
         email: email,
         role: role,
+        first_name: first_name || null,
+        last_name: last_name || null,
+        full_name: (first_name || last_name) ? `${first_name || ''} ${last_name || ''}`.trim() : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'clerk_user_id' })
       .select()

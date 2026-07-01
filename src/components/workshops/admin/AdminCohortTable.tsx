@@ -34,9 +34,10 @@ type StatusFilter = 'all' | 'draft' | 'open' | 'closed' | 'completed'
 
 interface AdminCohortTableProps {
   cohorts: CohortWithCounts[]
+  userRole?: string | null
 }
 
-export default function AdminCohortTable({ cohorts }: AdminCohortTableProps) {
+export default function AdminCohortTable({ cohorts, userRole }: AdminCohortTableProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
@@ -71,7 +72,7 @@ export default function AdminCohortTable({ cohorts }: AdminCohortTableProps) {
       case 'closed':
         return 'bg-yellow-100 text-yellow-700'
       case 'completed':
-        return 'bg-blue-100 text-blue-700'
+        return 'bg-steward-blue/20 text-steward-blue'
       default:
         return 'bg-gray-100 text-gray-700'
     }
@@ -98,7 +99,7 @@ export default function AdminCohortTable({ cohorts }: AdminCohortTableProps) {
               placeholder="Search cohorts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steward-blue focus:border-transparent"
             />
           </div>
 
@@ -108,7 +109,7 @@ export default function AdminCohortTable({ cohorts }: AdminCohortTableProps) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steward-blue focus:border-transparent"
             >
               <option value="all">All Statuses</option>
               <option value="draft">Draft</option>
@@ -140,7 +141,7 @@ export default function AdminCohortTable({ cohorts }: AdminCohortTableProps) {
           {!searchQuery && statusFilter === 'all' && (
             <Link
               href="/admin/pilot-workshops/create"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              className="inline-flex items-center gap-2 bg-steward-dark hover:bg-black text-white px-6 py-2 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors shadow-sm hover:shadow"
             >
               <Plus className="w-5 h-5" />
               Create Cohort
@@ -168,12 +169,16 @@ export default function AdminCohortTable({ cohorts }: AdminCohortTableProps) {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Registered
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created By
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Updated By
-                  </th>
+                  {userRole === 'super_admin' && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created By
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Updated By
+                      </th>
+                    </>
+                  )}
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -211,17 +216,21 @@ export default function AdminCohortTable({ cohorts }: AdminCohortTableProps) {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {cohort.creator?.full_name || cohort.creator?.first_name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {cohort.updater?.full_name || cohort.updater?.first_name || '-'}
-                    </td>
+                    {userRole === 'super_admin' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {cohort.creator?.full_name || cohort.creator?.first_name || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {cohort.updater?.full_name || cohort.updater?.first_name || '-'}
+                        </td>
+                      </>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/admin/pilot-workshops/${cohort.id}/edit`}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+                          className="text-steward-blue hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
                           title="Edit Cohort"
                         >
                           <Edit className="w-4 h-4" />

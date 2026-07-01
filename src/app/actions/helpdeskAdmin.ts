@@ -109,35 +109,56 @@ export async function answerQuestion(questionId: string, content: string, isFaq:
     
   if (qError) throw qError
 
-  // Insert the answer
-  const { error: answerError } = await supabase
+  const { data: existingAnswer } = await supabase
     .from('helpdesk_answers')
-    .insert({
-      question_id: questionId,
-      author_id: profile.id,
-      content,
-      is_promoted_to_faq: isFaq
-    })
-    
-  if (answerError) throw answerError
+    .select('id, author_id')
+    .eq('question_id', questionId)
+    .maybeSingle()
 
-  // Update question status to answered
-  const { error: updateError } = await supabase
-    .from('helpdesk_questions')
-    .update({ status: 'answered', updated_at: new Date().toISOString() })
-    .eq('id', questionId)
+  if (existingAnswer) {
+    if (existingAnswer.author_id !== profile.id && profile.role !== 'super_admin') {
+      throw new Error('Unauthorized to edit this answer')
+    }
+    const { error: updateAnswerError } = await supabase
+      .from('helpdesk_answers')
+      .update({
+        content,
+        is_promoted_to_faq: isFaq
+      })
+      .eq('question_id', questionId)
+      
+    if (updateAnswerError) throw updateAnswerError
+  } else {
+    // Insert the answer
+    const { error: answerError } = await supabase
+      .from('helpdesk_answers')
+      .insert({
+        question_id: questionId,
+        author_id: profile.id,
+        content,
+        is_promoted_to_faq: isFaq
+      })
+      
+    if (answerError) throw answerError
 
-  if (updateError) throw updateError
+    // Update question status to answered
+    const { error: updateError } = await supabase
+      .from('helpdesk_questions')
+      .update({ status: 'answered', updated_at: new Date().toISOString() })
+      .eq('id', questionId)
 
-  // Create notification for the user
-  const { error: notifError } = await supabase
-    .from('helpdesk_notifications')
-    .insert({
-      user_id: question.author_id,
-      title: 'Your question was answered!',
-      message: `An admin has responded to your question: "${question.title}"`,
-      link: `/hub/helpdesk/${questionId}`
-    })
+    if (updateError) throw updateError
 
-  if (notifError) throw notifError
+    // Create notification for the user
+    const { error: notifError } = await supabase
+      .from('helpdesk_notifications')
+      .insert({
+        user_id: question.author_id,
+        title: 'Your question was answered!',
+        message: `An admin has responded to your question: "${question.title}"`,
+        link: `/hub/helpdesk/${questionId}`
+      })
+
+    if (notifError) throw notifError
+  }
 }

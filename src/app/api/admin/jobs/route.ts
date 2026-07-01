@@ -14,26 +14,33 @@ async function verifyAdmin() {
     .single()
   
   if (profile?.role === 'admin' || profile?.role === 'super_admin') {
-    return { authorized: true, supabase, profileId: profile.id }
+    return { authorized: true, supabase, profileId: profile.id, role: profile.role }
   }
   return { authorized: false, status: 403 }
 }
 
 export async function GET(request: Request) {
-  const { authorized, status, supabase } = await verifyAdmin()
+  const { authorized, status, supabase, profileId, role } = await verifyAdmin()
   if (!authorized || !supabase) return NextResponse.json({ error: 'Unauthorized' }, { status })
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('job_profiles')
     .select(`
       *,
-      job_profile_steps (*)
+      job_profile_steps (*),
+      author:profiles!created_by(full_name, email)
     `)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
+  if (role !== 'super_admin') {
+    query = query.eq('created_by', profileId)
+  }
+
+  const { data, error } = await query
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ items: data })
+  return NextResponse.json({ items: data, userRole: role })
 }
 
 export async function POST(request: Request) {

@@ -12,7 +12,6 @@ export default function UsersAdminPage() {
     console.log("UsersAdminPage useEffect mounted");
     async function checkRole() {
       console.log("checkRole started");
-      setIsLoading(true);
       try {
         const res = await fetch('/api/profile');
         if (res.ok) {
@@ -23,8 +22,6 @@ export default function UsersAdminPage() {
         }
       } catch (error) {
         console.error('Error checking role:', error);
-      } finally {
-        setIsLoading(false);
       }
     }
     

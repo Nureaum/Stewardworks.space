@@ -35,6 +35,7 @@ export type HelpdeskQuestion = {
     role: string;
   };
   answer_count?: number;
+  answers?: HelpdeskAnswer[];
 };
 
 export type HelpdeskAnswer = {

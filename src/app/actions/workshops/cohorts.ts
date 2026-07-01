@@ -184,7 +184,7 @@ export async function getCohorts() {
     }
 
     // Get all cohorts with registration count
-    const { data: cohorts, error: cohortsError } = await supabase
+    let query = supabase
       .from('cohorts')
       .select(`
         *,
@@ -192,6 +192,12 @@ export async function getCohorts() {
         updater:profiles!cohorts_updated_by_fkey(id, first_name, last_name, full_name)
       `)
       .order('start_date', { ascending: false })
+
+    if (profile.role !== 'super_admin') {
+      query = query.eq('created_by', profile.id)
+    }
+
+    const { data: cohorts, error: cohortsError } = await query
 
     if (cohortsError) {
       console.error('Get cohorts error:', cohortsError)

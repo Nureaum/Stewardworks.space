@@ -15,25 +15,26 @@ async function verifyAdmin() {
     .single()
   
   if (profile?.role === 'admin' || profile?.role === 'super_admin') {
-    return { authorized: true, supabase, profileId: profile.id }
+    return { authorized: true, supabase, profileId: profile.id, role: profile.role }
   }
   return { authorized: false, status: 403 }
 }
 
 export async function GET(request: Request) {
-  const { authorized, status, supabase } = await verifyAdmin()
+  const { authorized, status, supabase, profileId, role } = await verifyAdmin()
   if (!authorized || !supabase) return NextResponse.json({ error: 'Unauthorized' }, { status })
 
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type')
 
-    let query = supabase
+  let query = supabase
     .from('content_items')
     .select(`
       *,
       category:content_categories(label),
       topic:env_literacy_topics(label),
-      media:content_media(*)
+      media:content_media(*),
+      author:profiles!created_by(full_name, email)
     `)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
@@ -42,10 +43,14 @@ export async function GET(request: Request) {
     query = query.eq('content_type', type)
   }
 
+  if (role !== 'super_admin') {
+    query = query.eq('created_by', profileId)
+  }
+
   const { data, error } = await query
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ items: data })
+  return NextResponse.json({ items: data, userRole: role })
 }
 
 export async function POST(request: Request) {

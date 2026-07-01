@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Shield, User as UserIcon, AlertCircle, Loader2, Plus, X } from 'lucide-react';
+import { Search, Shield, User as UserIcon, AlertCircle, Loader2, Plus, X, Eye, EyeOff } from 'lucide-react';
+import { useAdminLoading } from '@/context/AdminLoadingContext';
 
 interface Profile {
   id: string;
+  clerk_user_id: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -16,15 +18,22 @@ interface Profile {
 }
 
 export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: boolean }) {
+  const { setIsLoading } = useAdminLoading();
   const [users, setUsers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addFormData, setAddFormData] = useState({ email: '', role: 'participant', password: '' });
+  const [addFormData, setAddFormData] = useState({ 
+    email: '', 
+    first_name: '', 
+    last_name: '', 
+    role: 'participant', 
+    password: '' 
+  });
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     console.log("UserManagement mounted, fetching users...");
@@ -34,7 +43,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
   const fetchUsers = async () => {
     console.log("fetchUsers called");
     try {
-      setLoading(true);
+      setIsLoading(true);
       const res = await fetch('/api/admin/users');
       console.log("fetchUsers response status:", res.status);
       if (!res.ok) {
@@ -49,7 +58,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
       console.error("fetchUsers caught error:", err.message);
       setError(err.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -70,7 +79,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
         throw new Error(data.error || 'Failed to add user');
       }
 
-      setAddFormData({ email: '', role: 'participant', password: '' });
+      setAddFormData({ email: '', first_name: '', last_name: '', role: 'participant', password: '' });
       setIsAddModalOpen(false);
       fetchUsers();
     } catch (err: any) {
@@ -102,8 +111,8 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
       
       const { user: updatedUser } = await res.json();
       
-      // Update local state
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole, role_name: newRole } : u));
+      // Update local state (userId here is clerk_user_id)
+      setUsers(users.map(u => u.clerk_user_id === userId ? { ...u, role: newRole, role_name: newRole } : u));
     } catch (err: any) {
       alert(`Error updating role: ${err.message}`);
     } finally {
@@ -117,15 +126,6 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
     const email = (u.email || '').toLowerCase();
     return name.includes(query) || email.includes(query);
   });
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <Loader2 size={32} className="animate-spin text-steward-gold" />
-        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Loading Users...</p>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -221,7 +221,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     {canEditRole ? (
                       <button
-                        onClick={() => handleRoleChange(u.id, currentRole, u.email)}
+                        onClick={() => handleRoleChange(u.clerk_user_id, currentRole, u.email)}
                         disabled={isUpdating}
                         className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border transition-all ${isAdmin ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-steward-dark border-steward-dark/20 hover:bg-steward-dark/5'} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto`}
                       >
@@ -269,6 +269,31 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
             )}
 
             <form onSubmit={handleAddSubmit} className="space-y-4">
+              <div className="flex gap-4">
+                <div className="w-1/2">
+                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">First Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={addFormData.first_name}
+                    onChange={(e) => setAddFormData({ ...addFormData, first_name: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                    placeholder="First name"
+                  />
+                </div>
+                <div className="w-1/2">
+                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={addFormData.last_name}
+                    onChange={(e) => setAddFormData({ ...addFormData, last_name: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                    placeholder="Last name"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Email Address</label>
                 <input
@@ -295,15 +320,24 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
 
               <div>
                 <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={addFormData.password}
-                  onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
-                  placeholder="Create a password"
-                  minLength={8}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={addFormData.password}
+                    onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl p-3 pr-10 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                    placeholder="Create a password"
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <button

@@ -13,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isCheckingRole, setIsCheckingRole] = useState(true);
   const [isProgramsOpen, setIsProgramsOpen] = useState(false);
 
@@ -32,6 +33,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           const profile = data.profile;
           if (profile?.role === 'admin' || profile?.role === 'super_admin') {
             setIsAdmin(true);
+            if (profile?.role === 'super_admin') {
+              setIsSuperAdmin(true);
+            }
           }
         }
       } catch (error) {
@@ -129,10 +133,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Lock className="text-steward-gold" size={24} />
           </div>
           <h2 className="text-xl font-black uppercase tracking-widest text-white">Steward.Works</h2>
-          <p className="text-[10px] text-steward-gold font-bold uppercase tracking-widest mt-1">Admin Dashboard</p>
+          <p className="text-[10px] text-steward-gold font-bold uppercase tracking-widest mt-1">
+            {isSuperAdmin ? 'Super Admin Dashboard' : 'Admin Dashboard'}
+          </p>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = item.exact 
               ? pathname === item.href 

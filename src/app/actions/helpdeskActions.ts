@@ -45,13 +45,13 @@ export async function getTags(): Promise<HelpdeskTag[]> {
 
 export async function getFaqs() {
   const supabase = createServerSupabaseClient()
-  
   const { data, error } = await supabase
     .from('helpdesk_answers')
     .select(`
       id,
       content,
       created_at,
+      is_promoted_to_faq,
       question:helpdesk_questions (
         id,
         title,
@@ -83,7 +83,8 @@ export async function getQuestions(categoryId?: string, tagId?: string): Promise
       *,
       category:category_id(*),
       author:author_id(id, full_name, email, role),
-      tags:helpdesk_question_tags(helpdesk_tags(*))
+      tags:helpdesk_question_tags(helpdesk_tags(*)),
+      answers:helpdesk_answers(author:author_id(full_name, email))
     `)
     .order('created_at', { ascending: false })
 
@@ -123,12 +124,16 @@ export async function getQuestionById(id: string): Promise<HelpdeskQuestion> {
     .eq('id', id)
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (error.code === 'PGRST116') return null as any
+    console.error("Supabase error in getQuestionById:", error)
+    throw new Error(error.message)
+  }
   
   const question = data as any
   return {
     ...question,
-    tags: question.tags.map((t: any) => t.helpdesk_tags)
+    tags: question.tags ? question.tags.map((t: any) => t.helpdesk_tags) : []
   } as HelpdeskQuestion
 }
 
