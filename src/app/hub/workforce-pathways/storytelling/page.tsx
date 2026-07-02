@@ -1,17 +1,18 @@
 import React from 'react';
 import Link from 'next/link';
-import { ChevronLeft, PenTool } from 'lucide-react';
+import { ChevronLeft, PenTool, BookOpen, Clock, ArrowRight } from 'lucide-react';
 import { createServerSupabaseClient } from '@/utils/supabase/server';
+import { format } from 'date-fns';
 
 export const revalidate = 0; // Ensure data is fresh
 
 export default async function StorytellingPage() {
   const supabase = createServerSupabaseClient();
 
-  // Fetch Storytelling Article
+  // Fetch Storytelling Articles
   const { data: articles } = await supabase
     .from('content_items')
-    .select('*')
+    .select('*, author:profiles!updated_by(first_name, last_name)')
     .eq('content_type', 'pathways_article')
     .eq('status', 'published')
     .order('created_at', { ascending: false });
@@ -37,58 +38,54 @@ export default async function StorytellingPage() {
         </div>
       </header>
 
-      <main className="w-full mx-auto px-8 md:px-16 py-12 relative z-20">
-        <div className="space-y-8">
+      <main className="w-full max-w-7xl mx-auto px-8 md:px-16 py-12 relative z-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {articles && articles.length > 0 ? (
-            articles.map(article => (
-              <div key={article.id} className="bg-white rounded-[2rem] p-8 md:p-12 shadow-md border border-steward-dark/5">
-                {(() => {
-                  let parsedSections: any = null;
-                  try {
-                    parsedSections = JSON.parse(article.body || '{}');
-                  } catch (e) {
-                    // Fallback to legacy HTML
-                  }
-
-                  if (parsedSections && typeof parsedSections === 'object') {
-                    const sections = [
-                      { id: 'storytelling', title: 'Storytelling', content: parsedSections.storytelling },
-                      { id: 'monetization', title: 'Monetization Methods', content: parsedSections.monetization },
-                      { id: 'becoming', title: 'Becoming a Content Creator', content: parsedSections.becoming },
-                      { id: 'opportunities', title: 'Job Opportunities', content: parsedSections.opportunities }
-                    ];
-                    return (
-                      <div className="space-y-12">
-                        {sections.filter(s => s.content).map(section => (
-                          <div key={section.id} className="bg-steward-cream/10 rounded-3xl p-8 border border-steward-dark/5">
-                            <h3 className="text-2xl font-black text-steward-orange uppercase tracking-tight mb-8 pb-4 border-b border-steward-dark/10">
-                              {section.title}
-                            </h3>
-                            <div className="prose prose-lg max-w-none text-steward-dark/80 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight prose-a:text-steward-blue">
-                              <div dangerouslySetInnerHTML={{ __html: section.content }} />
-                            </div>
-                          </div>
-                        ))}
-                        {sections.every(s => !s.content) && (
-                          <div className="text-steward-dark/50 text-center py-20 font-medium text-lg">
-                            This guide is currently empty. Check back later!
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // Legacy rendering
-                  return (
-                    <div className="prose prose-lg max-w-none text-steward-dark/80 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight prose-a:text-steward-blue">
-                      <div dangerouslySetInnerHTML={{ __html: article.body || '' }} />
+            articles.map(article => {
+              const authorName = article.author 
+                ? `${article.author.first_name || ''} ${article.author.last_name || ''}`.trim()
+                : 'Steward Team';
+                
+              return (
+                <Link 
+                  key={article.id} 
+                  href={`/hub/workforce-pathways/storytelling/${article.id}`}
+                  className="group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl border border-steward-dark/5 transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="w-12 h-12 bg-steward-orange/10 rounded-2xl flex items-center justify-center mb-6 text-steward-orange group-hover:scale-110 transition-transform">
+                      <BookOpen size={24} />
                     </div>
-                  );
-                })()}
-              </div>
-            ))
+                    <h2 className="text-2xl font-black uppercase tracking-tight text-steward-dark mb-3 line-clamp-2">
+                      {article.title || 'Content Creator Skills Guide'}
+                    </h2>
+                    <p className="text-steward-dark/60 text-sm font-medium mb-6">
+                      Explore detailed modules on storytelling, monetization, job opportunities, and how to become a successful content creator.
+                    </p>
+                  </div>
+                  
+                  <div className="pt-6 border-t border-gray-100 flex items-center justify-between mt-auto">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-steward-dark text-white flex items-center justify-center text-xs font-bold">
+                        {authorName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-steward-dark">{authorName}</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                          <Clock size={10} />
+                          {format(new Date(article.created_at), 'MMM d, yyyy')}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-steward-dark group-hover:bg-steward-orange group-hover:text-white transition-colors">
+                      <ArrowRight size={14} />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })
           ) : (
-            <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-md border border-steward-dark/5 flex flex-col items-center justify-center py-32 text-center text-steward-dark/50">
+            <div className="col-span-full bg-white rounded-[2rem] p-8 md:p-12 shadow-md border border-steward-dark/5 flex flex-col items-center justify-center py-32 text-center text-steward-dark/50">
               <PenTool size={48} className="text-steward-dark/10 mb-6" />
               <h2 className="text-2xl font-black uppercase tracking-tight mb-2">Coming Soon</h2>
               <p className="font-medium">Check back soon for content creator and storytelling resources.</p>
