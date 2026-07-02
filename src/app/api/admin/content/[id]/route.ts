@@ -21,6 +21,24 @@ async function verifyAdmin() {
   return { authorized: false, status: 403 }
 }
 
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const { authorized, status, supabase } = await verifyAdmin()
+  if (!authorized || !supabase) return NextResponse.json({ error: 'Unauthorized' }, { status })
+
+  const { data, error } = await supabase
+    .from('content_items')
+    .select(`
+      *,
+      topic:env_literacy_topics(label),
+      media:content_media(*)
+    `)
+    .eq('id', params.id)
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ item: data })
+}
+
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { authorized, status, supabase, profileId } = await verifyAdmin()
   if (!authorized || !supabase) return NextResponse.json({ error: 'Unauthorized' }, { status })
