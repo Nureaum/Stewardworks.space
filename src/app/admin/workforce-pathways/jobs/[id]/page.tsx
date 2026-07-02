@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, Save, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 
@@ -124,171 +124,192 @@ export default function JobProfileEditorPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto font-exo">
-      <Link 
-        href="/admin/workforce-pathways/jobs"
-        className="inline-flex items-center gap-2 text-steward-dark hover:text-steward-blue transition-colors mb-8 font-bold uppercase tracking-widest text-xs"
-      >
-        <ArrowLeft size={16} /> Back to Job Profiles
-      </Link>
-
-      <h1 className="text-3xl font-black text-steward-dark uppercase tracking-tight mb-8">
-        {isNew ? 'Create Job Profile' : 'Edit Job Profile'}
-      </h1>
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8 lg:p-12 space-y-8">
-        {error && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold border border-red-100">
-            {error}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="col-span-2">
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">Job Title *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark focus:bg-white transition-all font-bold text-steward-dark"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">Company Name (Optional)</label>
-            <input
-              type="text"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark transition-all font-bold text-steward-dark"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">Company URL (Optional)</label>
-            <input
-              type="url"
-              value={companyUrl}
-              onChange={(e) => setCompanyUrl(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark transition-all font-bold text-steward-dark"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">Min Salary (Numbers only)</label>
-            <input
-              type="number"
-              value={salaryMin}
-              onChange={(e) => setSalaryMin(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark transition-all font-bold text-steward-dark"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">Max Salary (Numbers only)</label>
-            <input
-              type="number"
-              value={salaryMax}
-              onChange={(e) => setSalaryMax(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark transition-all font-bold text-steward-dark"
-            />
-          </div>
-
-          <div className="col-span-2">
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">Salary Display Override (Optional)</label>
-            <input
-              type="text"
-              value={salaryOverride}
-              onChange={(e) => setSalaryOverride(e.target.value)}
-              placeholder='e.g. "$20/hr" or "Varies by experience"'
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark transition-all font-bold text-steward-dark"
-            />
-            <p className="text-xs text-gray-400 mt-1">If filled, this overrides the min/max numbers on the display.</p>
-          </div>
-        </div>
-
+    <div className="animate-[ac-fade_0.3s_ease] w-full p-[34px_44px]">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-[16px] mb-[22px] flex-wrap">
         <div>
-          <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-3">Status</label>
-          <div className="flex bg-gray-100 p-1.5 rounded-xl w-fit border border-gray-200/60">
-            <button
-              type="button"
-              onClick={() => setStatus('draft')}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                status === 'draft' ? 'bg-white text-steward-dark shadow-sm border border-gray-200/50' : 'text-gray-400 hover:text-gray-600 border border-transparent'
-              }`}
-            >
-              Draft (Hidden)
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatus('published')}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                status === 'published' ? 'bg-steward-green text-white shadow-sm border border-steward-green/20' : 'text-gray-400 hover:text-gray-600 border border-transparent'
-              }`}
-            >
-              Published (Public)
-            </button>
-          </div>
+          <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Job Profiles</h1>
+          <p className="mt-[8px] mb-0 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">MANAGE THE CAREER ROADMAPS AVAILABLE IN WORKFORCE PATHWAYS</p>
         </div>
+        <Link 
+          href="/admin/workforce-pathways/jobs/new"
+          className="bg-[#241c12] text-[#efd9a8] px-6 py-[11px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
+        >
+          + Create Profile
+        </Link>
+      </div>
 
-        <div className="pt-8 border-t border-gray-100">
-          <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-4">Pathway Steps</label>
-          <div className="space-y-3 mb-4">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex gap-2 items-start">
-                <div className="bg-steward-blue text-white w-10 h-10 rounded-xl flex items-center justify-center font-black shrink-0">
-                  {index + 1}
-                </div>
-                <textarea
-                  value={step.description}
-                  onChange={(e) => updateStep(index, e.target.value)}
-                  placeholder={`Description for step ${index + 1}...`}
-                  className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark transition-all font-bold text-steward-dark resize-none h-10 min-h-[2.5rem]"
-                  rows={1}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeStep(index)}
-                  className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors shrink-0"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={addStep}
-            className="flex items-center gap-2 text-steward-blue hover:text-blue-800 font-bold uppercase tracking-widest text-[10px]"
-          >
-            <Plus size={16} /> Add Step
-          </button>
-        </div>
-
-        <div className="pt-8 border-t border-gray-100">
-          <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">Application Tips (Optional)</label>
-          <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-steward-dark focus-within:border-transparent transition-all">
-            <RichTextEditor content={applicationTips} onChange={setApplicationTips} />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-4 pt-8 border-t border-gray-100 mt-12">
-          <Link
+      <div className="w-full relative z-10 bg-white rounded-[22px] p-[30px] shadow-[0_14px_34px_rgba(120,90,50,0.1)] border border-[#785a32]/10 max-w-[960px]">
+        <div className="flex items-center gap-[12px] mb-[22px]">
+          <Link 
             href="/admin/workforce-pathways/jobs"
-            className="px-6 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors inline-flex items-center"
+            className="w-[36px] h-[36px] rounded-[10px] border border-[#785a32]/20 bg-[#fbf5e6] flex items-center justify-center text-[#5c4f3c] hover:bg-[#f2ead2] transition-colors"
           >
-            Cancel
+            <ChevronLeft size={18} />
           </Link>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-6 py-3 text-[11px] font-black uppercase tracking-widest text-white bg-steward-dark rounded-xl hover:bg-black transition-colors shadow-lg flex items-center gap-2 disabled:opacity-50"
-          >
-            {submitting ? 'Saving...' : <><Save size={16} /> Save Job Profile</>}
-          </button>
+          <div>
+            <div className="font-[800] text-[18px] text-[#241c12] leading-none">
+              {isNew ? 'Create Job Profile' : 'Edit Job Profile'}
+            </div>
+            <div className="font-mono text-[10.5px] tracking-[0.16em] text-[#a89a82] mt-[4px] uppercase leading-none">
+              {isNew ? 'CREATE A NEW JOB PROFILE' : 'EDIT THIS JOB PROFILE'}
+            </div>
+          </div>
         </div>
-      </form>
+
+        <form onSubmit={handleSubmit} className="space-y-[22px]">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-[18px] rounded-[14px] text-[13px] font-[700] border border-red-100">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[22px]">
+            <div className="col-span-2">
+              <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[6px]">Job Title *</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="w-full px-[15px] py-[13px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:border-[#785a32]/40 focus:ring-1 focus:ring-[#785a32]/40 transition-all text-[14.5px] text-[#241c12]"
+              />
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[6px]">Company Name (Optional)</label>
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="w-full px-[15px] py-[13px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:border-[#785a32]/40 focus:ring-1 focus:ring-[#785a32]/40 transition-all text-[14.5px] text-[#241c12]"
+              />
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[6px]">Company URL (Optional)</label>
+              <input
+                type="url"
+                value={companyUrl}
+                onChange={(e) => setCompanyUrl(e.target.value)}
+                className="w-full px-[15px] py-[13px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:border-[#785a32]/40 focus:ring-1 focus:ring-[#785a32]/40 transition-all text-[14.5px] text-[#241c12]"
+              />
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[6px]">Min Salary (Numbers only)</label>
+              <input
+                type="number"
+                value={salaryMin}
+                onChange={(e) => setSalaryMin(e.target.value)}
+                className="w-full px-[15px] py-[13px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:border-[#785a32]/40 focus:ring-1 focus:ring-[#785a32]/40 transition-all text-[14.5px] text-[#241c12]"
+              />
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[6px]">Max Salary (Numbers only)</label>
+              <input
+                type="number"
+                value={salaryMax}
+                onChange={(e) => setSalaryMax(e.target.value)}
+                className="w-full px-[15px] py-[13px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:border-[#785a32]/40 focus:ring-1 focus:ring-[#785a32]/40 transition-all text-[14.5px] text-[#241c12]"
+              />
+            </div>
+
+            <div className="col-span-2">
+              <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[6px]">Salary Display Override (Optional)</label>
+              <input
+                type="text"
+                value={salaryOverride}
+                onChange={(e) => setSalaryOverride(e.target.value)}
+                placeholder='e.g. "$20/hr" or "Varies by experience"'
+                className="w-full px-[15px] py-[13px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:border-[#785a32]/40 focus:ring-1 focus:ring-[#785a32]/40 transition-all text-[14.5px] text-[#241c12]"
+              />
+              <p className="text-[12px] text-[#a89a82] mt-[6px] leading-[1.45]">If filled, this overrides the min/max numbers on the display.</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[8px]">Status</label>
+            <div className="flex bg-[#fdfaf0] p-[4px] rounded-[12px] w-fit border border-[#785a32]/10 gap-[4px]">
+              <button
+                type="button"
+                onClick={() => setStatus('draft')}
+                className={`px-[18px] py-[9px] rounded-[9px] text-[11px] font-[800] uppercase tracking-[0.1em] transition-all ${
+                  status === 'draft' ? 'bg-white text-[#241c12] shadow-[0_2px_8px_rgba(120,90,50,0.1)] border border-[#785a32]/10' : 'text-[#a89a82] hover:text-[#5c4f3c] border border-transparent'
+                }`}
+              >
+                Draft (Hidden)
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatus('published')}
+                className={`px-[18px] py-[9px] rounded-[9px] text-[11px] font-[800] uppercase tracking-[0.1em] transition-all ${
+                  status === 'published' ? 'bg-[#2f5a37] text-white shadow-[0_4px_12px_rgba(47,90,55,0.2)] border border-[#2f5a37]' : 'text-[#a89a82] hover:text-[#5c4f3c] border border-transparent'
+                }`}
+              >
+                Published (Public)
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-[22px] border-t border-[#785a32]/10">
+            <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[14px]">Pathway Steps</label>
+            <div className="space-y-[12px] mb-[14px]">
+              {steps.map((step, index) => (
+                <div key={step.id} className="flex gap-[12px] items-start">
+                  <div className="bg-[#eaf1ec] text-[#2f5a37] w-[42px] h-[42px] rounded-[11px] flex items-center justify-center font-[700] text-[15px] shrink-0 border border-[#2f5a37]/10">
+                    {index + 1}
+                  </div>
+                  <textarea
+                    value={step.description}
+                    onChange={(e) => updateStep(index, e.target.value)}
+                    placeholder={`Description for step ${index + 1}...`}
+                    className="flex-1 px-[15px] py-[11px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:border-[#785a32]/40 focus:ring-1 focus:ring-[#785a32]/40 transition-all text-[14px] text-[#241c12] resize-none min-h-[42px]"
+                    rows={1}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeStep(index)}
+                    className="w-[42px] h-[42px] flex items-center justify-center bg-red-50 text-red-400 rounded-[11px] hover:bg-red-100 transition-colors shrink-0 border border-red-100"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addStep}
+              className="flex items-center gap-[8px] px-[16px] py-[9px] bg-[#fbf5e6] text-[#7a5a1e] hover:bg-[#f2ead2] rounded-[10px] border border-[#785a32]/10 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors"
+            >
+              <Plus size={14} /> Add Step
+            </button>
+          </div>
+
+          <div className="pt-[22px] border-t border-[#785a32]/10">
+            <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-[10px]">Application Tips (Optional)</label>
+            <div className="bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] overflow-hidden focus-within:border-[#785a32]/40 focus-within:ring-1 focus-within:ring-[#785a32]/40 transition-all">
+              <RichTextEditor content={applicationTips} onChange={setApplicationTips} />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-[12px] pt-[30px] border-t border-[#785a32]/10 mt-[12px]">
+            <Link
+              href="/admin/workforce-pathways/jobs"
+              className="px-[20px] py-[11px] text-[11px] font-[800] uppercase tracking-[0.12em] text-[#5c4f3c] bg-[#fbf5e6] border border-[#785a32]/10 rounded-[12px] hover:bg-[#f2ead2] transition-colors inline-flex items-center"
+            >
+              Cancel
+            </Link>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-[20px] py-[11px] text-[11px] font-[800] uppercase tracking-[0.12em] text-[#efd9a8] bg-[#241c12] rounded-[12px] hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] flex items-center gap-2 disabled:opacity-50"
+            >
+              {submitting ? 'Saving...' : 'Save Job Profile'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

@@ -1,38 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
-import { ArrowDown, Pin, Info, HelpCircle, Calendar, Users, Cpu, Database } from 'lucide-react';
+import { getSystemBulletins } from '@/app/actions/bulletins';
+import { ArrowDown, Pin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function BulletinPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const [bulletin, setBulletin] = useState<any>(null);
 
-  const sections = [
-    {
-      id: 'fyi',
-      title: t('bulletin.fyi.title'),
-      icon: <Info className="text-steward-blue" />,
-      items: [
-        { title: t('bulletin.listening.title'), content: 'Information about Community Listening Sessions will be posted here. We want to hear your voice regarding environmental literacy and AI.' },
-        { title: t('bulletin.dates.title'), content: 'Stay tuned for upcoming dates for community meetings and project milestones.' },
-        { title: t('bulletin.workshops.title'), content: 'Sign up for our upcoming workshops on AI media creation and environmental stewardship.' },
-      ]
-    },
-    {
-      id: 'faq',
-      title: t('bulletin.faq.title'),
-      icon: <HelpCircle className="text-steward-orange" />,
-      items: [
-        { title: t('bulletin.datacenters.title'), content: 'Understand the impact and role of data centers in our environmental ecosystem.' },
-        { title: t('bulletin.ai.title'), content: 'What is AI and how can it be used for environmental advocacy and career building?' },
-        { title: t('bulletin.background.title'), content: 'Learn about the origins of StewardWorks and our mission in Imperial County.' },
-      ]
+  useEffect(() => {
+    async function load() {
+      try {
+        const sys = await getSystemBulletins();
+        setBulletin(sys);
+      } catch (err) {
+        console.error(err);
+      }
     }
-  ];
+    load();
+  }, []);
+
 
   return (
     <main className="min-h-screen bg-[#D2B48C] relative font-exo overflow-x-hidden">
@@ -64,15 +56,12 @@ export default function BulletinPage() {
           </div>
         </div>
 
-        {/* Bulletin Board Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-          {sections.map((section, sIdx) => (
-            <div key={section.id} className="relative group">
-              {/* Paper Background Style */}
+        {/* Dynamic Onboarding Bulletin (from Admin) */}
+        {bulletin && (bulletin.onboarding_headline || bulletin.onboarding_body || bulletin.onboarding_image_url) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="relative group mb-12">
               <div className="absolute -inset-2 bg-white/5 blur-xl rounded-3xl transition-all group-hover:bg-white/10" />
-              
-              <div className="relative bg-white shadow-[5px_5px_0px_rgba(0,0,0,0.05),10px_10px_20px_rgba(0,0,0,0.1)] p-8 md:p-16 min-h-[700px] border-t-[30px] border-steward-gold/5 transform transition-transform group-hover:rotate-0 odd:rotate-[-0.5deg] even:rotate-[0.5deg]">
-                {/* Pins */}
+              <div className="relative bg-white shadow-[5px_5px_0px_rgba(0,0,0,0.05),10px_10px_20px_rgba(0,0,0,0.1)] p-8 md:p-12 border-t-[30px] border-steward-gold/5 transform transition-transform group-hover:rotate-0 rotate-[-0.5deg]">
                 <div className="absolute top-6 left-6">
                   <div className="w-5 h-5 bg-red-600 rounded-full shadow-md border-b-4 border-red-800" />
                 </div>
@@ -80,41 +69,44 @@ export default function BulletinPage() {
                   <div className="w-5 h-5 bg-red-600 rounded-full shadow-md border-b-4 border-red-800" />
                 </div>
 
-                <div className="space-y-12">
-                  <div className="flex items-center gap-6 border-b-2 border-steward-gold/10 pb-8">
-                    <div className="p-3 bg-steward-offwhite rounded-2xl shadow-inner">
-                    {section.icon}
+                <div className="flex flex-col gap-8">
+                  {/* Image at the top */}
+                  {bulletin.onboarding_image_url && (
+                    <div className="w-full h-[240px] bg-steward-offwhite border-2 border-steward-gold/20 rounded-2xl overflow-hidden relative shadow-inner">
+                      <img src={bulletin.onboarding_image_url} alt="Featured" className="w-full h-full object-cover" />
                     </div>
-                    <h2 className="text-4xl font-black text-steward-green uppercase tracking-tight">
-                      {section.title}
-                    </h2>
-                  </div>
-
-                  <div className="space-y-10">
-                    {section.items.map((item, iIdx) => (
-                      <div key={iIdx} className="space-y-4 relative pl-8">
-                        <div className="absolute left-0 top-2 w-3 h-3 bg-steward-orange rounded-full shadow-sm" />
-                        <h3 className="text-2xl font-black text-steward-dark leading-tight uppercase tracking-tight">
-                          {item.title}
-                        </h3>
-                        <p className="text-steward-dark/80 text-lg leading-relaxed font-medium">
-                          {item.content}
-                        </p>
+                  )}
+                  
+                  <div className="space-y-6">
+                    {bulletin.onboarding_headline && (
+                      <h2 className="text-3xl font-black text-steward-dark leading-tight uppercase tracking-tight">
+                        {bulletin.onboarding_headline}
+                      </h2>
+                    )}
+                    {bulletin.onboarding_body && (
+                      <p className="text-base text-steward-dark/80 font-medium whitespace-pre-wrap leading-relaxed">
+                        {bulletin.onboarding_body}
+                      </p>
+                    )}
+                    {bulletin.onboarding_cta_url && bulletin.onboarding_cta_label && (
+                      <div className="pt-4 flex justify-end">
+                        <a 
+                          href={bulletin.onboarding_cta_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block bg-steward-green text-white font-black px-6 py-3 rounded-xl shadow-[0_6px_0_rgba(25,70,35,1)] hover:shadow-[0_4px_0_rgba(25,70,35,1)] hover:translate-y-[2px] active:shadow-none active:translate-y-[6px] transition-all uppercase tracking-widest text-xs"
+                        >
+                          {bulletin.onboarding_cta_label}
+                        </a>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Aesthetic Lined Paper Look (from Image 3) */}
-                  <div className="pt-8 opacity-20 pointer-events-none select-none">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="h-[1px] bg-steward-blue w-full my-4" />
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+
 
         {/* Bottom Back Button */}
         <div className="mt-20 flex justify-center pb-20">

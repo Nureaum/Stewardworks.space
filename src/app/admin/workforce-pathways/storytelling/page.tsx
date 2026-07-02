@@ -106,143 +106,141 @@ export default function StorytellingAdminPage() {
   const totalDrafts = items.filter(i => i.status === 'draft').length;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full bg-[#F8F9FA] font-exo -mx-8 -my-8 md:m-0">
-      <header className="bg-white border-b border-gray-100 h-20 px-8 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/workforce-pathways" className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-steward-dark transition-colors">
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tighter">Content Creator Skills</h1>
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
-              Manage the content creator skills articles
-            </p>
-          </div>
+    <div className="animate-[ac-fade_0.3s_ease] w-full p-[34px_44px]">
+      <div className="mb-[16px]">
+        <Link 
+          href="/admin/workforce-pathways" 
+          className="inline-flex items-center gap-[6px] px-[12px] py-[7px] rounded-[10px] bg-[#785a32]/5 hover:bg-[#785a32]/10 text-[#5c4f3c] text-[12px] font-[700] transition-colors"
+        >
+          <ArrowLeft size={14} /> Back to Workforce Pathways
+        </Link>
+      </div>
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-[16px] mb-[22px] flex-wrap">
+        <div>
+          <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Content Creator Skills</h1>
+          <p className="mt-[8px] mb-0 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">MANAGE THE CONTENT CREATOR SKILLS ARTICLES</p>
         </div>
         <Link 
-          href="/admin/workforce-pathways/storytelling/new"
-          className="flex items-center gap-2 bg-steward-dark text-white px-6 py-2 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-black transition-colors shadow-sm hover:shadow"
+          href="/admin/workforce-pathways/storytelling/new" 
+          className="bg-[#241c12] text-[#efd9a8] px-6 py-[11px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
         >
-          <Plus size={16} /> New Article
+          + New Article
         </Link>
-      </header>
+      </div>
 
-      <main className="flex-1 overflow-y-auto p-8 lg:p-12 relative">
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-        <div className="max-w-7xl mx-auto relative z-10">
-
-          <div className="flex flex-col sm:flex-row gap-4 items-center mb-8">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search articles..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-bold text-steward-dark placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-steward-blue/20 focus:border-steward-blue transition-all shadow-sm"
-              />
-            </div>
-            
-            <div className="relative">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="appearance-none pl-12 pr-10 py-3 bg-white border border-gray-100 rounded-xl text-sm font-bold text-steward-dark focus:outline-none focus:ring-2 focus:ring-steward-blue/20 focus:border-steward-blue transition-all shadow-sm cursor-pointer"
-              >
-                <option value="All">All Statuses</option>
-                <option value="published">Published</option>
-                <option value="draft">Drafts</option>
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 1L5 5L9 1" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[2rem] shadow-sm border border-steward-dark/5 overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50/50 border-b border-gray-100">
-                <tr>
-                  <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Article Title</th>
-                  {userRole === 'super_admin' && (
-                    <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Posted By</th>
-                  )}
-                  <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Status</th>
-                  <th className="px-8 py-5 text-right text-[11px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-50">
-                {paginatedItems.length === 0 ? (
-                  <tr><td colSpan={4} className="px-8 py-16 text-center">
-                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Search className="text-gray-400" size={24} />
-                    </div>
-                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No matching articles found.</p>
-                  </td></tr>
-                ) : (
-                  paginatedItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-8 py-5 whitespace-nowrap">
-                        <div className="text-[15px] font-black text-steward-dark tracking-tight">{item.title || 'Untitled'}</div>
-                      </td>
-                      {userRole === 'super_admin' && (
-                        <td className="px-8 py-5 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="text-[13px] font-black text-steward-blue">{item.author?.full_name || 'Unknown Admin'}</span>
-                            <span className="text-[11px] text-gray-500 mt-0.5">{item.author?.email}</span>
-                          </div>
-                        </td>
-                      )}
-                      <td className="px-8 py-5 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <button 
-                            onClick={() => handleToggleStatus(item)}
-                            disabled={processing === item.id}
-                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                              item.status === 'published' ? 'bg-steward-green' : 'bg-gray-200'
-                            } ${processing === item.id ? 'opacity-50 cursor-wait' : ''}`}
-                            title="Toggle status"
-                          >
-                            <span 
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${
-                                item.status === 'published' ? 'translate-x-6' : 'translate-x-1'
-                              }`} 
-                            />
-                          </button>
-                          <span className={`text-[10px] font-black uppercase tracking-widest ${
-                            item.status === 'published' ? 'text-steward-green' : 'text-gray-400'
-                          }`}>
-                            {processing === item.id ? 'Saving...' : item.status}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 whitespace-nowrap text-right">
-                        <div className="flex justify-end gap-2">
-                          <Link 
-                            href={`/admin/workforce-pathways/storytelling/${item.id}`} 
-                            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-xl text-[11px] font-black text-steward-dark uppercase tracking-widest hover:bg-gray-50 transition-all"
-                          >
-                            <Pencil size={14} /> Edit
-                          </Link>
-                          <button 
-                            onClick={() => confirmDelete(item.id)}
-                            className="inline-flex items-center justify-center p-2 bg-white border border-gray-100 rounded-xl text-red-500 hover:bg-red-50 hover:border-red-100 hover:text-red-600 transition-all disabled:opacity-50"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+      <div className="flex flex-col sm:flex-row gap-[10px] items-stretch mb-[22px]">
+        <div className="flex flex-1 items-center gap-[10px] bg-white border border-[#785a32]/16 rounded-[14px] px-[18px] py-[11px] shadow-[0_4px_12px_rgba(120,90,50,0.07)] w-full">
+          <Search size={17} className="text-[#a89a82] shrink-0" />
+          <input 
+            type="text" 
+            placeholder="Search articles..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="flex-1 min-w-0 border-none bg-transparent text-[14.5px] text-[#241c12] focus:outline-none placeholder:text-[#a89a82]"
+          />
+        </div>
+        
+        <div className="flex items-center bg-white border border-[#785a32]/16 rounded-[14px] px-[18px] py-[11px] shadow-[0_4px_12px_rgba(120,90,50,0.07)] relative w-full sm:w-auto">
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="flex-1 sm:w-auto appearance-none bg-transparent border-none text-[14.5px] text-[#241c12] focus:outline-none cursor-pointer pr-[24px]"
+          >
+            <option value="All">All Statuses</option>
+            <option value="published">Published</option>
+            <option value="draft">Drafts</option>
+          </select>
+          <div className="absolute right-[18px] top-1/2 -translate-y-1/2 pointer-events-none text-[#a89a82]">
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
         </div>
-      </main>
+      </div>
+
+      <div className="bg-white rounded-[22px] shadow-[0_14px_34px_rgba(120,90,50,0.1)] border border-[#785a32]/10 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-[#785a32]/10">
+            <thead className="bg-[#fbf5e6] border-b border-[#785a32]/10">
+              <tr>
+                <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Article Title</th>
+                {userRole === 'super_admin' && (
+                  <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Posted By</th>
+                )}
+                <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Status</th>
+                <th className="px-[28px] py-[18px] text-right text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#785a32]/5 bg-white">
+              {paginatedItems.length === 0 ? (
+                <tr><td colSpan={userRole === 'super_admin' ? 4 : 3} className="px-[28px] py-[40px] text-center">
+                  <div className="w-16 h-16 bg-[#fbf5e6] rounded-[22px] flex items-center justify-center mx-auto mb-4 text-[#a89a82]">
+                    <Search size={24} />
+                  </div>
+                  <p className="text-[11px] font-mono text-[#8a7c66] uppercase tracking-[0.16em]">No matching articles found.</p>
+                </td></tr>
+              ) : (
+                paginatedItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-[#fbf5e6]/30 transition-colors group">
+                    <td className="px-[28px] py-[18px] whitespace-nowrap">
+                      <span className="text-[15px] font-[700] text-[#241c12] tracking-tight">{item.title || 'Untitled'}</span>
+                    </td>
+                    {userRole === 'super_admin' && (
+                      <td className="px-[28px] py-[18px] whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-[700] text-[#2f5a37]">{item.author?.full_name || 'Unknown Admin'}</span>
+                          <span className="text-[11px] text-[#8a7c66] mt-0.5">{item.author?.email}</span>
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-[28px] py-[18px] whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => handleToggleStatus(item)}
+                          disabled={processing === item.id}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none ${
+                            item.status === 'published' ? 'bg-[#2f5a37]' : 'bg-[#e0d6c8]'
+                          } ${processing === item.id ? 'opacity-50 cursor-wait' : ''}`}
+                          title="Toggle status"
+                        >
+                          <span 
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${
+                              item.status === 'published' ? 'translate-x-6' : 'translate-x-1'
+                            }`} 
+                          />
+                        </button>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${
+                          item.status === 'published' ? 'text-[#2f5a37]' : 'text-[#a89a82]'
+                        }`}>
+                          {processing === item.id ? 'Saving...' : item.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-[28px] py-[18px] whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link 
+                          href={`/admin/workforce-pathways/storytelling/${item.id}`} 
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-[#785a32]/10 rounded-[8px] text-[10px] font-mono text-[#a89a82] uppercase tracking-[0.12em] hover:bg-[#fbf5e6] hover:text-[#7a5a1e] hover:border-[#efd9a8] transition-all"
+                        >
+                          <Pencil size={14} /> Edit
+                        </Link>
+                        <button
+                          onClick={() => confirmDelete(item.id)}
+                          disabled={processing === item.id}
+                          className="inline-flex items-center justify-center p-2 bg-transparent border border-[#785a32]/10 rounded-[8px] text-red-400 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all disabled:opacity-50"
+                          title="Delete Article"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <ConfirmModal
         isOpen={deleteModalState.isOpen}

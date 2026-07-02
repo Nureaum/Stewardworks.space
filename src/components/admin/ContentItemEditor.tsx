@@ -31,6 +31,11 @@ export default function ContentItemEditor({
   const [eventDate, setEventDate] = useState("");
   const [body, setBody] = useState(initialData?.body || "");
   const [status, setStatus] = useState(initialData?.status || "draft");
+  const [localCategories, setLocalCategories] = useState<{ id: string; label: string }[]>(categories || []);
+  const [newCategoryLabel, setNewCategoryLabel] = useState("");
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [resourceType, setResourceType] = useState(initialData?.resource_type || "");
+
   const [categoryId, setCategoryId] = useState(
     initialData?.category_id || (categories?.[0]?.id ?? ""),
   );
@@ -173,6 +178,29 @@ export default function ContentItemEditor({
     setMediaItems((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleCreateCategory = async () => {
+    if (!newCategoryLabel.trim()) return;
+    setIsCreatingCategory(true);
+    try {
+      const slug = newCategoryLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: newCategoryLabel.trim(), slug })
+      });
+      if (!res.ok) throw new Error('Failed to create category');
+      const { category } = await res.json();
+      setLocalCategories(prev => [...prev, category]);
+      setCategoryId(category.id);
+      setNewCategoryLabel("");
+      toast.success('Category created!');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -195,8 +223,9 @@ export default function ContentItemEditor({
         thumbnail_url: thumbnailUrl || null,
         media: mediaItems,
       };
-      if (categoryId) payload.category_id = categoryId;
+      if (categoryId && categoryId !== "__create_new__") payload.category_id = categoryId;
       if (topicInput) payload.topic_label = topicInput;
+      if (resourceType) payload.resource_type = resourceType;
 
       await onSubmit(payload);
 
@@ -240,8 +269,28 @@ export default function ContentItemEditor({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8 lg:p-12 space-y-8"
+      className="bg-white rounded-[22px] shadow-[0_14px_34px_rgba(120,90,50,0.1)] border border-[#785a32]/10 p-8 lg:p-[30px] space-y-6 max-w-[900px] w-full"
     >
+      {contentType === "env_literacy_block" && (
+        <div className="flex items-center gap-[12px] mb-[24px]">
+          <button 
+            type="button" 
+            onClick={onCancel}
+            className="w-[36px] h-[36px] rounded-[10px] border border-[#785a32]/16 bg-[#fbf5e6] cursor-pointer text-[#5c4f3c] text-[16px] flex items-center justify-center hover:bg-[#f2ead6] transition-colors"
+          >
+            {'<'}
+          </button>
+          <div>
+            <div className="font-[800] text-[18px] text-[#241c12]">
+              {initialData ? "Edit Content Block" : "Create Content Block"}
+            </div>
+            <div className="font-mono text-[10.5px] tracking-[0.16em] text-[#a89a82] mt-[2px] uppercase">
+              {initialData ? "UPDATE AN EXISTING RICH-TEXT BLOCK" : "ADD A NEW RICH-TEXT BLOCK TO A THEME"}
+            </div>
+          </div>
+        </div>
+      )}
+
       {renderTabNavigation()}
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold border border-red-100">
@@ -252,7 +301,7 @@ export default function ContentItemEditor({
       {((contentType !== "library_resource" && contentType !== "community_session") || activeTab === "summary") && (
         <div className="space-y-8">
           <div>
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">
+            <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-2">
               {contentType === "community_session"
                 ? "Session Title (e.g. March 19 at College)"
                 : "Title"}
@@ -262,11 +311,11 @@ export default function ContentItemEditor({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark focus:bg-white transition-all font-bold text-steward-dark"
+              className="w-full px-[15px] py-[13px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:ring-2 focus:ring-[#785a32]/30 transition-all text-[14.5px] text-[#241c12] placeholder:text-[#a89a82]"
               placeholder={
                 contentType === "community_session"
                   ? "Enter title..."
-                  : "Enter title..."
+                  : "Enter title."
               }
             />
           </div>
@@ -300,7 +349,7 @@ export default function ContentItemEditor({
           )}
 
           <div>
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">
+            <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-2">
               Thumbnail Image
             </label>
             <div className="mt-1 flex items-center gap-4">
@@ -518,9 +567,8 @@ export default function ContentItemEditor({
 
       {/* Status is now handled by the bottom submit buttons */}
 
-      {categories &&
-        categories.length > 0 &&
-        (contentType !== "library_resource" || activeTab === "summary") && (
+      {(contentType !== "library_resource" || activeTab === "summary") && (
+        <div className="flex flex-col gap-4">
           <div>
             <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">
               Category
@@ -531,99 +579,105 @@ export default function ContentItemEditor({
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark focus:bg-white transition-all font-bold text-steward-dark"
             >
               <option value="">Select a category...</option>
-              {categories.map((cat) => (
+              {localCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.label}
                 </option>
               ))}
+              <option value="__create_new__">+ Create new category...</option>
             </select>
+            {categoryId === "__create_new__" && (
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="New category name"
+                  value={newCategoryLabel}
+                  onChange={e => setNewCategoryLabel(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-steward-dark"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateCategory}
+                  disabled={isCreatingCategory || !newCategoryLabel.trim()}
+                  className="bg-steward-dark text-white px-4 py-2 rounded-lg text-xs font-bold uppercase disabled:opacity-50"
+                >
+                  {isCreatingCategory ? 'Adding...' : 'Add'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCategoryId(localCategories[0]?.id || "")}
+                  className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
-        )}
+          
+          {contentType === "library_resource" && (
+            <div>
+              <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">
+                Resource Type
+              </label>
+              <select
+                value={resourceType}
+                onChange={(e) => setResourceType(e.target.value)}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark focus:bg-white transition-all font-bold text-steward-dark"
+              >
+                <option value="">Auto-detect / Standard Resource</option>
+                <option value="article">Article</option>
+                <option value="pdf">PDF</option>
+                <option value="video">Video</option>
+                <option value="social">Social</option>
+                <option value="tool">Tool</option>
+                <option value="study">Study</option>
+                <option value="slides">Slides</option>
+                <option value="meme">Image/Meme</option>
+              </select>
+            </div>
+          )}
+        </div>
+      )}
 
       {contentType !== "community_session" &&
         (contentType !== "library_resource" || activeTab === "summary") &&
         topics &&
         topics.length >= 0 && (
-          <div className="relative">
-            <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">
-              Topic
+          <div>
+            <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-2">
+              Theme
             </label>
-            <input
-              type="text"
+            <select
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
-              onFocus={() => setIsTopicDropdownOpen(true)}
-              onBlur={() =>
-                setTimeout(() => setIsTopicDropdownOpen(false), 200)
-              }
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark focus:bg-white transition-all font-bold text-steward-dark"
-              placeholder="Search or type a new topic..."
-              autoComplete="off"
-            />
-
-            {isTopicDropdownOpen && (
-              <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
-                {topics
-                  .filter((t) =>
-                    t.label.toLowerCase().includes(topicInput.toLowerCase()),
-                  )
-                  .map((topic) => (
-                    <div
-                      key={topic.id}
-                      className="px-4 py-3 hover:bg-gray-50 cursor-pointer font-bold text-sm text-steward-dark transition-colors border-b border-gray-50 last:border-0"
-                      onMouseDown={(e) => {
-                        e.preventDefault(); // Prevents blur from firing first
-                        setTopicInput(topic.label);
-                        setIsTopicDropdownOpen(false);
-                      }}
-                    >
-                      {topic.label}
-                    </div>
-                  ))}
-
-                {topicInput &&
-                  !topics.some(
-                    (t) => t.label.toLowerCase() === topicInput.toLowerCase(),
-                  ) && (
-                    <div
-                      className="px-4 py-3 bg-steward-dark/5 hover:bg-steward-dark/10 cursor-pointer font-black text-sm text-steward-dark transition-colors flex items-center gap-2"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setIsTopicDropdownOpen(false);
-                      }}
-                    >
-                      <span className="text-steward-green">+</span> Create "
-                      {topicInput}"
-                    </div>
-                  )}
-
-                {!topicInput && topics.length === 0 && (
-                  <div className="px-4 py-3 text-sm text-gray-400 font-bold">
-                    No existing topics. Type to create one!
-                  </div>
-                )}
-              </div>
-            )}
+              className="w-full px-[15px] py-[13px] bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] focus:outline-none focus:ring-2 focus:ring-[#785a32]/30 transition-all text-[14.5px] text-[#241c12] cursor-pointer appearance-none"
+            >
+              <option value="">Select a theme...</option>
+              <option value="Imperial County Bioregion">Imperial County Bioregion</option>
+              <option value="Indigenous Peoples">Indigenous Peoples</option>
+              <option value="History">History</option>
+              <option value="The Wider World">The Wider World</option>
+            </select>
           </div>
         )}
 
       {((contentType !== "library_resource" && contentType !== "community_session") || activeTab === "summary") && (
         <div>
-          <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">
+          <label className="block font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] uppercase mb-2">
             Content
           </label>
-          <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-steward-dark focus-within:border-transparent transition-all">
+          <div className="bg-[#fdfaf0] border border-[#785a32]/20 rounded-[11px] overflow-hidden focus-within:ring-2 focus-within:ring-[#785a32]/30 transition-all">
             <RichTextEditor content={body} onChange={setBody} />
           </div>
         </div>
       )}
 
-      <div className="flex justify-end gap-4 pt-8 border-t border-gray-100 mt-12">
+      <div className="flex justify-end gap-[10px] pt-[22px] mt-[22px]">
         <button
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-6 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="px-[18px] py-[11px] rounded-[10px] border border-[#785a32]/20 bg-[#fbf5e6] text-[#5c4f3c] font-bold text-[13px] hover:bg-[#f2ead6] transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
@@ -631,7 +685,7 @@ export default function ContentItemEditor({
           type="submit"
           onClick={() => setSubmitAction("draft")}
           disabled={isSubmitting}
-          className="px-6 py-3 text-[11px] font-black uppercase tracking-widest text-steward-dark bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors shadow-sm disabled:opacity-50"
+          className="px-[18px] py-[11px] rounded-[10px] bg-[#241c12] text-[#efd9a8] font-bold text-[13px] hover:bg-black transition-colors disabled:opacity-50"
         >
           {isSubmitting ? "Saving..." : "Save as Draft"}
         </button>
@@ -639,7 +693,7 @@ export default function ContentItemEditor({
           type="submit"
           onClick={() => setSubmitAction("published")}
           disabled={isSubmitting}
-          className="px-6 py-3 text-[11px] font-black uppercase tracking-widest text-white bg-steward-green rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl disabled:opacity-50"
+          className="px-[18px] py-[11px] rounded-[10px] bg-[#2f5a37] text-white font-bold text-[13px] hover:bg-[#244a2c] transition-colors disabled:opacity-50"
         >
           {isSubmitting ? "Publishing..." : "Publish Content"}
         </button>

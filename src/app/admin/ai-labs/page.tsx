@@ -1,6 +1,5 @@
 import { getAILabs } from '@/app/actions/ai-labs'
 import Link from 'next/link'
-import { Plus, Beaker } from 'lucide-react'
 import { AILabActions } from '@/components/admin/AILabActions'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
@@ -21,69 +20,87 @@ export default async function AdminAILabsPage() {
     const aiLabs = await getAILabs()
 
     return (
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4 w-full">
-            <div className="flex items-center gap-3">
-              <Beaker className="w-8 h-8 text-steward-dark" />
-              <h1 className="text-3xl font-black uppercase tracking-widest text-steward-dark">AI Labs Management</h1>
+      <div className="animate-[ac-fade_0.3s_ease] w-full p-[34px_44px]">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-[16px] mb-[8px] flex-wrap">
+          <div className="flex items-center gap-[12px]">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c8963e" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6M10 3v6l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3"></path></svg>
+            <div>
+              <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">AI LABS</h1>
+              <p className="mt-[6px] mb-0 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">CREATIVE LABS POWERED BY EDEN.ART</p>
             </div>
-            <Link
-              href="/admin/ai-labs/create"
-              className="flex items-center gap-2 bg-steward-dark hover:bg-black text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider transition-colors shadow-lg"
-            >
-              <Plus className="w-5 h-5" />
-              Create AI Lab
-            </Link>
           </div>
-          <p className="text-lg text-gray-600">
-            Create and manage AI Labs associated with Cohorts.
-          </p>
+          <Link
+            href="/admin/ai-labs/create"
+            className="bg-[#241c12] text-[#efd9a8] px-6 py-[11px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
+          >
+            + Create AI Lab
+          </Link>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* API Block (Static representation for layout) */}
+        <div className="bg-gradient-to-br from-[#2a2118] to-[#1a130c] rounded-[20px] p-[26px] shadow-[0_16px_34px_rgba(0,0,0,0.24)] border border-[#e2b54a]/15 mt-[20px]">
+          <div className="flex items-center justify-between flex-wrap gap-[16px]">
+            <div className="flex items-center gap-[16px]">
+              <div className="w-[52px] h-[52px] rounded-[14px] bg-[#e2b54a]/15 flex items-center justify-center text-[24px]">🌿</div>
+              <div>
+                <div className="font-[800] text-[18px] text-white">eden.art API</div>
+                <div className="text-[13px] text-[#fff4e1]/60 mt-[3px]">Workspace connected to eden.art</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-[6px] bg-white/5 rounded-full px-[15px] py-[7px]">
+              <span className="w-[8px] h-[8px] rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]"></span>
+              <span className="font-[800] text-[11px] tracking-[0.14em] uppercase text-green-400">Connected</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px] mt-[20px]">
+            <div className="bg-white/5 rounded-[12px] p-[14px_16px]">
+              <div className="font-mono text-[10px] tracking-[0.12em] text-[#fff4e1]/50">ENDPOINT</div>
+              <div className="text-[13px] text-[#efd9a8] mt-[4px] font-mono">/v2/tasks/create</div>
+            </div>
+            <div className="bg-white/5 rounded-[12px] p-[14px_16px]">
+              <div className="font-mono text-[10px] tracking-[0.12em] text-[#fff4e1]/50">MODELS</div>
+              <div className="text-[13px] text-[#efd9a8] mt-[4px]">image · video · lora</div>
+            </div>
+            <div className="bg-white/5 rounded-[12px] p-[14px_16px]">
+              <div className="font-mono text-[10px] tracking-[0.12em] text-[#fff4e1]/50">DEFAULT COHORT</div>
+              <div className="text-[13px] text-[#efd9a8] mt-[4px]">Pilot Cohort 01</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="font-mono text-[11px] tracking-[0.18em] text-[#9c8d76] mt-[26px] mb-[14px]">LABS</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px]">
           {aiLabs.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
+            <div className="col-span-1 md:col-span-2 p-[22px] bg-white rounded-[18px] border border-[#785a32]/10 text-center text-[#8a7c66] font-mono text-[11px] tracking-[0.16em] uppercase">
               No AI Labs found. Create one to get started.
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="p-4 font-semibold text-gray-600">Title</th>
-                  <th className="p-4 font-semibold text-gray-600">Cohort (Workshop)</th>
+            aiLabs.map((lab) => (
+              <div key={lab.id} className="bg-white rounded-[18px] p-[22px] shadow-[0_10px_26px_rgba(120,90,50,0.1)] border border-[#785a32]/10 flex flex-col justify-between group hover:-translate-y-[2px] hover:shadow-[0_16px_32px_rgba(120,90,50,0.15)] transition-all">
+                <div>
+                  <div className="flex justify-between items-start gap-[12px]">
+                    <div className="font-[800] text-[16px] text-[#241c12]">{lab.title}</div>
+                    <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <AILabActions labId={lab.id} />
+                    </div>
+                  </div>
+                  <div className="text-[13px] text-[#8a7c66] mt-[8px] mb-[14px] leading-[1.5] line-clamp-2">
+                    <div dangerouslySetInnerHTML={{ __html: lab.content }} className="prose prose-sm max-w-none prose-p:my-0 prose-p:leading-[1.5] text-[#8a7c66] [&_p]:text-[#8a7c66]" />
+                  </div>
+                </div>
+                <div className="font-mono text-[11px] text-[#a89a82] flex flex-wrap items-center gap-[6px]">
+                  <span>image</span> 
+                  <span>·</span> 
+                  <span>{lab.cohort_name}</span>
                   {userRole === 'super_admin' && (
-                    <th className="p-4 font-semibold text-gray-600">Posted By</th>
+                    <>
+                      <span>·</span>
+                      <span>{lab.creator?.full_name}</span>
+                    </>
                   )}
-                  <th className="p-4 font-semibold text-gray-600">Created At</th>
-                  <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {aiLabs.map((lab) => (
-                  <tr key={lab.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 font-medium text-gray-900">{lab.title}</td>
-                    <td className="p-4 text-gray-600">{lab.cohort_name}</td>
-                    {userRole === 'super_admin' && (
-                      <td className="p-4 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-steward-blue">{lab.creator?.full_name || 'Unknown Admin'}</span>
-                          <span className="text-xs text-gray-500 mt-0.5">{lab.creator?.email}</span>
-                        </div>
-                      </td>
-                    )}
-                    <td className="p-4 text-gray-600">
-                      {new Date(lab.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex justify-end">
-                        <AILabActions labId={lab.id} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>

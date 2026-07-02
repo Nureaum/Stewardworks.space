@@ -32,18 +32,22 @@ export default function NewLibraryResourcePage() {
   }
 
   return (
-    <div className="p-6 w-full max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Create New Library Resource</h1>
-        <p className="text-gray-600">Add a new article or resource to the Steward Library.</p>
+    <div className="animate-[ac-fade_0.3s_ease] w-full p-[34px_44px]">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-[22px]">
+        <div>
+          <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Add Resource</h1>
+          <p className="mt-2 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">Catalog a new item in Steward Library</p>
+        </div>
       </div>
 
-      <ContentItemEditor 
-        contentType="library_resource"
-        categories={categories}
-        onSubmit={handleSubmit}
-        onCancel={() => router.push('/admin/library')}
-      />
+      <div className="bg-white rounded-[22px] shadow-[0_14px_34px_rgba(120,90,50,0.1)] border border-[#785a32]/10 p-[26px]">
+        <ContentItemEditor 
+          contentType="library_resource"
+          categories={categories}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push('/admin/library')}
+        />
+      </div>
     </div>
   )
 }

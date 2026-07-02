@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Lock, ChevronLeft, Image as ImageIcon, Users, BookOpen, Layers, Map, MessageSquare, Beaker, ChevronDown } from 'lucide-react';
+import { Lock, ChevronLeft, Image as ImageIcon, Users, BookOpen, Layers, Map, MessageSquare, Beaker, ChevronDown, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { AdminLoadingProvider } from '@/context/AdminLoadingContext';
@@ -15,7 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isCheckingRole, setIsCheckingRole] = useState(true);
-  const [isProgramsOpen, setIsProgramsOpen] = useState(false);
+  const [isProgramsOpen, setIsProgramsOpen] = useState(true);
 
   useEffect(() => {
     async function checkAdminRole() {
@@ -105,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const menuItems = [
-    { label: 'Wallpaper / Posters', href: '/admin', icon: ImageIcon, exact: true },
+    { label: 'Announcements', href: '/admin/announcements', icon: Megaphone, exact: false },
     { label: 'User Management', href: '/admin/users', icon: Users },
     { label: 'Library Resources', href: '/admin/library', icon: BookOpen, exact: true },
     // { label: 'Manage Categories', href: '/admin/library/categories', icon: Layers }, // Hidden for now
@@ -125,20 +125,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F5F5F5] font-exo">
+    <div className="flex h-screen overflow-hidden bg-[#FBF4E1] bg-[radial-gradient(rgba(120,90,50,.06)_1px,transparent_1px)] bg-[size:22px_22px] font-exo">
       {/* Left Sidebar */}
-      <aside className="w-64 bg-steward-dark text-white flex flex-col shrink-0 shadow-2xl z-20 relative">
-        <div className="p-6 border-b border-white/10 flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-steward-gold/20 rounded-xl flex items-center justify-center mb-3">
-            <Lock className="text-steward-gold" size={24} />
+      <aside className="w-[246px] h-screen shrink-0 z-20 relative flex flex-col bg-gradient-to-b from-[#201811] to-[#150f08] border-r border-[#e2b54a]/[0.14] pt-[22px] px-4 pb-4">
+        <div className="flex flex-col items-center pt-[6px] pb-[22px] border-b border-white/[0.06] mb-4">
+          <div className="w-[56px] h-[56px] rounded-[15px] bg-[#e2b54a]/[0.13] flex items-center justify-center mb-3">
+            <Lock className="text-[#e2b54a]" size={26} />
           </div>
-          <h2 className="text-xl font-black uppercase tracking-widest text-white">Steward.Works</h2>
-          <p className="text-[10px] text-steward-gold font-bold uppercase tracking-widest mt-1">
-            {isSuperAdmin ? 'Super Admin Dashboard' : 'Admin Dashboard'}
+          <h2 className="font-[800] text-[20px] tracking-[0.02em] text-white">STEWARD.WORKS</h2>
+          <p className="font-mono text-[9.5px] tracking-[0.28em] text-[#e2b54a] mt-[5px]">
+            {isSuperAdmin ? 'SUPER ADMIN DASHBOARD' : 'ADMIN DASHBOARD'}
           </p>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 flex flex-col gap-[3px] overflow-y-auto pr-[2px]">
           {menuItems.map((item) => {
             const isActive = item.exact 
               ? pathname === item.href 
@@ -150,40 +150,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link 
                 key={item.href}
                 href={item.href}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm tracking-wide transition-all border shadow-inner ${
+                className={`w-full flex items-center gap-3 px-[14px] py-[10px] rounded-[10px] font-bold text-[13.5px] transition-all border ${
                   isActive 
-                    ? 'bg-white/10 text-white border-white/5' 
-                    : 'bg-transparent text-gray-400 border-transparent hover:bg-white/5'
+                    ? 'bg-[#2a2218] text-[#e2b54a] border-[#e2b54a]/20 shadow-sm' 
+                    : 'bg-transparent text-[#9c8d76] border-transparent hover:bg-white/5 hover:text-[#d3c8b4]'
                 }`}
               >
-                <Icon size={18} className={isActive ? 'text-steward-gold' : 'text-gray-400'} />
+                <Icon size={18} className={isActive ? 'text-[#e2b54a]' : 'text-[#9c8d76]'} />
                 {item.label}
               </Link>
             );
           })}
           
           {/* Programs Dropdown */}
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col space-y-[3px]">
             <button
               onClick={() => setIsProgramsOpen(!isProgramsOpen)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold text-sm tracking-wide transition-all border shadow-inner ${
+              className={`w-full flex items-center justify-between px-[14px] py-[10px] rounded-[10px] font-bold text-[13.5px] transition-all border ${
                 isProgramsActive
-                  ? 'bg-white/5 text-white border-white/5'
-                  : 'bg-transparent text-gray-400 border-transparent hover:bg-white/5'
+                  ? 'bg-[#2a2218] text-[#e2b54a] border-[#e2b54a]/20 shadow-sm'
+                  : 'bg-transparent text-[#9c8d76] border-transparent hover:bg-white/5 hover:text-[#d3c8b4]'
               }`}
             >
               <div className="flex items-center gap-3">
-                <Layers size={18} className={isProgramsActive ? 'text-steward-gold' : 'text-gray-400'} />
+                <Layers size={18} className={isProgramsActive ? 'text-[#e2b54a]' : 'text-[#9c8d76]'} />
                 Programs
               </div>
               <ChevronDown 
                 size={16} 
-                className={`transition-transform duration-200 ${isProgramsOpen ? 'rotate-180' : ''} ${isProgramsActive ? 'text-steward-gold' : 'text-gray-400'}`} 
+                className={`transition-transform duration-200 ${isProgramsOpen ? 'rotate-180' : ''} ${isProgramsActive ? 'text-[#e2b54a]' : 'text-[#9c8d76]'}`} 
               />
             </button>
             
             {isProgramsOpen && (
-              <div className="flex flex-col space-y-1 pl-4 pt-1 animate-in slide-in-from-top-2 fade-in duration-200">
+              <div className="flex flex-col gap-[2px] pl-[14px] my-[2px] border-l border-white/[0.07] ml-2 animate-in slide-in-from-top-2 fade-in duration-200">
                 {programItems.map((item) => {
                   const isActive = item.exact 
                     ? pathname === item.href 
@@ -195,13 +195,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link 
                       key={item.href}
                       href={item.href}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm tracking-wide transition-all border shadow-inner ${
+                      className={`w-full flex items-center gap-3 px-[14px] py-[8px] rounded-[8px] font-bold text-[13px] transition-all ${
                         isActive 
-                          ? 'bg-white/10 text-white border-white/5' 
-                          : 'bg-transparent text-gray-400 border-transparent hover:bg-white/5'
+                          ? 'bg-[#2a2218] text-[#e2b54a]' 
+                          : 'bg-transparent text-[#9c8d76] hover:bg-white/5 hover:text-[#d3c8b4]'
                       }`}
                     >
-                      <Icon size={16} className={isActive ? 'text-steward-gold' : 'text-gray-400'} />
+                      <Icon size={15} className={isActive ? 'text-[#e2b54a]' : 'text-[#9c8d76]'} />
                       {item.label}
                     </Link>
                   );
@@ -211,15 +211,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </nav>
         
-        <div className="p-4 border-t border-white/10 bg-black/20">
-          <Link href="/hub" className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-steward-gold text-steward-dark rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-yellow-400 transition-colors shadow-lg">
-            <ChevronLeft size={16} /> Back to Hub
-          </Link>
-        </div>
+        <Link href="/hub" className="mt-[14px] flex items-center justify-center gap-[8px] p-[13px] rounded-[12px] bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-[#211609] font-[800] text-[12.5px] tracking-[0.14em] no-underline shadow-[0_6px_16px_rgba(0,0,0,0.35)] transition-opacity hover:opacity-90">
+          <ChevronLeft size={16} /> BACK TO HUB
+        </Link>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#F8F9FA] relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative z-10">
         <AdminLoadingProvider>
           {children}
         </AdminLoadingProvider>

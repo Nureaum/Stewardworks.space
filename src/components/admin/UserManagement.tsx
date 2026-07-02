@@ -140,30 +140,28 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
   }
 
   return (
-    <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-gray-100 relative">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div className="animate-[ac-fade_0.3s_ease] w-full">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2">
         <div>
-          <h2 className="text-xl font-black text-steward-dark uppercase tracking-tight">User Management</h2>
-          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Total Users: {users.length}</p>
+          <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">User Management</h1>
+          <p className="mt-2 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">Total Users: {users.length}</p>
         </div>
         
         {/* Actions & Search */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row gap-[10px] w-full md:w-auto items-center">
           {isMainAdmin && (
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="bg-steward-dark text-steward-gold px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-black transition-colors"
+              className="bg-[#241c12] text-[#efd9a8] px-6 py-[11px] h-full rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
             >
               <Plus size={16} /> Add User
             </button>
           )}
-          <div className="relative w-full md:w-72">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={16} className="text-gray-400" />
-            </div>
+          <div className="flex items-center gap-[10px] bg-white border border-[#785a32]/16 rounded-[14px] px-[18px] py-[11px] min-w-[320px] shadow-[0_4px_12px_rgba(120,90,50,0.07)]">
+            <Search size={17} className="text-[#a89a82]" />
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent transition-all text-sm font-bold"
+              className="flex-1 border-none bg-transparent text-[14.5px] text-[#241c12] focus:outline-none placeholder:text-[#a89a82]"
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -172,17 +170,17 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-100">
-        <table className="min-w-full divide-y divide-gray-100">
-          <thead className="bg-gray-50">
+      <div className="bg-white rounded-[22px] mt-[22px] shadow-[0_14px_34px_rgba(120,90,50,0.1)] border border-[#785a32]/10 overflow-x-auto">
+        <table className="min-w-full divide-y divide-[#785a32]/10">
+          <thead className="bg-[#fbf5e6] border-b border-[#785a32]/10">
             <tr>
-              <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">User</th>
-              <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Role</th>
-              <th scope="col" className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-widest">Phone</th>
-              <th scope="col" className="px-6 py-4 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
+              <th scope="col" className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">User</th>
+              <th scope="col" className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Role</th>
+              <th scope="col" className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Phone</th>
+              <th scope="col" className="px-[28px] py-[18px] text-right text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Access</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-50">
+          <tbody className="bg-white divide-y divide-[#785a32]/5">
             {filteredUsers.map((u) => {
               const currentRole = u.role || 'participant';
               const isAdmin = currentRole === 'admin' || currentRole === 'super_admin';
@@ -191,23 +189,23 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
               const canEditRole = isMainAdmin && !isUserMainAdmin;
               
               return (
-                <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 h-10 w-10 bg-steward-gold/20 rounded-full flex items-center justify-center text-steward-dark font-black">
+                <tr key={u.id} className="hover:bg-[#fbf5e6]/30 transition-colors">
+                  <td className="px-[28px] py-[18px] whitespace-nowrap">
+                    <div className="flex items-center gap-[15px] min-w-0">
+                      <div className="flex-shrink-0 h-[42px] w-[42px] bg-[#2f5a37]/10 rounded-[11px] flex items-center justify-center text-[#2f5a37] text-[18px] font-black">
                         {u.full_name ? u.full_name.charAt(0).toUpperCase() : (u.email ? u.email.charAt(0).toUpperCase() : '?')}
                       </div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-900">{u.full_name || `${u.first_name} ${u.last_name}`.trim() || 'Unknown Name'}</div>
-                        <div className="text-xs text-gray-500 flex flex-col gap-1">
-                           <span>{u.email}</span>
-                           {isUserMainAdmin && <span className="bg-steward-gold/20 text-steward-dark text-[9px] px-2 py-0.5 rounded uppercase font-black w-fit">Super Admin</span>}
-                        </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-[15px] text-[#241c12]">{u.full_name || `${u.first_name} ${u.last_name}`.trim() || 'Unknown Name'}</div>
+                        <div className="text-[13px] text-[#8a7c66] overflow-hidden text-ellipsis">{u.email}</div>
+                        {isUserMainAdmin && (
+                           <span className="inline-block mt-[6px] font-mono text-[9.5px] tracking-[0.12em] bg-[#efd9a8] text-[#7a5a1e] px-[9px] py-[3px] rounded-[6px] uppercase">SUPER ADMIN</span>
+                        )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-[10px] leading-5 font-black uppercase tracking-widest rounded-full border ${isAdmin ? 'bg-steward-dark text-steward-gold border-steward-dark' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                  <td className="px-[28px] py-[18px] whitespace-nowrap">
+                    <span className={`px-[12px] py-[4px] inline-flex text-[10px] leading-[14px] font-black uppercase tracking-[0.12em] rounded-full border ${isAdmin ? 'bg-[#241c12] text-[#efd9a8] border-[#241c12]' : 'bg-[#fbf5e6] text-[#8a7c66] border-[#efd9a8]'}`}>
                       {isAdmin ? (
                         <span className="flex items-center gap-1"><Shield size={10} /> Admin</span>
                       ) : (
@@ -215,21 +213,21 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
                       )}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                  <td className="px-[28px] py-[18px] whitespace-nowrap text-[14px] text-[#8a7c66]">
                     {u.phone || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-[28px] py-[18px] whitespace-nowrap text-right">
                     {canEditRole ? (
                       <button
                         onClick={() => handleRoleChange(u.clerk_user_id, currentRole, u.email)}
                         disabled={isUpdating}
-                        className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border transition-all ${isAdmin ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-steward-dark border-steward-dark/20 hover:bg-steward-dark/5'} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto`}
+                        className={`font-mono text-[10px] uppercase tracking-[0.12em] px-[16px] py-[8px] rounded-[8px] border transition-all ${isAdmin ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-[#7a5a1e] border-[#efd9a8] hover:bg-[#fbf5e6]'} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto`}
                       >
                         {isUpdating && <Loader2 size={12} className="animate-spin" />}
                         {isAdmin ? 'Revoke Admin' : 'Make Admin'}
                       </button>
                     ) : (
-                       <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                       <span className="font-mono text-[10px] tracking-[0.12em] text-[#a89a82] uppercase">
                          {isUserMainAdmin ? 'Protected' : 'No Access'}
                        </span>
                     )}
@@ -240,7 +238,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
             
             {filteredUsers.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-gray-400 font-bold text-sm">
+                <td colSpan={4} className="px-[28px] py-[40px] text-center text-[#8a7c66] font-bold text-[14px]">
                   No users found matching "{searchQuery}"
                 </td>
               </tr>
@@ -251,16 +249,16 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
 
       {/* Add User Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full relative">
+        <div className="fixed inset-0 bg-[#171009]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#fbf5e6] rounded-[22px] p-[34px] max-w-md w-full relative shadow-[0_14px_34px_rgba(120,90,50,0.2)] border border-[#785a32]/10">
             <button
               onClick={() => setIsAddModalOpen(false)}
-              className="absolute right-6 top-6 text-gray-400 hover:text-gray-900 transition-colors"
+              className="absolute right-6 top-6 text-[#a89a82] hover:text-[#241c12] transition-colors"
             >
               <X size={24} />
             </button>
 
-            <h3 className="text-2xl font-black text-steward-dark uppercase tracking-tight mb-6">Add New User</h3>
+            <h3 className="text-[24px] font-[800] text-[#241c12] uppercase tracking-normal mb-6">Add New User</h3>
 
             {addError && (
               <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold mb-6">
@@ -271,47 +269,47 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
             <form onSubmit={handleAddSubmit} className="space-y-4">
               <div className="flex gap-4">
                 <div className="w-1/2">
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">First Name</label>
+                  <label className="block text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em] mb-[6px]">First Name</label>
                   <input
                     type="text"
                     required
                     value={addFormData.first_name}
                     onChange={(e) => setAddFormData({ ...addFormData, first_name: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                    className="w-full bg-white border border-[#785a32]/16 rounded-[14px] p-[11px_16px] focus:outline-none focus:ring-1 focus:ring-[#785a32]/30 text-[14.5px] text-[#241c12] placeholder-[#a89a82] transition-all"
                     placeholder="First name"
                   />
                 </div>
                 <div className="w-1/2">
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Last Name</label>
+                  <label className="block text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em] mb-[6px]">Last Name</label>
                   <input
                     type="text"
                     required
                     value={addFormData.last_name}
                     onChange={(e) => setAddFormData({ ...addFormData, last_name: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                    className="w-full bg-white border border-[#785a32]/16 rounded-[14px] p-[11px_16px] focus:outline-none focus:ring-1 focus:ring-[#785a32]/30 text-[14.5px] text-[#241c12] placeholder-[#a89a82] transition-all"
                     placeholder="Last name"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Email Address</label>
+                <label className="block text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em] mb-[6px]">Email Address</label>
                 <input
                   type="email"
                   required
                   value={addFormData.email}
                   onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                  className="w-full bg-white border border-[#785a32]/16 rounded-[14px] p-[11px_16px] focus:outline-none focus:ring-1 focus:ring-[#785a32]/30 text-[14.5px] text-[#241c12] placeholder-[#a89a82] transition-all"
                   placeholder="Enter email address"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Role</label>
+                <label className="block text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em] mb-[6px]">Role</label>
                 <select
                   value={addFormData.role}
                   onChange={(e) => setAddFormData({ ...addFormData, role: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                  className="w-full bg-white border border-[#785a32]/16 rounded-[14px] p-[11px_16px] focus:outline-none focus:ring-1 focus:ring-[#785a32]/30 text-[14.5px] text-[#241c12] transition-all appearance-none"
                 >
                   <option value="participant">Participant</option>
                   <option value="admin">Admin</option>
@@ -319,21 +317,21 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Password</label>
+                <label className="block text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em] mb-[6px]">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     value={addFormData.password}
                     onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl p-3 pr-10 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-steward-gold focus:border-transparent outline-none transition-all font-bold text-sm"
+                    className="w-full bg-white border border-[#785a32]/16 rounded-[14px] p-[11px_16px] pr-10 focus:outline-none focus:ring-1 focus:ring-[#785a32]/30 text-[14.5px] text-[#241c12] placeholder-[#a89a82] transition-all"
                     placeholder="Create a password"
                     minLength={8}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#a89a82] hover:text-[#241c12] transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -343,7 +341,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
               <button
                 type="submit"
                 disabled={isAdding}
-                className="w-full bg-steward-dark text-steward-gold py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4 flex justify-center items-center gap-2"
+                className="w-full bg-[#241c12] text-[#efd9a8] py-[14px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[12px] hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-[24px] flex justify-center items-center gap-2 shadow-[0_6px_16px_rgba(36,28,18,0.2)]"
               >
                 {isAdding && <Loader2 size={16} className="animate-spin" />}
                 {isAdding ? 'Creating...' : 'Create User'}

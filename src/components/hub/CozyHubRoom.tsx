@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
 
 interface CozyHubRoomProps {
   isAdmin?: boolean;
@@ -13,8 +14,13 @@ interface CozyHubRoomProps {
 export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: CozyHubRoomProps) {
   const router = useRouter();
   
-  const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating'>('hub');
+  const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);
+
+  // Bulletins & Announcements Data
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [unreadIds, setUnreadIds] = useState<string[]>([]);
+  const [bulletinText, setBulletinText] = useState('');
   
   // State from DCLogic
   const [progress, setProgress] = useState(35);
@@ -46,6 +52,25 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     const lampTimer = setInterval(() => {
       setLampIndex(st => st + 1);
     }, 300000);
+
+    // Fetch announcements & bulletin
+    async function loadData() {
+      try {
+        const anns = await getAnnouncements();
+        setAnnouncements(anns);
+        
+        const unread = await getUnreadAnnouncements();
+        setUnreadIds(unread.map(u => u.id));
+
+        const sys = await getSystemBulletins();
+        if (sys && sys.project_bulletin_text) {
+          setBulletinText(sys.project_bulletin_text);
+        }
+      } catch (err) {
+        console.error("Failed to load hub data", err);
+      }
+    }
+    loadData();
     
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -142,8 +167,21 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     { id: 'admin', label: 'Admin Console', kind: 'bridge' },
   ];
   
-  const o: any = {};
-  defs.forEach(d => { o[d.id] = { enter: () => setHovered(d.id), click: () => open(d), show: hovered === d.id }; });
+  const o: any = {
+    progress: { show: hovered === 'progress', enter: () => setHovered('progress'), click: () => open({ kind: 'progress' }) },
+    admin: { show: hovered === 'admin', enter: () => setHovered('admin'), click: () => { setScreen('navigating'); router.push('/admin'); } },
+    logout: { show: hovered === 'logout', enter: () => setHovered('logout'), click: () => open({ id: 'logout' }) },
+    phone: { show: hovered === 'phone', enter: () => setHovered('phone'), click: async () => {
+      setScreen('announcements');
+      if (unreadIds.length > 0) {
+        for (const id of unreadIds) {
+          await markAnnouncementAsRead(id);
+        }
+        setUnreadIds([]);
+      }
+    } }
+  };
+  defs.forEach(d => { o[d.id] = o[d.id] || { enter: () => setHovered(d.id), click: () => open(d), show: hovered === d.id }; });
   const leave = () => setHovered(null);
 
   const walls = { day: ['#F8CDA6', '#EFAE84'], dusk: ['#E7A07E', '#B97C68'], night: ['#5E5070', '#3C3450'] };
@@ -164,8 +202,10 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     env: { title: 'Environmental Literacy', route: '/hub/environmental-literacy', blurb: 'The window to the Salton Sea. Opens environmental literacy modules and local ecology.' },
     community: { title: 'Community Listening', route: '/hub/community-listening', blurb: 'The framed group photo on the desk. Opens community listening sessions and event sign-ups.' },
     helpdesk: { title: 'Help Desk', route: '/hub/helpdesk', blurb: 'The lamp that lights the desk. Opens help, FAQs, and the support bulletin.' },
-    admin: { title: 'Admin Console', route: '/admin', blurb: 'A quiet key on the wall, visible only to admins. Opens user management and settings.' },
+    progress: { title: 'Trek Progress', route: '', blurb: 'Click to open your progress tracking panel and visualize your journey through the StewardWorks program.' },
+    admin: { title: 'Admin Console', route: '/admin', blurb: 'The ADMIN KEY on the wall. Opens the backend admin interface to manage users, content, and system settings.' },
     logout: { title: 'Log Out', route: '/login', blurb: 'The EXIT sign on the wall. Signs you out of StewardWorks and returns you to the login screen.' },
+    phone: { title: 'Announcements', route: '', blurb: 'The WALL PHONE. Check messages from your StewardWorks admins.' },
     pilot: { title: 'Pilot Workshops', route: '/hub/pilot-workshops', blurb: 'Hands-on workshop modules — bilingual media and intro to AI content.' },
     ailab: { title: 'AI Lab', route: '/hub/ai-lab', blurb: 'Experiment with AI tools for content creation and learning.' },
     workforce: { title: 'Workforce Development', route: '/hub/workforce-pathways', blurb: 'Your career roadmap and pathways into environmental work.' },
@@ -229,6 +269,9 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   const isNavigating = screen === 'navigating';
   const isNeon = exitStyle === 'neon';
   const isWood = exitStyle === 'wood';
+
+  const phoneRinging = unreadIds.length > 0;
+  const showPhone = !isAdmin;
   const isLogout = bridgeId === 'logout';
   const isLink = bridgeId !== 'logout';
 
@@ -259,7 +302,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
           <style>{'@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }'}</style>
         </div>
       )}
-      <style>{`.sw-hover-1:hover { transform:translateY(-6px) scale(1.02);filter:drop-shadow(0 14px 22px rgba(219,155,47,.55)); !important; }\n.sw-hover-2:hover { transform:translateY(-5px) scale(1.012);filter:drop-shadow(0 16px 26px rgba(65,124,152,.55));z-index:30; !important; }\n.sw-hover-3:hover { transform:rotate(6deg) scale(1.08);filter:drop-shadow(0 8px 12px rgba(162,117,50,.7)); !important; }\n.sw-hover-4:hover { transform:translateY(-5px) scale(1.03);filter:drop-shadow(0 14px 22px rgba(219,80,60,.5)); !important; }\n.sw-hover-5:hover { transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(255,190,120,.7)); !important; }\n.sw-hover-6:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(80,170,190,.6)); !important; }\n.sw-hover-7:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(107,142,35,.6)); !important; }\n.sw-hover-8:hover { transform:translateY(-5px) scale(1.015);filter:drop-shadow(0 16px 22px rgba(65,124,152,.5)); !important; }\n.sw-hover-9:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(219,155,47,.6)); !important; }\n.sw-hover-10:hover { transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(162,117,50,.6)); !important; }\n.sw-hover-11:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-12:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-13:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-14:hover { background:rgba(33,40,46,.06); !important; }\n.sw-hover-15:hover { transform:translateY(-10px); !important; }\n.sw-hover-16:hover { transform:translateY(-10px); !important; }\n.sw-hover-17:hover { transform:translateY(-10px); !important; }\n.sw-hover-18:hover { background:rgba(255,255,255,.2); !important; }`}</style>
+      <style>{`.sw-hover-1:hover { transform:translateY(-6px) scale(1.02);filter:drop-shadow(0 14px 22px rgba(219,155,47,.55)); !important; }\n.sw-hover-2:hover { transform:translateY(-5px) scale(1.012);filter:drop-shadow(0 16px 26px rgba(65,124,152,.55));z-index:30; !important; }\n.sw-hover-3:hover { transform:rotate(6deg) scale(1.08);filter:drop-shadow(0 8px 12px rgba(162,117,50,.7)); !important; }\n.sw-hover-4:hover { transform:translateY(-5px) scale(1.03);filter:drop-shadow(0 14px 22px rgba(219,80,60,.5)); !important; }\n.sw-hover-5:hover { transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(255,190,120,.7)); !important; }\n.sw-hover-6:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(80,170,190,.6)); !important; }\n.sw-hover-7:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(107,142,35,.6)); !important; }\n.sw-hover-8:hover { transform:translateY(-5px) scale(1.015);filter:drop-shadow(0 16px 22px rgba(65,124,152,.5)); !important; }\n.sw-hover-9:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(219,155,47,.6)); !important; }\n.sw-hover-10:hover { transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(162,117,50,.6)); !important; }\n.sw-hover-11:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-12:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-13:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-14:hover { background:rgba(33,40,46,.06); !important; }\n.sw-hover-15:hover { transform:translateY(-10px); !important; }\n.sw-hover-16:hover { transform:translateY(-10px); !important; }\n.sw-hover-17:hover { transform:translateY(-10px); !important; }\n.sw-hover-18:hover { background:rgba(255,255,255,.2); !important; }\n@keyframes sw-ring { 0%, 100% { transform: rotate(0); } 20%, 60% { transform: rotate(10deg); } 40%, 80% { transform: rotate(-10deg); } }`}</style>
       <div style={outerStyle}>
 
   {/*  =================== HUB STAGE ===================  */}
@@ -398,6 +441,58 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
       </>
 )}
     </div>
+
+    {/* WALL PHONE (Announcements — student view only; hangs in the same wall spot as the admin key) */}
+    { showPhone && (
+    <div style={{"position":"absolute","left":"1086px","top":"198px","width":"92px","height":"162px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-7" onMouseEnter={o.phone.enter} onMouseLeave={leave} onClick={o.phone.click}>
+      { o.phone.show && (
+      <div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Announcements<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div>
+      )}
+      {/* ringing halo */}
+      { phoneRinging && (
+      <div style={{"position":"absolute","left":"50%","top":"52%","transform":"translate(-50%,-50%)","width":"128px","height":"128px","borderRadius":"50%","background":"radial-gradient(circle,rgba(242,193,78,.5),transparent 66%)","animation":"sw-lamppulse 1.5s ease-in-out infinite","pointerEvents":"none","zIndex":"-1"}}></div>
+      )}
+      {/* shaking phone body */}
+      <div style={{"position":"absolute","inset":"0","transformOrigin":"50% 14%","animation": phoneRinging ? "sw-ring 1.4s ease-in-out infinite" : "none"}}>
+        {/* dial body */}
+        <div style={{"position":"absolute","left":"28px","top":"32px","width":"60px","height":"104px","borderRadius":"16px 16px 14px 14px","background":"linear-gradient(160deg,#d9a44a,#a97a2c)","boxShadow":"inset 0 3px 7px rgba(255,235,190,.5),inset 0 -6px 12px rgba(120,80,20,.4),0 10px 20px rgba(0,0,0,.3)"}}></div>
+        {/* cradle hooks */}
+        <div style={{"position":"absolute","left":"26px","top":"46px","width":"10px","height":"7px","borderRadius":"0 4px 4px 0","background":"linear-gradient(180deg,#8a6224,#5f4318)","zIndex":"2"}}></div>
+        <div style={{"position":"absolute","left":"26px","top":"112px","width":"10px","height":"7px","borderRadius":"0 4px 4px 0","background":"linear-gradient(180deg,#8a6224,#5f4318)","zIndex":"2"}}></div>
+        {/* sleek rotary dial */}
+        <svg width="40" height="40" viewBox="0 0 40 40" style={{"position":"absolute","left":"38px","top":"56px","zIndex":"2","filter":"drop-shadow(0 2px 3px rgba(0,0,0,.3))"}}>
+          <circle cx="20" cy="20" r="19" fill="#c69433"></circle>
+          <circle cx="20" cy="20" r="19" fill="none" stroke="rgba(255,238,196,.6)" strokeWidth="1.1"></circle>
+          <circle cx="20" cy="20" r="6.5" fill="#8f6e26"></circle>
+          <g fill="#3a2c1c">
+            <circle cx="20" cy="7" r="1.9"></circle>
+            <circle cx="27.6" cy="9.5" r="1.9"></circle>
+            <circle cx="32.4" cy="16" r="1.9"></circle>
+            <circle cx="32.4" cy="24" r="1.9"></circle>
+            <circle cx="27.6" cy="30.5" r="1.9"></circle>
+            <circle cx="20" cy="33" r="1.9"></circle>
+            <circle cx="12.4" cy="30.5" r="1.9"></circle>
+            <circle cx="7.6" cy="24" r="1.9"></circle>
+            <circle cx="7.6" cy="16" r="1.9"></circle>
+            <circle cx="12.4" cy="9.5" r="1.9"></circle>
+          </g>
+          <rect x="31" y="22.5" width="6" height="4" rx="2" fill="#5f4318"></rect>
+        </svg>
+        {/* coiled cord */}
+        <div style={{"position":"absolute","left":"20px","top":"123px","width":"26px","height":"12px","zIndex":"2","background":"repeating-linear-gradient(90deg,#6a4d2b 0 3px,rgba(0,0,0,0) 3px 6.5px)","borderRadius":"8px","transform":"rotate(-6deg)","opacity":".9"}}></div>
+        {/* handset */}
+        <div style={{"position":"absolute","left":"3px","top":"26px","width":"26px","height":"108px","zIndex":"3","transform":"rotate(-2deg)"}}>
+          <div style={{"position":"absolute","left":"50%","top":"15px","bottom":"15px","transform":"translateX(-50%)","width":"11px","borderRadius":"7px","background":"linear-gradient(90deg,#b08a58,#6a4d2b)","boxShadow":"2px 0 4px rgba(0,0,0,.3),inset 1px 0 1px rgba(255,225,175,.35)"}}></div>
+          <div style={{"position":"absolute","left":"50%","top":"0","transform":"translateX(-50%)","width":"25px","height":"27px","borderRadius":"13px","background":"linear-gradient(150deg,#b98f5a,#7a5a34)","boxShadow":"0 3px 5px rgba(0,0,0,.3),inset 0 2px 3px rgba(255,232,188,.42)"}}><div style={{"position":"absolute","left":"50%","top":"50%","transform":"translate(-50%,-50%)","width":"12px","height":"12px","borderRadius":"50%","background":"radial-gradient(circle,#3a2c1c 1px,transparent 1.6px)","backgroundSize":"3.6px 3.6px","opacity":".7"}}></div></div>
+          <div style={{"position":"absolute","left":"50%","bottom":"0","transform":"translateX(-50%)","width":"25px","height":"27px","borderRadius":"13px","background":"linear-gradient(150deg,#b98f5a,#7a5a34)","boxShadow":"0 3px 5px rgba(0,0,0,.3),inset 0 2px 3px rgba(255,232,188,.42)"}}><div style={{"position":"absolute","left":"50%","top":"50%","transform":"translate(-50%,-50%)","width":"12px","height":"12px","borderRadius":"50%","background":"radial-gradient(circle,#3a2c1c 1px,transparent 1.6px)","backgroundSize":"3.6px 3.6px","opacity":".7"}}></div></div>
+        </div>
+      </div>
+      {/* unread badge */}
+      { phoneRinging && (
+      <div style={{"position":"absolute","right":"6px","top":"8px","minWidth":"22px","height":"22px","padding":"0 6px","borderRadius":"12px","background":"#c0492f","color":"#fff","fontFamily":"'DM Mono',monospace","fontSize":"12px","fontWeight":"500","display":"flex","alignItems":"center","justifyContent":"center","boxShadow":"0 3px 8px rgba(0,0,0,.4)","zIndex":"5"}}>{unreadIds.length}</div>
+      )}
+    </div>
+    )}
 
     {/*  ============ DESK ============  */}
     <div style={{"position":"absolute","left":"0","right":"0","top":"512px","height":"188px","zIndex":"5","background":"linear-gradient(180deg,#a8663f 0%,#8c4f30 24%,#7c4327 100%)","boxShadow":"inset 0 16px 28px rgba(0,0,0,.2)"}}>
@@ -800,28 +895,60 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   </>
 )}
 
+  {/* =================== ANNOUNCEMENTS (Wall Phone) =================== */}
+  { screen === 'announcements' && (
+  <div data-screen-label="Announcements" style={{"position":"fixed","inset":"0","zIndex":"100","display":"flex","flexDirection":"column","background":"linear-gradient(180deg,#F8CDA6,#e0a074)","animation":"sw-fade .3s ease","fontFamily":"'Exo',sans-serif","overflow":"auto"}}>
+    <div style={{"maxWidth":"720px","margin":"0 auto","width":"100%","padding":"34px 26px 60px"}}>
+      <button style={{"background":"rgba(33,40,46,.14)","border":"1px solid rgba(33,40,46,.2)","borderRadius":"10px","padding":"9px 15px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#3a2412","marginBottom":"22px"}} onClick={goHub}>← Back to Hub</button>
+      <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".3em","color":"#8a5a2e"}}>THE WALL PHONE</div>
+      <h1 style={{"margin":"4px 0 4px","fontSize":"34px","fontWeight":"700","color":"#3a2412"}}>Hub Announcements</h1>
+      <p style={{"margin":"0 0 26px","fontSize":"14px","color":"#6b4a2a"}}>Messages from your StewardWorks admins. When the phone rings, there's something new to read.</p>
+      
+      { bulletinText && (
+      <div style={{"background":"#21282E","color":"#FEFAE0","borderRadius":"16px","padding":"20px 22px","marginBottom":"24px","boxShadow":"0 14px 30px rgba(0,0,0,.2)"}}>
+        <div style={{"display":"flex","alignItems":"center","gap":"8px","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".18em","color":"#FDDD9A","marginBottom":"8px"}}>📌 PINNED BULLETIN</div>
+        <div style={{"fontSize":"15px","lineHeight":"1.55","whiteSpace":"pre-wrap"}}>{bulletinText}</div>
+      </div>
+      )}
+      
+      <div style={{"display":"flex","justifyContent":"spaceBetween","alignItems":"baseline","marginBottom":"12px"}}>
+        <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".2em","color":"#8a5a2e"}}>POSTED</span>
+        <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","color":"#8a5a2e"}}>{announcements.length} TOTAL</span>
+      </div>
+      <div style={{"display":"flex","flexDirection":"column","gap":"12px"}}>
+        { announcements.map((a: any, i: number) => (
+          <div key={a.id || i} style={{"display":"flex","gap":"14px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.1)","borderRadius":"14px","padding":"16px 18px","boxShadow":"0 10px 22px rgba(0,0,0,.08)"}}>
+            <div style={{"width":"40px","height":"40px","flex":"none","borderRadius":"11px","background":"rgba(219,155,47,.18)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"18px"}}>📣</div>
+            <div style={{"flex":"1","minWidth":"0"}}>
+              <div style={{"display":"flex","justifyContent":"space-between","gap":"10px","alignItems":"baseline"}}><div style={{"fontWeight":"700","fontSize":"15.5px","color":"#3a2412"}}>{a.title}</div><div style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","color":"#a07a4a","whiteSpace":"nowrap"}}>{new Date(a.created_at).toLocaleDateString()}</div></div>
+              <div style={{"fontSize":"13.5px","color":"#6b4a2a","marginTop":"4px","lineHeight":"1.5","whiteSpace":"pre-wrap"}}>{a.body}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+  )}
+
   {/*  =================== BRIDGE / LINK SCREEN ===================  */}
   { isBridge && (
-<>
-  <div data-screen-label="Link Bridge" style={{"position":"fixed","inset":"0","zIndex":"100","display":"flex","alignItems":"center","justifyContent":"center","background":"rgba(20,12,8,.7)","backdropFilter":"blur(5px)","animation":"sw-fade .25s ease","fontFamily":"'Exo',sans-serif"}}>
-    <div style={{"width":"min(460px,92vw)","background":"linear-gradient(170deg,#FEFAE0,#f3e7c8)","borderRadius":"20px","boxShadow":"0 30px 70px rgba(0,0,0,.5)","padding":"34px 30px 28px","textAlign":"center","border":"1px solid rgba(162,117,50,.3)"}}>
-      <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".26em","color":"#8a5a2e","marginBottom":"6px"}}>YOU'RE ENTERING</div>
-      <h2 style={{"margin":"0 0 14px","fontSize":"28px","fontWeight":"700","color":"#3a2412"}}>{bridgeTitle}</h2>
+  <div data-screen-label="Bridge Screen" style={{"position":"fixed","inset":"0","zIndex":"100","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center","background":"radial-gradient(circle at 50% 36%, #e7c6aa 0%, #c49c7a 60%, #9a6d4b 100%)","animation":"sw-fade .3s ease","fontFamily":"'Exo',sans-serif"}}>
+    <div style={{"background":"#FEFAE0","border":"1px solid rgba(33,40,46,.15)","borderRadius":"22px","padding":"38px","maxWidth":"500px","width":"90%","boxShadow":"0 22px 50px rgba(0,0,0,.18)","textAlign":"center"}}>
+      <h2 style={{"fontSize":"30px","fontWeight":"700","color":"#3a2412","margin":"0 0 8px"}}>{bridgeTitle}</h2>
       <div style={{"display":"inline-block","fontFamily":"'DM Mono',monospace","fontSize":"12px","background":"#21282E","color":"#FDDD9A","padding":"6px 14px","borderRadius":"20px","marginBottom":"18px"}}>{bridgeRoute}</div>
       <p style={{"fontSize":"14px","lineHeight":"1.6","color":"#5a4226","margin":"0 0 26px"}}>{bridgeBlurb}</p>
       <div style={{"display":"flex","gap":"10px"}}>
         <button style={{"flex":"1","background":"rgba(33,40,46,.08)","color":"#3a2412","border":"none","borderRadius":"11px","padding":"13px 0","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px"}} onClick={bridgeBack}>← Back</button>
         { isLogout && (
-<><button style={{"flex":"1","background":"#c0492f","color":"#fff","border":"none","borderRadius":"11px","padding":"13px 0","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px"}} onClick={confirmLogout}>Confirm log out</button></>
-)}
+          <button style={{"flex":"1","background":"#c0492f","color":"#fff","border":"none","borderRadius":"11px","padding":"13px 0","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px"}} onClick={confirmLogout}>Confirm log out</button>
+        )}
         { isLink && (
-<><button style={{"flex":"1","background":"#2E5534","color":"#FEFAE0","border":"none","borderRadius":"11px","padding":"13px 0","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px"}} onClick={() => router.push(bridgeRoute)}>Open page →</button></>
+<button style={{"flex":"1","background":"#2E5534","color":"#FEFAE0","border":"none","borderRadius":"11px","padding":"13px 0","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px"}} onClick={() => router.push(bridgeRoute)}>Open page →</button>
 )}
       </div>
       <div style={{"fontSize":"11px","color":"#9a7a4a","marginTop":"14px","fontFamily":"'DM Mono',monospace"}}>Prototype · links to the route above in the live app</div>
     </div>
   </div>
-  </>
 )}
 
   {/*  =================== LOGGED OUT ===================  */}

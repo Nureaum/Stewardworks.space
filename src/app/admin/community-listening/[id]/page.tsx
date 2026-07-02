@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import ContentItemEditor from '@/components/admin/ContentItemEditor'
+import SessionEditor from '@/components/admin/SessionEditor'
 import { useAdminLoading } from '@/context/AdminLoadingContext'
 
 import { ChevronLeft } from 'lucide-react'
@@ -52,31 +52,27 @@ export default function EditCommunitySessionPage({ params }: { params: { id: str
   if (!initialData) return <div className="p-12 text-center text-red-500 font-bold uppercase tracking-widest">Item not found.</div>
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full bg-[#F8F9FA]">
-      <header className="bg-white border-b border-gray-100 h-20 px-8 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/community-listening" className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-steward-dark transition-colors">
-            <ChevronLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tighter">Edit Session</h1>
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Update this Community Listening Session</p>
-          </div>
+    <div className="animate-[ac-fade_0.3s_ease] w-full p-[34px_44px]">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-[16px] mb-[22px] flex-wrap">
+        <div>
+          <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Community Sessions</h1>
+          <p className="mt-[8px] mb-0 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">LISTENING SESSIONS · PHOTOS, VIDEOS, PDFS, AUDIO</p>
         </div>
-      </header>
+        <Link 
+          href="/admin/community-listening/new" 
+          onClick={() => setIsLoading(true)}
+          className="bg-[#241c12] text-[#efd9a8] px-6 py-[11px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
+        >
+          + New Session
+        </Link>
+      </div>
 
-      <main className="flex-1 overflow-y-auto p-8 lg:p-12 relative">
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-        <div className="max-w-7xl mx-auto relative z-10">
-          <ContentItemEditor 
-            initialData={initialData}
-            contentType="community_session"
-            topics={[]} // We don't use topics for community sessions
-            onSubmit={handleSubmit}
-            onCancel={() => router.push('/admin/community-listening')}
-          />
-        </div>
-      </main>
+      <SessionEditor 
+        initialData={initialData}
+        isEditing={true}
+        onSubmit={handleSubmit}
+        onCancel={() => router.push('/admin/community-listening')}
+      />
     </div>
   )
 }

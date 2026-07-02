@@ -1,4 +1,5 @@
 import { getQuestions } from '@/app/actions/helpdeskActions'
+import TaxonomyList from '@/components/admin/TaxonomyList'
 import { createCategory, toggleCategoryStatus, createTag, toggleTagStatus, getAllCategories, getAllTags } from '@/app/actions/helpdeskAdmin'
 import { revalidatePath } from 'next/cache'
 import { auth } from '@clerk/nextjs/server'
@@ -123,48 +124,32 @@ export default async function AdminHelpdeskPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Categories Panel */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-xl font-semibold mb-4">Categories</h2>
+        <div className="bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/10">
+          <div className="font-[800] text-[18px] text-[#241c12] mb-[16px]">Categories</div>
           
-          <form action={handleAddCategory} className="mb-6 flex flex-col gap-3">
-            <input name="name" placeholder="Category Name" required className="border p-2 rounded" />
-            <input name="description" placeholder="Description (Optional)" className="border p-2 rounded" />
-            <button type="submit" className="bg-steward-green text-white px-4 py-2 rounded font-medium hover:bg-steward-orange transition-colors">
+          <form action={handleAddCategory}>
+            <input name="name" placeholder="Category Name" required className="w-full mb-[11px] p-[12px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[14px] text-[#241c12] focus:outline-none focus:ring-2 focus:ring-[#785a32]/30" />
+            <input name="description" placeholder="Description (Optional)" className="w-full mb-[14px] p-[12px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[14px] text-[#241c12] focus:outline-none focus:ring-2 focus:ring-[#785a32]/30" />
+            <button type="submit" className="w-full py-[12px] bg-[#2f5a37] text-white rounded-[11px] font-bold text-[14px] hover:bg-[#244a2c] transition-colors shadow-sm">
               Add Category
             </button>
           </form>
 
-          <div className="space-y-3">
-            {categories.length > 0 && (
-              <div className="mt-4 text-center">
-                <a href="/admin/helpdesk/categories" className="inline-block bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full">
-                  Show All {categories.length} Categories
-                </a>
-              </div>
-            )}
-          </div>
+          {categories.length > 0 && <TaxonomyList items={categories} type="category" />}
         </div>
 
         {/* Tags Panel */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-xl font-semibold mb-4">Tags</h2>
+        <div className="bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/10">
+          <div className="font-[800] text-[18px] text-[#241c12] mb-[16px]">Tags</div>
           
-          <form action={handleAddTag} className="mb-6 flex flex-col gap-3">
-            <input name="name" placeholder="Tag Name (e.g. react, nextjs)" required className="border p-2 rounded" />
-            <button type="submit" className="bg-steward-green text-white px-4 py-2 rounded font-medium hover:bg-steward-orange transition-colors">
+          <form action={handleAddTag}>
+            <input name="name" placeholder="Tag Name (e.g. water, salton-sea)" required className="w-full mb-[14px] p-[12px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[14px] text-[#241c12] focus:outline-none focus:ring-2 focus:ring-[#785a32]/30" />
+            <button type="submit" className="w-full py-[12px] bg-[#2f5a37] text-white rounded-[11px] font-bold text-[14px] hover:bg-[#244a2c] transition-colors shadow-sm">
               Add Tag
             </button>
           </form>
 
-          <div className="flex flex-col gap-2">
-            {tags.length > 0 && (
-              <div className="mt-4 text-center">
-                <a href="/admin/helpdesk/tags" className="inline-block bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full">
-                  Show All {tags.length} Tags
-                </a>
-              </div>
-            )}
-          </div>
+          {tags.length > 0 && <TaxonomyList items={tags} type="tag" />}
         </div>
       </div>
     </div>

@@ -121,74 +121,108 @@ export default function EnvLiteracyAdminPage() {
         <div className="max-w-7xl mx-auto relative z-10 space-y-8">
           
           {/* Dashboard Stat Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-steward-blue rounded-2xl p-5 shadow-sm flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-shadow text-white">
-              <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
-                <BookOpen size={80} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[14px]">
+            <div 
+              style={{ background: 'linear-gradient(150deg,#3d7a95,#2f6178)', borderRadius: '18px', padding: '22px 24px', boxShadow: '0 10px 24px rgba(47,97,120,.25)' }}
+            >
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: '11px', letterSpacing: '.16em', color: 'rgba(230,244,250,.8)' }}>
+                TOTAL CONTENT
               </div>
-              <div className="relative z-10">
-                <p className="text-xs font-black text-white/80 uppercase tracking-widest">Total Content</p>
-                <h2 className="text-3xl font-black mt-1">{totalItems}</h2>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center relative z-10">
-                <BookOpen size={18} />
+              <div style={{ fontSize: '44px', fontWeight: 800, color: '#fff', marginTop: '6px', lineHeight: 1 }}>
+                {totalItems}
               </div>
             </div>
 
-            <div className="bg-steward-green rounded-2xl p-5 shadow-sm flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-shadow text-white">
-              <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
-                <CheckCircle size={80} />
+            <div 
+              style={{ background: 'linear-gradient(150deg,#2f5a37,#244a2c)', borderRadius: '18px', padding: '22px 24px', boxShadow: '0 10px 24px rgba(36,74,44,.25)' }}
+            >
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: '11px', letterSpacing: '.16em', color: 'rgba(230,245,230,.75)' }}>
+                PUBLISHED
               </div>
-              <div className="relative z-10">
-                <p className="text-xs font-black text-white/80 uppercase tracking-widest">Published</p>
-                <h2 className="text-3xl font-black mt-1">{totalPublished}</h2>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center relative z-10">
-                <CheckCircle size={18} />
+              <div style={{ fontSize: '44px', fontWeight: 800, color: '#fff', marginTop: '6px', lineHeight: 1 }}>
+                {totalPublished}
               </div>
             </div>
 
-            <div className="bg-steward-orange rounded-2xl p-5 shadow-sm flex items-center justify-between relative overflow-hidden group hover:shadow-md transition-shadow text-white">
-              <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
-                <Clock size={80} />
+            <div 
+              style={{ background: 'linear-gradient(150deg,#cf9a3d,#b3812c)', borderRadius: '18px', padding: '22px 24px', boxShadow: '0 10px 24px rgba(179,129,44,.25)' }}
+            >
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: '11px', letterSpacing: '.16em', color: 'rgba(60,40,10,.72)' }}>
+                TOTAL DRAFTS
               </div>
-              <div className="relative z-10">
-                <p className="text-xs font-black text-white/80 uppercase tracking-widest">Total Drafts</p>
-                <h2 className="text-3xl font-black mt-1">{totalDrafts}</h2>
+              <div style={{ fontSize: '44px', fontWeight: 800, color: '#3a2708', marginTop: '6px', lineHeight: 1 }}>
+                {totalDrafts}
               </div>
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center relative z-10">
-                <Clock size={18} />
+            </div>
+          </div>
+
+          {/* FOUR PRIMARY THEMES */}
+          <div>
+            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: '11px', letterSpacing: '.18em', color: '#9c8d76', marginBottom: '12px' }}>
+              FOUR PRIMARY THEMES
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[14px]">
+              {/* Theme 1 */}
+              <div style={{ background: 'linear-gradient(150deg,#3d7a95,#2f6178)', borderRadius: '16px', padding: '18px 18px 20px', boxShadow: '0 8px 20px rgba(0,0,0,.12)' }}>
+                <div style={{ fontSize: '22px', marginBottom: '10px' }}>🏜️</div>
+                <div style={{ fontWeight: 800, fontSize: '15px', color: '#fff', lineHeight: 1.25 }}>Imperial County Bioregion</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: '10.5px', letterSpacing: '.16em', color: 'rgba(230,244,250,.7)', marginTop: '8px' }}>
+                  {items.filter(i => i.topic?.label === 'Imperial County Bioregion').length} CONTENT BLOCKS
+                </div>
+              </div>
+              {/* Theme 2 */}
+              <div style={{ background: 'linear-gradient(150deg,#8a4f26,#6d3d1c)', borderRadius: '16px', padding: '18px 18px 20px', boxShadow: '0 8px 20px rgba(0,0,0,.12)' }}>
+                <div style={{ fontSize: '22px', marginBottom: '10px' }}>🪶</div>
+                <div style={{ fontWeight: 800, fontSize: '15px', color: '#fff', lineHeight: 1.25 }}>Indigenous Peoples</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: '10.5px', letterSpacing: '.16em', color: 'rgba(250,235,220,.7)', marginTop: '8px' }}>
+                  {items.filter(i => i.topic?.label === 'Indigenous Peoples').length} CONTENT BLOCKS
+                </div>
+              </div>
+              {/* Theme 3 */}
+              <div style={{ background: 'linear-gradient(150deg,#b3812c,#8a6321)', borderRadius: '16px', padding: '18px 18px 20px', boxShadow: '0 8px 20px rgba(0,0,0,.12)' }}>
+                <div style={{ fontSize: '22px', marginBottom: '10px' }}>📜</div>
+                <div style={{ fontWeight: 800, fontSize: '15px', color: '#fff', lineHeight: 1.25 }}>History</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: '10.5px', letterSpacing: '.16em', color: 'rgba(255,244,225,.75)', marginTop: '8px' }}>
+                  {items.filter(i => i.topic?.label === 'History').length} CONTENT BLOCKS
+                </div>
+              </div>
+              {/* Theme 4 */}
+              <div style={{ background: 'linear-gradient(150deg,#2f5a37,#244a2c)', borderRadius: '16px', padding: '18px 18px 20px', boxShadow: '0 8px 20px rgba(0,0,0,.12)' }}>
+                <div style={{ fontSize: '22px', marginBottom: '10px' }}>🌍</div>
+                <div style={{ fontWeight: 800, fontSize: '15px', color: '#fff', lineHeight: 1.25 }}>The Wider World</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: '10.5px', letterSpacing: '.16em', color: 'rgba(230,245,230,.7)', marginTop: '8px' }}>
+                  {items.filter(i => i.topic?.label === 'The Wider World').length} CONTENT BLOCKS
+                </div>
               </div>
             </div>
           </div>
 
           {/* Filters & Search */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <div className="flex flex-col sm:flex-row gap-[10px] items-stretch mb-[22px]">
+            <div className="flex flex-1 items-center gap-[10px] bg-white border border-[#785a32]/16 rounded-[14px] px-[18px] py-[11px] shadow-[0_4px_12px_rgba(120,90,50,0.07)] w-full">
+              <Search size={17} className="text-[#a89a82] shrink-0" />
               <input 
                 type="text" 
                 placeholder="Search posts..." 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-bold text-steward-dark placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-steward-blue/20 focus:border-steward-blue transition-all shadow-sm"
+                className="flex-1 min-w-0 border-none bg-transparent text-[14.5px] text-[#241c12] focus:outline-none placeholder:text-[#a89a82]"
               />
             </div>
             
-            <div className="relative">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <div className="flex items-center bg-white border border-[#785a32]/16 rounded-[14px] px-[18px] py-[11px] shadow-[0_4px_12px_rgba(120,90,50,0.07)] relative w-full sm:w-auto">
               <select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="appearance-none pl-12 pr-10 py-3 bg-white border border-gray-100 rounded-xl text-sm font-bold text-steward-dark focus:outline-none focus:ring-2 focus:ring-steward-blue/20 focus:border-steward-blue transition-all shadow-sm cursor-pointer"
+                className="flex-1 sm:w-auto appearance-none bg-transparent border-none text-[14.5px] text-[#241c12] focus:outline-none cursor-pointer pr-[24px]"
               >
                 <option value="All">All Statuses</option>
                 <option value="published">Published</option>
                 <option value="draft">Drafts</option>
               </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="absolute right-[18px] top-1/2 -translate-y-1/2 pointer-events-none text-[#a89a82]">
                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 1L5 5L9 1" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
             </div>
@@ -198,16 +232,16 @@ export default function EnvLiteracyAdminPage() {
           <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-gray-50/50 border-b border-gray-100">
+                <thead style={{ borderBottom: '2px solid rgba(120,90,50,.1)' }}>
                   <tr>
-                    <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Title</th>
-                    <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Topic</th>
+                    <th className="px-8 py-5 text-left" style={{ fontFamily: "'DM Mono',monospace", fontSize: '10px', letterSpacing: '.18em', color: '#9c8d76', fontWeight: 700 }}>TITLE</th>
+                    <th className="px-8 py-5 text-left" style={{ fontFamily: "'DM Mono',monospace", fontSize: '10px', letterSpacing: '.18em', color: '#9c8d76' }}>THEME</th>
                     {userRole === 'super_admin' && (
-                      <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Posted By</th>
+                      <th className="px-8 py-5 text-left" style={{ fontFamily: "'DM Mono',monospace", fontSize: '10px', letterSpacing: '.18em', color: '#9c8d76' }}>POSTED BY</th>
                     )}
-                    <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Status</th>
-                    <th className="px-8 py-5 text-left text-[11px] font-black text-gray-500 uppercase tracking-widest">Date</th>
-                    <th className="px-8 py-5 text-right text-[11px] font-black text-gray-500 uppercase tracking-widest">Actions</th>
+                    <th className="px-8 py-5 text-left" style={{ fontFamily: "'DM Mono',monospace", fontSize: '10px', letterSpacing: '.18em', color: '#9c8d76' }}>STATUS</th>
+                    <th className="px-8 py-5 text-left" style={{ fontFamily: "'DM Mono',monospace", fontSize: '10px', letterSpacing: '.18em', color: '#9c8d76' }}>DATE</th>
+                    <th className="px-8 py-5 text-right" style={{ fontFamily: "'DM Mono',monospace", fontSize: '10px', letterSpacing: '.18em', color: '#9c8d76' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 bg-white">

@@ -9,10 +9,15 @@ export default function HubPage() {
   const { user, isLoaded } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
-      if (!isLoaded || !user) return;
+      if (!isLoaded) return;
+      if (!user) {
+        setIsProfileLoaded(true);
+        return;
+      }
       try {
         const res = await fetch('/api/profile');
         if (res.ok) {
@@ -27,6 +32,8 @@ export default function HubPage() {
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
+      } finally {
+        setIsProfileLoaded(true);
       }
     }
     fetchProfile();
@@ -39,6 +46,16 @@ export default function HubPage() {
       console.error('Logout error:', error);
     }
   };
+
+  if (!isLoaded || !isProfileLoaded) {
+    return (
+      <div style={{width:'100vw',height:'100vh',background:'#21282E',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'16px'}}>
+         <div style={{width:'32px',height:'32px',border:'3px solid rgba(253,221,154,.2)',borderTopColor:'#FDDD9A',borderRadius:'50%',animation:'sw-spin 1s linear infinite'}}></div>
+         <div style={{fontFamily:"'DM Mono', monospace", color:'#FDDD9A', letterSpacing:'.1em',fontSize:'12px'}}>Loading Hub...</div>
+         <style>{`@keyframes sw-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <CozyHubRoom isAdmin={isAdmin} avatarUrl={avatarUrl} onLogout={handleLogout} />

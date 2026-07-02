@@ -48,101 +48,98 @@ export default function JobProfilesAdminPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full bg-[#F8F9FA] font-exo -mx-8 -my-8 md:m-0">
-      <header className="bg-white border-b border-gray-100 h-20 px-8 flex items-center justify-between shrink-0 shadow-sm z-10 relative">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/workforce-pathways" className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-steward-dark transition-colors">
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tighter">Job Profiles</h1>
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
-              Manage the career roadmaps available in Workforce Pathways
-            </p>
-          </div>
+    <div className="animate-[ac-fade_0.3s_ease] w-full p-[34px_44px]">
+      <div className="mb-[16px]">
+        <Link 
+          href="/admin/workforce-pathways" 
+          className="inline-flex items-center gap-[6px] px-[12px] py-[7px] rounded-[10px] bg-[#785a32]/5 hover:bg-[#785a32]/10 text-[#5c4f3c] text-[12px] font-[700] transition-colors"
+        >
+          <ArrowLeft size={14} /> Back to Workforce Pathways
+        </Link>
+      </div>
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-[16px] mb-[22px] flex-wrap">
+        <div>
+          <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Job Profiles</h1>
+          <p className="mt-[8px] mb-0 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">MANAGE THE CAREER ROADMAPS AVAILABLE IN WORKFORCE PATHWAYS</p>
         </div>
-        
         <Link 
           href="/admin/workforce-pathways/jobs/new"
-          className="flex items-center gap-2 bg-steward-dark text-white px-6 py-2 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-black transition-colors"
+          className="bg-[#241c12] text-[#efd9a8] px-6 py-[11px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
         >
-          <Plus size={16} /> Create Profile
+          + Create Profile
         </Link>
-      </header>
+      </div>
 
-      <main className="flex-1 overflow-y-auto p-8 lg:p-12 relative">
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="bg-white rounded-[2rem] shadow-sm border border-steward-dark/5 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-4 text-left text-[11px] font-black text-steward-dark uppercase tracking-widest">Job Title</th>
-              <th className="px-6 py-4 text-left text-[11px] font-black text-steward-dark uppercase tracking-widest">Company</th>
-              {userRole === 'super_admin' && (
-                <th className="px-6 py-4 text-left text-[11px] font-black text-steward-dark uppercase tracking-widest">Posted By</th>
-              )}
-              <th className="px-6 py-4 text-left text-[11px] font-black text-steward-dark uppercase tracking-widest">Status</th>
-              <th className="px-6 py-4 text-right text-[11px] font-black text-steward-dark uppercase tracking-widest">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
-            {jobs.length === 0 ? (
+      <div className="bg-white rounded-[22px] shadow-[0_14px_34px_rgba(120,90,50,0.1)] border border-[#785a32]/10 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-[#785a32]/10">
+            <thead className="bg-[#fbf5e6] border-b border-[#785a32]/10">
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-steward-dark/50 font-bold">
-                  No job profiles found. Create one to get started!
-                </td>
+                <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Job Title</th>
+                <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Company</th>
+                {userRole === 'super_admin' && (
+                  <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Posted By</th>
+                )}
+                <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Status</th>
+                <th className="px-[28px] py-[18px] text-right text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Actions</th>
               </tr>
-            ) : (
-              jobs.map((job) => (
-                <tr key={job.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-bold text-steward-dark">{job.job_title}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-steward-dark/70">
-                    {job.company_name || 'N/A'}
-                  </td>
-                  {userRole === 'super_admin' && (
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-black text-steward-blue">{job.author?.full_name || 'Unknown Admin'}</span>
-                        <span className="text-[11px] text-gray-500 mt-0.5">{job.author?.email}</span>
-                      </div>
-                    </td>
-                  )}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                      job.status === 'published' 
-                        ? 'bg-steward-green/20 text-steward-green' 
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {job.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end gap-4">
-                      <Link 
-                        href={`/admin/workforce-pathways/jobs/${job.id}`} 
-                        className="text-steward-blue hover:text-blue-800 font-bold uppercase tracking-widest text-[10px]"
-                      >
-                        Edit
-                      </Link>
-                      <button 
-                        onClick={() => handleDelete(job.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+            </thead>
+            <tbody className="divide-y divide-[#785a32]/5 bg-white">
+              {jobs.length === 0 ? (
+                <tr>
+                  <td colSpan={userRole === 'super_admin' ? 5 : 4} className="px-[28px] py-[40px] text-center text-[#a89a82] font-mono text-[11px] tracking-[0.16em] uppercase">
+                    No job profiles found. Create one to get started!
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                jobs.map((job) => (
+                  <tr key={job.id} className="hover:bg-[#fbf5e6]/30 transition-colors group">
+                    <td className="px-[28px] py-[18px] whitespace-nowrap">
+                      <div className="text-[15px] font-[700] text-[#241c12] tracking-tight">{job.job_title}</div>
+                    </td>
+                    <td className="px-[28px] py-[18px] whitespace-nowrap text-sm text-[#8a7c66]">
+                      {job.company_name || 'N/A'}
+                    </td>
+                    {userRole === 'super_admin' && (
+                      <td className="px-[28px] py-[18px] whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-[700] text-[#2f5a37]">{job.author?.full_name || 'Unknown Admin'}</span>
+                          <span className="text-[11px] text-[#8a7c66] mt-0.5">{job.author?.email}</span>
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-[28px] py-[18px] whitespace-nowrap">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                        job.status === 'published' 
+                          ? 'bg-[#2f5a37]/10 text-[#2f5a37]' 
+                          : 'bg-[#e0d6c8] text-[#8a7c66]'
+                      }`}>
+                        {job.status}
+                      </span>
+                    </td>
+                    <td className="px-[28px] py-[18px] whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link 
+                          href={`/admin/workforce-pathways/jobs/${job.id}`} 
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-[#785a32]/10 rounded-[8px] text-[10px] font-mono text-[#a89a82] uppercase tracking-[0.12em] hover:bg-[#fbf5e6] hover:text-[#7a5a1e] hover:border-[#efd9a8] transition-all"
+                        >
+                          Edit
+                        </Link>
+                        <button 
+                          onClick={() => handleDelete(job.id)}
+                          className="inline-flex items-center justify-center p-2 bg-transparent border border-[#785a32]/10 rounded-[8px] text-red-400 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all disabled:opacity-50"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
-    </main>
-  </div>
+    </div>
   );
 }

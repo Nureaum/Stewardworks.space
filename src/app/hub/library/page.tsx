@@ -11,7 +11,8 @@ export default async function LibraryPage() {
     .select(`
       *,
       category:content_categories(id, label, slug),
-      topic:env_literacy_topics(id, label, slug)
+      topic:env_literacy_topics(id, label, slug),
+      media:content_media(*)
     `)
     .eq('content_type', 'library_resource')
     .eq('status', 'published')
