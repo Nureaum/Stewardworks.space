@@ -14,6 +14,7 @@ export default function RegistrationButton({
   capacity,
   registeredCount,
   userRegistration,
+  hasCompletedOnboarding,
   onRegister,
 }: RegistrationButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -79,6 +80,12 @@ export default function RegistrationButton({
   const buttonText = isAtCapacity ? 'Join Waitlist' : 'Register'
 
   const handleClick = async () => {
+    if (hasCompletedOnboarding === false) {
+      const returnUrl = encodeURIComponent('/hub/pilot-workshops');
+      router.push(`/onboarding/language?returnUrl=${returnUrl}`);
+      return;
+    }
+
     setIsLoading(true)
     
     try {

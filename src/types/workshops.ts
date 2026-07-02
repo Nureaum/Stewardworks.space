@@ -302,6 +302,7 @@ export interface GetAdminReviewsResult {
 export interface CohortCardProps {
   cohort: CohortWithUserRegistration;
   onRegister?: (cohortId: string) => Promise<RegisterForCohortResult>;
+  hasCompletedOnboarding?: boolean;
 }
 
 /**
@@ -354,6 +355,7 @@ export interface RegistrationButtonProps {
     status: 'registered' | 'waitlisted' | 'cancelled';
   } | null;
   onRegister: (cohortId: string) => Promise<RegisterForCohortResult>;
+  hasCompletedOnboarding?: boolean;
 }
 
 /**

@@ -30,6 +30,16 @@ template = template.replace(/style="([^"]*)"/g, (match, css) => {
   return 'style={' + JSON.stringify(obj) + '}';
 });
 
+// 2.5 Convert style-hover="..." to CSS classes
+let hoverStyles = [];
+let hoverCounter = 0;
+template = template.replace(/style-hover="([^"]*)"/g, (match, css) => {
+  hoverCounter++;
+  const className = `sw-hover-${hoverCounter}`;
+  hoverStyles.push(`.${className}:hover { ${css} !important; }`);
+  return `className="${className}"`;
+});
+
 // 3. Convert sc-if
 template = template.replace(/<sc-if value="\{\{ (.*?) \}\}"[^>]*>/g, '{ $1 && (\n<>');
 template = template.replace(/<\/sc-if>/g, '</>\n)}');
@@ -71,7 +81,7 @@ interface CozyHubRoomProps {
 export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: CozyHubRoomProps) {
   const router = useRouter();
   
-  const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout'>('hub');
+  const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);
   
   // State from DCLogic
@@ -128,12 +138,31 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     if (d.kind === 'monitor') return setScreen('monitor');
     if (d.kind === 'meditation') return setScreen('meditation');
     if (d.kind === 'progress') return setScreen('progress');
-    setScreen('bridge');
-    setBridgeId(d.id);
+    if (d.id === 'logout') {
+      if (typeof onLogout === 'function') onLogout();
+      else { setScreen('loggedout'); setBridgeId(null); setHovered(null); }
+      return;
+    }
+    const route = bridges[d.id]?.route;
+    if (route) {
+      setScreen('navigating');
+      router.push(route);
+    } else {
+      setScreen('bridge');
+      setBridgeId(d.id);
+    }
   }
   
   const goHub = () => { pauseMed(); setScreen('hub'); setBridgeId(null); setHovered(null); }
-  const openBridge = (id: string) => { setScreen('bridge'); setBridgeId(id); setHovered(null); }
+  const openBridge = (id: string) => { 
+    const route = bridges[id]?.route;
+    if (route) {
+      setScreen('navigating');
+      router.push(route);
+    } else {
+      setScreen('bridge'); setBridgeId(id); setHovered(null); 
+    }
+  }
   const openPilot = () => openBridge('pilot');
   const openAi = () => openBridge('ailab');
   const openWf = () => openBridge('workforce');
@@ -265,6 +294,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   const isProgress = screen === 'progress';
   const isBridge = screen === 'bridge';
   const isLoggedOut = screen === 'loggedout';
+  const isNavigating = screen === 'navigating';
   const isNeon = exitStyle === 'neon';
   const isWood = exitStyle === 'wood';
   const isLogout = bridgeId === 'logout';
@@ -290,6 +320,14 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
           <button style={{width: 32, height: 32, background: 'rgba(253,221,154,.1)', color: '#FEFAE0', borderRadius: 8}} onClick={() => setTimeOfDay('night')}>☾</button>
         </div>
       )}
+      {isNavigating && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(28,20,15,0.85)', backdropFilter: 'blur(8px)', animation: 'sw-fadein 0.3s ease' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid rgba(253,221,154,0.2)', borderTopColor: '#FDDD9A', animation: 'spin 1s linear infinite' }}></div>
+          <div style={{ marginTop: 24, color: '#FEFAE0', fontFamily: '"DM Mono", monospace', letterSpacing: '0.1em', fontSize: 14 }}>ENTERING...</div>
+          <style>{'@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }'}</style>
+        </div>
+      )}
+      {__STYLE_BLOCK__}
       {__TEMPLATE__}
     </div>
   );
@@ -312,7 +350,9 @@ template = template.replace(
 
 
 // One final regex to replace the token and handle the actual injection
-const finalCode = componentHeader.replace('{__TEMPLATE__}', template);
+const finalCode = componentHeader
+  .replace('{__STYLE_BLOCK__}', hoverStyles.length > 0 ? `<style>{\`${hoverStyles.join('\\n')}\`}</style>` : '')
+  .replace('{__TEMPLATE__}', template);
 
 fs.writeFileSync('src/components/hub/CozyHubRoom.tsx', finalCode);
 console.log('Conversion successful!');

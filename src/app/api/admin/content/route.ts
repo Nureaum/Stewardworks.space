@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 import { auth } from '@clerk/nextjs/server'
+import { revalidatePath } from 'next/cache'
 
 async function verifyAdmin() {
   const { userId } = await auth()
@@ -121,6 +122,12 @@ export async function POST(request: Request) {
       console.error('Failed to insert media', mediaError)
     }
   }
+
+  revalidatePath('/hub/library', 'layout')
+  revalidatePath('/hub/bilingual-media', 'layout')
+  revalidatePath('/hub/pilot-workshops', 'layout')
+  revalidatePath('/hub/environmental-literacy', 'layout')
+  revalidatePath('/hub/community-listening', 'layout')
 
   return NextResponse.json({ item: data })
 }

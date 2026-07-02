@@ -13,7 +13,7 @@ interface CozyHubRoomProps {
 export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: CozyHubRoomProps) {
   const router = useRouter();
   
-  const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout'>('hub');
+  const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);
   
   // State from DCLogic
@@ -70,12 +70,31 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     if (d.kind === 'monitor') return setScreen('monitor');
     if (d.kind === 'meditation') return setScreen('meditation');
     if (d.kind === 'progress') return setScreen('progress');
-    setScreen('bridge');
-    setBridgeId(d.id);
+    if (d.id === 'logout') {
+      if (typeof onLogout === 'function') onLogout();
+      else { setScreen('loggedout'); setBridgeId(null); setHovered(null); }
+      return;
+    }
+    const route = bridges[d.id]?.route;
+    if (route) {
+      setScreen('navigating');
+      router.push(route);
+    } else {
+      setScreen('bridge');
+      setBridgeId(d.id);
+    }
   }
   
   const goHub = () => { pauseMed(); setScreen('hub'); setBridgeId(null); setHovered(null); }
-  const openBridge = (id: string) => { setScreen('bridge'); setBridgeId(id); setHovered(null); }
+  const openBridge = (id: string) => { 
+    const route = bridges[id]?.route;
+    if (route) {
+      setScreen('navigating');
+      router.push(route);
+    } else {
+      setScreen('bridge'); setBridgeId(id); setHovered(null); 
+    }
+  }
   const openPilot = () => openBridge('pilot');
   const openAi = () => openBridge('ailab');
   const openWf = () => openBridge('workforce');
@@ -207,6 +226,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   const isProgress = screen === 'progress';
   const isBridge = screen === 'bridge';
   const isLoggedOut = screen === 'loggedout';
+  const isNavigating = screen === 'navigating';
   const isNeon = exitStyle === 'neon';
   const isWood = exitStyle === 'wood';
   const isLogout = bridgeId === 'logout';
@@ -232,6 +252,14 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
           <button style={{width: 32, height: 32, background: 'rgba(253,221,154,.1)', color: '#FEFAE0', borderRadius: 8}} onClick={() => setTimeOfDay('night')}>☾</button>
         </div>
       )}
+      {isNavigating && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(28,20,15,0.85)', backdropFilter: 'blur(8px)', animation: 'sw-fadein 0.3s ease' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid rgba(253,221,154,0.2)', borderTopColor: '#FDDD9A', animation: 'spin 1s linear infinite' }}></div>
+          <div style={{ marginTop: 24, color: '#FEFAE0', fontFamily: '"DM Mono", monospace', letterSpacing: '0.1em', fontSize: 14 }}>ENTERING...</div>
+          <style>{'@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }'}</style>
+        </div>
+      )}
+      <style>{`.sw-hover-1:hover { transform:translateY(-6px) scale(1.02);filter:drop-shadow(0 14px 22px rgba(219,155,47,.55)); !important; }\n.sw-hover-2:hover { transform:translateY(-5px) scale(1.012);filter:drop-shadow(0 16px 26px rgba(65,124,152,.55));z-index:30; !important; }\n.sw-hover-3:hover { transform:rotate(6deg) scale(1.08);filter:drop-shadow(0 8px 12px rgba(162,117,50,.7)); !important; }\n.sw-hover-4:hover { transform:translateY(-5px) scale(1.03);filter:drop-shadow(0 14px 22px rgba(219,80,60,.5)); !important; }\n.sw-hover-5:hover { transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(255,190,120,.7)); !important; }\n.sw-hover-6:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(80,170,190,.6)); !important; }\n.sw-hover-7:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(107,142,35,.6)); !important; }\n.sw-hover-8:hover { transform:translateY(-5px) scale(1.015);filter:drop-shadow(0 16px 22px rgba(65,124,152,.5)); !important; }\n.sw-hover-9:hover { transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(219,155,47,.6)); !important; }\n.sw-hover-10:hover { transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(162,117,50,.6)); !important; }\n.sw-hover-11:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-12:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-13:hover { background:rgba(253,221,154,.3); !important; }\n.sw-hover-14:hover { background:rgba(33,40,46,.06); !important; }\n.sw-hover-15:hover { transform:translateY(-10px); !important; }\n.sw-hover-16:hover { transform:translateY(-10px); !important; }\n.sw-hover-17:hover { transform:translateY(-10px); !important; }\n.sw-hover-18:hover { background:rgba(255,255,255,.2); !important; }`}</style>
       <div style={outerStyle}>
 
   {/*  =================== HUB STAGE ===================  */}
@@ -246,7 +274,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     {/*  ============ WALL OBJECTS ============  */}
 
     {/*  PROFILE PORTRAIT (My Profile)  */}
-    <div style={{"position":"absolute","left":"62px","top":"54px","width":"280px","height":"352px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-6px) scale(1.02);filter:drop-shadow(0 14px 22px rgba(219,155,47,.55));" onMouseEnter={o.profile.enter} onMouseLeave={leave} onClick={o.profile.click}>
+    <div style={{"position":"absolute","left":"62px","top":"54px","width":"280px","height":"352px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-1" onMouseEnter={o.profile.enter} onMouseLeave={leave} onClick={o.profile.click}>
       { o.profile.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-12px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>My Profile<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
@@ -283,7 +311,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     </div>
 
     {/*  WINDOW → SEA PHOTO (Environmental Literacy)  */}
-    <div style={{"position":"absolute","left":"404px","top":"20px","width":"486px","height":"266px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-5px) scale(1.012);filter:drop-shadow(0 16px 26px rgba(65,124,152,.55));z-index:30;" onMouseEnter={o.env.enter} onMouseLeave={leave} onClick={o.env.click}>
+    <div style={{"position":"absolute","left":"404px","top":"20px","width":"486px","height":"266px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-2" onMouseEnter={o.env.enter} onMouseLeave={leave} onClick={o.env.click}>
       { o.env.show && (
 <><div style={{"position":"absolute","left":"50%","top":"26px","transform":"translateX(-50%)","background":"rgba(33,40,46,.94)","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","border":"1px solid rgba(254,250,224,.45)","boxShadow":"0 4px 14px rgba(0,0,0,.55)","zIndex":"50","pointerEvents":"none","animation":"sw-fadein .15s ease"}}>Environmental Literacy</div></>
 )}
@@ -329,7 +357,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     {/*  ADMIN KEY (only for admins)  */}
     { isAdmin && (
 <>
-      <div style={{"position":"absolute","left":"1109px","top":"208px","width":"46px","height":"104px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease","transformOrigin":"top center"}} style-hover="transform:rotate(6deg) scale(1.08);filter:drop-shadow(0 8px 12px rgba(162,117,50,.7));" onMouseEnter={o.admin.enter} onMouseLeave={leave} onClick={o.admin.click}>
+      <div style={{"position":"absolute","left":"1109px","top":"208px","width":"46px","height":"104px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease","transformOrigin":"top center"}} className="sw-hover-3" onMouseEnter={o.admin.enter} onMouseLeave={leave} onClick={o.admin.click}>
         { o.admin.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-8px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".05em","padding":"5px 10px","borderRadius":"7px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Admin Console<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"9px","height":"9px","background":"#21282E"}}></span></div></>
 )}
@@ -346,7 +374,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
 )}
 
     {/*  EXIT SIGN (Log Out)  */}
-    <div style={{"position":"absolute","left":"1004px","top":"46px","width":"256px","height":"150px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-5px) scale(1.03);filter:drop-shadow(0 14px 22px rgba(219,80,60,.5));" onMouseEnter={o.logout.enter} onMouseLeave={leave} onClick={o.logout.click}>
+    <div style={{"position":"absolute","left":"1004px","top":"46px","width":"256px","height":"150px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-4" onMouseEnter={o.logout.enter} onMouseLeave={leave} onClick={o.logout.click}>
       { o.logout.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-12px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Log Out<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
@@ -391,7 +419,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     {/*  ============ DESK OBJECTS ============  */}
 
     {/*  LAMP (Help Desk) — iridescent dome  */}
-    <div style={{"position":"absolute","left":"64px","bottom":"126px","width":"172px","height":"212px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(255,190,120,.7));" onMouseEnter={o.helpdesk.enter} onMouseLeave={leave} onClick={o.helpdesk.click}>
+    <div style={{"position":"absolute","left":"64px","bottom":"126px","width":"172px","height":"212px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-5" onMouseEnter={o.helpdesk.enter} onMouseLeave={leave} onClick={o.helpdesk.click}>
       { o.helpdesk.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Help Desk<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
@@ -408,7 +436,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     </div>
 
     {/*  ZEN WATER FOUNTAIN (Wellness & Meditation)  */}
-    <div style={{"position":"absolute","left":"228px","bottom":"162px","width":"138px","height":"172px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(80,170,190,.6));" onMouseEnter={o.wellness.enter} onMouseLeave={leave} onClick={o.wellness.click}>
+    <div style={{"position":"absolute","left":"228px","bottom":"162px","width":"138px","height":"172px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-6" onMouseEnter={o.wellness.enter} onMouseLeave={leave} onClick={o.wellness.click}>
       { o.wellness.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Wellness &amp; Meditation<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
@@ -443,7 +471,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     </div>
 
     {/*  STATUE + CHIA (Progress & Generations)  */}
-    <div style={{"position":"absolute","left":"392px","bottom":"128px","width":"108px","height":"226px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(107,142,35,.6));" onMouseEnter={o.progress.enter} onMouseLeave={leave} onClick={o.progress.click}>
+    <div style={{"position":"absolute","left":"392px","bottom":"128px","width":"108px","height":"226px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-7" onMouseEnter={o.progress.enter} onMouseLeave={leave} onClick={o.progress.click}>
       { o.progress.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Progress &amp; Generations<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
@@ -478,7 +506,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     </div>
 
     {/*  MONITOR (Workshops · AI Lab · Workforce)  */}
-    <div style={{"position":"absolute","left":"524px","bottom":"140px","width":"330px","height":"248px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-5px) scale(1.015);filter:drop-shadow(0 16px 22px rgba(65,124,152,.5));" onMouseEnter={o.monitor.enter} onMouseLeave={leave} onClick={o.monitor.click}>
+    <div style={{"position":"absolute","left":"524px","bottom":"140px","width":"330px","height":"248px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-8" onMouseEnter={o.monitor.enter} onMouseLeave={leave} onClick={o.monitor.click}>
       { o.monitor.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Workshops · AI Lab · Workforce<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
@@ -523,7 +551,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     </div>
 
     {/*  GROUP PHOTO FRAME (Community Listening)  */}
-    <div style={{"position":"absolute","left":"874px","bottom":"126px","width":"152px","height":"168px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-7px) scale(1.04);filter:drop-shadow(0 12px 18px rgba(219,155,47,.6));" onMouseEnter={o.community.enter} onMouseLeave={leave} onClick={o.community.click}>
+    <div style={{"position":"absolute","left":"874px","bottom":"126px","width":"152px","height":"168px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-9" onMouseEnter={o.community.enter} onMouseLeave={leave} onClick={o.community.click}>
       { o.community.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Community Listening<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
@@ -545,7 +573,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     </div>
 
     {/*  BOOKS (Steward Library)  */}
-    <div style={{"position":"absolute","left":"1046px","bottom":"130px","width":"204px","height":"206px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} style-hover="transform:translateY(-7px) scale(1.03);filter:drop-shadow(0 12px 18px rgba(162,117,50,.6));" onMouseEnter={o.library.enter} onMouseLeave={leave} onClick={o.library.click}>
+    <div style={{"position":"absolute","left":"1046px","bottom":"130px","width":"204px","height":"206px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-10" onMouseEnter={o.library.enter} onMouseLeave={leave} onClick={o.library.click}>
       { o.library.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Steward Library<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
@@ -569,9 +597,9 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   { isHub && (
 <>
   <div style={{"position":"fixed","left":"18px","bottom":"18px","zIndex":"90","display":"flex","gap":"5px","alignItems":"center","background":"rgba(33,40,46,.6)","backdropFilter":"blur(8px)","border":"1px solid rgba(253,221,154,.18)","borderRadius":"11px","padding":"5px","boxShadow":"0 8px 20px rgba(0,0,0,.3)"}}>
-    <button style={{"width":"32px","height":"32px","background":"rgba(253,221,154,.12)","color":"#FEFAE0","border":"1px solid rgba(253,221,154,.25)","borderRadius":"8px","fontFamily":"'DM Mono',monospace","fontSize":"15px","cursor":"pointer","transition":"background .2s"}} style-hover="background:rgba(253,221,154,.3);" onClick={setDay}>☀</button>
-    <button style={{"width":"32px","height":"32px","background":"rgba(253,221,154,.12)","color":"#FEFAE0","border":"1px solid rgba(253,221,154,.25)","borderRadius":"8px","fontFamily":"'DM Mono',monospace","fontSize":"15px","cursor":"pointer","transition":"background .2s"}} style-hover="background:rgba(253,221,154,.3);" onClick={setDusk}>◑</button>
-    <button style={{"width":"32px","height":"32px","background":"rgba(253,221,154,.12)","color":"#FEFAE0","border":"1px solid rgba(253,221,154,.25)","borderRadius":"8px","fontFamily":"'DM Mono',monospace","fontSize":"15px","cursor":"pointer","transition":"background .2s"}} style-hover="background:rgba(253,221,154,.3);" onClick={setNight}>☾</button>
+    <button style={{"width":"32px","height":"32px","background":"rgba(253,221,154,.12)","color":"#FEFAE0","border":"1px solid rgba(253,221,154,.25)","borderRadius":"8px","fontFamily":"'DM Mono',monospace","fontSize":"15px","cursor":"pointer","transition":"background .2s"}} className="sw-hover-11" onClick={setDay}>☀</button>
+    <button style={{"width":"32px","height":"32px","background":"rgba(253,221,154,.12)","color":"#FEFAE0","border":"1px solid rgba(253,221,154,.25)","borderRadius":"8px","fontFamily":"'DM Mono',monospace","fontSize":"15px","cursor":"pointer","transition":"background .2s"}} className="sw-hover-12" onClick={setDusk}>◑</button>
+    <button style={{"width":"32px","height":"32px","background":"rgba(253,221,154,.12)","color":"#FEFAE0","border":"1px solid rgba(253,221,154,.25)","borderRadius":"8px","fontFamily":"'DM Mono',monospace","fontSize":"15px","cursor":"pointer","transition":"background .2s"}} className="sw-hover-13" onClick={setNight}>☾</button>
   </div>
   <div style={{"position":"fixed","right":"16px","bottom":"14px","zIndex":"90","fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".04em","color":"rgba(255,255,255,.55)","textShadow":"0 1px 2px rgba(0,0,0,.4)","pointerEvents":"none"}}>Copyright Stewardworks.Space 2026 by Nureaum</div>
   </>
@@ -587,7 +615,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
         <span style={{"display":"flex","gap":"6px"}}><i style={{"width":"11px","height":"11px","borderRadius":"50%","background":"#e07a6a","display":"block"}}></i><i style={{"width":"11px","height":"11px","borderRadius":"50%","background":"#e6c25a","display":"block"}}></i><i style={{"width":"11px","height":"11px","borderRadius":"50%","background":"#7fb06a","display":"block"}}></i></span>
         <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".22em","color":"#21282E","opacity":".65"}}>STEWARD OS · WORKSHOPS</span>
       </div>
-      <button style={{"background":"none","border":"1px solid rgba(33,40,46,.2)","borderRadius":"8px","padding":"6px 13px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".08em","color":"#21282E","opacity":".75"}} style-hover="background:rgba(33,40,46,.06);" onClick={goHub}>✕ Close screen</button>
+      <button style={{"background":"none","border":"1px solid rgba(33,40,46,.2)","borderRadius":"8px","padding":"6px 13px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".08em","color":"#21282E","opacity":".75"}} className="sw-hover-14" onClick={goHub}>✕ Close screen</button>
     </div>
     {/*  desktop  */}
     <div style={{"flex":"1","position":"relative","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center","background":"#13202a","overflow":"hidden"}}>
@@ -599,20 +627,20 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
         <div style={{"fontSize":"40px","fontWeight":"700","textShadow":"0 2px 8px rgba(0,0,0,.3)","marginTop":"4px"}}>Choose a Program</div>
       </div>
       <div style={{"display":"flex","justifyContent":"center","gap":"64px","flexWrap":"wrap","position":"relative","zIndex":"2"}}>
-        <button style={{"background":"none","border":"none","cursor":"pointer","display":"flex","flexDirection":"column","alignItems":"center","gap":"16px","width":"200px","transition":"transform .2s"}} style-hover="transform:translateY(-10px);" onClick={openPilot}>
+        <button style={{"background":"none","border":"none","cursor":"pointer","display":"flex","flexDirection":"column","alignItems":"center","gap":"16px","width":"200px","transition":"transform .2s"}} className="sw-hover-15" onClick={openPilot}>
           <div style={{"width":"128px","height":"128px","borderRadius":"30px","background":"linear-gradient(160deg,#c89248,#8c6125)","boxShadow":"0 18px 32px rgba(0,0,0,.4),inset 0 4px 0 rgba(255,255,255,.32)","display":"flex","alignItems":"center","justifyContent":"center","position":"relative"}}>
             <div style={{"width":"46px","height":"8px","background":"#3a2a16","borderRadius":"3px","transform":"rotate(-42deg)","position":"absolute"}}></div>
             <div style={{"width":"8px","height":"30px","background":"#f3e6cf","borderRadius":"3px","transform":"rotate(-42deg)","position":"absolute","top":"30px","left":"42px"}}></div>
           </div>
           <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"14px","color":"#fff","letterSpacing":".05em","textAlign":"center","textShadow":"0 1px 3px rgba(0,0,0,.45)"}}>Pilot Workshops</span>
         </button>
-        <button style={{"background":"none","border":"none","cursor":"pointer","display":"flex","flexDirection":"column","alignItems":"center","gap":"16px","width":"200px","transition":"transform .2s"}} style-hover="transform:translateY(-10px);" onClick={openAi}>
+        <button style={{"background":"none","border":"none","cursor":"pointer","display":"flex","flexDirection":"column","alignItems":"center","gap":"16px","width":"200px","transition":"transform .2s"}} className="sw-hover-16" onClick={openAi}>
           <div style={{"width":"128px","height":"128px","borderRadius":"30px","background":"linear-gradient(160deg,#4f93ad,#356074)","boxShadow":"0 18px 32px rgba(0,0,0,.4),inset 0 4px 0 rgba(255,255,255,.32)","display":"flex","alignItems":"center","justifyContent":"center"}}>
             <div style={{"width":"30px","height":"54px","border":"5px solid #eaf6fb","borderRadius":"0 0 16px 16px","borderTop":"none","position":"relative","background":"linear-gradient(180deg,transparent 42%,#9be0a8 42%)"}}><div style={{"position":"absolute","top":"-9px","left":"50%","width":"18px","height":"5px","background":"#eaf6fb","transform":"translateX(-50%)","borderRadius":"2px"}}></div></div>
           </div>
           <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"14px","color":"#fff","letterSpacing":".05em","textAlign":"center","textShadow":"0 1px 3px rgba(0,0,0,.45)"}}>AI Lab</span>
         </button>
-        <button style={{"background":"none","border":"none","cursor":"pointer","display":"flex","flexDirection":"column","alignItems":"center","gap":"16px","width":"200px","transition":"transform .2s"}} style-hover="transform:translateY(-10px);" onClick={openWf}>
+        <button style={{"background":"none","border":"none","cursor":"pointer","display":"flex","flexDirection":"column","alignItems":"center","gap":"16px","width":"200px","transition":"transform .2s"}} className="sw-hover-17" onClick={openWf}>
           <div style={{"width":"128px","height":"128px","borderRadius":"30px","background":"linear-gradient(160deg,#41855a,#285537)","boxShadow":"0 18px 32px rgba(0,0,0,.4),inset 0 4px 0 rgba(255,255,255,.32)","display":"flex","alignItems":"center","justifyContent":"center"}}>
             <div style={{"width":"54px","height":"42px","position":"relative"}}>
               <div style={{"position":"absolute","inset":"0","border":"4px solid #eaf6e8","borderRadius":"5px"}}></div>
@@ -632,7 +660,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
         <div style={{"width":"30px","height":"30px","borderRadius":"8px","background":"rgba(255,255,255,.95)","boxShadow":"0 3px 8px rgba(0,0,0,.4)","display":"flex","alignItems":"center","justifyContent":"center","padding":"3px"}}><img src="/assets/sw-logo.png" alt="StewardWorks" style={{"width":"100%","height":"100%","objectFit":"contain","display":"block"}} /></div>
         <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".22em","color":"rgba(255,255,255,.5)"}}>STEWARDSHIP ACTIVE</span>
       </div>
-      <button style={{"background":"rgba(255,255,255,.1)","border":"1px solid rgba(255,255,255,.25)","borderRadius":"9px","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".06em","color":"#FEFAE0"}} style-hover="background:rgba(255,255,255,.2);" onClick={goHub}>← Back to desk</button>
+      <button style={{"background":"rgba(255,255,255,.1)","border":"1px solid rgba(255,255,255,.25)","borderRadius":"9px","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".06em","color":"#FEFAE0"}} className="sw-hover-18" onClick={goHub}>← Back to desk</button>
     </div>
   </div>
   </>

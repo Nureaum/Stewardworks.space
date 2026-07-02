@@ -14,6 +14,7 @@ export const metadata = {
 
 export default async function PilotWorkshopsPage() {
   const { userId } = await auth()
+  let hasCompleted = false
   
   if (userId) {
     const supabase = createServerSupabaseClient()
@@ -23,10 +24,7 @@ export default async function PilotWorkshopsPage() {
       .eq('clerk_user_id', userId)
       .single()
       
-    if (!profile?.community_status) {
-      const returnUrl = encodeURIComponent('/hub/pilot-workshops')
-      redirect(`/onboarding/language?returnUrl=${returnUrl}`)
-    }
+    hasCompleted = !!profile?.community_status
   }
 
   const cohorts = await getPublicCohorts()
@@ -70,6 +68,7 @@ export default async function PilotWorkshopsPage() {
               <CohortCard
                 key={cohort.id}
                 cohort={cohort}
+                hasCompletedOnboarding={hasCompleted}
                 onRegister={async (cohortId) => {
                   'use server'
                   return await registerForCohort(cohortId)

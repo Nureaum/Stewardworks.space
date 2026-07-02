@@ -29,18 +29,10 @@ export default function AiLabPage() {
           const data = await response.json();
           if (data.profile?.community_status) {
             setHasCompleted(true);
-          } else {
-            const returnUrl = encodeURIComponent('/hub/ai-lab');
-            router.push(`/onboarding/language?returnUrl=${returnUrl}`);
           }
-        } else {
-          const returnUrl = encodeURIComponent('/hub/ai-lab');
-          router.push(`/onboarding/language?returnUrl=${returnUrl}`);
         }
       } catch (error) {
         console.error('Failed to check onboarding status:', error);
-        const returnUrl = encodeURIComponent('/hub/ai-lab');
-        router.push(`/onboarding/language?returnUrl=${returnUrl}`);
       } finally {
         setIsChecking(false);
       }
@@ -65,7 +57,8 @@ export default function AiLabPage() {
 
   const handleModuleClick = (labId: string) => {
     if (!hasCompleted) {
-      router.push('/onboarding/language');
+      const returnUrl = encodeURIComponent('/hub/ai-lab');
+      router.push(`/onboarding/language?returnUrl=${returnUrl}`);
     } else {
       router.push(`/hub/ai-lab/${labId}`);
     }
@@ -96,7 +89,10 @@ export default function AiLabPage() {
             <div className="bg-steward-blue/10 border-2 border-steward-blue/30 rounded-2xl p-6 max-w-2xl mx-auto">
               <p className="text-steward-dark font-bold mb-3">Complete onboarding to access AI Lab modules</p>
               <button
-                onClick={() => router.push('/onboarding/language')}
+                onClick={() => {
+                  const returnUrl = encodeURIComponent('/hub/ai-lab');
+                  router.push(`/onboarding/language?returnUrl=${returnUrl}`);
+                }}
                 className="bg-steward-blue hover:bg-steward-orange text-white px-6 py-3 rounded-xl font-bold transition-colors"
               >
                 Start Onboarding

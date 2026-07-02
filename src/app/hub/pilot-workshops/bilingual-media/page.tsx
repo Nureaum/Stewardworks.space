@@ -26,20 +26,10 @@ export default function BilingualMediaPage() {
           // community_status is a required field from question 1
           if (data.profile?.community_status) {
             setHasCompleted(true);
-          } else {
-            // Redirect to onboarding with return URL
-            const returnUrl = encodeURIComponent('/hub/pilot-workshops/bilingual-media');
-            router.push(`/onboarding/language?returnUrl=${returnUrl}`);
           }
-        } else {
-          // No profile yet, redirect to onboarding with return URL
-          const returnUrl = encodeURIComponent('/hub/pilot-workshops/bilingual-media');
-          router.push(`/onboarding/language?returnUrl=${returnUrl}`);
         }
       } catch (error) {
         console.error('Failed to check onboarding status:', error);
-        const returnUrl = encodeURIComponent('/hub/pilot-workshops/bilingual-media');
-        router.push(`/onboarding/language?returnUrl=${returnUrl}`);
       } finally {
         setIsChecking(false);
       }
@@ -59,9 +49,7 @@ export default function BilingualMediaPage() {
     );
   }
 
-  if (!hasCompleted) {
-    return null; // Will redirect to onboarding
-  }
+  // Do not block rendering if not completed, we want them to see the page
 
   return (
     <div className="min-h-screen bg-steward-offwhite p-8 font-exo">

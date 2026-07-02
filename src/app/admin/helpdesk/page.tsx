@@ -11,7 +11,7 @@ export const metadata = {
 }
 
 export default async function AdminHelpdeskPage() {
-  const [categories, tags] = await Promise.all([
+  const [categories = [], tags = []] = await Promise.all([
     getAllCategories(),
     getAllTags()
   ])

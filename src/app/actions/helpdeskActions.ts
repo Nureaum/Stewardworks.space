@@ -3,6 +3,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 import { HelpdeskQuestion, HelpdeskCategory, HelpdeskTag } from '@/types/helpdesk'
+import { revalidatePath } from 'next/cache'
 
 async function getProfileId() {
   const { userId } = await auth()
@@ -98,15 +99,15 @@ export async function getQuestions(categoryId?: string, tagId?: string): Promise
 
   // Filter by tag if provided (since it's a join, we filter in memory or via a different query, 
   // but for simplicity in memory if data isn't huge, or we can use Supabase nested filtering)
-  let results = data as any[]
+  let results = (data as any[]) || []
 
   if (tagId) {
-    results = results.filter(q => q.tags.some((t: any) => t.helpdesk_tags.id === tagId))
+    results = results.filter(q => (q.tags || []).some((t: any) => t.helpdesk_tags.id === tagId))
   }
 
   return results.map(q => ({
     ...q,
-    tags: q.tags.map((t: any) => t.helpdesk_tags)
+    tags: (q.tags || []).map((t: any) => t.helpdesk_tags)
   })) as HelpdeskQuestion[]
 }
 
@@ -180,6 +181,8 @@ export async function createQuestion(formData: FormData) {
     }
   }
 
+  revalidatePath('/hub/helpdesk', 'layout')
+  revalidatePath('/admin/helpdesk', 'layout')
   return question.id
 }
 
@@ -198,6 +201,9 @@ export async function deleteQuestion(id: string) {
 
   const { error } = await supabase.from('helpdesk_questions').delete().eq('id', id)
   if (error) throw error
+
+  revalidatePath('/hub/helpdesk', 'layout')
+  revalidatePath('/admin/helpdesk', 'layout')
 }
 
 export async function incrementViewCount(id: string) {

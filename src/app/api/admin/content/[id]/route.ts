@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 import { auth } from '@clerk/nextjs/server'
+import { revalidatePath } from 'next/cache'
 
 async function verifyAdmin() {
   const { userId } = await auth()
@@ -116,6 +117,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     console.log('[PUT media] No media array in payload')
   }
 
+  revalidatePath('/hub/library', 'layout')
+  revalidatePath('/hub/bilingual-media', 'layout')
+  revalidatePath('/hub/pilot-workshops', 'layout')
+  revalidatePath('/hub/environmental-literacy', 'layout')
+  revalidatePath('/hub/community-listening', 'layout')
+
   return NextResponse.json({ item: data })
 }
 
@@ -135,5 +142,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  
+  revalidatePath('/hub/library', 'layout')
+  revalidatePath('/hub/bilingual-media', 'layout')
+  revalidatePath('/hub/pilot-workshops', 'layout')
+  revalidatePath('/hub/environmental-literacy', 'layout')
+  revalidatePath('/hub/community-listening', 'layout')
+  
   return NextResponse.json({ success: true })
 }

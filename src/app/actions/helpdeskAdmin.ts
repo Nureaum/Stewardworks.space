@@ -2,6 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
 
 async function ensureAdmin() {
   const { userId } = await auth()
@@ -94,6 +95,9 @@ export async function hardDeleteQuestion(id: string) {
     .eq('id', id)
     
   if (error) throw error
+
+  revalidatePath('/hub/helpdesk', 'layout')
+  revalidatePath('/admin/helpdesk', 'layout')
 }
 
 export async function answerQuestion(questionId: string, content: string, isFaq: boolean = false) {
@@ -161,4 +165,7 @@ export async function answerQuestion(questionId: string, content: string, isFaq:
 
     if (notifError) throw notifError
   }
+  
+  revalidatePath('/hub/helpdesk', 'layout')
+  revalidatePath('/admin/helpdesk', 'layout')
 }

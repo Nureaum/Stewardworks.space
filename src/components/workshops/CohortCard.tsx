@@ -5,8 +5,10 @@ import { Calendar, Users, Clock, GraduationCap } from 'lucide-react'
 import RegistrationButton from './RegistrationButton'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
-export default function CohortCard({ cohort, onRegister }: CohortCardProps) {
+export default function CohortCard({ cohort, onRegister, hasCompletedOnboarding }: CohortCardProps) {
+  const router = useRouter()
   const startDate = new Date(cohort.start_date)
   const now = new Date()
   const hasStarted = startDate <= now
@@ -56,7 +58,19 @@ export default function CohortCard({ cohort, onRegister }: CohortCardProps) {
 
   return (
     <div className="group flex flex-col bg-white rounded-3xl border border-steward-dark/5 shadow-md hover:shadow-xl transition-all overflow-hidden relative">
-      <Link href={`/hub/pilot-workshops/${cohort.id}`} className="absolute inset-0 z-10" aria-label={`View details for ${cohort.name}`} />
+      {hasCompletedOnboarding === false ? (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            const returnUrl = encodeURIComponent('/hub/pilot-workshops');
+            router.push(`/onboarding/language?returnUrl=${returnUrl}`);
+          }}
+          className="absolute inset-0 z-10 w-full cursor-pointer text-left focus:outline-none"
+          aria-label={`Complete onboarding to view ${cohort.name}`}
+        />
+      ) : (
+        <Link href={`/hub/pilot-workshops/${cohort.id}`} className="absolute inset-0 z-10" aria-label={`View details for ${cohort.name}`} />
+      )}
       
       
       {/* Image Block (matches Env Literacy) */}
@@ -141,6 +155,7 @@ export default function CohortCard({ cohort, onRegister }: CohortCardProps) {
           capacity={cohort.capacity}
           registeredCount={cohort.registered_count}
           userRegistration={cohort.user_registration}
+          hasCompletedOnboarding={hasCompletedOnboarding}
           onRegister={onRegister || (async () => {
             throw new Error('Registration handler not provided')
           })}

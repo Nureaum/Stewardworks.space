@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 import { auth } from '@clerk/nextjs/server'
+import { revalidatePath } from 'next/cache'
 
 async function verifyAdmin() {
   const { userId } = await auth()
@@ -78,6 +79,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
   }
 
+  revalidatePath('/hub/workforce-pathways', 'layout')
+  
   return NextResponse.json({ item: job })
 }
 
@@ -92,5 +95,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     .eq('id', params.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  
+  revalidatePath('/hub/workforce-pathways', 'layout')
+  
   return NextResponse.json({ success: true })
 }
