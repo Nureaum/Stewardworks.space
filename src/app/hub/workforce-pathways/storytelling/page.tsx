@@ -2,7 +2,6 @@ import React from 'react';
 import Link from 'next/link';
 import { ChevronLeft, PenTool, BookOpen, Clock, ArrowRight } from 'lucide-react';
 import { createServerSupabaseClient } from '@/utils/supabase/server';
-import { format } from 'date-fns';
 
 export const revalidate = 0; // Ensure data is fresh
 
@@ -72,8 +71,7 @@ export default async function StorytellingPage() {
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-steward-dark">{authorName}</span>
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                          <Clock size={10} />
-                          {format(new Date(article.created_at), 'MMM d, yyyy')}
+                          {new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       </div>
                     </div>

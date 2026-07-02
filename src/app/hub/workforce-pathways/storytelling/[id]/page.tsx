@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { ChevronLeft, PenTool, Clock, Calendar } from 'lucide-react';
 import { createServerSupabaseClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
-import { format } from 'date-fns';
 
 export const revalidate = 0; // Ensure data is fresh
 
@@ -59,7 +58,7 @@ export default async function StorytellingArticlePage({ params }: { params: { id
                 <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-white/60">
                   <span className="flex items-center gap-1"><Clock size={14} /> By {authorName}</span>
                   <span>&bull;</span>
-                  <span className="flex items-center gap-1"><Calendar size={14} /> {format(new Date(article.created_at), 'MMMM d, yyyy')}</span>
+                  <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
                 </div>
               </div>
               <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">
