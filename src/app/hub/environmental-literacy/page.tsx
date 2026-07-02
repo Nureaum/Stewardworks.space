@@ -15,8 +15,11 @@ export default async function EnvironmentalLiteracyPage() {
   const { data: blocks } = await supabase
     .from('content_items')
     .select(`*, topic:env_literacy_topics(label, slug)`)
-    .eq('is_published', true)
-    .order('published_at', { ascending: false });
+    .eq('content_type', 'env_literacy_block')
+    .eq('status', 'published')
+    .is('deleted_at', null)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false });
 
   return <ClientEnvPage initialData={{ topics: topics || [], blocks: blocks || [] }} />;
 }
