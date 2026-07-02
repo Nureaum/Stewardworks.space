@@ -15,33 +15,24 @@ export default function ContentCreatorEditor({
   onSubmit,
   onCancel,
 }: ContentCreatorEditorProps) {
-  const [sections, setSections] = useState({
-    storytelling: '',
-    monetization: '',
-    becoming: '',
-    opportunities: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
+  const [sections, setSections] = useState(() => {
+    let parsed: any = {};
     if (initialData?.body) {
       try {
-        const parsed = JSON.parse(initialData.body)
-        if (parsed && typeof parsed === 'object') {
-          setSections({
-            storytelling: parsed.storytelling || '',
-            monetization: parsed.monetization || '',
-            becoming: parsed.becoming || '',
-            opportunities: parsed.opportunities || ''
-          })
-        }
+        parsed = JSON.parse(initialData.body);
       } catch (e) {
-        // Fallback for old string-based content
-        setSections(prev => ({ ...prev, storytelling: initialData.body }))
+        parsed = { storytelling: initialData.body };
       }
     }
-  }, [initialData])
+    return {
+      storytelling: parsed.storytelling || '',
+      monetization: parsed.monetization || '',
+      becoming: parsed.becoming || '',
+      opportunities: parsed.opportunities || ''
+    };
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSectionChange = (key: keyof typeof sections, value: string) => {
     setSections(prev => ({ ...prev, [key]: value }))
