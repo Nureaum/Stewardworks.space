@@ -1,14 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   createAnnouncement, 
   getAnnouncements, 
   updateProjectBulletin, 
-  updateOnboardingBulletin,
-  getSystemBulletins
+  getSystemBulletins,
+  getBulletinUpdates,
+  getBulletinEvents,
+  createBulletinUpdate,
+  deleteBulletinUpdate,
+  createBulletinEvent,
+  deleteBulletinEvent,
+  updateBulletinUpdate,
+  updateBulletinEvent
 } from '@/app/actions/bulletins';
-import { Megaphone, Pin, Globe, Phone as PhoneIcon } from 'lucide-react';
+import { Pin, Globe, Trash2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AdminAnnouncementsPage() {
@@ -21,13 +28,28 @@ export default function AdminAnnouncementsPage() {
 
   // Bulletins State
   const [bulletinText, setBulletinText] = useState('');
-  const [onbTitle, setOnbTitle] = useState('');
-  const [onbBody, setOnbBody] = useState('');
-  const [onbLinkLabel, setOnbLinkLabel] = useState('');
-  const [onbLinkUrl, setOnbLinkUrl] = useState('');
-  const [onbImageUrl, setOnbImageUrl] = useState('');
   const [isSavingBulletin, setIsSavingBulletin] = useState(false);
-  const [isSavingOnb, setIsSavingOnb] = useState(false);
+
+  // Updates State
+  const [updates, setUpdates] = useState<any[]>([]);
+  const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
+  const [upTag, setUpTag] = useState('');
+  const [upTitle, setUpTitle] = useState('');
+  const [upBody, setUpBody] = useState('');
+  const [upDetail, setUpDetail] = useState('');
+  const [upCta, setUpCta] = useState('');
+  const [isSavingUp, setIsSavingUp] = useState(false);
+
+  // Events State
+  const [events, setEvents] = useState<any[]>([]);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [evBadge, setEvBadge] = useState('');
+  const [evTitle, setEvTitle] = useState('');
+  const [evDate, setEvDate] = useState('');
+  const [evTime, setEvTime] = useState('');
+  const [evLoc, setEvLoc] = useState('');
+  const [evImage, setEvImage] = useState('');
+  const [isSavingEv, setIsSavingEv] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -39,14 +61,15 @@ export default function AdminAnnouncementsPage() {
       setAnnouncements(anns);
       
       const sys = await getSystemBulletins();
-      if (sys) {
-        setBulletinText(sys.project_bulletin_text || '');
-        setOnbTitle(sys.onboarding_headline || '');
-        setOnbBody(sys.onboarding_body || '');
-        setOnbLinkLabel(sys.onboarding_cta_label || '');
-        setOnbLinkUrl(sys.onboarding_cta_url || '');
-        setOnbImageUrl(sys.onboarding_image_url || '');
-      }
+      if (sys) setBulletinText(sys.project_bulletin_text || '');
+
+      const [ups, evs] = await Promise.all([
+        getBulletinUpdates(),
+        getBulletinEvents()
+      ]);
+      setUpdates(ups);
+      setEvents(evs);
+
     } catch (error) {
       console.error("Failed to load data", error);
     }
@@ -63,11 +86,8 @@ export default function AdminAnnouncementsPage() {
       await createAnnouncement(annTitle, annBody);
       setAnnTitle('');
       setAnnBody('');
-      
-      // Simulate ringing phone visually in the admin preview
       setPhoneRinging(true);
       setTimeout(() => setPhoneRinging(false), 5000);
-      
       toast.success("Announcement posted successfully!");
       loadData();
     } catch (error: any) {
@@ -89,21 +109,106 @@ export default function AdminAnnouncementsPage() {
     }
   }
 
-  async function handleSaveOnboarding() {
-    setIsSavingOnb(true);
+  function handleEditUpdate(u: any) {
+    setEditingUpdateId(u.id);
+    setUpTag(u.tag);
+    setUpTitle(u.title);
+    setUpBody(u.body);
+    setUpDetail(u.detail || '');
+    setUpCta(u.cta_label || '');
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+
+  function handleCancelEditUpdate() {
+    setEditingUpdateId(null);
+    setUpTag(''); setUpTitle(''); setUpBody(''); setUpDetail(''); setUpCta('');
+  }
+
+  async function handleSaveUpdate() {
+    if (!upTag.trim() || !upTitle.trim() || !upBody.trim()) {
+      toast.error("Tag, Title, and Body are required.");
+      return;
+    }
+    setIsSavingUp(true);
     try {
-      await updateOnboardingBulletin({
-        headline: onbTitle,
-        body: onbBody,
-        cta_label: onbLinkLabel,
-        cta_url: onbLinkUrl,
-        image_url: onbImageUrl
-      });
-      toast.success("Onboarding bulletin updated!");
+      const data = { tag: upTag, title: upTitle, body: upBody, detail: upDetail, cta_label: upCta };
+      if (editingUpdateId) {
+        await updateBulletinUpdate(editingUpdateId, data);
+        toast.success("Update saved!");
+      } else {
+        await createBulletinUpdate(data);
+        toast.success("Update published!");
+      }
+      handleCancelEditUpdate();
+      loadData();
     } catch (error: any) {
-      toast.error("Failed to update onboarding bulletin.");
+      toast.error("Failed to save update.");
     } finally {
-      setIsSavingOnb(false);
+      setIsSavingUp(false);
+    }
+  }
+
+  async function handleDeleteUpdate(id: string) {
+    if (!confirm("Are you sure you want to delete this update?")) return;
+    try {
+      await deleteBulletinUpdate(id);
+      if (editingUpdateId === id) handleCancelEditUpdate();
+      toast.success("Update deleted");
+      loadData();
+    } catch (error: any) {
+      toast.error("Failed to delete update.");
+    }
+  }
+
+  function handleEditEvent(e: any) {
+    setEditingEventId(e.id);
+    setEvBadge(e.badge);
+    setEvTitle(e.title);
+    setEvDate(e.event_date);
+    setEvTime(e.event_time);
+    setEvLoc(e.location);
+    setEvImage(e.image_url || '');
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+
+  function handleCancelEditEvent() {
+    setEditingEventId(null);
+    setEvBadge(''); setEvTitle(''); setEvDate(''); setEvTime(''); setEvLoc(''); setEvImage('');
+  }
+
+  async function handleSaveEvent() {
+    if (!evBadge.trim() || !evTitle.trim() || !evDate.trim() || !evTime.trim() || !evLoc.trim()) {
+      toast.error("All event fields are required.");
+      return;
+    }
+    setIsSavingEv(true);
+    try {
+      const data = { badge: evBadge, title: evTitle, event_date: evDate, event_time: evTime, location: evLoc, image_url: evImage || null };
+      if (editingEventId) {
+        await updateBulletinEvent(editingEventId, data);
+        toast.success("Event saved!");
+      } else {
+        await createBulletinEvent(data);
+        toast.success("Event published!");
+      }
+      handleCancelEditEvent();
+      loadData();
+    } catch (error: any) {
+      toast.error("Failed to save event.");
+    } finally {
+      setIsSavingEv(false);
+    }
+  }
+
+  async function handleDeleteEvent(id: string) {
+    if (!confirm("Are you sure you want to delete this event?")) return;
+    try {
+      await deleteBulletinEvent(id);
+      if (editingEventId === id) handleCancelEditEvent();
+      toast.success("Event deleted");
+      loadData();
+    } catch (error: any) {
+      toast.error("Failed to delete event.");
     }
   }
 
@@ -112,8 +217,6 @@ export default function AdminAnnouncementsPage() {
 
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full font-exo text-[#241c12] animate-in fade-in duration-300">
-      
-      {/* Scrollable Content */}
       <main className="flex-1 overflow-y-auto p-8 lg:p-12">
         <div className="flex justify-between items-start flex-wrap gap-4 mb-8">
           <div>
@@ -201,16 +304,12 @@ export default function AdminAnnouncementsPage() {
             <div className="bg-gradient-to-br from-[#2a2118] to-[#1a130c] rounded-[20px] p-[26px_22px_30px] shadow-[0_16px_34px_rgba(0,0,0,0.28)] border border-[#e2b54a]/[0.15] text-center">
               <div className="font-mono text-[10px] tracking-[0.22em] text-[#c8963e] mb-[20px]">STUDENT VIEW · THE HUB WALL</div>
               
-              {/* Abstract Phone UI rendering based on the HTML spec */}
               <div className={`relative w-[118px] h-[150px] mx-auto ${phoneRinging ? 'origin-[50%_20%] animate-[ring_1.4s_ease-in-out_infinite]' : ''}`}>
-                {/* Dial body */}
                 <div className={`absolute left-[34px] top-[14px] w-[76px] h-[126px] rounded-[18px_18px_16px_16px] bg-gradient-to-br from-[#d9a44a] to-[#a97a2c] shadow-[inset_0_3px_6px_rgba(255,235,190,0.45),inset_0_-6px_12px_rgba(120,80,20,0.4),0_8px_16px_rgba(0,0,0,0.4)] ${phoneRinging ? 'shadow-[inset_0_3px_6px_rgba(255,220,160,0.12),0_0_26px_4px_rgba(226,181,74,0.5),0_8px_16px_rgba(0,0,0,0.4)]' : ''}`}></div>
                 
-                {/* Cradle hooks */}
                 <div className="absolute left-[31px] top-[34px] w-[11px] h-[8px] rounded-[0_4px_4px_0] bg-gradient-to-b from-[#8a6224] to-[#5f4318]"></div>
                 <div className="absolute left-[31px] top-[118px] w-[11px] h-[8px] rounded-[0_4px_4px_0] bg-gradient-to-b from-[#8a6224] to-[#5f4318]"></div>
                 
-                {/* Rotary dial SVG */}
                 <svg width="50" height="50" viewBox="0 0 50 50" className="absolute left-[47px] top-[44px] drop-shadow-[0_2px_3px_rgba(0,0,0,0.3)]">
                   <circle cx="25" cy="25" r="24" fill="#c69433"></circle>
                   <circle cx="25" cy="25" r="24" fill="none" stroke="rgba(255,238,196,.6)" strokeWidth="1.3"></circle>
@@ -230,7 +329,6 @@ export default function AdminAnnouncementsPage() {
                   <rect x="40" y="28" width="7" height="5" rx="2.5" fill="#5f4318"></rect>
                 </svg>
 
-                {/* Handset hanging on the left */}
                 <div className="absolute left-[4px] top-[8px] w-[32px] h-[134px] -rotate-2">
                   <div className="absolute left-1/2 top-[18px] bottom-[18px] -translate-x-1/2 w-[13px] rounded-[8px] bg-gradient-to-r from-[#b08a58] to-[#6a4d2b] shadow-[2px_0_4px_rgba(0,0,0,0.35),inset_1px_0_1px_rgba(255,225,175,0.35)]"></div>
                   <div className="absolute left-1/2 top-0 -translate-x-1/2 w-[30px] h-[32px] rounded-[15px] bg-gradient-to-br from-[#b98f5a] to-[#7a5a34] shadow-[0_3px_5px_rgba(0,0,0,0.35),inset_0_2px_3px_rgba(255,232,188,0.42)]">
@@ -273,120 +371,226 @@ export default function AdminAnnouncementsPage() {
           </div>
         </div>
 
-        {/* Public Onboarding Bulletin (Full Width Bottom) */}
+        {/* Public Bulletin Management */}
         <div className="mt-[22px] bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08]">
           <div className="flex items-center justify-between gap-[14px] flex-wrap mb-[4px]">
             <div className="flex items-center gap-[9px]">
               <Globe size={18} className="text-blue-500" />
-              <div className="font-[800] text-[16px]">Public Onboarding Bulletin</div>
+              <div className="font-[800] text-[16px]">Public Bulletin Editor</div>
             </div>
             <a href="/onboarding/bulletin" target="_blank" rel="noopener noreferrer" className="font-mono text-[11px] tracking-[0.02em] text-[#8a6a2a] no-underline bg-[#fbf0da] border border-[#c8963e]/30 rounded-full px-[14px] py-[7px] hover:bg-[#f6e5c3] transition-colors">
               stewardworks.space/onboarding/bulletin ↗
             </a>
           </div>
           <div className="text-[13.5px] text-[#8a7c66] mb-[20px] max-w-[660px]">
-            The public-facing page people see before they join — open to everyone, no login. Unlike the wall phone, add photos and links the public can click to learn more.
+            The public-facing page people see before they join — open to everyone, no login.
           </div>
           
-          <div className="grid lg:grid-cols-[1.4fr_1fr] gap-[24px] items-start">
-            <div>
-              <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block">HEADLINE</label>
-              <input 
-                value={onbTitle} 
-                onChange={(e) => setOnbTitle(e.target.value)} 
-                placeholder="e.g. Join Cohort 02 — applications open" 
-                className="w-full my-[7px] mb-[16px] p-[13px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[14.5px] outline-none focus:border-[#785a32]/40 transition-colors"
-              />
-              
-              <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block">BODY</label>
-              <textarea 
-                value={onbBody} 
-                onChange={(e) => setOnbBody(e.target.value)} 
-                placeholder="What the public should know about StewardWorks…" 
-                className="w-full my-[7px] mb-[16px] p-[13px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[14px] min-h-[90px] resize-y leading-relaxed outline-none focus:border-[#785a32]/40 transition-colors"
-              />
-              
-              <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block">CALL-TO-ACTION LINK</label>
-              <div className="flex gap-[10px] my-[7px] mb-[18px]">
-                <input 
-                  value={onbLinkLabel} 
-                  onChange={(e) => setOnbLinkLabel(e.target.value)} 
-                  placeholder="Button label" 
-                  className="flex-1 min-w-0 p-[12px_14px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[13.5px] outline-none focus:border-[#785a32]/40 transition-colors"
-                />
-                <input 
-                  value={onbLinkUrl} 
-                  onChange={(e) => setOnbLinkUrl(e.target.value)} 
-                  placeholder="https://…" 
-                  className="flex-[1.4] min-w-0 p-[12px_14px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] font-mono text-[12.5px] outline-none focus:border-[#785a32]/40 transition-colors"
-                />
-              </div>
-              
-              <button 
-                onClick={handleSaveOnboarding}
-                disabled={isSavingOnb}
-                className="px-[22px] py-[13px] rounded-[12px] bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-[#241609] font-[800] text-[14px] shadow-[0_6px_16px_rgba(200,150,62,0.3)] hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {isSavingOnb ? 'Publishing...' : '🌐 Publish to onboarding bulletin'}
-              </button>
-            </div>
+          <div className="grid lg:grid-cols-2 gap-[32px] items-start">
             
+            {/* Updates Column */}
             <div>
-              <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block">FEATURED PHOTO</label>
+              <h3 className="font-[800] text-[18px] mb-4">Project Updates</h3>
               
-              <div 
-                className={`w-full h-[214px] mt-[8px] rounded-[14px] border-2 border-dashed border-[#785a32]/20 bg-[#fdfaf0] flex items-center justify-center text-[#9c8d76] font-bold text-sm relative overflow-hidden group cursor-pointer ${isSavingOnb ? 'opacity-50 pointer-events-none' : ''}`}
-                style={{ backgroundImage: onbImageUrl ? `url(${onbImageUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}
-              >
-                {!onbImageUrl && !isSavingOnb && <span>Drop a public photo</span>}
-                {isSavingOnb && <span className="animate-pulse">Uploading...</span>}
-                <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-[2px]">
-                  <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setIsSavingOnb(true); // Reuse the saving state as a loader
-                      const formData = new FormData();
-                      formData.append('file', file);
-                      try {
-                        const res = await fetch('/api/admin/upload-media', {
-                          method: 'POST',
-                          body: formData
-                        });
-                        if (res.ok) {
-                          const data = await res.json();
-                          setOnbImageUrl(data.publicUrl);
-                        } else {
-                          const err = await res.json();
-                          toast.error(err.error || 'Failed to upload image');
-                        }
-                      } catch (err) {
-                        console.error(err);
-                        toast.error('Network error during upload');
-                      } finally {
-                        setIsSavingOnb(false);
-                      }
-                    }
-                  }} disabled={isSavingOnb} />
-                  <div className="bg-white text-steward-dark px-4 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all">
-                    {onbImageUrl ? 'Replace Photo' : 'Upload Photo'}
+              {/* Form */}
+              <div className="bg-[#fdfaf0] border border-[#785a32]/20 rounded-[12px] p-4 mb-6 relative">
+                {editingUpdateId && (
+                  <div className="absolute -top-3 right-4 bg-[#B85C3E] text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider shadow-md">
+                    Editing Mode
                   </div>
-                </label>
+                )}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">TAG (e.g. Onboarding)</label>
+                    <input value={upTag} onChange={(e) => setUpTag(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                  </div>
+                  <div>
+                    <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">BUTTON LABEL</label>
+                    <input value={upCta} onChange={(e) => setUpCta(e.target.value)} placeholder="Learn more" className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">TITLE</label>
+                  <input value={upTitle} onChange={(e) => setUpTitle(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                </div>
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">BODY SUMMARY</label>
+                  <textarea value={upBody} onChange={(e) => setUpBody(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm min-h-[60px] outline-none" />
+                </div>
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">FULL DETAILS (Popup)</label>
+                  <textarea value={upDetail} onChange={(e) => setUpDetail(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm min-h-[60px] outline-none" />
+                </div>
+                
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleSaveUpdate}
+                    disabled={isSavingUp}
+                    className="flex-1 py-2 rounded-lg bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-[#241609] font-[800] text-sm shadow-[0_4px_10px_rgba(200,150,62,0.3)] hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {isSavingUp ? 'Saving...' : editingUpdateId ? 'Save Changes' : 'Publish Update'}
+                  </button>
+                  {editingUpdateId && (
+                    <button 
+                      onClick={handleCancelEditUpdate}
+                      disabled={isSavingUp}
+                      className="px-4 py-2 rounded-lg border border-[#785a32]/20 bg-white text-[#5c4f3c] font-[700] text-sm hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {onbImageUrl && (
-                <button 
-                  onClick={() => setOnbImageUrl('')}
-                  className="mt-3 text-[10px] font-black text-red-500 uppercase tracking-widest hover:text-red-700 transition-colors disabled:opacity-50"
-                  disabled={isSavingOnb}
-                >
-                  Remove Photo
-                </button>
-              )}
-              
-              <div className="text-[12px] text-[#a89a82] mt-[9px] leading-[1.45]">
-                Shown at the top of the public bulletin. Members and visitors can click the CTA link to learn more or apply.
+              {/* List */}
+              <div className="flex flex-col gap-3">
+                {updates.map(u => (
+                  <div key={u.id} className="flex justify-between items-start gap-4 p-4 rounded-xl border border-[#785a32]/10 bg-[#fdf8ea]">
+                    <div>
+                      <span className="text-[10px] font-mono tracking-widest text-[#B85C3E] bg-[#F7E7DF] px-2 py-1 rounded-full mb-2 inline-block">{u.tag}</span>
+                      <h4 className="font-[700] text-[15px] mb-1">{u.title}</h4>
+                      <p className="text-[12px] text-[#7c6f5a] line-clamp-2">{u.body}</p>
+                    </div>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button onClick={() => handleEditUpdate(u)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => handleDeleteUpdate(u.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+
+            {/* Events Column */}
+            <div>
+              <h3 className="font-[800] text-[18px] mb-4">Upcoming Events</h3>
+              
+              {/* Form */}
+              <div className="bg-[#fdfaf0] border border-[#785a32]/20 rounded-[12px] p-4 mb-6 relative">
+                {editingEventId && (
+                  <div className="absolute -top-3 right-4 bg-[#B85C3E] text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider shadow-md">
+                    Editing Mode
+                  </div>
+                )}
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">BADGE (e.g. Listening Session)</label>
+                  <input value={evBadge} onChange={(e) => setEvBadge(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                </div>
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">EVENT TITLE</label>
+                  <input value={evTitle} onChange={(e) => setEvTitle(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">DATE STRING</label>
+                    <input value={evDate} onChange={(e) => setEvDate(e.target.value)} placeholder="Thu, Jul 17, 2026" className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                  </div>
+                  <div>
+                    <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">TIME STRING</label>
+                    <input value={evTime} onChange={(e) => setEvTime(e.target.value)} placeholder="6:00 – 7:30 PM" className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">LOCATION</label>
+                  <input value={evLoc} onChange={(e) => setEvLoc(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                </div>
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">EVENT FLYER IMAGE</label>
+                  <div 
+                    className={`w-full h-[120px] rounded-lg border-2 border-dashed border-[#785a32]/20 bg-white flex items-center justify-center text-[#9c8d76] font-bold text-xs relative overflow-hidden group cursor-pointer ${isSavingEv ? 'opacity-50 pointer-events-none' : ''}`}
+                    style={{ backgroundImage: evImage ? `url(${evImage})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}
+                  >
+                    {!evImage && !isSavingEv && <span>Drop event flyer image</span>}
+                    {isSavingEv && <span className="animate-pulse">Uploading...</span>}
+                    <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-[2px]">
+                      <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setIsSavingEv(true);
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          try {
+                            const res = await fetch('/api/admin/upload-media', { method: 'POST', body: formData });
+                            if (res.ok) {
+                              const data = await res.json();
+                              setEvImage(data.publicUrl);
+                            } else {
+                              toast.error('Failed to upload image');
+                            }
+                          } catch (err) {
+                            toast.error('Network error during upload');
+                          } finally {
+                            setIsSavingEv(false);
+                          }
+                        }
+                      }} disabled={isSavingEv} />
+                      <div className="bg-white text-steward-dark px-3 py-1 rounded-md font-black text-[9px] uppercase tracking-widest shadow-lg">
+                        {evImage ? 'Replace Image' : 'Upload Image'}
+                      </div>
+                    </label>
+                  </div>
+                  {evImage && (
+                    <button 
+                      onClick={() => setEvImage('')}
+                      className="mt-2 text-[9px] font-black text-red-500 uppercase tracking-widest hover:text-red-700 disabled:opacity-50"
+                      disabled={isSavingEv}
+                    >
+                      Remove Flyer
+                    </button>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleSaveEvent}
+                    disabled={isSavingEv}
+                    className="flex-1 py-2 rounded-lg bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-[#241609] font-[800] text-sm shadow-[0_4px_10px_rgba(200,150,62,0.3)] hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {isSavingEv ? 'Saving...' : editingEventId ? 'Save Changes' : 'Publish Event'}
+                  </button>
+                  {editingEventId && (
+                    <button 
+                      onClick={handleCancelEditEvent}
+                      disabled={isSavingEv}
+                      className="px-4 py-2 rounded-lg border border-[#785a32]/20 bg-white text-[#5c4f3c] font-[700] text-sm hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="flex flex-col gap-3">
+                {events.map(e => (
+                  <div key={e.id} className="flex justify-between items-start gap-4 p-4 rounded-xl border border-[#785a32]/10 bg-[#fdf8ea]">
+                    <div className="flex gap-3">
+                      {e.image_url && (
+                        <div className="w-[60px] h-[60px] rounded-lg shrink-0 border border-[#785a32]/20 bg-cover bg-center shadow-sm" style={{ backgroundImage: `url(${e.image_url})` }} />
+                      )}
+                      <div>
+                        <span className="text-[10px] font-mono tracking-widest text-gray-100 bg-[#3B2E20] px-2 py-1 rounded-full mb-2 inline-block">{e.badge}</span>
+                        <h4 className="font-[700] text-[15px] mb-1">{e.title}</h4>
+                        <p className="text-[12px] text-[#7c6f5a]">📅 {e.event_date} · 🕒 {e.event_time}</p>
+                        <p className="text-[12px] text-[#7c6f5a]">📍 {e.location}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button onClick={() => handleEditEvent(e)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => handleDeleteEvent(e.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
 

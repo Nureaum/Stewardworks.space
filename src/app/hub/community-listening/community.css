@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+.font-theme-wrapper {
+  --font-baloo: 'Baloo 2', cursive;
+  --font-space-grotesk: 'Space Grotesk', sans-serif;
+  --font-newsreader: 'Newsreader', serif;
+  --font-ibm-plex-mono: 'IBM Plex Mono', monospace;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes fadeUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes lampGlow {
+  0%   { background:#ffb347; box-shadow: 0 0 22px 6px rgba(255,179,71,.85), 0 0 46px 14px rgba(255,179,71,.4), inset 0 -3px 6px rgba(120,60,0,.3); }
+  20%  { background:#ff7e9d; box-shadow: 0 0 22px 6px rgba(255,126,157,.85), 0 0 46px 14px rgba(255,126,157,.4), inset 0 -3px 6px rgba(120,20,50,.3); }
+  40%  { background:#c78bff; box-shadow: 0 0 22px 6px rgba(199,139,255,.85), 0 0 46px 14px rgba(199,139,255,.4), inset 0 -3px 6px rgba(70,20,120,.3); }
+  60%  { background:#5bd6d0; box-shadow: 0 0 22px 6px rgba(91,214,208,.85), 0 0 46px 14px rgba(91,214,208,.4), inset 0 -3px 6px rgba(0,80,76,.3); }
+  80%  { background:#9be36b; box-shadow: 0 0 22px 6px rgba(155,227,107,.85), 0 0 46px 14px rgba(155,227,107,.4), inset 0 -3px 6px rgba(40,90,10,.3); }
+  100% { background:#ffb347; box-shadow: 0 0 22px 6px rgba(255,179,71,.85), 0 0 46px 14px rgba(255,179,71,.4), inset 0 -3px 6px rgba(120,60,0,.3); }
+}
+@keyframes lampHalo {
+  0%   { background:radial-gradient(circle,rgba(255,179,71,.5),transparent 70%); }
+  20%  { background:radial-gradient(circle,rgba(255,126,157,.5),transparent 70%); }
+  40%  { background:radial-gradient(circle,rgba(199,139,255,.5),transparent 70%); }
+  60%  { background:radial-gradient(circle,rgba(91,214,208,.5),transparent 70%); }
+  80%  { background:radial-gradient(circle,rgba(155,227,107,.5),transparent 70%); }
+  100% { background:radial-gradient(circle,rgba(255,179,71,.5),transparent 70%); }
+}
+
+.community-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.community-scroll::-webkit-scrollbar-thumb { background: #c9a77a; border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+
+.community-layout ::selection {
+  background: #c98a3d;
+  color: #fff;
+}

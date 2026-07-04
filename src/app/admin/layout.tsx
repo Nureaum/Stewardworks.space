@@ -124,6 +124,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     item.exact ? pathname === item.href : pathname.startsWith(item.href)
   );
 
+  if (pathname === '/admin/environmental') {
+    return (
+      <AdminLoadingProvider>
+        {children}
+      </AdminLoadingProvider>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#FBF4E1] bg-[radial-gradient(rgba(120,90,50,.06)_1px,transparent_1px)] bg-[size:22px_22px] font-exo">
       {/* Left Sidebar */}

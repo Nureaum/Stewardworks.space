@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -240,4 +242,43 @@ body {
 @keyframes sw-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sw-label{from{opacity:0;transform:translate(-50%,-100%) translateY(6px)}to{opacity:1;transform:translate(-50%,-100%) translateY(0)}}
 @keyframes sw-fadein{from{opacity:0}to{opacity:1}}
+
+/* Environmental Literacy Animations */
+@keyframes el-rise{0%{transform:translateY(0);opacity:0}20%{opacity:.5}100%{transform:translateY(-30px);opacity:0}}
+@keyframes el-fadein{from{opacity:0}to{opacity:1}}
+@keyframes el-pagein{from{opacity:0;transform:translate(-50%,10px) scale(.985)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes el-glint{0%,100%{opacity:.3}50%{opacity:.75}}
+@keyframes el-sway{0%,100%{transform:rotate(-1.4deg)}50%{transform:rotate(1.4deg)}}
+@keyframes el-sway2{0%,100%{transform:rotate(1.2deg)}50%{transform:rotate(-1.4deg)}}
+@keyframes el-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.6px)}}
+@keyframes el-rattle{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+@keyframes el-flow{to{stroke-dashoffset:-56}}
+@keyframes el-birds{0%,100%{transform:translate(0,0)}50%{transform:translate(22px,-6px)}}
+@keyframes el-flagwave{0%,100%{transform:rotate(-2.4deg)}50%{transform:rotate(2.6deg)}}
+@keyframes ael-in{from{opacity:0;transform:translate(-50%,8px) scale(.99)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes ael-fade{from{opacity:0}to{opacity:1}}
+
+.el-scroll::-webkit-scrollbar{width:10px}
+.el-scroll::-webkit-scrollbar-thumb{background:#c9b184;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+.el-scroll::-webkit-scrollbar-track{background:transparent}
+.ael-scroll::-webkit-scrollbar{width:10px}
+.ael-scroll::-webkit-scrollbar-thumb{background:#d8d3c6;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+
+.el-hit{cursor:pointer;transition:transform .34s cubic-bezier(.34,1.35,.5,1)}
+.el-hit:hover{transform:translateY(-10px)}
+.el-tip{opacity:0;transition:opacity .2s ease;pointer-events:none}
+.el-hit:hover .el-tip{opacity:1}
+.el-ring{opacity:0;transition:opacity .2s ease}
+.el-hit:hover .el-ring{opacity:.9}
+.el-hit2{cursor:pointer}
+.el-hit2 .el-tip{opacity:0;transition:opacity .2s ease;pointer-events:none}
+.el-hit2:hover .el-tip{opacity:1}
+.el-hit2 .el-ring{opacity:0;transition:opacity .2s ease}
+.el-hit2:hover .el-ring{opacity:.6}
+
+.el-sway{transform-box:fill-box;transform-origin:bottom center;animation:el-sway 6s ease-in-out infinite}
+.el-sway2{transform-box:fill-box;transform-origin:bottom center;animation:el-sway2 7.4s ease-in-out infinite}
+.el-bob{transform-box:fill-box;transform-origin:center bottom;animation:el-bob 4.8s ease-in-out infinite}
+.el-rattle{transform-box:fill-box;transform-origin:bottom center;animation:el-rattle .9s ease-in-out infinite}
+.el-flag{transform-box:fill-box;transform-origin:left center;animation:el-flagwave 4.6s ease-in-out infinite}
 

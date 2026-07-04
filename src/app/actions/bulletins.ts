@@ -154,3 +154,97 @@ export async function updateOnboardingBulletin(data: {
   revalidatePath('/admin/announcements');
   revalidatePath('/onboarding/bulletin');
 }
+
+export async function getBulletinUpdates() {
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from('bulletin_updates')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return data;
+}
+
+export async function getBulletinEvents() {
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from('bulletin_events')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return data;
+}
+
+export async function createBulletinUpdate(data: { tag: string; title: string; body: string; detail: string; cta_label: string }) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase.from('bulletin_updates').insert(data);
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/onboarding/bulletin');
+}
+
+export async function deleteBulletinUpdate(id: string) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase.from('bulletin_updates').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/onboarding/bulletin');
+}
+
+export async function createBulletinEvent(data: { badge: string; title: string; event_date: string; event_time: string; location: string; image_url?: string | null }) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase.from('bulletin_events').insert(data);
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/onboarding/bulletin');
+}
+
+export async function deleteBulletinEvent(id: string) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase.from('bulletin_events').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/onboarding/bulletin');
+}
+
+export async function updateBulletinUpdate(id: string, data: { tag: string; title: string; body: string; detail: string; cta_label: string }) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase.from('bulletin_updates').update(data).eq('id', id);
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/onboarding/bulletin');
+}
+
+export async function updateBulletinEvent(id: string, data: { badge: string; title: string; event_date: string; event_time: string; location: string; image_url?: string | null }) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase.from('bulletin_events').update(data).eq('id', id);
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/onboarding/bulletin');
+}
