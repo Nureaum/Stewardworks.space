@@ -165,7 +165,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
     const elCats = ['Imperial County Bioregion', 'Indigenous People of Imperial County', 'Imperial County History', 'Imperial County & the Wider World'];
     elCats.forEach((name, idx) => {
       let found = false;
-      for (const [k, v] of uniqueCats.entries()) {
+      for (const [k, v] of Array.from(uniqueCats.entries())) {
         if (v.name === name) { found = true; break; }
       }
       if (!found) {
