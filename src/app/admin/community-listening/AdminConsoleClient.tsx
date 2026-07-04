@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { saveSessionAction, deleteSessionAction, updateSubmissionAction } from './actions';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -10,6 +10,11 @@ export default function AdminConsoleClient({ sessions, submissions = [], areas =
   const [adminTab, setAdminTab] = useState<'sessions' | 'inbox'>('sessions');
   const [editDraft, setEditDraft] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [subs, setSubs] = useState(submissions);
+
+  useEffect(() => {
+    setSubs(submissions);
+  }, [submissions]);
 
   const editSession = (s: any) => {
     setEditDraft({
@@ -59,15 +64,17 @@ export default function AdminConsoleClient({ sessions, submissions = [], areas =
   };
 
   const handleUpdateSub = async (id: string, updates: any) => {
+    setSubs(subs.map((s: any) => s.id === id ? { ...s, ...updates } : s));
     try {
       await updateSubmissionAction(id, updates);
+      router.refresh();
     } catch (err) {
       console.error(err);
       alert('Failed to update status.');
     }
   };
 
-  const newSubCount = submissions.filter(s => s.status === 'new').length;
+  const newSubCount = subs.filter((s: any) => s.status === 'new').length;
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
     const file = e.target.files?.[0];
@@ -302,7 +309,7 @@ export default function AdminConsoleClient({ sessions, submissions = [], areas =
           <div>
             <p style={{ fontFamily: 'var(--font-newsreader)', fontStyle: 'italic', fontSize: 16, color: '#8a6f4d', margin: '0 0 20px' }}>Public reflections from Continue the Listening. Set a status, tag the project area, and write what you integrated — anything marked <strong style={{ color: '#3f9e8f' }}>Integrated</strong> appears on the public You Said → We Did board.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {submissions.map((x, i) => (
+              {subs.map((x: any, i: number) => (
                 <div key={x.id} style={{ background: '#fbf5ea', borderRadius: 16, padding: '22px 24px', boxShadow: '0 8px 20px rgba(60,40,20,.1)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, color: '#8a6f4d' }}>{x.name || 'Anonymous'} · {x.age_range || 'Unknown age'}</div>
