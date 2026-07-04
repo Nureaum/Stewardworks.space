@@ -23,10 +23,14 @@ export default async function HelpdeskPage({
 
   const { userId } = await auth()
   let profileId = null
+  let isAdmin = false
   if (userId) {
     const supabase = createServerSupabaseClient()
-    const { data: profile } = await supabase.from('profiles').select('id').eq('clerk_user_id', userId).single()
-    if (profile) profileId = profile.id
+    const { data: profile } = await supabase.from('profiles').select('id, role').eq('clerk_user_id', userId).single()
+    if (profile) {
+      profileId = profile.id
+      isAdmin = profile.role === 'admin' || profile.role === 'super_admin'
+    }
   }
 
   const myQuestions = questions.filter(q => q.author?.id === profileId)
@@ -37,6 +41,7 @@ export default async function HelpdeskPage({
       tags={tags} 
       faqs={faqs} 
       myQuestions={myQuestions} 
+      isAdmin={isAdmin}
     />
   )
 }

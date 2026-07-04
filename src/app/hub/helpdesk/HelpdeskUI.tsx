@@ -10,12 +10,14 @@ export default function HelpdeskUI({
   categories: serverCats,
   tags: serverTags,
   faqs: serverFaqs,
-  myQuestions: serverMine
+  myQuestions: serverMine,
+  isAdmin = false
 }: {
   categories: any[];
   tags: any[];
   faqs: any[];
   myQuestions: any[];
+  isAdmin?: boolean;
 }) {
   const [view, setView] = useState<'lounge' | 'classic'>('lounge');
   const [tab, setTab] = useState<'faq' | 'mine'>('faq');
@@ -124,7 +126,12 @@ export default function HelpdeskUI({
             <button onClick={() => setView('lounge')} style={seg(view === 'lounge')}>Lounge</button>
             <button onClick={() => setView('classic')} style={seg(view === 'classic')}>List View</button>
           </div>
-          <span style={{fontFamily:"'Space Mono',monospace",fontSize:'11px',letterSpacing:'.12em',textTransform:'uppercase',color:'#A38A5E'}}>StewardWorks Members &middot; account required</span>
+          <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+            <span style={{fontFamily:"'Space Mono',monospace",fontSize:'11px',letterSpacing:'.12em',textTransform:'uppercase',color:'#A38A5E'}}>StewardWorks Members &middot; account required</span>
+            {isAdmin && (
+              <Link href="/admin/helpdesk" style={{display:'inline-block',background:'#B85C3E',color:'#fff',textDecoration:'none',fontFamily:"'Fredoka',sans-serif",fontWeight:600,fontSize:'13.5px',padding:'6px 14px',borderRadius:'10px',boxShadow:'0 8px 16px -8px rgba(184,92,62,.6)'}}>Admin Settings</Link>
+            )}
+          </div>
         </div>
 
         {view === 'classic' && (
