@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { toggleBookmark as toggleDbBookmark, fetchUserBookmarks } from '@/app/actions/bookmarks';
 
 const TYPES = [
   { id: 'video',   label: 'Video',      code: 'VI', color: '#7A2E2E' },
@@ -79,21 +80,37 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    try {
-      const bm = JSON.parse(localStorage.getItem('steward_bookmarks') || '{}');
+    fetchUserBookmarks('library').then(data => {
+      const bm: Record<string, boolean> = {};
+      data.forEach((b: any) => bm[b.item_id] = true);
       setBookmarks(bm);
-    } catch (e) {}
+    });
   }, []);
 
-  const toggleBookmark = (id: string, e?: React.MouseEvent) => {
+  const toggleBookmark = async (id: string, e?: React.MouseEvent) => {
     if (e && e.stopPropagation) e.stopPropagation();
+    const isBookmarked = !!bookmarks[id];
+    
+    // Optimistic update
     setBookmarks(prev => {
       const next = { ...prev };
       if (next[id]) delete next[id];
       else next[id] = true;
-      try { localStorage.setItem('steward_bookmarks', JSON.stringify(next)); } catch (err) {}
       return next;
     });
+
+    try {
+      await toggleDbBookmark(id, 'library');
+    } catch (err) {
+      // Revert if failed
+      toast.error('Failed to save bookmark.');
+      setBookmarks(prev => {
+        const next = { ...prev };
+        if (isBookmarked) next[id] = true;
+        else delete next[id];
+        return next;
+      });
+    }
   };
   
   // Interactive state variables

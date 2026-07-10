@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Check, ChevronDown, Camera, Loader2, X } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
+import { fetchUserBookmarks } from '@/app/actions/bookmarks';
+import { fetchAllWorkforceEntries } from '@/app/admin/workforce-pathways/actions';
+import { PATHWAYS } from '@/data/workforce-content';
 
 export default function ClientProfile({ initialProfile }: { initialProfile: any }) {
   const router = useRouter();
@@ -14,6 +17,7 @@ export default function ClientProfile({ initialProfile }: { initialProfile: any 
 
   // Bookmarks State
   const [bookmarkedResources, setBookmarkedResources] = useState<any[]>([]);
+  const [bookmarkedWorkforce, setBookmarkedWorkforce] = useState<any[]>([]);
   const [isFetchingResources, setIsFetchingResources] = useState(false);
 
   // Inline Edit State
@@ -74,21 +78,54 @@ export default function ClientProfile({ initialProfile }: { initialProfile: any 
   const loadBookmarks = useCallback(async () => {
     setIsFetchingResources(true);
     try {
-      const bm = JSON.parse(localStorage.getItem('steward_bookmarks') || '{}');
-      const bookmarkedIds = Object.keys(bm).filter(id => bm[id]);
+      const libBookmarks = await fetchUserBookmarks('library');
+      const wfBookmarks = await fetchUserBookmarks('workforce');
       
-      if (bookmarkedIds.length === 0) {
+      const libIds = libBookmarks.map((b: any) => b.item_id);
+      const wfIds = wfBookmarks.map((b: any) => b.item_id);
+      
+      // Load Library resources
+      if (libIds.length === 0) {
         setBookmarkedResources([]);
-        setIsFetchingResources(false);
-        return;
+      } else {
+        const res = await fetch('/api/public/library-resources');
+        const data = await res.json();
+        if (data.resources) {
+          const matched = data.resources.filter((r: any) => libIds.includes(r.id));
+          setBookmarkedResources(matched);
+        }
       }
 
-      const res = await fetch('/api/public/library-resources');
-      const data = await res.json();
-      if (data.resources) {
-        const matched = data.resources.filter((r: any) => bookmarkedIds.includes(r.id));
-        setBookmarkedResources(matched);
+      // Load Workforce resources
+      if (wfIds.length === 0) {
+        setBookmarkedWorkforce([]);
+      } else {
+        const allWf = await fetchAllWorkforceEntries();
+        
+        // Vault uses synthetic IDs, so we must reconstruct the possible items
+        const allRecs: any[] = [];
+        PATHWAYS.forEach(p => {
+          (p.stops || []).forEach(sp => {
+            const spEntries = allWf.filter((e: any) => e.pathway_id === p.id && e.stop_id === sp.slug);
+            spEntries.forEach((e: any) => {
+              (e.sources || []).forEach((x: any, i: number) => {
+                const recId = e.id + "_" + i;
+                allRecs.push({ id: recId, title: x[0], url: x[1], source: e.title });
+              });
+            });
+            (sp.entries || []).forEach((e: any) => {
+              (e.src || []).forEach((x: any, i: number) => {
+                const recId = "cat_" + e.id + "_" + i;
+                allRecs.push({ id: recId, title: x[0], url: x[1], source: e.t || "" });
+              });
+            });
+          });
+        });
+
+        const matchedWf = allRecs.filter(r => wfIds.includes(r.id));
+        setBookmarkedWorkforce(matchedWf);
       }
+      
     } catch (error) {
       console.error('Failed to load bookmarks:', error);
     } finally {
@@ -394,6 +431,34 @@ export default function ClientProfile({ initialProfile }: { initialProfile: any 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
                   <span style={{ fontSize: '12px', color: '#7a5a3a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{domain(b.external_url || b.url)}</span>
                   <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#417C98' }}>Open →</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* WORKFORCE PATHWAYS BOOKMARKS */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', marginTop: '20px' }}>
+          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#8a5a2e' }}>WORKFORCE PATHWAYS</span>
+          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{bookmarkedWorkforce.length}</span>
+          <span style={{ fontSize: '12px', color: '#8a6a4a' }}>saved from the vault</span>
+        </div>
+        
+        {isFetchingResources ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading your vault...</div>
+        ) : bookmarkedWorkforce.length === 0 ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#8a6a4a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px', marginBottom: '30px' }}>
+            No workforce entries saved yet. Visit <Link href="/hub/workforce-pathways" style={{ color: '#417C98', textDecoration: 'underline' }}>Workforce Pathways</Link>!
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px', marginBottom: '30px' }}>
+            {bookmarkedWorkforce.map(b => (
+              <div key={b.id} onClick={() => window.open(`/hub/workforce-pathways`, '_blank')} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)', cursor: 'pointer' }}>
+                <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#2E5534', color: '#fff', padding: '3px 8px', borderRadius: '20px', marginBottom: '10px' }}>VAULT</span>
+                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
+                  <span style={{ fontSize: '12px', color: '#7a5a3a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{domain(b.url)} {b.source ? `- ${b.source}` : ''}</span>
+                  <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#2E5534' }}>View →</span>
                 </div>
               </div>
             ))}

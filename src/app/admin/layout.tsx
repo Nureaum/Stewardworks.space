@@ -124,7 +124,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     item.exact ? pathname === item.href : pathname.startsWith(item.href)
   );
 
-  if (pathname === '/admin/environmental') {
+  if (pathname === '/admin/environmental' || pathname.startsWith('/admin/workforce-pathways')) {
     return (
       <AdminLoadingProvider>
         {children}
