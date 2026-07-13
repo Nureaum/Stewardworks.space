@@ -50,25 +50,9 @@ export default function RegistrationButton({
     }
   }
 
-  // Check if registration is open
+  // Check if registration is open (date restrictions removed)
   let canRegister = cohortStatus === 'open'
   let disabledMessage = ''
-
-  if (registrationOpensAt) {
-    const opensAt = new Date(registrationOpensAt)
-    if (now < opensAt) {
-      canRegister = false
-      disabledMessage = `Registration opens on ${opensAt.toLocaleDateString()}`
-    }
-  }
-
-  if (registrationClosesAt) {
-    const closesAt = new Date(registrationClosesAt)
-    if (now > closesAt) {
-      canRegister = false
-      disabledMessage = 'Registration closed'
-    }
-  }
 
   if (cohortStatus !== 'open') {
     canRegister = false

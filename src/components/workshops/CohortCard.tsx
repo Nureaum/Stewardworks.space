@@ -18,7 +18,7 @@ export default function CohortCard({ cohort, onRegister, hasCompletedOnboarding 
     ? Math.max(0, cohort.capacity - cohort.registered_count)
     : null
 
-  // Determine registration status message
+  // Determine registration status message (date restrictions removed)
   let statusMessage = ''
   let statusColor = 'text-gray-600'
 
@@ -29,20 +29,6 @@ export default function CohortCard({ cohort, onRegister, hasCompletedOnboarding 
     } else if (cohort.user_registration.status === 'waitlisted') {
       statusMessage = 'Waitlisted'
       statusColor = 'text-yellow-600'
-    }
-  } else if (cohort.registration_opens_at) {
-    const opensAt = new Date(cohort.registration_opens_at)
-    if (now < opensAt) {
-      statusMessage = `Registration opens ${opensAt.toLocaleDateString()}`
-      statusColor = 'text-gray-500'
-    }
-  }
-
-  if (cohort.registration_closes_at) {
-    const closesAt = new Date(cohort.registration_closes_at)
-    if (now > closesAt && !cohort.user_registration) {
-      statusMessage = 'Registration closed'
-      statusColor = 'text-gray-500'
     }
   }
 

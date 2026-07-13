@@ -49,22 +49,7 @@ export async function registerForCohort(cohortId: string): Promise<RegisterForCo
       throw new Error('Registration is not currently open for this cohort')
     }
 
-    // Check registration window
-    const now = new Date()
-    
-    if (cohort.registration_opens_at) {
-      const opensAt = new Date(cohort.registration_opens_at)
-      if (now < opensAt) {
-        throw new Error(`Registration opens on ${opensAt.toLocaleDateString()}`)
-      }
-    }
-    
-    if (cohort.registration_closes_at) {
-      const closesAt = new Date(cohort.registration_closes_at)
-      if (now > closesAt) {
-        throw new Error('Registration has closed for this cohort')
-      }
-    }
+    // Registration window checks removed - allow registration at any time
 
     // Check for duplicate registration
     const { data: existing } = await supabase
