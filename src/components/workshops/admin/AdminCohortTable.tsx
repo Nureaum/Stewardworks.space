@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { 
   Users, 
   Search, 
@@ -38,8 +39,10 @@ interface AdminCohortTableProps {
 }
 
 export default function AdminCohortTable({ cohorts, userRole }: AdminCohortTableProps) {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const filteredCohorts = useMemo(() => {
     let filtered = cohorts
@@ -89,27 +92,50 @@ export default function AdminCohortTable({ cohorts, userRole }: AdminCohortTable
   return (
     <>
       {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+      <div style={{
+        background: 'rgba(36,21,66,0.5)',
+        border: '2px solid #3d2668',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 24,
+      }}>
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#a493c9' }} />
             <input
               type="text"
               placeholder="Search cohorts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steward-blue focus:border-transparent"
+              style={{
+                width: '100%',
+                padding: '10px 16px 10px 40px',
+                background: '#1a0f2e',
+                border: '1px solid #3d2668',
+                borderRadius: 8,
+                color: '#efe6ff',
+                fontFamily: "'Inter', sans-serif"
+              }}
+              className="focus:outline-none focus:border-[#c9a85f]"
             />
           </div>
 
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-400" />
+            <Filter className="w-5 h-5" style={{ color: '#a493c9' }} />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-steward-blue focus:border-transparent"
+              style={{
+                padding: '10px 16px',
+                background: '#1a0f2e',
+                border: '1px solid #3d2668',
+                borderRadius: 8,
+                color: '#efe6ff',
+                fontFamily: "'Inter', sans-serif"
+              }}
+              className="focus:outline-none focus:border-[#c9a85f]"
             >
               <option value="all">All Statuses</option>
               <option value="draft">Draft</option>
@@ -122,18 +148,18 @@ export default function AdminCohortTable({ cohorts, userRole }: AdminCohortTable
       </div>
 
       {/* Results Count */}
-      <div className="mb-4 text-sm text-gray-600">
-        Showing {filteredCohorts.length} of {cohorts.length} cohorts
+      <div className="mb-4 font-pixel" style={{ fontSize: 10, color: '#a493c9' }}>
+        SHOWING {filteredCohorts.length} OF {cohorts.length} COHORTS
       </div>
 
       {/* Cohorts Table */}
       {filteredCohorts.length === 0 ? (
-        <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
-          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No Cohorts Found
+        <div style={{ textAlign: 'center', padding: 40, border: '2px dashed #3d2668', borderRadius: 12, background: 'rgba(36,21,66,0.3)' }}>
+          <Calendar className="w-16 h-16 mx-auto mb-4" style={{ color: '#3d2668' }} />
+          <h3 className="font-pixel" style={{ fontSize: 14, color: '#c9a85f', marginBottom: 8 }}>
+            NO COHORTS FOUND
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p style={{ color: '#6f5e8f', fontSize: 14, marginBottom: 20 }}>
             {searchQuery || statusFilter !== 'all' 
               ? 'Try adjusting your filters'
               : 'Get started by creating your first cohort'}
@@ -141,121 +167,150 @@ export default function AdminCohortTable({ cohorts, userRole }: AdminCohortTable
           {!searchQuery && statusFilter === 'all' && (
             <Link
               href="/admin/pilot-workshops/create"
-              className="inline-flex items-center gap-2 bg-steward-dark hover:bg-black text-white px-6 py-2 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors shadow-sm hover:shadow"
+              className="font-pixel inline-flex items-center gap-2"
+              style={{
+                background: '#45d6ff',
+                color: '#06040c',
+                padding: '10px 16px',
+                borderRadius: 6,
+                fontSize: 10,
+                textDecoration: 'none',
+                fontWeight: 'bold',
+              }}
             >
-              <Plus className="w-5 h-5" />
-              Create Cohort
+              <Plus className="w-4 h-4" />
+              CREATE COHORT
             </Link>
           )}
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cohort Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Start Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Capacity
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Registered
-                  </th>
-                  {userRole === 'super_admin' && (
-                    <>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created By
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Updated By
-                      </th>
-                    </>
-                  )}
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCohorts.map((cohort) => (
-                  <tr key={cohort.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {cohort.name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {formatDate(cohort.start_date)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(cohort.status)}`}>
-                        {cohort.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {cohort.capacity ?? 'Unlimited'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm text-gray-900">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        {cohort.registered_count}
-                        {cohort.waitlisted_count > 0 && (
-                          <span className="text-yellow-600">
-                            (+{cohort.waitlisted_count} waitlisted)
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    {userRole === 'super_admin' && (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {cohort.creator?.full_name || cohort.creator?.first_name || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {cohort.updater?.full_name || cohort.updater?.first_name || '-'}
-                        </td>
-                      </>
-                    )}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/admin/pilot-workshops/${cohort.id}/edit`}
-                          className="text-steward-blue hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
-                          title="Edit Cohort"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Link>
-                        <Link
-                          href={`/admin/pilot-workshops/${cohort.id}/registrations`}
-                          className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50 transition-colors"
-                          title="View Registrations"
-                        >
-                          <Users className="w-4 h-4" />
-                        </Link>
-                        <Link
-                          href={`/admin/pilot-workshops/${cohort.id}/reviews`}
-                          className="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50 transition-colors"
-                          title="Review Deliverables"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredCohorts.map((cohort) => {
+            // Helper to parse description HTML injected by rich text editors
+            const descHtml = cohort.description || '';
+            const thumbMatch = descHtml.match(/data-thumbnail="([^"]+)"/);
+            const thumb = thumbMatch ? thumbMatch[1] : null;
+            const descText = descHtml.replace(/<[^>]+>/g, '').trim() || 'No description provided for this cohort.';
+
+            return (
+            <div
+              key={cohort.id}
+              onClick={() => {
+                setLoadingId(cohort.id)
+                router.push(`/hub/pilot-workshops/${cohort.id}/journey?mode=admin`)
+              }}
+              className="flex flex-col p-6 rounded-2xl transition-all"
+              style={{
+                background: '#241542',
+                border: '2px solid #3d2668',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                cursor: loadingId === cohort.id ? 'wait' : 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#c9a85f'
+                e.currentTarget.style.transform = 'translateY(-2px)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#3d2668'
+                e.currentTarget.style.transform = 'none'
+              }}
+            >
+              {/* Thumbnail at top */}
+              {thumb ? (
+                <div style={{
+                  width: '100%',
+                  aspectRatio: '16/9',
+                  backgroundImage: `url(${thumb})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  borderRadius: 8,
+                  marginBottom: 16,
+                  border: '1px solid rgba(61,38,104,0.5)',
+                }} />
+              ) : (
+                <div style={{
+                  width: '100%',
+                  aspectRatio: '16/9',
+                  background: 'linear-gradient(135deg, rgba(61,38,104,0.4) 0%, rgba(36,21,66,0.4) 100%)',
+                  borderRadius: 8,
+                  marginBottom: 16,
+                  border: '1px solid rgba(61,38,104,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(61,38,104,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="font-pixel" style={{ color: '#c9a85f', fontSize: 12 }}>✦</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1 pr-4">
+                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#efe6ff', margin: '0 0 4px 0' }}>
+                    {cohort.name}
+                  </h3>
+                  <div className="font-pixel" style={{ fontSize: 9, color: '#a493c9' }}>
+                    STARTS: {formatDate(cohort.start_date)}
+                  </div>
+                </div>
+                <span className="font-pixel" style={{
+                  fontSize: 8,
+                  padding: '4px 8px',
+                  background: cohort.status === 'open' ? 'rgba(116,240,160,0.2)' : 'rgba(164,147,201,0.2)',
+                  color: cohort.status === 'open' ? '#74f0a0' : (cohort.status === 'completed' ? '#45d6ff' : '#a493c9'),
+                  borderRadius: 4,
+                  border: `1px solid ${cohort.status === 'open' ? '#74f0a0' : (cohort.status === 'completed' ? '#45d6ff' : '#3d2668')}`
+                }}>
+                  {cohort.status.toUpperCase()}
+                </span>
+              </div>
+
+              <div className="mb-6 pt-4" style={{ borderTop: '1px solid #3d2668', flex: 1 }}>
+                <p style={{ fontSize: 13, color: '#a493c9', lineHeight: 1.5, margin: 0 }}>
+                  {descText}
+                </p>
+              </div>
+
+              <div className="mt-auto pt-4 flex items-center justify-between gap-2" style={{ borderTop: '1px solid #3d2668' }}>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/hub/pilot-workshops/${cohort.id}/journey`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-2 rounded-xl transition-colors"
+                    style={{ color: '#a493c9', background: '#1a0f2e' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#c9a85f'; e.currentTarget.style.background = '#241542' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#a493c9'; e.currentTarget.style.background = '#1a0f2e' }}
+                    title="Student Journey View"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 7.5 14.6 3 12"></polyline><polyline points="21 12 16.5 14.6 16.5 19.79"></polyline><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                  </Link>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setLoadingId(cohort.id)
+                    router.push(`/hub/pilot-workshops/${cohort.id}/journey?mode=admin`)
+                  }}
+                  disabled={loadingId === cohort.id}
+                  className="font-pixel px-4 py-2 rounded-xl transition-colors"
+                  style={{
+                    fontSize: 9,
+                    color: '#c9a85f',
+                    background: 'transparent',
+                    border: '1px solid #c9a85f',
+                    cursor: loadingId === cohort.id ? 'wait' : 'pointer',
+                    opacity: loadingId === cohort.id ? 0.7 : 1
+                  }}
+                  onMouseEnter={(e) => { if (loadingId !== cohort.id) e.currentTarget.style.background = 'rgba(201,168,95,0.1)' }}
+                  onMouseLeave={(e) => { if (loadingId !== cohort.id) e.currentTarget.style.background = 'transparent' }}
+                >
+                  {loadingId === cohort.id ? 'LOADING...' : 'EDIT'}
+                </button>
+              </div>
+            </div>
+            )
+          })}
         </div>
       )}
     </>

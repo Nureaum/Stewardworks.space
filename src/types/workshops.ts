@@ -26,16 +26,36 @@ export interface Cohort {
 export interface WorkshopDay {
   id: string;
   cohort_id: string;
-  day_number: 1 | 2 | 3;
+  day_number: number;
   title: string;
   content_body: string | null;
   deliverable_instructions: string | null;
   deliverable_type: 'text' | 'file' | 'video' | 'pending_confirmation';
   requires_admin_approval: boolean;
+  // Gamified scene fields (Phase 1)
+  intro: string | null;
+  blurb: string | null;
+  scene_config: SceneConfig | null;
   created_by: string;
   created_at: string;
   updated_by: string;
   updated_at: string;
+}
+
+/**
+ * SceneConfig: Theme configuration for the side-scroll scene per day
+ */
+export interface SceneConfig {
+  label?: string;       // e.g. "ACT I · THE SANCTUARY"
+  key?: string;         // e.g. "sanctuary"
+  sky?: [string, string, string]; // gradient stops [top, mid, bottom]
+  far?: string;         // far parallax layer color
+  mid?: string;         // midground layer color
+  ground?: string;      // ground color
+  groundEdge?: string;  // ground top-edge border
+  accent?: string;      // scene accent color
+  glow?: string;        // accent glow color for artifacts
+  pedestal?: [string, string]; // pedestal colors [light, dark]
 }
 
 /**
@@ -77,6 +97,8 @@ export interface WorkshopProgress {
   reviewed_at: string | null;
   review_note: string | null;
   completed_media_ids: string[];
+  // Gamified Chia Guardian field (Phase 1)
+  chia_manual_pct: number;
 }
 
 /**
@@ -134,6 +156,8 @@ export interface SubmissionData {
   submission_text?: string;
   file?: File;
   external_video_url?: string;
+  principle_id?: string;
+  showcase_requested?: boolean;
 }
 
 /**
@@ -142,7 +166,7 @@ export interface SubmissionData {
  */
 export interface SubmissionWithMetadata extends WorkshopDeliverableSubmission {
   day_title: string;
-  day_number: 1 | 2 | 3;
+  day_number: number;
   participant_name: string;
   participant_email: string;
   deliverable_status: 'not_submitted' | 'submitted' | 'approved' | 'rejected';
@@ -155,7 +179,7 @@ export interface SubmissionWithMetadata extends WorkshopDeliverableSubmission {
  */
 export interface ProgressWithDayInfo extends WorkshopProgress {
   day_title: string;
-  day_number: 1 | 2 | 3;
+  day_number: number;
   cohort_id: string;
   cohort_name: string;
 }
@@ -233,7 +257,7 @@ export interface UpdateCohortParams extends CreateCohortParams {
  */
 export interface CreateWorkshopDayParams {
   cohort_id: string;
-  day_number: 1 | 2 | 3;
+  day_number: number;
   title: string;
   content_body: string | null;
   deliverable_instructions: string | null;
@@ -442,4 +466,327 @@ export interface CreateAILabParams {
 
 export interface UpdateAILabParams extends CreateAILabParams {
   id: string;
+}
+
+// ============================================================
+// Gamified Workshop Types — Phase 1 (New Tables)
+// ============================================================
+
+/**
+ * WorkshopCharacter: User's avatar selection and customization per cohort
+ */
+export interface WorkshopCharacter {
+  id: string;
+  cohort_id: string;
+  profile_id: string;
+  character_key: string;    // e.g. 'nayeli', 'kai', 'sol'
+  player_name: string;
+  accent_color: string;     // hex color for signal aura
+  tint: string;             // skin/field tint key
+  headgear: string;
+  loadout: string;          // field kit key
+  outfit: string;
+  hair: string;
+  hair_color: string;       // hex
+  facial: string;           // facial hair key
+  companion: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * WorkshopPrinciple: Admin-defined steward principles per cohort
+ */
+export interface WorkshopPrinciple {
+  id: string;
+  cohort_id: string;
+  name: string;
+  description: string | null;
+  example: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * WorkshopDaySection: A time-block section within a workshop day
+ */
+export interface WorkshopDaySection {
+  id: string;
+  workshop_day_id: string;
+  section_key: string;      // 'A', 'B', 'C'
+  hour: string | null;      // e.g. "9:00 – 10:30 AM"
+  title: string;
+  duration: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * WorkshopDayEntry: Individual topic entry within a section
+ */
+export type WorkshopEntryType = 'text' | 'list' | 'dual' | 'featured' | 'deliverable';
+
+export interface WorkshopDayEntry {
+  id: string;
+  section_id: string;
+  entry_type: WorkshopEntryType;
+  title: string;
+  subtitle: string | null;
+  // Type: text
+  body: string | null;
+  // Type: list
+  items: string[];          // string array
+  // Type: dual
+  modern_title: string | null;
+  modern_body: string | null;
+  ancient_title: string | null;
+  ancient_body: string | null;
+  framework: string | null;
+  // Type: featured
+  contrib_id: string | null;
+  note: string | null;
+  // Type: deliverable
+  goal: string | null;
+  applied: string | null;
+  lab: string | null;
+  submit_label: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * WorkshopEntryMedia: Media attachment on an entry
+ */
+export interface WorkshopEntryMedia {
+  id: string;
+  entry_id: string;
+  kind: 'link' | 'photo' | 'video' | 'audio';
+  label: string | null;
+  url: string | null;
+  file_name: string | null;
+  storage_path: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+/**
+ * WorkshopEngagement: Student engagement item for Chia Guardian growth
+ */
+export type EngagementKind = 'bookmark' | 'note' | 'prompt' | 'generation';
+export type EngagementStatus = 'pending' | 'approved' | 'rejected';
+
+export interface WorkshopEngagement {
+  id: string;
+  cohort_id: string;
+  profile_id: string;
+  kind: EngagementKind;
+  title: string;
+  source: string | null;
+  url: string | null;
+  content: string | null;
+  showcase_item_id: string | null;
+  status: EngagementStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+/**
+ * WorkshopShowcase: Community showcase contribution
+ */
+export type ShowcaseType = 'video' | 'article' | 'audio' | 'aigen';
+
+export interface WorkshopShowcase {
+  id: string;
+  cohort_id: string;
+  title: string;
+  author: string | null;
+  type: ShowcaseType;
+  url: string | null;
+  blurb: string | null;
+  meta: string | null;
+  theme: string | null;
+  is_paid: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * WorkshopProgressPrinciple: Junction — principle banked on a day
+ */
+export interface WorkshopProgressPrinciple {
+  id: string;
+  progress_id: string;
+  principle_id: string;
+  banked_at: string;
+}
+
+/**
+ * WorkshopVisitedEntry: Tracks visited artifacts in the scene
+ */
+export interface WorkshopVisitedEntry {
+  id: string;
+  cohort_id: string;
+  profile_id: string;
+  entry_id: string;
+  visited_at: string;
+}
+
+// ============================================================
+// Gamified Workshop — Derived UI Types
+// ============================================================
+
+/**
+ * SectionWithEntries: Section enriched with its child entries
+ */
+export interface SectionWithEntries extends WorkshopDaySection {
+  entries: WorkshopDayEntry[];
+}
+
+/**
+ * DayWithSections: Workshop day enriched with sections, entries, and scene config
+ */
+export interface DayWithSections extends WorkshopDay {
+  sections: SectionWithEntries[];
+}
+
+/**
+ * EntryWithMedia: Entry enriched with its media attachments
+ */
+export interface EntryWithMedia extends WorkshopDayEntry {
+  media: WorkshopEntryMedia[];
+}
+
+/**
+ * JourneyState: Full client-side state for the gamified journey
+ */
+export interface JourneyState {
+  character: WorkshopCharacter | null;
+  days: DayWithSections[];
+  progress: Record<number, WorkshopProgress | null>; // keyed by day_number
+  principles: WorkshopPrinciple[];
+  bankedPrinciples: WorkshopProgressPrinciple[];
+  engagements: WorkshopEngagement[];
+  visitedEntries: string[];  // entry IDs
+  showcase: WorkshopShowcase[];
+}
+
+// ============================================================
+// Gamified Workshop — Server Action Param Types
+// ============================================================
+
+export interface SaveCharacterParams {
+  cohort_id: string;
+  character_key: string;
+  player_name: string;
+  accent_color: string;
+  tint: string;
+  headgear: string;
+  loadout: string;
+  outfit: string;
+  hair: string;
+  hair_color: string;
+  facial: string;
+  companion: string;
+}
+
+export interface CreatePrincipleParams {
+  cohort_id: string;
+  name: string;
+  description?: string;
+  example?: string;
+}
+
+export interface UpdatePrincipleParams {
+  id: string;
+  name?: string;
+  description?: string;
+  example?: string;
+}
+
+export interface CreateSectionParams {
+  workshop_day_id: string;
+  section_key: string;
+  hour?: string;
+  title: string;
+  duration?: string;
+}
+
+export interface UpdateSectionParams {
+  id: string;
+  hour?: string;
+  title?: string;
+  duration?: string;
+}
+
+export interface CreateEntryParams {
+  section_id: string;
+  entry_type: WorkshopEntryType;
+  title?: string;
+}
+
+export interface UpdateEntryParams {
+  id: string;
+  entry_type?: WorkshopEntryType;
+  title?: string;
+  subtitle?: string;
+  body?: string;
+  items?: string[];
+  modern_title?: string;
+  modern_body?: string;
+  ancient_title?: string;
+  ancient_body?: string;
+  framework?: string;
+  contrib_id?: string;
+  note?: string;
+  goal?: string;
+  applied?: string;
+  lab?: string;
+  submit_label?: string;
+}
+
+export interface CreateEntryMediaParams {
+  entry_id: string;
+  kind: 'link' | 'photo' | 'video' | 'audio';
+  label?: string;
+  url?: string;
+}
+
+export interface AddEngagementParams {
+  cohort_id: string;
+  kind: EngagementKind;
+  title: string;
+  source?: string;
+  url?: string;
+  content?: string;
+  showcase_item_id?: string;
+}
+
+export interface CreateShowcaseParams {
+  cohort_id: string;
+  title: string;
+  author?: string;
+  type: ShowcaseType;
+  url?: string;
+  blurb?: string;
+  meta?: string;
+  theme?: string;
+  is_paid?: boolean;
+}
+
+export interface UpdateShowcaseParams extends Partial<CreateShowcaseParams> {
+  id: string;
+}
+
+export interface SubmitDayWithPrinciplesParams {
+  cohort_id: string;
+  day_number: number;
+  link?: string;
+  file?: File;
+  file_name?: string;
+  principle_ids: string[];
 }

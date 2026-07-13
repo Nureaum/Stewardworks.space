@@ -1,0 +1,128 @@
+/* Google Fonts loaded via <link> in layout, not @import */
+
+/* ── CSS Custom Properties ─────────────────────────── */
+.retro-journey {
+  --p: #ff5fd2;      /* pink */
+  --s: #45d6ff;      /* cyan */
+  --ok: #74f0a0;     /* green */
+  --gold: #ffd23f;   /* yellow */
+  --bg: #12081e;     /* dark background */
+  --pn: #241542;     /* panel */
+  --ln: #3d2668;     /* line/border */
+  --tx: #efe6ff;     /* text */
+  --mu: #a493c9;     /* muted */
+}
+
+/* Pixel-art images */
+.retro-journey img { image-rendering: pixelated; }
+
+/* Custom scrollbar */
+.retro-journey ::-webkit-scrollbar { width: 12px; height: 12px; }
+.retro-journey ::-webkit-scrollbar-track { background: rgba(0,0,0,.25); }
+.retro-journey ::-webkit-scrollbar-thumb { background: var(--ln); border: 2px solid var(--bg); }
+
+/* Inputs */
+.retro-journey input,
+.retro-journey textarea,
+.retro-journey select,
+.retro-journey button { font-family: inherit; }
+.retro-journey input::placeholder,
+.retro-journey textarea::placeholder { color: var(--mu); opacity: .7; }
+
+/* ── Keyframe Animations ──────────────────────────── */
+@keyframes retro-bob {
+  0%, 100% { transform: translate(-50%, -92%); }
+  50% { transform: translate(-50%, -104%); }
+}
+@keyframes retro-nodepulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--p), 0 0 18px var(--p); }
+  50% { box-shadow: 0 0 0 6px rgba(255,95,210,.18), 0 0 30px var(--p); }
+}
+@keyframes retro-twinkle {
+  0%, 100% { opacity: .25; }
+  50% { opacity: 1; }
+}
+@keyframes retro-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes retro-toastin {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+@keyframes retro-floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes retro-popin {
+  0% { transform: translate(-50%, 4px) scale(.94); opacity: 0; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+@keyframes retro-winpop {
+  0% { transform: scale(.6); opacity: 0; }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes retro-confetti {
+  0% { transform: translateY(-10px) rotate(0); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(560px) rotate(220deg); opacity: 0; }
+}
+/* Aliases for inline style animation-name */
+@keyframes nodepulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--p), 0 0 18px var(--p); }
+  50% { box-shadow: 0 0 0 6px rgba(255,95,210,.18), 0 0 30px var(--p); }
+}
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: .25; }
+  50% { opacity: 1; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .retro-journey * {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ── Utility Classes ──────────────────────────────── */
+.retro-floaty { animation: retro-floaty 2.6s ease-in-out infinite; }
+.retro-twinkle { animation: retro-twinkle 2.4s infinite; }
+.retro-winpop { animation: retro-winpop .35s ease both; }
+.retro-toastin { animation: retro-toastin .3s ease both; }
+
+/* ── Font Classes ─────────────────────────────────── */
+.font-pixel { font-family: 'Press Start 2P', monospace; }
+.font-retro { font-family: 'VT323', monospace; }
+
+/* ── CRT Scanline Overlay ─────────────────────────── */
+.retro-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,.16) 0px,
+    rgba(0,0,0,.16) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+.retro-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 41;
+  background: radial-gradient(
+    120% 100% at 50% 50%,
+    transparent 55%,
+    rgba(0,0,0,.5) 100%
+  );
+}

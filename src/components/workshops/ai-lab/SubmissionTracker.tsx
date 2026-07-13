@@ -1,0 +1,382 @@
+'use client';
+
+import React, { useState, useRef } from 'react';
+import toast from 'react-hot-toast';
+import { uploadCreationImage } from '@/app/actions/workshops/engagement';
+
+function chiaRects(stage: number) {
+  const gL='#d9b34d',gM='#c19a33',gD='#9c7a28',eye='#3a2c14',bD='#1c150f',bM='#33281b',gr='#5fa83c',gr2='#8fd85f',fp='#ff5fd2',fy='#ffd23f',fv='#b06bff';
+  const r=[
+    [2,18,12,2,bD],[3,18,10,1,bM],
+    [6,11,4,1,gL],[5,12,6,1,gM],[5,13,6,1,gM],[4,14,8,1,gM],[4,15,8,1,gD],[3,16,10,1,gM],[3,17,10,1,gD],
+    [5,16,6,1,gL],
+    [7,10,2,1,gM],
+    [6,5,4,1,gL],[5,6,6,1,gL],[5,7,6,1,gM],[5,8,6,1,gM],[6,9,4,1,gD],
+    [6,7,1,1,eye],[9,7,1,1,eye]
+  ] as any[];
+  const S: any[]=[];
+  const defs: Record<number, any[]>={
+    1:[[6,3,1,2,gr],[8,3,1,2,gr],[7,2,1,3,gr],[7,2,1,1,gr2]],
+    2:[[5,2,1,3,gr],[7,1,1,4,gr],[9,2,1,3,gr],[8,2,1,3,gr],[7,1,1,1,gr2],[5,2,1,1,gr2],[9,2,1,1,gr2]],
+    3:[[5,1,1,4,gr],[6,2,1,3,gr],[7,0,1,5,gr],[8,1,1,4,gr],[9,2,1,3,gr],[10,3,1,2,gr],[7,0,1,1,gr2],[5,1,1,1,gr2],[9,2,1,1,gr2]],
+    4:[[4,3,1,2,gr],[5,1,1,4,gr],[6,0,1,5,gr],[7,0,1,5,gr],[8,1,1,4,gr],[9,0,1,5,gr],[10,2,1,3,gr],[6,0,1,1,gr2],[9,0,1,1,gr2],[7,0,1,1,gr2]]
+  };
+  if(stage>=1&&stage<5)(defs[stage]||[]).forEach(x=>S.push(x));
+  if(stage>=5){
+    [[5,2,1,3,gr],[6,1,1,3,gr],[9,1,1,3,gr],[10,2,1,3,gr],[7,2,1,2,gr],[8,2,1,2,gr]].forEach(x=>S.push(x));
+    [[4,0,2,2,fp],[7,0,2,2,fy],[10,0,2,2,fv]].forEach(x=>S.push(x));
+  }
+  return r.concat(S);
+}
+
+function buildChiaUri(stage: number, accent: string = '#4dffa0') {
+  const rects = chiaRects(stage);
+  const body = rects.map(a => `<rect x='${a[0]}' y='${a[1]}' width='${a[2]}' height='${a[3]}' fill='${a[4]==='A'?accent:a[4]}'/>`).join('');
+  return "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='20' viewBox='0 0 16 20' shape-rendering='crispEdges'>${body}</svg>`);
+}
+
+export default function SubmissionTracker({ day, dayId, daysComplete = 0, days = [], principles = [] }: { day: number, dayId: string, daysComplete?: number, days?: any[], principles?: any[] }) {
+  const [minimized, setMinimized] = useState(false);
+  const [selectedPrinciple, setSelectedPrinciple] = useState('');
+  const [submissionUrl, setSubmissionUrl] = useState('');
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (!days || days.length === 0) {
+    return (
+      <div style={{ marginTop: 14, border: '2px solid var(--ln,#3a3352)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '24px 16px', textAlign: 'center' }}>
+        <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu,#a493c9)', lineHeight: 1.4 }}>
+          NO DELIVERABLES ASSIGNED
+          <br /><br />
+          <span style={{ fontSize: 8 }}>The instructor has not added any workshop days yet.</span>
+        </div>
+      </div>
+    );
+  }
+
+  const mappedPrinciples = principles && principles.length > 0 
+    ? principles.map((p: any) => p.title || p.name || p) 
+    : [
+        'Active Production over Passive Consumption',
+        'Bilingual Grounding',
+        'Reclaiming Intention',
+        'Friction is a Sanctuary',
+        'Material Footprints',
+        'Valuing Process over Output',
+        'Honoring Land Caretakers',
+        'Sovereign Compute Architecture',
+        'Making Gaps Visible',
+      ];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (PNG, JPG, GIF, etc.)', { position: 'bottom-center' });
+      return;
+    }
+
+    setFileToUpload(file);
+    setSubmissionUrl(URL.createObjectURL(file));
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmitDeliverable = async () => {
+    if (!selectedPrinciple) {
+      toast.error('Please select a principle first.', { position: 'bottom-center' });
+      return;
+    }
+    if (!submissionUrl && !fileToUpload) {
+      toast.error('Please provide your deliverable link or upload an image.', { position: 'bottom-center' });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      let finalUrl = submissionUrl;
+      if (fileToUpload) {
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        finalUrl = await uploadCreationImage(formData);
+      }
+      
+      toast.success(`Deliverable submitted successfully!`, { position: 'bottom-center' });
+      // TODO: Integrate with actual submission action
+      
+      setSubmissionUrl('');
+      setFileToUpload(null);
+      setSelectedPrinciple('');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to upload image.', { position: 'bottom-center' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const dayTitles = days && days.length > 0 
+    ? days.map((d: any) => (d.title || '').toUpperCase()) 
+    : ['STORY', 'RÉSUMÉ', 'PORTFOLIO'];
+
+  const daysToMap = days && days.length > 0 ? days : [{day_number: 1}, {day_number: 2}, {day_number: 3}];
+
+  return (
+    <div style={{ 
+      marginTop: 14, 
+      border: '2px solid var(--sy,#ffd23f)', 
+      borderRadius: 10, 
+      background: 'linear-gradient(180deg,rgba(255,210,63,.06),var(--pn,#14211b))', 
+      padding: '15px 16px' 
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        alignItems: 'center', 
+        gap: 10, 
+        justifyContent: 'space-between', 
+        marginBottom: minimized ? 0 : 16 
+      }}>
+        <div className="font-pixel" style={{ fontSize: 9, color: 'var(--sy,#ffd23f)', letterSpacing: 1 }}>
+          ▚ DELIVERABLE TRACKER &amp; SUBMISSION CONSOLE
+        </div>
+        <button 
+          onClick={() => setMinimized(!minimized)}
+          title={minimized ? 'Expand this panel' : 'Minimize this panel'}
+          className="font-pixel"
+          style={{ 
+            fontSize: 8, 
+            color: 'var(--mu,#77b78d)', 
+            background: 'rgba(0,0,0,.3)', 
+            border: '2px solid var(--ln,#28432f)', 
+            borderRadius: 5, 
+            padding: '8px 10px', 
+            cursor: 'pointer', 
+            flex: 'none' 
+          }}
+        >
+          {minimized ? '▾ SHOW' : '▴ HIDE'}
+        </button>
+      </div>
+
+      {!minimized && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          
+          {/* Top Banner: Chia Guardian */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 16, 
+            border: '2px solid var(--ng,#4dffa0)', 
+            borderRadius: 8, 
+            padding: '12px 16px',
+            background: 'rgba(77,255,160,.05)'
+          }}>
+            <img 
+              src={buildChiaUri(daysComplete > 0 ? (daysComplete === 3 ? 5 : 2) : 1)} 
+              alt="Chia Guardian" 
+              style={{ width: 48, height: 60, imageRendering: 'pixelated', filter: 'drop-shadow(0 3px 0 rgba(0,0,0,.4))' }} 
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="font-pixel" style={{ fontSize: 9, color: 'var(--ng,#4dffa0)', letterSpacing: 1 }}>
+                ◈ YOUR CHIA GUARDIAN · {daysComplete * 25}% GROWN
+              </div>
+              <div style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: 'var(--mu,#77b78d)', lineHeight: 1.2 }}>
+                Sprouting — each teacher-approved deliverable grows it +25%. Bank below; it sprouts once your instructor approves.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start' }}>
+            {/* Left: 3-Day Deliverable Map */}
+            <div style={{ flex: '1 1 200px', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 4 }}>
+                {daysToMap.length}-DAY DELIVERABLE MAP
+              </div>
+              
+              {daysToMap.map((dObj: any, idx: number) => {
+                const d = dObj.day_number || (idx + 1);
+                const isActive = d === day;
+                const isBanked = d <= daysComplete;
+                return (
+                  <div 
+                    key={d} 
+                    style={{ 
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      border: `2px solid ${isActive ? 'var(--sy,#ffd23f)' : 'var(--ln,#28432f)'}`, 
+                      borderRadius: 8, 
+                      padding: '12px 14px',
+                      background: isActive ? 'rgba(255,210,63,.08)' : 'rgba(0,0,0,.2)',
+                      opacity: (d > daysComplete + 1 && !isActive) ? 0.5 : 1,
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div className="font-pixel" style={{ fontSize: 10, color: isActive ? 'var(--sy,#ffd23f)' : 'var(--tx,#d6ffe0)' }}>
+                        DAY 0{d}
+                      </div>
+                      <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)' }}>
+                        {dayTitles[idx]}
+                      </div>
+                    </div>
+                    <div className="font-pixel" style={{ 
+                      fontSize: 7, 
+                      padding: '4px 8px', 
+                      borderRadius: 12,
+                      background: isActive ? 'var(--sy,#ffd23f)' : 'transparent',
+                      color: isActive ? 'var(--bg,#0e1512)' : 'var(--tx,#d6ffe0)',
+                      border: `1px solid ${isActive ? 'var(--sy,#ffd23f)' : 'var(--ln,#28432f)'}`
+                    }}>
+                      {isBanked ? '✓ BANKED' : (isActive ? 'ACTIVE' : 'QUEUED')}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Right: Validation & Banking */}
+            <div style={{ flex: '2 1 400px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: -4 }}>
+                ◈ VALIDATE &amp; BANK DAY {day}
+              </div>
+
+              {/* URL Input */}
+              <div>
+                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--ng,#4dffa0)', marginBottom: 8, letterSpacing: 1 }}>
+                  1 · YOUR DELIVERABLE
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {submissionUrl.startsWith('blob:') ? (
+                    <div style={{
+                      flex: 1,
+                      background: 'rgba(0,0,0,.4)',
+                      border: '2px solid var(--ln,#28432f)',
+                      borderRadius: 6,
+                      padding: 6,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12
+                    }}>
+                      <img 
+                        src={submissionUrl} 
+                        alt="Upload preview" 
+                        style={{ height: 32, width: 32, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--mu,#77b78d)' }} 
+                      />
+                      <div style={{ flex: 1, color: 'var(--tx,#d6ffe0)', fontSize: 15, fontFamily: "'VT323', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {fileToUpload?.name || 'Uploaded Image'}
+                      </div>
+                      <button
+                        onClick={() => { setSubmissionUrl(''); setFileToUpload(null); }}
+                        style={{ background: 'none', border: 'none', color: 'var(--mu,#77b78d)', cursor: 'pointer', padding: 4 }}
+                        title="Remove image"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      value={submissionUrl}
+                      onChange={(e) => setSubmissionUrl(e.target.value)}
+                      placeholder="Paste your story asset link (video, audio, image, or doc)"
+                      style={{
+                        flex: 1,
+                        background: 'rgba(0,0,0,.4)',
+                        border: '2px solid var(--ln,#28432f)',
+                        borderRadius: 6,
+                        color: 'var(--tx,#d6ffe0)',
+                        fontSize: 16,
+                        padding: '10px 14px',
+                        fontFamily: "'VT323', monospace",
+                      }}
+                    />
+                  )}
+                  <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handleFileChange} />
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="font-pixel" 
+                    style={{
+                      fontSize: 8,
+                      background: 'transparent',
+                      border: '2px solid var(--cy,#45d6ff)',
+                      color: 'var(--cy,#45d6ff)',
+                      borderRadius: 6,
+                      padding: '0 16px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ↑ UPLOAD
+                  </button>
+                </div>
+              </div>
+
+              {/* Principle Selection */}
+              <div>
+                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--pk,#ff5fd2)', marginBottom: 12, letterSpacing: 1 }}>
+                  2 · ASSIGN ONE UNREPEATED STEWARD PRINCIPLE
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {mappedPrinciples.map((p: any, i) => {
+                    const isSelected = selectedPrinciple === p;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedPrinciple(p)}
+                        style={{
+                          background: isSelected ? 'rgba(77,255,160,.15)' : 'rgba(0,0,0,.3)',
+                          border: `1px solid ${isSelected ? 'var(--ng,#4dffa0)' : 'var(--ln,#28432f)'}`,
+                          borderRadius: 20,
+                          padding: '6px 12px',
+                          color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--tx,#d6ffe0)',
+                          fontFamily: "'VT323', monospace",
+                          fontSize: 15,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <span style={{ color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--mu,#77b78d)', fontSize: 10 }}>◈</span> {p}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Submit Row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 4 }}>
+                <button
+                  onClick={handleSubmitDeliverable}
+                  disabled={isSubmitting}
+                  className="font-pixel"
+                  style={{
+                    fontSize: 9,
+                    color: 'var(--bg,#0e1512)',
+                    background: 'var(--sy,#ffd23f)',
+                    border: '2px solid var(--sy,#ffd23f)',
+                    borderRadius: 6,
+                    padding: '12px 18px',
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: isSubmitting ? 0.7 : 1,
+                  }}
+                >
+                  {isSubmitting ? '▲ BANKING...' : '▲ BANK DELIVERABLE'}
+                </button>
+                <div style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: 'var(--mu,#77b78d)' }}>
+                  Banking submits your deliverable link + principle to your teacher's console.
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      )}
+    </div>
+  );
+}

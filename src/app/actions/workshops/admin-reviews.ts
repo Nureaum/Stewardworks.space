@@ -116,6 +116,7 @@ export async function getSubmissionsForReview(
       return acc
     }, {} as Record<string, any>)
 
+    console.log('Returning from getSubmissionsForReview. Found progress rows:', progressRows.length);
     // Combine progress data with submissions
     return progressRows.map(progress => {
       const key = `${progress.workshop_day_id}|${progress.profile_id}`
@@ -147,6 +148,90 @@ export async function getSubmissionsForReview(
     throw new Error('An unexpected error occurred while fetching submissions')
   }
 }
+
+/**
+ * Gets pending engagement submissions for admin review
+ */
+export async function getPendingEngagements(
+  cohortId?: string
+): Promise<any[]> {
+  try {
+    const { userId } = await auth()
+    if (!userId) throw new Error('Authentication required')
+
+    const supabase = createServerSupabaseClient()
+    
+    // Get user profile and verify admin role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('clerk_user_id', userId)
+      .single()
+    
+    if (profileError || !profile) {
+      throw new Error('Profile not found')
+    }
+    
+    if (!['admin', 'super_admin'].includes(profile.role)) {
+      throw new Error('Admin access required')
+    }
+
+    let query = supabase
+      .from('workshop_engagement')
+      .select(`
+        id,
+        cohort_id,
+        profile_id,
+        kind,
+        title,
+        source,
+        url,
+        content,
+        status,
+        created_at,
+        profiles!workshop_engagement_profile_id_fkey(
+          id,
+          full_name,
+          email
+        )
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (cohortId) {
+      query = query.eq('cohort_id', cohortId)
+    }
+
+    const { data: engagements, error } = await query
+
+    if (error) {
+      console.error('Get pending engagements error:', error)
+      throw new Error(`Failed to fetch pending engagements: ${error.message}`)
+    }
+
+    if (!engagements) return []
+
+    return engagements.map((eng: any) => ({
+      id: eng.id,
+      workshop_day_id: null, // Signals it's an engagement
+      profile_id: eng.profile_id,
+      title: eng.title,
+      kind: eng.kind,
+      source: eng.source,
+      url: eng.url,
+      submission_text: eng.content || eng.url || eng.title, // Map to what admin expects
+      submitted_at: eng.created_at,
+      participant_name: eng.profiles?.full_name || eng.profiles?.email || 'Unknown',
+      participant_email: eng.profiles?.email || '',
+      deliverable_status: eng.status,
+    }))
+
+  } catch (error) {
+    if (error instanceof Error) throw error
+    throw new Error('An unexpected error occurred while fetching pending engagements')
+  }
+}
+
 
 /**
  * Reviews a deliverable submission (approve or reject)
@@ -468,5 +553,65 @@ export async function updateRegistrationStatus(params: UpdateRegistrationStatusP
       throw error
     }
     throw new Error('An unexpected error occurred while updating registration status')
+  }
+}
+
+/**
+ * Reviews an engagement item (approve or reject)
+ * @param engagementId - UUID of the engagement to review
+ * @param status - New status: 'approved' or 'rejected'
+ * @returns Updated engagement record
+ * @throws Error if not authenticated or not admin
+ */
+export async function reviewEngagement(engagementId: string, status: 'approved' | 'rejected') {
+  try {
+    const { userId } = await auth()
+    
+    if (!userId) {
+      throw new Error('Authentication required')
+    }
+
+    const supabase = createServerSupabaseClient()
+    
+    // Get user profile and verify admin role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('clerk_user_id', userId)
+      .single()
+    
+    if (profileError || !profile) {
+      throw new Error('Profile not found')
+    }
+    
+    if (!['admin', 'super_admin'].includes(profile.role)) {
+      throw new Error('Admin access required')
+    }
+
+    const { data: engagement, error: engError } = await supabase
+      .from('workshop_engagement')
+      .update({
+        status,
+        reviewed_by: profile.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', engagementId)
+      .select()
+      .single()
+
+    if (engError) {
+      console.error('Review engagement error:', engError)
+      throw new Error(`Failed to review engagement: ${engError.message}`)
+    }
+
+    revalidatePath('/hub/pilot-workshops')
+    revalidatePath('/admin/pilot-workshops')
+
+    return engagement
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error('An unexpected error occurred while reviewing engagement')
   }
 }

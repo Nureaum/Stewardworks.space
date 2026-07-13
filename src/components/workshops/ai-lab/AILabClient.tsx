@@ -1,0 +1,234 @@
+'use client';
+
+import React, { useState } from 'react';
+import { addEngagement } from '@/app/actions/workshops/engagement';
+import { addShowcaseItem } from '@/app/actions/workshops/showcase';
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+import LabHeader from './LabHeader';
+import CurriculumBrowser from './CurriculumBrowser';
+import GenerationSandbox from './GenerationSandbox';
+import SubmissionTracker from './SubmissionTracker';
+import SaveCreationPanel from './SaveCreationPanel';
+import AILabsAdminConsole from './AILabsAdminConsole';
+import { WorkshopDayEntry, WorkshopDay } from '@/types/workshops';
+
+export default function AILabClient({
+  initialRole = 'student',
+  edenEmbedUrl = 'https://app.eden.art/',
+  initialCurriculum,
+  daysComplete = 0,
+  cohortId,
+  days = [],
+  principles = [],
+  userRole = 'participant',
+}: {
+  initialRole?: 'student' | 'admin';
+  edenEmbedUrl?: string;
+  initialCurriculum: Record<number, any>;
+  daysComplete?: number;
+  cohortId?: string;
+  days?: WorkshopDay[];
+  principles?: any[];
+  userRole?: string;
+}) {
+  const router = useRouter();
+  const [role, setRole] = useState<'student' | 'admin'>(initialRole);
+  const [studentView, setStudentView] = useState<'lab' | 'portfolio' | 'showcase'>('lab');
+  const [day, setDay] = useState(1);
+  const [activeEntry, setActiveEntry] = useState<string | null>(null);
+  const [curriculumVisible, setCurriculumVisible] = useState(true);
+
+  // Temporary mock data for UI buildout
+  const profilePct = 40;
+  const chiaStage = 2;
+
+  const handleSaveCreation = async (data: { platform: string; url: string; showcase: boolean }) => {
+    if (!cohortId) {
+      toast.error('Error: Cohort ID is missing.', { position: 'bottom-center' });
+      return;
+    }
+    
+    try {
+      // Save as an engagement so it shows up in the Admin approvals queue
+      await addEngagement(cohortId, 'generation', `Creation from ${data.platform}`, data.platform, data.url);
+      
+      // If requested, also add to the showcase queue
+      if (data.showcase) {
+        await addShowcaseItem(cohortId, {
+          type: 'aigen',
+          title: `Creation from ${data.platform}`,
+          author: 'Student', // Ideally we'd pass the actual student name here, but this works for now
+          url: data.url,
+          blurb: 'Submitted via AI Labs Workbench',
+          theme: data.platform
+        });
+      }
+      
+      toast.success(`Creation saved successfully!`, { position: 'bottom-center' });
+    } catch (err) {
+      console.error('Error saving creation:', err);
+      toast.error('Failed to save creation.', { position: 'bottom-center' });
+    }
+  };
+
+  return (
+    <div className="min-h-screen" style={{ background: '#b7ab8c', fontFamily: "'VT323', monospace", display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'clamp(8px,2.5vw,34px)', color: '#d6ffe0', '--bg':'#0e1512','--pn':'#14211b','--ln':'#28432f','--ng':'#4dffa0','--sy':'#ffd23f','--tx':'#d6ffe0','--mu':'#77b78d','--pk':'#ff5fd2','--cy':'#45d6ff' } as React.CSSProperties}>
+      <div style={{ width: '100%', maxWidth: 1240, border: '12px solid #d8ccb0', background: '#efe7d6', borderRadius: 20, padding: 10, boxShadow: '0 24px 60px rgba(40,50,30,.35),inset 0 2px 0 rgba(255,255,255,.6),inset 0 -3px 0 rgba(0,0,0,.12)' }}>
+        
+        {/* OS Title Bar */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '5px 10px 9px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+            <div className="font-pixel" style={{ fontSize: 9, letterSpacing: 1, color: '#7a805c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>STEWARD OS · AI LABS WORKBENCH</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 'none' }}>
+            {(userRole === 'admin' || userRole === 'super_admin') && (
+              <div style={{ display: 'flex', border: '2px solid #b9ac86', borderRadius: 6, overflow: 'hidden' }}>
+              <button
+                onClick={() => setRole('student')}
+                className="font-pixel"
+                style={{ fontSize: 8, padding: '8px 11px', border: 'none', cursor: 'pointer', background: role === 'student' ? '#173026' : 'transparent', color: role === 'student' ? '#4dffa0' : '#8a9a7f' }}
+              >
+                ▸ STUDENT
+              </button>
+              <button
+                onClick={() => setRole('admin')}
+                className="font-pixel"
+                style={{ fontSize: 8, padding: '8px 11px', border: 'none', cursor: 'pointer', background: role === 'admin' ? '#173026' : 'transparent', color: role === 'admin' ? '#4dffa0' : '#8a9a7f' }}
+              >
+                ⚙ ADMIN
+              </button>
+            </div>
+            )}
+            <button
+              onClick={() => router.push('/hub')}
+              className="font-pixel"
+              style={{ fontSize: 8, color: '#6f7e5e', textDecoration: 'none', border: '2px solid #b9ac86', borderRadius: 5, padding: '6px 8px', whiteSpace: 'nowrap', background: 'transparent', cursor: 'pointer' }}
+            >
+              ◄ DEV HUB
+            </button>
+            <div style={{ display: 'flex', gap: 7 }}>
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e06a5a' }}></span>
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e0b84a' }}></span>
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#5fbf7a' }}></span>
+            </div>
+          </div>
+        </div>
+
+        {/* SCREEN */}
+        <div style={{ position: 'relative', background: 'var(--bg,#0e1512)', borderRadius: 10, overflow: 'hidden', minHeight: 'clamp(560px,80vh,960px)', boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5),inset 0 0 90px rgba(0,0,0,.6)' }}>
+          {/* Scanlines layer */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 40, background: 'repeating-linear-gradient(0deg,rgba(0,0,0,.15) 0px,rgba(0,0,0,.15) 1px,transparent 2px,transparent 3px)', mixBlendMode: 'multiply' }}></div>
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 41, background: 'radial-gradient(120% 100% at 50% 45%,transparent 55%,rgba(0,0,0,.5) 100%)' }}></div>
+          
+          <div style={{ position: 'relative', zIndex: 5, padding: 'clamp(12px,2.4vw,22px)' }}>
+            <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+
+            {role === 'student' ? (
+              <>
+                {/* student sub-nav */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <button 
+                    onClick={() => router.push('/hub/pilot-workshops')}
+                    className="font-pixel"
+                    style={{ fontSize: 8, color: '#4dffa0', textDecoration: 'none', background: 'rgba(77,255,160,.08)', border: '2px solid #4dffa0', borderRadius: 7, padding: '11px 13px', whiteSpace: 'nowrap', boxShadow: '0 0 12px rgba(77,255,160,.15)', cursor: 'pointer' }}
+                  >
+                    ◄ BACK TO WORKSHOP
+                  </button>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {[
+                      { id: 'lab', label: '⚙ LAB', col: '#4dffa0' },
+                      { id: 'portfolio', label: '▦ MY PORTFOLIO', col: '#45d6ff' },
+                      { id: 'showcase', label: '★ SHOWCASE', col: '#ff5fd2' }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          if (tab.id === 'lab') {
+                            setStudentView('lab');
+                          } else {
+                            // Navigate to the existing pilot workshops journey page with the tab query param
+                            const targetTab = tab.id;
+                            if (cohortId) {
+                              router.push(`/hub/pilot-workshops/${cohortId}/journey?tab=${targetTab}`);
+                            } else {
+                              router.push('/hub/pilot-workshops');
+                            }
+                          }
+                        }}
+                        className="font-pixel"
+                        style={{
+                          fontSize: 8, cursor: 'pointer', padding: '11px 14px', borderRadius: 7,
+                          border: `2px solid ${studentView === tab.id ? tab.col : '#28432f'}`,
+                          background: studentView === tab.id ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.2)',
+                          color: studentView === tab.id ? tab.col : '#77b78d',
+                          boxShadow: studentView === tab.id ? `0 0 12px ${tab.col}` : 'none',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {studentView === 'lab' && (
+                  <div>
+                    <LabHeader day={day} profilePct={profilePct} chiaStage={chiaStage} />
+                    
+                    {/* Session control bar */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                      <button 
+                        onClick={() => setCurriculumVisible(!curriculumVisible)}
+                        title="Show or hide the curriculum browser"
+                        className="font-pixel"
+                        style={{ fontSize: 9, color: '#4dffa0', background: 'rgba(77,255,160,.08)', border: '2px solid #4dffa0', borderRadius: 6, padding: '11px 13px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px rgba(77,255,160,.18)' }}
+                      >
+                        {curriculumVisible ? '◧ HIDE CURRICULUM' : '◱ SHOW CURRICULUM'}
+                      </button>
+                      <div className="font-pixel" style={{ fontSize: 9, color: '#ffd23f', lineHeight: 1.5, minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {initialCurriculum[day]?.title || `DAY 0${day}`}
+                      </div>
+                    </div>
+
+                    {/* SPLIT : curriculum (collapsible) + Eden sandbox */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 15, alignItems: 'flex-start' }}>
+                      {curriculumVisible && (
+                        <CurriculumBrowser 
+                          day={day} 
+                          activeEntry={activeEntry} 
+                          onSelectEntry={setActiveEntry} 
+                          onSetDay={(d: number) => { setDay(d); setActiveEntry(null); }}
+                          curriculumData={initialCurriculum}
+                          daysComplete={daysComplete}
+                          onToggleVisibility={() => setCurriculumVisible(false)}
+                        />
+                      )}
+                      <GenerationSandbox edenEmbedUrl={edenEmbedUrl} />
+                    </div>
+
+                    {/* Save a Creation Panel */}
+                    <SaveCreationPanel onSave={handleSaveCreation} />
+
+                    {/* Submission Tracker */}
+                    <SubmissionTracker day={day} dayId={initialCurriculum[day]?.id} daysComplete={daysComplete} days={days} principles={principles} />
+                  </div>
+                )}
+                {studentView === 'portfolio' && (
+                  <div className="p-8 text-center font-pixel text-steward-blue">Portfolio View Coming Soon...</div>
+                )}
+                {studentView === 'showcase' && (
+                  <div className="p-8 text-center font-pixel text-steward-pink">Showcase View Coming Soon...</div>
+                )}
+              </>
+            ) : (
+              <AILabsAdminConsole cohortId={cohortId} />
+            )}
+            
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

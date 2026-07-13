@@ -12,7 +12,7 @@ export default function WorkshopDayForm({
   onSubmit,
   onCancel,
 }: WorkshopDayFormProps) {
-  const [dayNumber, setDayNumber] = useState<1 | 2 | 3>(initialData?.day_number || 1)
+  const [dayNumber, setDayNumber] = useState<number>(initialData?.day_number || 1)
   const [title, setTitle] = useState(initialData?.title || '')
   const [contentBody, setContentBody] = useState(initialData?.content_body || '')
   const [deliverableInstructions, setDeliverableInstructions] = useState(

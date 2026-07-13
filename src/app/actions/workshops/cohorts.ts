@@ -463,3 +463,115 @@ export async function uploadCohortThumbnail(formData: FormData) {
     throw new Error('An unexpected error occurred while uploading thumbnail')
   }
 }
+
+/**
+ * Deletes a cohort and all related data (cascade)
+ * @param cohortId - UUID of cohort to delete
+ * @returns { success: true }
+ * @throws Error if not authenticated, not super_admin, or database operation fails
+ */
+export async function deleteCohort(cohortId: string) {
+  try {
+    const { userId } = await auth()
+    if (!userId) throw new Error('Authentication required')
+
+    const supabase = createServerSupabaseClient()
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('clerk_user_id', userId)
+      .single()
+
+    if (profileError || !profile) throw new Error('Profile not found')
+    if (profile.role !== 'super_admin') throw new Error('Super admin access required to delete cohorts')
+
+    // Get all workshop days for this cohort
+    const { data: days } = await supabase
+      .from('workshop_days')
+      .select('id')
+      .eq('cohort_id', cohortId)
+
+    if (days && days.length > 0) {
+      const dayIds = days.map(d => d.id)
+
+      // Get all sections
+      const { data: sections } = await supabase
+        .from('workshop_day_sections')
+        .select('id')
+        .in('workshop_day_id', dayIds)
+
+      if (sections && sections.length > 0) {
+        const sectionIds = sections.map(s => s.id)
+
+        // Get all entries
+        const { data: entries } = await supabase
+          .from('workshop_day_entries')
+          .select('id')
+          .in('section_id', sectionIds)
+
+        if (entries && entries.length > 0) {
+          const entryIds = entries.map(e => e.id)
+
+          // Delete entry media
+          await supabase.from('workshop_entry_media').delete().in('entry_id', entryIds)
+        }
+
+        // Delete entries
+        await supabase.from('workshop_day_entries').delete().in('section_id', sectionIds)
+      }
+
+      // Delete sections
+      await supabase.from('workshop_day_sections').delete().in('workshop_day_id', dayIds)
+
+      // Delete day media
+      await supabase.from('workshop_day_media').delete().in('workshop_day_id', dayIds)
+
+      // Delete progress principles junction
+      const { data: progressRows } = await supabase
+        .from('workshop_progress')
+        .select('id')
+        .in('workshop_day_id', dayIds)
+
+      if (progressRows && progressRows.length > 0) {
+        const progressIds = progressRows.map(p => p.id)
+        await supabase.from('workshop_progress_principles').delete().in('progress_id', progressIds)
+      }
+
+      // Delete progress
+      await supabase.from('workshop_progress').delete().in('workshop_day_id', dayIds)
+
+      // Delete deliverable submissions
+      await supabase.from('workshop_deliverable_submissions').delete().in('workshop_day_id', dayIds)
+
+      // Delete workshop days
+      await supabase.from('workshop_days').delete().eq('cohort_id', cohortId)
+    }
+
+    // Delete cohort-level data
+    await supabase.from('workshop_principles').delete().eq('cohort_id', cohortId)
+    await supabase.from('workshop_engagement').delete().eq('cohort_id', cohortId)
+    await supabase.from('workshop_showcase').delete().eq('cohort_id', cohortId)
+    await supabase.from('workshop_characters').delete().eq('cohort_id', cohortId)
+    await supabase.from('workshop_registrations').delete().eq('cohort_id', cohortId)
+
+    // Delete the cohort itself
+    const { error: deleteError } = await supabase
+      .from('cohorts')
+      .delete()
+      .eq('id', cohortId)
+
+    if (deleteError) {
+      console.error('Delete cohort error:', deleteError)
+      throw new Error(`Failed to delete cohort: ${deleteError.message}`)
+    }
+
+    revalidatePath('/hub/pilot-workshops')
+    revalidatePath('/admin/pilot-workshops')
+
+    return { success: true }
+  } catch (error) {
+    if (error instanceof Error) throw error
+    throw new Error('An unexpected error occurred while deleting cohort')
+  }
+}

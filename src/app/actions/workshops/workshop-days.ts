@@ -599,3 +599,104 @@ export async function updateMediaSortOrder(
     throw new Error('An unexpected error occurred while updating media sort order')
   }
 }
+
+/**
+ * Deletes a workshop day and all related data (cascade)
+ * @param dayId - UUID of workshop day to delete
+ * @returns { success: true }
+ * @throws Error if not authenticated, not admin, or database operation fails
+ */
+export async function deleteWorkshopDay(dayId: string) {
+  try {
+    const { userId } = await auth()
+    if (!userId) throw new Error('Authentication required')
+
+    const supabase = createServerSupabaseClient()
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('clerk_user_id', userId)
+      .single()
+
+    if (profileError || !profile) throw new Error('Profile not found')
+    if (!['admin', 'super_admin'].includes(profile.role)) throw new Error('Admin access required')
+
+    // Get the cohort_id before deleting (for revalidation)
+    const { data: day } = await supabase
+      .from('workshop_days')
+      .select('cohort_id')
+      .eq('id', dayId)
+      .single()
+
+    // Get all sections for this day
+    const { data: sections } = await supabase
+      .from('workshop_day_sections')
+      .select('id')
+      .eq('workshop_day_id', dayId)
+
+    if (sections && sections.length > 0) {
+      const sectionIds = sections.map(s => s.id)
+
+      // Get all entries
+      const { data: entries } = await supabase
+        .from('workshop_day_entries')
+        .select('id')
+        .in('section_id', sectionIds)
+
+      if (entries && entries.length > 0) {
+        const entryIds = entries.map(e => e.id)
+        // Delete entry media
+        await supabase.from('workshop_entry_media').delete().in('entry_id', entryIds)
+      }
+
+      // Delete entries
+      await supabase.from('workshop_day_entries').delete().in('section_id', sectionIds)
+    }
+
+    // Delete sections
+    await supabase.from('workshop_day_sections').delete().eq('workshop_day_id', dayId)
+
+    // Delete day media
+    await supabase.from('workshop_day_media').delete().eq('workshop_day_id', dayId)
+
+    // Delete progress
+    const { data: progressRows } = await supabase
+      .from('workshop_progress')
+      .select('id')
+      .eq('workshop_day_id', dayId)
+
+    if (progressRows && progressRows.length > 0) {
+      const progressIds = progressRows.map(p => p.id)
+      await supabase.from('workshop_progress_principles').delete().in('progress_id', progressIds)
+    }
+
+    await supabase.from('workshop_progress').delete().eq('workshop_day_id', dayId)
+
+    // Delete deliverable submissions
+    await supabase.from('workshop_deliverable_submissions').delete().eq('workshop_day_id', dayId)
+
+    // Delete the day itself
+    const { error: deleteError } = await supabase
+      .from('workshop_days')
+      .delete()
+      .eq('id', dayId)
+
+    if (deleteError) {
+      console.error('Delete workshop day error:', deleteError)
+      throw new Error(`Failed to delete workshop day: ${deleteError.message}`)
+    }
+
+    if (day) {
+      revalidatePath(`/admin/pilot-workshops/${day.cohort_id}`)
+      revalidatePath(`/admin/pilot-workshops/${day.cohort_id}/edit`)
+    }
+    revalidatePath('/hub/pilot-workshops')
+    revalidatePath('/admin/pilot-workshops')
+
+    return { success: true }
+  } catch (error) {
+    if (error instanceof Error) throw error
+    throw new Error('An unexpected error occurred while deleting workshop day')
+  }
+}

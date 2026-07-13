@@ -336,7 +336,7 @@ export async function getWorkshopDashboard(cohortId: string): Promise<DayWithPro
           unlocked = true
           // Lazily create progress row if missing
           if (!progress) {
-            const { data: newProgress } = await supabase
+            const { data: newProgress, error: insertError } = await supabase
               .from('workshop_progress')
               .insert({
                 workshop_day_id: day.id,
@@ -347,7 +347,9 @@ export async function getWorkshopDashboard(cohortId: string): Promise<DayWithPro
               .select()
               .single()
             
-            if (newProgress) {
+            if (insertError) {
+              console.error(`Failed to lazy-create progress for day ${day.day_number}:`, insertError)
+            } else if (newProgress) {
               progress = newProgress
               progressByDay[day.id] = newProgress
             }
@@ -360,7 +362,7 @@ export async function getWorkshopDashboard(cohortId: string): Promise<DayWithPro
             unlockMessage = `Unlocks after Day ${day.day_number - 1} is submitted`
           } else if (!progress) {
             // Create progress row when day becomes unlocked
-            const { data: newProgress } = await supabase
+            const { data: newProgress, error: insertError } = await supabase
               .from('workshop_progress')
               .insert({
                 workshop_day_id: day.id,
@@ -371,7 +373,9 @@ export async function getWorkshopDashboard(cohortId: string): Promise<DayWithPro
               .select()
               .single()
             
-            if (newProgress) {
+            if (insertError) {
+              console.error(`Failed to lazy-create progress for day ${day.day_number}:`, insertError)
+            } else if (newProgress) {
               progress = newProgress
             }
           }
@@ -434,17 +438,15 @@ export async function submitDeliverable(
       throw new Error('Profile not found')
     }
 
-    // Verify day is unlocked
-    const { data: progress, error: progressError } = await supabase
+    // Verify day is unlocked (Registration was removed, so we no longer block here if progress is missing)
+    const { data: progress } = await supabase
       .from('workshop_progress')
       .select('unlocked_at, deliverable_status')
       .eq('workshop_day_id', dayId)
       .eq('profile_id', profile.id)
       .single()
-
-    if (progressError || !progress || !progress.unlocked_at) {
-      throw new Error('This day is not yet unlocked')
-    }
+      
+    // We proceed even if progress doesn't exist yet, we will upsert it later.
 
     // Handle file upload if present
     let file_storage_path: string | null = null
@@ -469,13 +471,19 @@ export async function submitDeliverable(
       file_storage_path = filePath
     }
 
+    // Handle showcase request flag inside submission text
+    let finalSubmissionText = submissionData.submission_text || '';
+    if (submissionData.showcase_requested) {
+      finalSubmissionText = `[SHOWCASE_REQUESTED] ${finalSubmissionText}`;
+    }
+
     // Create submission record
     const { data: submission, error: submissionError } = await supabase
       .from('workshop_deliverable_submissions')
       .insert({
         workshop_day_id: dayId,
         profile_id: profile.id,
-        submission_text: submissionData.submission_text || null,
+        submission_text: finalSubmissionText || null,
         file_storage_path: file_storage_path,
         external_video_url: submissionData.external_video_url || null,
       })
@@ -493,19 +501,34 @@ export async function submitDeliverable(
       throw new Error(`Failed to submit deliverable: ${submissionError.message}`)
     }
 
-    // Update progress row
-    const { error: updateError } = await supabase
+    // Update or insert progress row
+    const { data: progressUpdate, error: updateError } = await supabase
       .from('workshop_progress')
-      .update({
+      .upsert({
+        workshop_day_id: dayId,
+        profile_id: profile.id,
+        unlocked_at: progress?.unlocked_at || new Date().toISOString(),
         deliverable_submitted_at: new Date().toISOString(),
         deliverable_status: 'submitted',
-      })
-      .eq('workshop_day_id', dayId)
-      .eq('profile_id', profile.id)
+      }, { onConflict: 'workshop_day_id,profile_id' })
+      .select('id')
+      .single()
 
     if (updateError) {
       console.error('Progress update error:', updateError)
-      // Submission is saved, but progress update failed - log but don't fail
+      return { success: false, message: 'Failed to update progress status.' } as any
+    } else if (progressUpdate && submissionData.principle_id) {
+      // Save banked principle
+      const { error: principleError } = await supabase
+        .from('workshop_progress_principles')
+        .insert({
+          progress_id: progressUpdate.id,
+          principle_id: submissionData.principle_id
+        })
+        
+      if (principleError) {
+        console.error('Failed to save banked principle:', principleError)
+      }
     }
 
     // Get cohort_id for revalidation
@@ -525,11 +548,9 @@ export async function submitDeliverable(
       submissionId: submission.id,
       message: 'Deliverable submitted successfully',
     }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('An unexpected error occurred while submitting deliverable')
+  } catch (error: any) {
+    console.error("submitDeliverable Exception:", error);
+    return { success: false, message: error.message || 'An unexpected error occurred while submitting deliverable' } as any;
   }
 }
 

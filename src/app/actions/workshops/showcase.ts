@@ -1,0 +1,184 @@
+'use server'
+
+import { auth } from '@clerk/nextjs/server'
+import { createServerSupabaseClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
+
+/**
+ * Gets all showcase items for a cohort
+ */
+export async function getShowcaseItems(cohortId: string) {
+  const supabase = createServerSupabaseClient()
+  
+  const { data, error } = await supabase
+    .from('workshop_showcase')
+    .select('*')
+    .eq('cohort_id', cohortId)
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Get showcase items error:', error)
+    return []
+  }
+  
+  return data || []
+}
+
+/**
+ * Adds a new showcase contribution (admin or student)
+ */
+export async function addShowcaseItem(cohortId: string, data: {
+  title: string
+  author?: string
+  type: string
+  url?: string
+  blurb?: string
+  meta?: string
+  theme?: string
+  is_paid?: boolean
+}) {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Authentication required')
+  
+  const supabase = createServerSupabaseClient()
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_user_id', userId)
+    .single()
+  
+  if (!profile) throw new Error('Profile not found')
+  
+  const { data: item, error } = await supabase
+    .from('workshop_showcase')
+    .insert({
+      cohort_id: cohortId,
+      title: data.title,
+      author: data.author || '',
+      type: data.type,
+      url: data.url || '',
+      blurb: data.blurb || '',
+      meta: data.meta || '',
+      theme: data.theme || '',
+      is_paid: data.is_paid || false,
+      created_by: profile.id,
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Add showcase item error:', error)
+    throw new Error(`Failed to add showcase item: ${error.message}`)
+  }
+  
+  revalidatePath('/hub/pilot-workshops')
+  return item
+}
+
+/**
+ * Updates an existing showcase item
+ */
+export async function updateShowcaseItem(itemId: string, data: {
+  title?: string
+  author?: string
+  type?: string
+  url?: string
+  blurb?: string
+  meta?: string
+  theme?: string
+  is_paid?: boolean
+}) {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Authentication required')
+  
+  const supabase = createServerSupabaseClient()
+  
+  const { data: item, error } = await supabase
+    .from('workshop_showcase')
+    .update(data)
+    .eq('id', itemId)
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Update showcase item error:', error)
+    throw new Error(`Failed to update showcase item: ${error.message}`)
+  }
+  
+  revalidatePath('/hub/pilot-workshops')
+  return item
+}
+
+/**
+ * Deletes a showcase item
+ */
+export async function deleteShowcaseItem(itemId: string) {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Authentication required')
+  
+  const supabase = createServerSupabaseClient()
+  
+  const { error } = await supabase
+    .from('workshop_showcase')
+    .delete()
+    .eq('id', itemId)
+  
+  if (error) {
+    console.error('Delete showcase item error:', error)
+    throw new Error(`Failed to delete showcase item: ${error.message}`)
+  }
+  
+  revalidatePath('/hub/pilot-workshops')
+  return true
+}
+
+/**
+ * Seeds default showcase items for a cohort (admin only)
+ */
+export async function seedShowcaseItems(cohortId: string) {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Authentication required')
+  
+  const supabase = createServerSupabaseClient()
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_user_id', userId)
+    .single()
+  
+  if (!profile) throw new Error('Profile not found')
+  
+  const SEED_DATA = [
+    { type: 'video', title: 'Prompting in Two Tongues', author: 'Rosa Delgado', meta: '8:24 · Video Lesson', is_paid: true, blurb: 'A bilingual walk-through of prompt design that honors code-switching — building AI queries that respect both English and Spanish without flattening either language.', theme: 'Bilingual AI' },
+    { type: 'audio', title: 'Calexico Sound Map', author: 'DJ Frontera', meta: '12:01 · Audio Guide', is_paid: true, blurb: 'A field recording collage layered with narration — mapping the sonic identity of the border from train horns to cumbia bass to the hum of the new data center cooling towers.', theme: 'Soundscapes' },
+    { type: 'article', title: 'Water Ledger: Tracking the Colorado', author: 'Río Lab Collective', meta: 'Article · 2,400 words', is_paid: false, blurb: 'An open-source data story tracking how each drop of the Colorado River is allocated between agriculture, cities, lithium extraction, and the data centers that now compete for the same aquifer.', theme: 'Data Journalism' },
+    { type: 'aigen', title: 'Desert Solarpunk Zine', author: 'AI Lab Community', meta: 'AI Generation Pack', is_paid: false, blurb: 'A collaboratively prompted zine imagining Imperial County in 2040 — solar canals, community mesh networks, bilingual digital murals, and a Salton Sea that came back to life.', theme: 'Speculative Design' },
+    { type: 'video', title: 'Résumé Rebuild Live', author: 'Coach V', meta: '22:15 · Video Lesson', is_paid: true, blurb: `A screen-share workshop where a real participant's résumé is rebuilt on-camera using AI assistance — showing how to keep authentic voice while meeting ATS keyword filters.`, theme: 'Career Tools' },
+    { type: 'article', title: 'The Gig Glossary', author: 'Steward Research', meta: 'Article · 1,800 words', is_paid: false, blurb: 'A plain-language glossary of gig-economy terms — from 1099 classification to platform fees — written for first-generation freelancers navigating the new labor landscape.', theme: 'Workforce Literacy' },
+    { type: 'audio', title: 'Midnight Mic: Student Oral Histories', author: 'SDSU Imperial Valley', meta: '18:32 · Audio Series', is_paid: true, blurb: 'Three students tell the story of their families crossing, staying, and building — recorded in a late-night open-mic format that blends interview and spoken word.', theme: 'Oral History' },
+    { type: 'aigen', title: 'Prompt Library: Environmental Justice', author: 'AI Lab Community', meta: 'Prompt Collection', is_paid: false, blurb: 'Thirty curated prompts designed to generate environmental justice content — covering air quality reports, water-rights maps, community action plans, and multilingual outreach materials.', theme: 'Prompt Engineering' },
+    { type: 'video', title: 'Portfolio Launch Day', author: 'StewardWorks', meta: '14:40 · Video Lesson', is_paid: true, blurb: 'End-to-end walkthrough of shipping a vibe-coded portfolio — from choosing a static-site generator to wiring a custom domain and embedding AI-generated assets as proof of work.', theme: 'Portfolio' },
+  ]
+
+  const itemsToInsert = SEED_DATA.map(item => ({
+    ...item,
+    cohort_id: cohortId,
+    url: '',
+    created_by: profile.id,
+  }))
+
+  const { data, error } = await supabase
+    .from('workshop_showcase')
+    .insert(itemsToInsert)
+    .select()
+
+  if (error) {
+    console.error('Seed showcase items error:', error)
+    throw new Error(`Failed to seed showcase items: ${error.message}`)
+  }
+
+  revalidatePath('/hub/pilot-workshops')
+  return data
+}
