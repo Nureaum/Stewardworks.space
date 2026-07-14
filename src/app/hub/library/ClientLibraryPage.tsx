@@ -79,6 +79,16 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
   const [resources, setResources] = useState<any[]>(initialResources);
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
 
+  // Check for category parameter in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const categorySlug = params.get('category');
+    if (categorySlug && categorySlug === 'how-to-use-ai') {
+      // We'll set the category after categories are loaded
+      // This will be handled in the next useEffect
+    }
+  }, []);
+
   useEffect(() => {
     fetchUserBookmarks('library').then(data => {
       const bm: Record<string, boolean> = {};
@@ -217,6 +227,20 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
 
   const cm: Record<string, any> = {}; 
   cats.forEach(c => cm[c.id] = c);
+
+  // Auto-select "How to Use AI" category if URL parameter is present
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const categorySlug = params.get('category');
+    if (categorySlug === 'how-to-use-ai' && cats.length > 0 && !cat) {
+      const howToUseAICat = cats.find(c => c.name === 'How to Use AI');
+      if (howToUseAICat) {
+        setCat(howToUseAICat.id);
+        // Clean up URL
+        window.history.replaceState({}, '', '/hub/library');
+      }
+    }
+  }, [cats, cat]);
 
   const openSpecialCat = (name: string) => {
     const c = cats.find(x => x.name === name);

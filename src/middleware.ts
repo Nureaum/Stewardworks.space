@@ -109,6 +109,36 @@ export default clerkMiddleware(async (auth, request) => {
     }
   }
 
+  // Guest/Visitor route check: Guests and Visitors can only access /hub, /hub/my-profile, /hub/library, and /hub/showcase
+  if (userId && request.nextUrl.pathname.startsWith('/hub')) {
+    const isAllowedGuestRoute = 
+      request.nextUrl.pathname === '/hub' ||
+      request.nextUrl.pathname.startsWith('/hub/my-profile') ||
+      request.nextUrl.pathname.startsWith('/hub/library') ||
+      request.nextUrl.pathname.startsWith('/hub/showcase') ||
+      request.nextUrl.pathname.startsWith('/hub/pilot-workshops'); // Allow visitors to view workshops showcase
+
+    if (!isAllowedGuestRoute) {
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('clerk_user_id', userId)
+          .single()
+          
+        if (profile?.role === 'guest') {
+          return NextResponse.redirect(new URL('/hub', request.url));
+        }
+      } catch (error) {
+        console.error('Middleware guest/visitor check failed:', error);
+      }
+    }
+  }
+
   // CRITICAL FIX: Return NextResponse.next() to continue processing
   return NextResponse.next();
 })

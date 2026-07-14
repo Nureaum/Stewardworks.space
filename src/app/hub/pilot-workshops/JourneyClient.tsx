@@ -41,6 +41,7 @@ interface JourneyClientProps {
   principles: WorkshopPrinciple[]
   bankedPrinciples: WorkshopProgressPrinciple[]
   initialEngagements: WorkshopEngagement[]
+  submissions?: any[]
   showcaseItems: WorkshopShowcase[]
   isAdmin: boolean
   profileId: string
@@ -58,6 +59,7 @@ export default function JourneyClient({
   principles,
   bankedPrinciples,
   initialEngagements,
+  submissions = [],
   showcaseItems,
   isAdmin,
   profileId,
@@ -74,18 +76,48 @@ export default function JourneyClient({
   const [engagements, setEngagements] = useState<WorkshopEngagement[]>(initialEngagements)
   const [victoryVisible, setVictoryVisible] = useState(false)
 
-  // Hydrate from localStorage to emulate HTML prototype persistence
+  // Hydrate visited state from localStorage and merge with database progress
   React.useEffect(() => {
+    // Build initial visited state from localStorage
+    let localVisited: Record<string, boolean> = {}
     try {
       const raw = localStorage.getItem('stewardworks.journey')
       if (raw) {
         const j = JSON.parse(raw)
-        if (j.visited) setVisited(j.visited)
+        if (j.visited) localVisited = j.visited
         if (j.screen && initialCharacter) setScreen(j.screen)
         if (j.activeDay) setActiveDay(j.activeDay)
       }
-    } catch(e) {}
-  }, [initialCharacter])
+    } catch(e) {
+      console.error('Error loading from localStorage:', e)
+    }
+
+    // Now merge with database progress: if any day has submitted/approved deliverables,
+    // mark ALL entries in that day as visited (since they must have been explored)
+    const visitedFromDb: Record<string, boolean> = {}
+    
+    progressRows.forEach(progress => {
+      // Find which day this progress belongs to
+      const dayObj = days.find(d => d.id === progress.workshop_day_id)
+      if (!dayObj) return
+
+      // If deliverable was submitted or approved, user must have gone through the content
+      if (progress.deliverable_status === 'submitted' || 
+          progress.deliverable_status === 'approved') {
+        // Mark all entries in this day as visited
+        dayObj.sections?.forEach(section => {
+          section.entries?.forEach(entry => {
+            const entryKey = `${dayObj.day_number}-${entry.id}`
+            visitedFromDb[entryKey] = true
+          })
+        })
+      }
+    })
+
+    // Merge: start with database-derived visited, then overlay localStorage
+    // (localStorage may have additional visits not yet submitted as deliverables)
+    setVisited({ ...visitedFromDb, ...localVisited })
+  }, [initialCharacter, progressRows, days])
 
   // Persist state
   React.useEffect(() => {
@@ -310,6 +342,7 @@ export default function JourneyClient({
                   bankedPrinciples={bankedPrinciples}
                   days={days}
                   progressRows={progressRows}
+                  cohortId={cohortId}
                   onBack={() => setVictoryVisible(false)}
                   onViewPortfolio={() => {
                     setVictoryVisible(false)
@@ -338,7 +371,13 @@ export default function JourneyClient({
                   principles={principles}
                   bankedPrincipleIds={bankedPrinciples.map(p => p.principle_id)}
                   progressRows={progressRows}
-                  onDeliverableSubmitted={(msg) => showToast(msg)}
+                  onDeliverableSubmitted={(msg, shouldOpenVictory) => {
+                    showToast(msg)
+                    if (shouldOpenVictory) {
+                      // Automatically open victory screen when all 3 days are complete
+                      setTimeout(() => setVictoryVisible(true), 800)
+                    }
+                  }}
                   onOpenList={() => setScreen('day')}
                 />
               ) : screen === 'day' ? (
@@ -388,6 +427,7 @@ export default function JourneyClient({
               progressRows={progressRows}
               bankedPrinciples={bankedPrinciples}
               engagements={engagements}
+              submissions={submissions}
               onAddEngagement={handleAddEngagement}
               onRemoveEngagement={handleRemoveEngagement}
               onUpdateEngagement={handleUpdateEngagement}
@@ -401,6 +441,7 @@ export default function JourneyClient({
                 showcaseItems={showcaseItems}
                 engagements={engagements}
                 onBookmark={handleBookmark}
+                onlyContributors={true}
               />
             </div>
           )}

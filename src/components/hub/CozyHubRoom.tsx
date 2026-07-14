@@ -4,23 +4,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
+import { getShowcaseItems } from '@/app/actions/workshops/showcase';
 
 interface CozyHubRoomProps {
   isAdmin?: boolean;
+  isGuest?: boolean;
   avatarUrl?: string | null;
   onLogout?: () => void;
 }
 
-export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: CozyHubRoomProps) {
+export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl, onLogout }: CozyHubRoomProps) {
   const router = useRouter();
   
-  const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements'>('hub');
+  const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements' | 'showcase'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);
 
   // Bulletins & Announcements Data
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [unreadIds, setUnreadIds] = useState<string[]>([]);
   const [bulletinText, setBulletinText] = useState('');
+  
+  // Showcase Data for guests
+  const [showcaseItems, setShowcaseItems] = useState<any[]>([]);
+  const [showcaseLoading, setShowcaseLoading] = useState(false);
   
   // State from DCLogic
   const [progress, setProgress] = useState(35);
@@ -66,6 +72,26 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
         if (sys && sys.project_bulletin_text) {
           setBulletinText(sys.project_bulletin_text);
         }
+        
+        // Load showcase items for guest users
+        if (isGuest) {
+          setShowcaseLoading(true);
+          try {
+            // Fetch all showcase items from all cohorts (public showcase for guests)
+            // We'll fetch from the pilot workshops cohort
+            const response = await fetch('/api/workshops/showcase/all');
+            if (response.ok) {
+              const data = await response.json();
+              setShowcaseItems(data.items || []);
+            } else {
+              console.error("Failed to fetch showcase items:", response.statusText);
+            }
+          } catch (err) {
+            console.error("Failed to load showcase items", err);
+          } finally {
+            setShowcaseLoading(false);
+          }
+        }
       } catch (err) {
         console.error("Failed to load hub data", err);
       }
@@ -92,6 +118,11 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   const setWood = () => setExit('wood');
 
   const open = (d: any) => {
+    // If guest, only allow permitted bridges
+    if (isGuest && d.id !== 'profile' && d.id !== 'library' && d.id !== 'logout') {
+      return;
+    }
+
     if (d.kind === 'monitor') return setScreen('monitor');
     if (d.kind === 'meditation') return setScreen('meditation');
     if (d.kind === 'progress') return setScreen('progress');
@@ -112,6 +143,9 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   
   const goHub = () => { pauseMed(); setScreen('hub'); setBridgeId(null); setHovered(null); }
   const openBridge = (id: string) => { 
+    if (isGuest && id !== 'profile' && id !== 'library' && id !== 'logout') {
+      return;
+    }
     const route = bridges[id]?.route;
     if (route) {
       setScreen('navigating');
@@ -163,6 +197,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     { id: 'wellness', label: 'Wellness & Meditation', kind: 'meditation' },
     { id: 'progress', label: 'Progress & Generations', kind: 'progress' },
     { id: 'helpdesk', label: 'Help Desk', kind: 'bridge' },
+    { id: 'showcase', label: 'Contributor Showcase', kind: 'showcase' },
     { id: 'logout', label: 'Log Out', kind: 'logout' },
     { id: 'admin', label: 'Admin Console', kind: 'bridge' },
   ];
@@ -171,6 +206,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     progress: { show: hovered === 'progress', enter: () => setHovered('progress'), click: () => open({ kind: 'progress' }) },
     admin: { show: hovered === 'admin', enter: () => setHovered('admin'), click: () => { setScreen('navigating'); router.push('/admin'); } },
     logout: { show: hovered === 'logout', enter: () => setHovered('logout'), click: () => open({ id: 'logout' }) },
+    showcase: { show: hovered === 'showcase', enter: () => setHovered('showcase'), click: () => setScreen('showcase') },
     phone: { show: hovered === 'phone', enter: () => setHovered('phone'), click: async () => {
       setScreen('announcements');
       if (unreadIds.length > 0) {
@@ -267,11 +303,12 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   const isBridge = screen === 'bridge';
   const isLoggedOut = screen === 'loggedout';
   const isNavigating = screen === 'navigating';
+  const isShowcase = screen === 'showcase';
   const isNeon = exitStyle === 'neon';
   const isWood = exitStyle === 'wood';
 
   const phoneRinging = unreadIds.length > 0;
-  const showPhone = !isAdmin;
+  const showPhone = !isAdmin && !isGuest;
   const isLogout = bridgeId === 'logout';
   const isLink = bridgeId !== 'logout';
 
@@ -354,6 +391,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     </div>
 
     {/*  WINDOW → SEA PHOTO (Environmental Literacy)  */}
+    { !isGuest && (
     <div style={{"position":"absolute","left":"404px","top":"20px","width":"486px","height":"266px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-2" onMouseEnter={o.env.enter} onMouseLeave={leave} onClick={o.env.click}>
       { o.env.show && (
 <><div style={{"position":"absolute","left":"50%","top":"26px","transform":"translateX(-50%)","background":"rgba(33,40,46,.94)","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","border":"1px solid rgba(254,250,224,.45)","boxShadow":"0 4px 14px rgba(0,0,0,.55)","zIndex":"50","pointerEvents":"none","animation":"sw-fadein .15s ease"}}>Environmental Literacy</div></>
@@ -396,6 +434,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
         <div style={{"position":"absolute","left":"12px","top":"12px","width":"19px","height":"19px","borderRadius":"50%","background":"radial-gradient(circle at 42% 40%,#ffe79c,#f0b53e)","boxShadow":"inset 0 0 0 2px rgba(180,120,30,.25)"}}></div>
       </div>
     </div>
+    )}
 
     {/*  ADMIN KEY (only for admins)  */}
     { isAdmin && (
@@ -514,6 +553,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     {/*  ============ DESK OBJECTS ============  */}
 
     {/*  LAMP (Help Desk) — iridescent dome  */}
+    { !isGuest && (
     <div style={{"position":"absolute","left":"64px","bottom":"126px","width":"172px","height":"212px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-5" onMouseEnter={o.helpdesk.enter} onMouseLeave={leave} onClick={o.helpdesk.click}>
       { o.helpdesk.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Help Desk<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
@@ -529,8 +569,10 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
       <div style={{"position":"absolute","left":"50%","bottom":"8px","width":"120px","height":"30px","transform":"translateX(-50%)","borderRadius":"50%","background":"linear-gradient(180deg,#e7e9ee,#aab0bd 55%,#7d8595)","boxShadow":"0 8px 14px rgba(0,0,0,.3),inset 0 2px 3px rgba(255,255,255,.8)"}}></div>
       <div style={{"position":"absolute","left":"50%","bottom":"22px","width":"120px","height":"16px","transform":"translateX(-50%)","borderRadius":"50%","background":"linear-gradient(180deg,#cdd2dc,#9aa1ae)"}}></div>
     </div>
+    )}
 
     {/*  ZEN WATER FOUNTAIN (Wellness & Meditation)  */}
+    { !isGuest && (
     <div style={{"position":"absolute","left":"228px","bottom":"162px","width":"138px","height":"172px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-6" onMouseEnter={o.wellness.enter} onMouseLeave={leave} onClick={o.wellness.click}>
       { o.wellness.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Wellness &amp; Meditation<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
@@ -564,8 +606,10 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
       {/*  spout bubble at top  */}
       <div style={{"position":"absolute","left":"50%","bottom":"89px","width":"16px","height":"8px","transform":"translateX(-50%)","borderRadius":"50%","background":"radial-gradient(ellipse,#eafaff,#c4e9f1)","boxShadow":"0 0 8px rgba(190,235,245,.7)","zIndex":"6","animation":"sw-lamppulse 4s ease-in-out infinite"}}></div>
     </div>
+    )}
 
     {/*  STATUE + CHIA (Progress & Generations)  */}
+    { !isGuest && (
     <div style={{"position":"absolute","left":"392px","bottom":"128px","width":"108px","height":"226px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-7" onMouseEnter={o.progress.enter} onMouseLeave={leave} onClick={o.progress.click}>
       { o.progress.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Progress &amp; Generations<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
@@ -599,6 +643,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
         <div style={{"width":"4px","height":"62%","background":"linear-gradient(180deg,#9bc04a,#5f7d1f)","borderRadius":"3px","transform":"rotate(16deg)","transformOrigin":"bottom"}}></div>
       </div>
     </div>
+    )}
 
     {/*  MONITOR (Workshops · AI Lab · Workforce)  */}
     <div style={{"position":"absolute","left":"524px","bottom":"140px","width":"330px","height":"248px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-8" onMouseEnter={o.monitor.enter} onMouseLeave={leave} onClick={o.monitor.click}>
@@ -638,14 +683,17 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
     </div>
 
     {/*  KEYBOARD (decor, in front of monitor)  */}
+    { !isGuest && (
     <div style={{"position":"absolute","left":"524px","bottom":"112px","width":"330px","zIndex":"8","pointerEvents":"none","display":"flex","justifyContent":"center"}}>
       <div style={{"width":"228px","height":"58px","borderRadius":"9px","background":"linear-gradient(180deg,#eceef2,#c7ccd5)","boxShadow":"0 12px 18px rgba(0,0,0,.32),inset 0 2px 0 rgba(255,255,255,.85)","transform":"perspective(360px) rotateX(40deg)","transformOrigin":"bottom","padding":"8px 10px"}}>
         <div style={{"width":"100%","height":"34px","borderRadius":"4px","backgroundColor":"#f4f6f9","backgroundImage":"repeating-linear-gradient(90deg, rgba(120,120,140,.32) 0 1.5px, transparent 1.5px 17px), repeating-linear-gradient(0deg, rgba(120,120,140,.32) 0 1.5px, transparent 1.5px 11px)","boxShadow":"inset 0 0 0 1px rgba(0,0,0,.06)"}}></div>
         <div style={{"width":"46%","height":"7px","margin":"5px auto 0","borderRadius":"3px","background":"#e2e6ec","boxShadow":"inset 0 0 0 1px rgba(0,0,0,.05)"}}></div>
       </div>
     </div>
+    )}
 
     {/*  GROUP PHOTO FRAME (Community Listening)  */}
+    { !isGuest && (
     <div style={{"position":"absolute","left":"874px","bottom":"126px","width":"152px","height":"168px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-9" onMouseEnter={o.community.enter} onMouseLeave={leave} onClick={o.community.click}>
       { o.community.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Community Listening<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
@@ -666,6 +714,7 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
       </div>
       </div>
     </div>
+    )}
 
     {/*  BOOKS (Steward Library)  */}
     <div style={{"position":"absolute","left":"1046px","bottom":"130px","width":"204px","height":"206px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-10" onMouseEnter={o.library.enter} onMouseLeave={leave} onClick={o.library.click}>
@@ -685,6 +734,43 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
         <div style={{"width":"8px","height":"120px","background":"linear-gradient(90deg,#c2a052,#9a7b3a)","borderRadius":"3px 3px 0 0"}}></div>
       </div>
     </div>
+
+    {/*  SHOWCASE DISPLAY CASE (Guest Users Only - Contributors Showcase)  */}
+    { isGuest && (
+    <div style={{"position":"absolute","left":"874px","bottom":"126px","width":"152px","height":"168px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-9" onMouseEnter={o.showcase.enter} onMouseLeave={leave} onClick={o.showcase.click}>
+      { o.showcase.show && (
+<><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Contributor Showcase<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
+)}
+      <div style={{"position":"absolute","left":"50%","bottom":"-4px","width":"140px","height":"18px","transform":"translateX(-50%)","background":"radial-gradient(ellipse,rgba(0,0,0,.32),transparent 70%)","filter":"blur(3px)","zIndex":"-1","pointerEvents":"none"}}></div>
+      
+      {/* Display case frame */}
+      <div style={{"position":"absolute","inset":"0","background":"linear-gradient(160deg,#5a3a24,#3d2817)","borderRadius":"6px","boxShadow":"0 14px 24px rgba(0,0,0,.32)","padding":"12px"}}>
+        {/* Glass front */}
+        <div style={{"position":"relative","width":"100%","height":"100%","background":"linear-gradient(165deg,rgba(196,178,216,.15),rgba(145,128,172,.25))","borderRadius":"3px","overflow":"hidden","boxShadow":"inset 0 0 0 2px rgba(180,160,200,.2)","padding":"8px"}}>
+          {/* Mini showcase items inside */}
+          <div style={{"display":"grid","gridTemplateColumns":"repeat(2,1fr)","gap":"6px","height":"100%"}}>
+            {/* Item 1 - Video */}
+            <div style={{"background":"linear-gradient(135deg,rgba(69,214,255,.3),rgba(69,214,255,.1))","borderRadius":"4px","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"20px","color":"#45d6ff","opacity":".7"}}>▶</div>
+            {/* Item 2 - Article */}
+            <div style={{"background":"linear-gradient(135deg,rgba(255,210,63,.3),rgba(255,210,63,.1))","borderRadius":"4px","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"20px","color":"#ffd23f","opacity":".7"}}>✎</div>
+            {/* Item 3 - Audio */}
+            <div style={{"background":"linear-gradient(135deg,rgba(255,95,210,.3),rgba(255,95,210,.1))","borderRadius":"4px","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"20px","color":"#ff5fd2","opacity":".7"}}>♫</div>
+            {/* Item 4 - AI Gen */}
+            <div style={{"background":"linear-gradient(135deg,rgba(116,240,160,.3),rgba(116,240,160,.1))","borderRadius":"4px","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"20px","color":"#74f0a0","opacity":".7"}}>✦</div>
+          </div>
+          
+          {/* Glass glare effect */}
+          <div style={{"position":"absolute","top":"-10%","left":"-20%","width":"60%","height":"130%","background":"linear-gradient(120deg,rgba(255,255,255,.22),transparent 60%)","transform":"rotate(8deg)","pointerEvents":"none"}}></div>
+          
+          {/* Showcase badge */}
+          <div style={{"position":"absolute","bottom":"6px","left":"50%","transform":"translateX(-50%)","fontFamily":"'DM Mono',monospace","fontSize":"7px","letterSpacing":".08em","background":"rgba(255,95,210,.8)","color":"#12081e","padding":"2px 6px","borderRadius":"3px","fontWeight":"bold"}}>SHOWCASE</div>
+        </div>
+        
+        {/* Frame border detail */}
+        <div style={{"position":"absolute","inset":"9px","border":"1px solid rgba(0,0,0,.25)","borderRadius":"4px","pointerEvents":"none"}}></div>
+      </div>
+    </div>
+    )}
 
   </div>
 
@@ -963,6 +1049,257 @@ export default function CozyHubRoom({ isAdmin = true, avatarUrl, onLogout }: Coz
   </div>
   </>
 )}
+
+  {/*  =================== CONTRIBUTOR SHOWCASE (Guest Users Only) ===================  */}
+  { isShowcase && (
+  <div data-screen-label="Contributor Showcase" style={{"position":"fixed","inset":"0","zIndex":"100","display":"flex","flexDirection":"column","background":"linear-gradient(180deg,#241542,#1a0f30)","animation":"sw-fade .3s ease","fontFamily":"'Exo',sans-serif","overflow":"auto"}}>
+    <div style={{"maxWidth":"1100px","margin":"0 auto","width":"100%","padding":"34px 26px 60px"}}>
+      <button style={{"background":"rgba(253,221,154,.14)","border":"1px solid rgba(253,221,154,.2)","borderRadius":"10px","padding":"9px 15px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#FEFAE0","marginBottom":"22px"}} onClick={goHub}>← Back to Hub</button>
+      
+      {/* ═══ Header Banner ═══ */}
+      <div style={{
+        border: '2px solid var(--gold,#ffd23f)',
+        borderRadius: 12,
+        padding: 'clamp(14px,2.2vw,22px)',
+        background: 'linear-gradient(180deg,rgba(255,210,63,.07),rgba(255,210,63,.02))',
+        boxShadow: '0 0 24px rgba(255,210,63,.08)',
+        marginBottom: '24px'
+      }}>
+        <h2 className="font-pixel" style={{
+          fontSize: 'clamp(12px,1.8vw,18px)',
+          color: 'var(--gold,#ffd23f)',
+          margin: 0,
+          lineHeight: 1.5,
+        }}>
+          ★ FRIENDS & CONTRIBUTORS SHOWCASE LIBRARY
+        </h2>
+        <p style={{
+          fontSize: 15,
+          color: 'var(--mu,#a493c9)',
+          margin: '8px 0 0',
+          lineHeight: 1.55,
+        }}>
+          Curated lessons, articles, audio guides, and AI-generated packs from community
+          contributors, partner educators, and the StewardWorks AI Lab. Bookmark items to your desk
+          for quick reference during workshops.
+        </p>
+      </div>
+
+      {/* ═══ Filter Tabs ═══ */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: '24px' }}>
+        {[
+          { key: 'all', label: 'ALL', type: null },
+          { key: 'video', label: 'VIDEO LESSONS', type: 'video' },
+          { key: 'article', label: 'ARTICLES', type: 'article' },
+          { key: 'audio', label: 'AUDIO GUIDES', type: 'audio' },
+          { key: 'aigen', label: 'AI GENERATIONS', type: 'aigen' },
+        ].map(tab => {
+          const count = tab.type ? showcaseItems.filter((i: any) => i.type === tab.type).length : showcaseItems.length;
+          return (
+            <button
+              key={tab.key}
+              className="font-pixel"
+              style={{
+                fontSize: 10,
+                fontWeight: 'bold',
+                padding: '9px 14px',
+                borderRadius: 6,
+                border: `2px solid var(--s,#45d6ff)`,
+                background: 'var(--s,#45d6ff)',
+                color: '#12081e',
+                cursor: 'pointer',
+                transition: 'all .15s',
+                letterSpacing: '.5px',
+              }}
+            >
+              {tab.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+      
+      {showcaseLoading ? (
+        <div style={{"textAlign":"center","padding":"60px 20px","color":"#a493c9"}}>
+          <div style={{"width":"40px","height":"40px","margin":"0 auto 16px","borderRadius":"50%","border":"3px solid rgba(253,221,154,.2)","borderTopColor":"#FDDD9A","animation":"sw-spin 1s linear infinite"}}></div>
+          <div className="font-pixel" style={{"fontSize":"14px","letterSpacing":".1em"}}>LOADING SHOWCASE...</div>
+        </div>
+      ) : showcaseItems.length === 0 ? (
+        <div style={{"textAlign":"center","padding":"60px 20px","border":"2px dashed rgba(164,147,201,.3)","borderRadius":"16px","marginTop":"40px"}}>
+          <div className="font-pixel" style={{"fontSize":"16px","color":"#ff5fd2","marginBottom":"12px"}}>NO ITEMS AVAILABLE</div>
+          <p style={{"fontSize":"14px","color":"#a493c9","margin":"0","lineHeight":"1.6"}}>
+            The showcase library is currently empty.<br />
+            Check back later for new contributions from the community.
+          </p>
+        </div>
+      ) : (
+        <div style={{"display":"grid","gridTemplateColumns":"repeat(auto-fill,minmax(240px,1fr))","gap":"14px"}}>
+          {showcaseItems.map((item: any) => {
+            const typeColors: Record<string, string> = {
+              video: '#45d6ff',
+              article: '#ffd23f',
+              audio: '#ff5fd2',
+              aigen: '#74f0a0',
+            };
+            const typeLabels: Record<string, string> = {
+              video: '▶ VIDEO',
+              article: '✎ ARTICLE',
+              audio: '♫ AUDIO',
+              aigen: '✦ AI GEN',
+            };
+            const clr = typeColors[item.type] || '#45d6ff';
+            const label = typeLabels[item.type] || 'CONTENT';
+            
+            return (
+              <div key={item.id} style={{
+                border: "2px solid var(--ln,#3d2668)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                background: "var(--pn,#241542)",
+                display: "flex",
+                flexDirection: "column",
+                transition: "transform .2s ease, box-shadow .2s ease",
+              }}>
+                {/* thumbnail */}
+                <div style={{
+                  height: "140px",
+                  background: `linear-gradient(135deg,${clr}22,${clr}08)`,
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}>
+                  <span style={{ fontSize: "42px", opacity: .18, color: clr }}>
+                    {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : '✎'}
+                  </span>
+                  <span className="font-pixel" style={{
+                    position: "absolute",
+                    top: "10px",
+                    left: "10px",
+                    fontSize: "7px",
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                    background: clr,
+                    color: "#12081e",
+                    letterSpacing: ".5px"
+                  }}>
+                    {label}
+                  </span>
+                  {item.is_paid && (
+                    <span className="font-pixel" style={{
+                      position: "absolute",
+                      top: "10px",
+                      right: "10px",
+                      fontSize: "7px",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      background: "rgba(255,210,63,.18)",
+                      color: "var(--gold,#ffd23f)",
+                      border: "1px solid rgba(255,210,63,.3)"
+                    }}>
+                      ★ PREMIUM
+                    </span>
+                  )}
+                </div>
+                
+                {/* content */}
+                <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "10px", flex: "1" }}>
+                  <h3 className="font-pixel" style={{
+                    fontSize: "11px",
+                    color: "#fff",
+                    margin: "0",
+                    lineHeight: "1.6"
+                  }}>
+                    {item.title}
+                  </h3>
+                  
+                  <span style={{ fontSize: "13px", color: "var(--mu,#a493c9)" }}>
+                    {item.author} {item.meta ? `· ${item.meta}` : ''}
+                  </span>
+                  
+                  {item.theme && (
+                    <span style={{ fontSize: "11px", color: "var(--s,#45d6ff)" }}>
+                      ◈ Literacy · {item.theme}
+                    </span>
+                  )}
+                  
+                  {/* Action buttons */}
+                  <div style={{ display: "flex", gap: "8px", marginTop: "auto", paddingTop: "8px" }}>
+                    <button
+                      onClick={() => item.url && window.open(item.url, '_blank')}
+                      className="font-pixel"
+                      style={{
+                        flex: 1,
+                        fontSize: "10px",
+                        fontWeight: "bold",
+                        padding: "10px 14px",
+                        borderRadius: "6px",
+                        border: "none",
+                        background: "var(--s,#45d6ff)",
+                        color: "#12081e",
+                        cursor: "pointer",
+                        transition: "all .15s",
+                        letterSpacing: ".5px"
+                      }}
+                    >
+                      OPEN SAMPLE ▸
+                    </button>
+                    <button
+                      className="font-pixel"
+                      style={{
+                        fontSize: "14px",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "2px solid var(--s,#45d6ff)",
+                        background: "transparent",
+                        color: "var(--s,#45d6ff)",
+                        cursor: "pointer",
+                        transition: "all .15s"
+                      }}
+                    >
+                      ★
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          
+          {/* ═══ Become a Contributor CTA ═══ */}
+          <div style={{
+            border: '2px dashed var(--p,#ff5fd2)',
+            borderRadius: '8px',
+            background: 'rgba(255,95,210,.05)',
+            minHeight: '220px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            padding: '22px',
+            gap: '10px',
+          }}>
+            <span className="font-pixel" style={{
+              fontSize: '11px',
+              color: 'var(--p,#ff5fd2)',
+              lineHeight: 1.6,
+            }}>
+              ✎ BECOME A CONTRIBUTOR
+            </span>
+            <p style={{
+              fontSize: '14px',
+              color: 'var(--mu,#a493c9)',
+              margin: 0,
+              lineHeight: 1.55,
+            }}>
+              Share your lessons, audio guides, articles, or AI-generated content
+              with the community. All submissions are reviewed by the StewardWorks team.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+  )}
 
 </div>
 

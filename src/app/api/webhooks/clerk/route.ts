@@ -52,28 +52,49 @@ export async function POST(req: Request) {
   const eventType = evt.type
 
   if (eventType === 'user.created' || eventType === 'user.updated') {
-    const { id: clerkUserId, email_addresses, first_name, last_name } = evt.data
+    const { id: clerkUserId, email_addresses, first_name, last_name, public_metadata } = evt.data
     const email = email_addresses[0]?.email_address
     const fullName = [first_name, last_name].filter(Boolean).join(' ') || ''
 
     const supabase = createServerSupabaseClient()
+    
+    // Check if the user is a visitor/guest based on their invitation metadata
+    const roleFromMetadata = public_metadata?.role as string | undefined;
+    
+    console.log(`[Webhook] Processing ${eventType} for user ${clerkUserId}`)
+    console.log(`[Webhook] Role from metadata:`, roleFromMetadata)
+    console.log(`[Webhook] Full public_metadata:`, JSON.stringify(public_metadata, null, 2))
 
-    // Upsert the user profile
-    const { error } = await supabase.from('profiles').upsert({
+    // Build the upsert payload
+    const upsertPayload: any = {
       clerk_user_id: clerkUserId,
       email: email,
       full_name: fullName,
-      // We don't set 'role' here by default on upsert because it defaults to 'participant' in DB
-      // and we don't want to overwrite an admin role on 'user.updated'
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'clerk_user_id' })
+    };
+
+    // If they were invited as a guest, explicitly set the role
+    // Only do this on user.created so we don't accidentally overwrite an admin role
+    if (eventType === 'user.created' && roleFromMetadata === 'guest') {
+      upsertPayload.role = 'guest'; // Use 'guest' as it's allowed by database constraint
+      console.log(`[Webhook] Setting role to 'guest' for invited user ${clerkUserId}`)
+    } else if (eventType === 'user.created') {
+      // For new users without invitation metadata, set default role as 'participant'
+      upsertPayload.role = 'participant';
+      console.log(`[Webhook] Setting role to 'participant' for regular signup ${clerkUserId}`)
+    }
+    
+    console.log(`[Webhook] Upsert payload:`, JSON.stringify(upsertPayload, null, 2))
+
+    // Upsert the user profile
+    const { error } = await supabase.from('profiles').upsert(upsertPayload, { onConflict: 'clerk_user_id' })
 
     if (error) {
       console.error(`Error upserting profile for user ${clerkUserId}:`, error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
-    console.log(`Profile synced for ${clerkUserId}`)
+    console.log(`Profile synced for ${clerkUserId} with role: ${upsertPayload.role || 'not set'}`)
   }
   
   if (eventType === 'user.deleted') {

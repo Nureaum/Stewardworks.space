@@ -51,9 +51,10 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
   }
 
   const images = resource.media?.filter((m: any) => m.media_type === 'image') || [];
-  const videos = resource.media?.filter((m: any) => m.media_type === 'video_link') || [];
+  const videos = resource.media?.filter((m: any) => m.media_type === 'video_link' || m.media_type === 'video') || [];
   const pdfs = resource.media?.filter((m: any) => m.media_type === 'pdf') || [];
   const audios = resource.media?.filter((m: any) => m.media_type === 'external_link') || [];
+  const links = resource.media?.filter((m: any) => m.media_type === 'link' || m.media_type === 'video_link') || [];
   
   const headerBgUrl = resource.thumbnail_url || (images.length > 0 ? images[0].url : null);
   
@@ -149,30 +150,74 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
       <main className="w-full mx-auto px-8 md:px-16 py-12 relative z-20 space-y-12 max-w-5xl">
         
         {/* Summary Tab */}
-        {activeTab === 'summary' && resource.body && (
-          <article className="w-full bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-steward-dark/5">
-            <div 
-              className="
-                prose md:prose-lg max-w-none text-steward-dark/80 
-                prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight 
-                prose-a:text-steward-blue prose-a:font-bold hover:prose-a:text-steward-green 
-                
-                [&_img]:rounded-3xl [&_img]:shadow-md [&_img]:mx-auto [&_img]:max-w-3xl [&_img]:w-full
-                [&_video]:rounded-3xl [&_video]:shadow-md [&_video]:mx-auto [&_video]:max-w-3xl [&_video]:w-full
-                [&_iframe]:rounded-3xl [&_iframe]:shadow-md [&_iframe]:mx-auto [&_iframe]:max-w-3xl [&_iframe]:w-full
-                [&_figure]:mx-auto [&_figure]:max-w-3xl [&_figure]:w-full
-                [&_figure_img]:w-full [&_figure_img]:m-0
-              "
-              dangerouslySetInnerHTML={{ __html: resource.body }}
-            />
-          </article>
-        )}
+        {activeTab === 'summary' && (
+          <>
+            {resource.body && (
+              <article className="w-full bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-steward-dark/5">
+                <div 
+                  className="
+                    prose md:prose-lg max-w-none text-steward-dark/80 
+                    prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight 
+                    prose-a:text-steward-blue prose-a:font-bold hover:prose-a:text-steward-green 
+                    
+                    [&_img]:rounded-3xl [&_img]:shadow-md [&_img]:mx-auto [&_img]:max-w-3xl [&_img]:w-full
+                    [&_video]:rounded-3xl [&_video]:shadow-md [&_video]:mx-auto [&_video]:max-w-3xl [&_video]:w-full
+                    [&_iframe]:rounded-3xl [&_iframe]:shadow-md [&_iframe]:mx-auto [&_iframe]:max-w-3xl [&_iframe]:w-full
+                    [&_figure]:mx-auto [&_figure]:max-w-3xl [&_figure]:w-full
+                    [&_figure_img]:w-full [&_figure_img]:m-0
+                  "
+                  dangerouslySetInnerHTML={{ __html: resource.body }}
+                />
+              </article>
+            )}
 
-        {activeTab === 'summary' && !resource.body && (
-          <div className="w-full bg-white rounded-3xl p-12 shadow-sm border border-steward-dark/5 text-center">
-            <BookOpen className="mx-auto text-gray-300 mb-4" size={40} />
-            <p className="text-gray-400 font-bold text-sm uppercase tracking-widest">No summary content yet</p>
-          </div>
+            {!resource.body && links.length === 0 && (
+              <div className="w-full bg-white rounded-3xl p-12 shadow-sm border border-steward-dark/5 text-center">
+                <BookOpen className="mx-auto text-gray-300 mb-4" size={40} />
+                <p className="text-gray-400 font-bold text-sm uppercase tracking-widest">No summary content yet</p>
+              </div>
+            )}
+
+            {/* External Links Section */}
+            {links.length > 0 && (
+              <div className="w-full bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-steward-dark/5">
+                <h2 className="text-xl md:text-2xl font-black text-steward-dark uppercase tracking-tight mb-6 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-steward-blue/10 flex items-center justify-center">
+                    <ChevronLeft className="rotate-180 text-steward-blue" size={20} />
+                  </div>
+                  External Resources
+                </h2>
+                <div className="space-y-4">
+                  {links.map((link: any, idx: number) => (
+                    <a
+                      key={link.id || idx}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 p-5 bg-gradient-to-r from-steward-blue/5 to-transparent hover:from-steward-blue/10 border border-steward-blue/20 rounded-2xl transition-all group"
+                    >
+                      <div className="w-12 h-12 shrink-0 rounded-xl bg-steward-blue flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                        {link.media_type === 'video_link' ? (
+                          <Video size={20} />
+                        ) : (
+                          <ChevronLeft className="rotate-180" size={20} />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-steward-dark text-base mb-1 group-hover:text-steward-blue transition-colors">
+                          {link.label || 'View Resource'}
+                        </p>
+                        <p className="text-xs text-steward-dark/50 font-mono truncate">
+                          {link.url}
+                        </p>
+                      </div>
+                      <ChevronLeft className="rotate-180 text-steward-blue shrink-0 group-hover:translate-x-1 transition-transform" size={20} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Gallery Tab */}

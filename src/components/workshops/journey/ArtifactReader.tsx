@@ -15,7 +15,7 @@ interface ArtifactReaderProps {
   principles?: WorkshopPrinciple[]
   bankedPrincipleIds?: string[]
   progressRows?: WorkshopProgress[]
-  onDeliverableSubmitted?: (msg: string) => void
+  onDeliverableSubmitted?: (msg: string, shouldOpenVictory?: boolean) => void
   onClose?: () => void
   inline?: boolean
 }
@@ -60,6 +60,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
   const [media, setMedia] = useState<any[]>([])
   const [isLoadingMedia, setIsLoadingMedia] = useState(true)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+  const [showFeaturedPopup, setShowFeaturedPopup] = useState(false)
 
   React.useEffect(() => {
     setIsLoadingMedia(true)
@@ -94,8 +95,21 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
         return
       }
       
+      // Check if this submission completes all 3 days
+      // Count how many days are already complete (submitted or approved)
+      const currentlyComplete = progressRows.filter(
+        p => p.deliverable_status === 'submitted' || p.deliverable_status === 'approved'
+      ).length
+      
+      // After this submission, we'll have one more complete
+      const willBeComplete = currentlyComplete + 1
+      const shouldOpenVictory = willBeComplete >= 3
+      
       if (onDeliverableSubmitted) {
-        onDeliverableSubmitted('Deliverable submitted successfully! Pending admin approval.')
+        const message = shouldOpenVictory 
+          ? '★ Final deliverable banked — quest complete!' 
+          : 'Deliverable submitted successfully! Pending admin approval.'
+        onDeliverableSubmitted(message, shouldOpenVictory)
       }
       if (onClose) onClose()
     } catch (e: any) {
@@ -243,12 +257,21 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 9 }}>
                     Paid community media
                   </div>
-                  <button className="font-pixel" style={{
-                    fontSize: 9, color: 'var(--bg,#12081e)',
-                    background: 'var(--ok,#74f0a0)', border: 'none',
-                    borderRadius: 4, padding: '9px 13px', cursor: 'pointer',
-                  }}>
-                    ▶ OPEN SAMPLE
+                  <button 
+                    onClick={() => setShowFeaturedPopup(true)}
+                    className="font-pixel" 
+                    style={{
+                      fontSize: 11, 
+                      color: 'var(--bg,#12081e)',
+                      background: 'var(--ok,#74f0a0)', 
+                      border: 'none',
+                      borderRadius: 4, 
+                      padding: '10px 15px', 
+                      cursor: 'pointer',
+                      boxShadow: '0 3px 0 #4da06a',
+                    }}
+                  >
+                    ▸ VIA DRIVE
                   </button>
                 </div>
               </div>
@@ -394,6 +417,18 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                       </button>
                     )
                   })()}
+
+                  {/* Review Note Display */}
+                  {dayProgress?.review_note && (
+                    <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 6, background: 'rgba(255,210,63,.12)', borderLeft: '4px solid var(--gold,#ffd23f)' }}>
+                      <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', marginBottom: 6 }}>
+                        ▤ TEACHER NOTE:
+                      </div>
+                      <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>
+                        {dayProgress.review_note}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Applied + Lab descriptions */}
@@ -497,11 +532,86 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
     </div>
   )
 
+  const featuredPopup = showFeaturedPopup && (
+    <div
+      onClick={(e) => { e.stopPropagation(); setShowFeaturedPopup(false) }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(8,4,16,.85)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 'clamp(12px,3vw,40px)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="retro-winpop"
+        style={{
+          maxWidth: 560,
+          width: '100%',
+          border: '3px solid var(--ok,#74f0a0)',
+          borderRadius: 14,
+          background: 'var(--pn,#241542)',
+          padding: '22px 26px',
+          boxShadow: '0 0 40px rgba(0,0,0,.6)',
+        }}
+      >
+        <div className="font-pixel" style={{ fontSize: 9, color: 'var(--ok,#74f0a0)', letterSpacing: 1, marginBottom: 12 }}>
+          ◈ FEATURED CONTRIBUTOR
+        </div>
+        <div className="font-pixel" style={{ fontSize: 'clamp(13px,2.2vw,16px)', color: 'var(--tx,#efe6ff)', marginBottom: 16, lineHeight: 1.5 }}>
+          {entry.title}
+        </div>
+        <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.55, marginBottom: 20 }}>
+          {entry.note || 'This is a hand-picked piece from a paid community contributor — explore an approach outside the main curriculum track.'}
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {entry.external_video_url && (
+            <a
+              href={entry.external_video_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-pixel"
+              style={{
+                fontSize: 10,
+                color: 'var(--bg,#12081e)',
+                background: 'var(--ok,#74f0a0)',
+                border: 'none',
+                borderRadius: 6,
+                padding: '12px 18px',
+                textDecoration: 'none',
+                display: 'inline-block',
+                boxShadow: '0 4px 0 #4da06a',
+              }}
+            >
+              ▸ OPEN IN DRIVE
+            </a>
+          )}
+          <button
+            onClick={() => setShowFeaturedPopup(false)}
+            className="font-pixel"
+            style={{
+              fontSize: 10,
+              color: 'var(--tx,#efe6ff)',
+              background: 'rgba(0,0,0,.4)',
+              border: '2px solid var(--ln,#3d2668)',
+              borderRadius: 6,
+              padding: '10px 18px',
+              cursor: 'pointer',
+            }}
+          >
+            ◂ CLOSE
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   if (inline) {
     return (
       <>
         {innerContent}
         {zoomModal}
+        {featuredPopup}
       </>
     )
   }
@@ -518,6 +628,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
     >
       {innerContent}
       {zoomModal}
+      {featuredPopup}
     </div>
   )
 }

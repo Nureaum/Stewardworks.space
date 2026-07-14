@@ -18,10 +18,25 @@ export default function SignupPage() {
   
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'magic_success' | 'signup_success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isInvitation, setIsInvitation] = useState(false);
   const router = useRouter();
   
   const { isLoaded, signUp, setActive } = useSignUp();
   const { isSignedIn, signOut } = useAuth();
+
+  // Check if this is an invitation signup
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const clerkTicket = params.get('__clerk_ticket');
+      const clerkStatus = params.get('__clerk_status');
+      
+      if (clerkTicket && clerkStatus === 'sign_up') {
+        setIsInvitation(true);
+        console.log('[Signup] Detected invitation signup with ticket');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // If user is already signed in, redirect to hub
@@ -73,8 +88,9 @@ export default function SignupPage() {
       }
 
       // 1. Create the user
-      console.log("Attempting to create user with Clerk:", { emailAddress: email, firstName, lastName, phone });
-      await signUp.create({
+      console.log("Attempting to create user with Clerk:", { emailAddress: email, firstName, lastName, phone, isInvitation });
+      
+      const signUpParams: any = {
         emailAddress: email,
         password,
         firstName,
@@ -82,13 +98,21 @@ export default function SignupPage() {
         unsafeMetadata: {
           phone,
         }
-      });
+      };
+
+      // DON'T set publicMetadata during signup - Clerk rejects it and causes 401 error
+      // We'll set the role AFTER email verification via our API endpoint
+      if (isInvitation) {
+        console.log('[Signup] Invitation signup - role will be set after email verification');
+      }
+
+      await signUp.create(signUpParams);
       console.log("User created successfully on Clerk backend.");
 
       // 2. Prepare email verification (verification link)
       await signUp.prepareEmailAddressVerification({ 
         strategy: "email_link",
-        redirectUrl: `${window.location.origin}/verify?type=signup`
+        redirectUrl: `${window.location.origin}/verify?type=signup${isInvitation ? '&invitation=true' : ''}`
       });
       
       // Go to verification step (we simulate signup_success which asks them to check email)
@@ -107,16 +131,18 @@ export default function SignupPage() {
           await signOut();
           await new Promise(resolve => setTimeout(resolve, 500));
           // Retry the signup
-          await signUp.create({
+          const retryParams: any = {
             emailAddress: email,
             password,
             firstName,
             lastName,
             unsafeMetadata: { phone }
-          });
+          };
+          // Don't set publicMetadata - it causes 401 errors
+          await signUp.create(retryParams);
           await signUp.prepareEmailAddressVerification({ 
             strategy: "email_link",
-            redirectUrl: `${window.location.origin}/verify?type=signup`
+            redirectUrl: `${window.location.origin}/verify?type=signup${isInvitation ? '&invitation=true' : ''}`
           });
           setStatus('signup_success');
         } catch (retryErr: any) {
@@ -137,8 +163,13 @@ export default function SignupPage() {
           </div>
           <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tight">Create Account</h1>
           <p className="text-sm text-steward-dark/60 mt-2 text-center font-medium">
-            Join the StewardWorks Hub
+            {isInvitation ? 'Complete your invitation to join StewardWorks' : 'Join the StewardWorks Hub'}
           </p>
+          {isInvitation && (
+            <div className="mt-3 bg-steward-green/10 border border-steward-green/30 rounded-lg px-4 py-2 text-xs text-steward-green font-bold">
+              ✓ Invited as Guest
+            </div>
+          )}
         </div>
 
         {status === 'success' ? (

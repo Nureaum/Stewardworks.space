@@ -710,14 +710,14 @@ export async function getApprovalsQueue(cohortId: string, filter?: 'all' | 'deli
     'bookmarks': 'bookmark'
   }
   
-  if (!filter || filter === 'all' || filter === 'showcase' || filter === 'bookmarks') {
-    let query = supabase
-      .from('workshop_engagement')
-      .select(`
-        id, kind, title, url, source, created_at, status,
-        profile:profiles!workshop_engagement_profile_id_fkey ( id, full_name, email )
-      `)
-      .eq('cohort_id', cohortId)
+    if (!filter || filter === 'all' || filter === 'showcase' || filter === 'bookmarks') {
+      let query = supabase
+        .from('workshop_engagement')
+        .select(`
+          id, kind, title, url, source, created_at, status, content,
+          profile:profiles!workshop_engagement_profile_id_fkey ( id, full_name, email )
+        `)
+        .eq('cohort_id', cohortId)
 
     if (statusFilter === 'history') {
       query = query.in('status', ['approved', 'rejected'])
@@ -743,6 +743,8 @@ export async function getApprovalsQueue(cohortId: string, filter?: 'all' | 'deli
       .from('workshop_progress')
       .select(`
         id,
+        workshop_day_id,
+        profile_id,
         deliverable_status,
         deliverable_submitted_at,
         workshop_days!inner(cohort_id, title),
@@ -759,17 +761,27 @@ export async function getApprovalsQueue(cohortId: string, filter?: 'all' | 'deli
     const { data: progress, error: progError } = await progQuery
     if (progError) console.error('Error fetching deliverables:', progError)
     
-    if (progress) {
-      const mappedProgress = progress.map((p: any) => ({
-        id: p.id,
-        kind: 'deliverable',
-        title: p.workshop_days.title || 'Pilot Deliverable',
-        url: null,
-        source: 'Pilot Workshops',
-        created_at: p.deliverable_submitted_at || new Date().toISOString(),
-        status: p.deliverable_status === 'submitted' ? 'pending' : p.deliverable_status,
-        profile: p.profile
-      }))
+    if (progress && progress.length > 0) {
+      const { data: submissions } = await supabase
+        .from('workshop_deliverable_submissions')
+        .select('*')
+        .in('workshop_day_id', progress.map((p: any) => p.workshop_day_id))
+        .in('profile_id', progress.map((p: any) => p.profile_id))
+
+      const mappedProgress = progress.map((p: any) => {
+        const sub = submissions?.find((s: any) => s.workshop_day_id === p.workshop_day_id && s.profile_id === p.profile_id)
+        return {
+          id: p.id,
+          kind: 'deliverable',
+          title: p.workshop_days.title || 'Pilot Deliverable',
+          url: sub?.external_video_url || sub?.file_storage_path || null,
+          content: sub?.submission_text || null,
+          source: 'Pilot Workshops',
+          created_at: p.deliverable_submitted_at || new Date().toISOString(),
+          status: p.deliverable_status === 'submitted' ? 'pending' : p.deliverable_status,
+          profile: p.profile
+        }
+      })
       items = [...items, ...mappedProgress]
     }
   }
@@ -817,7 +829,8 @@ export async function reviewApprovalItem(id: string, kind: string, action: 'appr
       .update({
         status: status,
         reviewed_by: profile.id,
-        reviewed_at: new Date().toISOString()
+        reviewed_at: new Date().toISOString(),
+        review_note: note || null
       })
       .eq('id', id)
       
@@ -851,6 +864,10 @@ export async function getPlatforms(cohortId: string) {
 
   if (error) {
     console.error('Error fetching platforms:', error)
+    // Return empty array if table doesn't exist yet
+    if (error.code === 'PGRST205' || error.code === '42P01') {
+      return []
+    }
     throw new Error('Failed to load platforms')
   }
 

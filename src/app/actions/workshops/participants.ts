@@ -495,6 +495,9 @@ export async function submitDeliverable(
         unlocked_at: progress?.unlocked_at || new Date().toISOString(),
         deliverable_submitted_at: new Date().toISOString(),
         deliverable_status: 'submitted',
+        review_note: null,
+        reviewed_by: null,
+        reviewed_at: null,
       }, { onConflict: 'workshop_day_id,profile_id' })
       .select('id')
       .single()
@@ -526,6 +529,7 @@ export async function submitDeliverable(
     if (day) {
       revalidatePath(`/hub/pilot-workshops/${day.cohort_id}`)
       revalidatePath(`/hub/pilot-workshops/${day.cohort_id}/day/${dayId}`)
+      revalidatePath('/hub/ai-lab')
     }
 
     return {

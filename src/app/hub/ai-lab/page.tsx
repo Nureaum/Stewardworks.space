@@ -45,6 +45,7 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
   }
 
   let daysComplete = 0;
+  let approvedDays = 0;
   let days = [];
   let principles = [];
   if (activeCohort) {
@@ -54,6 +55,10 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
         d => d.progress && (d.progress.deliverable_status === 'submitted' || d.progress.deliverable_status === 'approved')
       ).length;
       
+      approvedDays = dashboard.filter(
+        d => d.progress && d.progress.deliverable_status === 'approved'
+      ).length;
+
       days = await getWorkshopDays(activeCohort.id);
       principles = await getPrinciples(activeCohort.id);
     } catch (e) {
@@ -62,12 +67,34 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
   }
 
   const curriculum = await getAILabCurriculum();
+
+  let showcaseItems = [];
+  let initialEngagements = [];
+
+  if (activeCohort) {
+    const { data: sData } = await supabase
+      .from('workshop_showcase')
+      .select('*')
+      .eq('cohort_id', activeCohort.id)
+      .order('created_at', { ascending: false });
+    if (sData) showcaseItems = sData;
+
+    const { data: eData } = await supabase
+      .from('workshop_engagement')
+      .select('*')
+      .eq('cohort_id', activeCohort.id)
+      .eq('profile_id', profile.id);
+    if (eData) initialEngagements = eData;
+  }
   return <AILabClient 
     initialCurriculum={curriculum || {}} 
     daysComplete={daysComplete} 
+    approvedDays={approvedDays}
     cohortId={activeCohort?.id}
     days={days}
     principles={principles}
     userRole={profile.role}
+    showcaseItems={showcaseItems}
+    initialEngagements={initialEngagements}
   />;
 }

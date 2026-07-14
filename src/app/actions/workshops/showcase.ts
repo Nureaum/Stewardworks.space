@@ -25,7 +25,83 @@ export async function getShowcaseItems(cohortId: string) {
 }
 
 /**
+ * Gets approved deliverables that requested showcase for a given cohort
+ */
+export async function getStudentShowcaseDeliverables(cohortId: string) {
+  const supabase = createServerSupabaseClient()
+  
+  // 1. Fetch approved progress rows for the cohort
+  const { data: progressRows, error: progressError } = await supabase
+    .from('workshop_progress')
+    .select(`
+      id,
+      workshop_day_id,
+      profile_id,
+      deliverable_status,
+      workshop_days!inner(cohort_id, title),
+      profiles!workshop_progress_profile_id_fkey(full_name, email)
+    `)
+    .eq('workshop_days.cohort_id', cohortId)
+    .eq('deliverable_status', 'approved')
+    
+  if (progressError || !progressRows || progressRows.length === 0) {
+    if (progressError) console.error('Get showcase deliverables error:', progressError)
+    return []
+  }
+
+  // 2. Fetch the corresponding submissions
+  const { data: submissions, error: subError } = await supabase
+    .from('workshop_deliverable_submissions')
+    .select('*')
+    .in('workshop_day_id', progressRows.map(p => p.workshop_day_id))
+    .in('profile_id', progressRows.map(p => p.profile_id))
+    .order('submitted_at', { ascending: false })
+
+  if (subError) {
+    console.error('Get showcase submissions error:', subError)
+    return []
+  }
+
+  // 3. Match and filter for SHOWCASE_REQUESTED
+  const latestSubmissions = (submissions || []).reduce((acc, sub) => {
+    const key = `${sub.workshop_day_id}|${sub.profile_id}`
+    if (!acc[key]) {
+      acc[key] = sub
+    }
+    return acc
+  }, {} as Record<string, any>)
+
+  const showcaseItems = progressRows.map((progress: any) => {
+    const key = `${progress.workshop_day_id}|${progress.profile_id}`
+    const sub = latestSubmissions[key]
+    
+    // Only include if they requested showcase
+    if (!sub || !sub.submission_text || !sub.submission_text.includes('[SHOWCASE_REQUESTED]')) {
+      return null
+    }
+
+    // Format like a showcase generation so the UI handles it easily
+    return {
+      id: progress.id,
+      kind: 'generation',
+      title: progress.workshop_days?.title || 'Deliverable Submission',
+      content: JSON.stringify({
+        showcaseVisible: true,
+        type: 'deliverable'
+      }),
+      url: sub.external_video_url || sub.file_storage_path || '',
+      status: 'approved',
+      profiles: progress.profiles,
+      created_at: sub.submitted_at
+    }
+  }).filter(Boolean)
+
+  return showcaseItems
+}
+
+/**
  * Adds a new showcase contribution (admin or student)
+ * Also creates a library resource entry under "How to Use AI" category
  */
 export async function addShowcaseItem(cohortId: string, data: {
   title: string
@@ -37,8 +113,15 @@ export async function addShowcaseItem(cohortId: string, data: {
   theme?: string
   is_paid?: boolean
 }) {
+  console.log('=== START addShowcaseItem ===')
+  console.log('Input data:', { cohortId, ...data })
+  
   const { userId } = await auth()
-  if (!userId) throw new Error('Authentication required')
+  if (!userId) {
+    console.error('No userId from auth')
+    throw new Error('Authentication required')
+  }
+  console.log('Authenticated userId:', userId)
   
   const supabase = createServerSupabaseClient()
   
@@ -48,8 +131,14 @@ export async function addShowcaseItem(cohortId: string, data: {
     .eq('clerk_user_id', userId)
     .single()
   
-  if (!profile) throw new Error('Profile not found')
+  if (!profile) {
+    console.error('Profile not found for userId:', userId)
+    throw new Error('Profile not found')
+  }
+  console.log('Profile found:', profile.id)
   
+  // 1. Create the showcase item
+  console.log('Step 1: Creating showcase item...')
   const { data: item, error } = await supabase
     .from('workshop_showcase')
     .insert({
@@ -71,8 +160,147 @@ export async function addShowcaseItem(cohortId: string, data: {
     console.error('Add showcase item error:', error)
     throw new Error(`Failed to add showcase item: ${error.message}`)
   }
+  console.log('Showcase item created successfully:', item.id)
   
+  // 2. Get or create "How to Use AI" category
+  console.log('Step 2: Getting or creating "How to Use AI" category...')
+  let categoryId = null
+  
+  // Try to find the category by label first (most reliable)
+  const { data: categoryByLabel, error: labelError } = await supabase
+    .from('content_categories')
+    .select('id, label, slug')
+    .ilike('label', 'How to Use AI')
+    .limit(1)
+    .maybeSingle()
+  
+  if (labelError) {
+    console.error('Category query by label error:', labelError)
+  }
+  
+  if (categoryByLabel) {
+    categoryId = categoryByLabel.id
+    console.log('✅ Found existing category by label:', categoryId, categoryByLabel.label)
+  } else {
+    // Try by slug as fallback
+    const { data: categoryBySlug, error: slugError } = await supabase
+      .from('content_categories')
+      .select('id, label, slug')
+      .eq('slug', 'how-to-use-ai')
+      .limit(1)
+      .maybeSingle()
+    
+    if (slugError) {
+      console.error('Category query by slug error:', slugError)
+    }
+    
+    if (categoryBySlug) {
+      categoryId = categoryBySlug.id
+      console.log('✅ Found existing category by slug:', categoryId, categoryBySlug.label)
+    } else {
+      console.log('⚠️ Category not found, creating new "How to Use AI" category...')
+      // Create the category if it doesn't exist
+      const { data: newCategory, error: createCatError } = await supabase
+        .from('content_categories')
+        .insert({
+          label: 'How to Use AI',
+          slug: 'how-to-use-ai',
+          icon: '◈'
+        })
+        .select('id')
+        .single()
+      
+      if (createCatError) {
+        console.error('❌ Failed to create category:', createCatError)
+      } else if (newCategory) {
+        categoryId = newCategory.id
+        console.log('✅ Category created successfully:', categoryId)
+      }
+    }
+  }
+  
+  if (!categoryId) {
+    console.error('❌ CRITICAL: Could not get or create category ID!')
+  } else {
+    console.log('✅ Using category ID:', categoryId)
+  }
+  
+  // 3. Map showcase type to library resource type
+  const resourceTypeMap: Record<string, string> = {
+    'video': 'video',
+    'article': 'article',
+    'audio': 'article', // Audio treated as article with external link
+    'aigen': 'other'
+  }
+  
+  const mappedType = resourceTypeMap[data.type] || 'other'
+  console.log('Step 3: Mapped type:', data.type, '->', mappedType)
+  
+  // 4. Create the library resource (only if we have a category)
+  if (categoryId) {
+    console.log('Step 4: Creating library resource...')
+    const libraryPayload: any = {
+      content_type: 'library_resource',
+      title: data.title,
+      body: data.blurb || '',
+      resource_type: mappedType,
+      category_id: categoryId,
+      status: 'published',
+      published_at: new Date().toISOString(),
+      created_by: profile.id,
+      updated_by: profile.id,
+    }
+    
+    console.log('📦 Library payload:', JSON.stringify(libraryPayload, null, 2))
+    
+    const { data: libraryResource, error: libraryError } = await supabase
+      .from('content_items')
+      .insert(libraryPayload)
+      .select()
+      .single()
+    
+    if (libraryError) {
+      console.error('❌ Add library resource FAILED!')
+      console.error('Error code:', libraryError.code)
+      console.error('Error message:', libraryError.message)
+      console.error('Error details:', libraryError.details)
+      console.error('Error hint:', libraryError.hint)
+      // Don't throw - showcase item was already created successfully
+    } else {
+      console.log('✅ Library resource created successfully!')
+      console.log('Library resource ID:', libraryResource.id)
+      
+      // Create media entry for the URL if provided
+      if (data.url) {
+        console.log('Step 4b: Creating media entry for URL...')
+        const mediaType = data.type === 'video' ? 'video_link' : 'link'
+        const { data: mediaData, error: mediaError } = await supabase
+          .from('content_media')
+          .insert({
+            content_item_id: libraryResource.id,
+            media_type: mediaType,
+            url: data.url,
+            label: data.title,
+            sort_order: 0
+          })
+          .select()
+        
+        if (mediaError) {
+          console.error('❌ Failed to create media entry:', mediaError)
+        } else {
+          console.log('✅ Media entry created successfully:', mediaData)
+        }
+      }
+    }
+  } else {
+    console.error('⚠️ Skipping library resource creation - no valid category ID')
+  }
+  
+  console.log('Step 5: Revalidating paths...')
   revalidatePath('/hub/pilot-workshops')
+  revalidatePath('/hub/library')
+  
+  console.log('=== END addShowcaseItem ===')
   return item
 }
 

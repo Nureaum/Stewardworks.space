@@ -21,6 +21,7 @@ function VerifyPageContent() {
     const ticket = searchParams.get('__clerk_ticket');
     const createdSessionId = searchParams.get('__clerk_created_session');
     const flowType = searchParams.get('type');
+    const isInvitation = searchParams.get('invitation') === 'true';
     const targetUrl = flowType === 'signup' ? '/hub/my-profile' : '/hub';
 
     console.log('Verify Page Debug:', {
@@ -69,6 +70,34 @@ function VerifyPageContent() {
         if (result?.createdSessionId) {
           console.log('Activating session:', result.createdSessionId);
           await setActive({ session: result.createdSessionId });
+          
+          // If this is an invitation signup, set guest role
+          if (isInvitation) {
+            console.log('[Verify] Invitation signup detected (ticket path), setting guest role');
+            try {
+              // Wait a bit to ensure session is fully authenticated
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              const roleRes = await fetch('/api/auth/set-visitor-role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isInvitation: true }),
+              });
+              
+              const roleData = await roleRes.json();
+              console.log('[Verify] Set guest role response:', roleData);
+              
+              if (roleRes.ok) {
+                console.log('[Verify] ✅ Successfully set guest role');
+              } else {
+                console.error('[Verify] ❌ Failed to set guest role:', roleData);
+                alert('Warning: Failed to set guest role. Please contact admin. Error: ' + (roleData.error || 'Unknown'));
+              }
+            } catch (roleError) {
+              console.error('[Verify] ❌ Error setting guest role:', roleError);
+              alert('Warning: Error setting guest role. Please contact admin.');
+            }
+          }
         }
         setStatus('success');
         setTimeout(() => window.location.href = targetUrl, 1500);
@@ -88,6 +117,34 @@ function VerifyPageContent() {
           
           // CRITICAL: Wait for Clerk client to fully sync the session
           await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // If this is an invitation signup, set guest role
+          if (isInvitation) {
+            console.log('[Verify] Invitation signup detected (verified path), setting guest role');
+            try {
+              // Wait a bit more to ensure session is fully authenticated
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              const roleRes = await fetch('/api/auth/set-visitor-role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isInvitation: true }),
+              });
+              
+              const roleData = await roleRes.json();
+              console.log('[Verify] Set guest role response:', roleData);
+              
+              if (roleRes.ok) {
+                console.log('[Verify] ✅ Successfully set guest role');
+              } else {
+                console.error('[Verify] ❌ Failed to set guest role:', roleData);
+                alert('Warning: Failed to set guest role. Please contact admin. Error: ' + (roleData.error || 'Unknown'));
+              }
+            } catch (roleError) {
+              console.error('[Verify] ❌ Error setting guest role:', roleError);
+              alert('Warning: Error setting guest role. Please contact admin.');
+            }
+          }
           
           // Force check if session is now active
           console.log('Checking session status...');

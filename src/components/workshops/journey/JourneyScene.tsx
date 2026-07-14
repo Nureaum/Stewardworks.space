@@ -16,7 +16,7 @@ interface JourneySceneProps {
   principles: WorkshopPrinciple[]
   bankedPrincipleIds: string[]
   progressRows: WorkshopProgress[]
-  onDeliverableSubmitted: (msg: string) => void
+  onDeliverableSubmitted: (msg: string, shouldOpenVictory?: boolean) => void
   onOpenList: () => void
 }
 
@@ -146,8 +146,8 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
   const playerRef = useRef<HTMLImageElement>(null)
   const pxRef = useRef(
     typeof sessionStorage !== 'undefined'
-      ? Number(sessionStorage.getItem(`scene_px_${day.day_number}`)) || 300
-      : 300
+      ? Number(sessionStorage.getItem(`scene_px_${day.day_number}`)) || 280
+      : 280
   )
   const targetRef = useRef<number | null>(null)
   const faceRef = useRef(1)
@@ -191,7 +191,7 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
     if (introOpen) return
 
     sceneOnRef.current = true
-    pxRef.current = pxRef.current || 300
+    pxRef.current = pxRef.current || 280
     faceRef.current = 1
     t0Ref.current = performance.now()
 
@@ -314,7 +314,9 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
 
   // Scene nodes
   const nearArt = nearIdx >= 0 ? entries[nearIdx] : null
-  const visitedCount = Object.values(visited).filter(Boolean).length
+  const visitedCount = Object.keys(visited)
+    .filter(k => k.startsWith(`${day.day_number}-`) && visited[k])
+    .length
 
   return (
     <div style={{ padding: 'clamp(10px,2vw,18px) clamp(8px,2vw,18px)', maxWidth: 1200, margin: '0 auto' }}>
@@ -456,7 +458,6 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
             style={{
               position: 'absolute',
               bottom: 92,
-              left: 300,
               width: 96, height: 96,
               imageRendering: 'pixelated' as any,
               zIndex: 6,

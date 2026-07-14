@@ -8,6 +8,7 @@ export default function HubPage() {
   const { signOut } = useClerk();
   const { user, isLoaded } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
 
@@ -25,6 +26,9 @@ export default function HubPage() {
           const profile = data.profile;
           if (profile?.role === 'admin' || profile?.role === 'super_admin') {
             setIsAdmin(true);
+          }
+          if (profile?.role === 'guest') {
+            setIsGuest(true);
           }
           if (profile?.avatar_url) {
             setAvatarUrl(profile.avatar_url);
@@ -58,6 +62,6 @@ export default function HubPage() {
   }
 
   return (
-    <CozyHubRoom isAdmin={isAdmin} avatarUrl={avatarUrl} onLogout={handleLogout} />
+    <CozyHubRoom isAdmin={isAdmin} isGuest={isGuest} avatarUrl={avatarUrl} onLogout={handleLogout} />
   );
 }

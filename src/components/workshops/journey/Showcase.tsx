@@ -1,7 +1,9 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import type { WorkshopShowcase, WorkshopEngagement } from '@/types/workshops'
+import { getAllGenerations } from '@/app/actions/workshops/engagement'
+import { getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
 
 /* ── local item shape ── */
 interface ShowcaseItem {
@@ -49,17 +51,53 @@ const FILTER_TABS: FilterTab[] = [
 
 /* ── props ── */
 interface ShowcaseProps {
-  showcaseItems: WorkshopShowcase[]
-  engagements: WorkshopEngagement[]
-  onBookmark: (key: string, title: string, source: string, url?: string) => void
+  showcaseItems?: WorkshopShowcase[]
+  engagements?: WorkshopEngagement[]
+  onBookmark?: (key: string, title: string, source: string, url?: string) => void
+  cohortId?: string
+  onlyStudents?: boolean
+  onlyContributors?: boolean
 }
 
 /* ═══════════════════════════════════════════════════════════════
    Showcase Component
    ═══════════════════════════════════════════════════════════════ */
-export default function Showcase({ showcaseItems, engagements, onBookmark }: ShowcaseProps) {
+export default function Showcase({ showcaseItems = [], engagements = [], onBookmark, cohortId, onlyStudents = false, onlyContributors = false }: ShowcaseProps) {
+  const [viewModeState, setViewModeState] = useState<'contributors' | 'students'>('contributors')
+  const activeViewMode = onlyStudents ? 'students' : onlyContributors ? 'contributors' : viewModeState
   const [filter, setFilter] = useState<string>('all')
   const [preview, setPreview] = useState<string | null>(null)
+  
+  // Student showcase data
+  const [studentItems, setStudentItems] = useState<any[]>([])
+  const [studentsLoading, setStudentsLoading] = useState(false)
+
+  useEffect(() => {
+    if (activeViewMode === 'students' && cohortId && studentItems.length === 0) {
+      setStudentsLoading(true)
+      
+      Promise.all([
+        getAllGenerations(cohortId),
+        getStudentShowcaseDeliverables(cohortId)
+      ]).then(([engs, delivs]) => {
+        const approvedEngs = engs.filter((e: any) => {
+          try {
+            const data = JSON.parse(e.content || '{}');
+            return data.showcaseVisible === true;
+          } catch(err) {
+            return false;
+          }
+        });
+        
+        // delivs already pre-filtered for showcase and structured like engagements
+        setStudentItems([...approvedEngs, ...delivs]);
+        setStudentsLoading(false);
+      }).catch(err => {
+        console.error(err);
+        setStudentsLoading(false);
+      });
+    }
+  }, [activeViewMode, cohortId, studentItems.length])
 
   const allItems = useMemo<ShowcaseItem[]>(() => {
     const dbItems: ShowcaseItem[] = showcaseItems.map(s => ({
@@ -100,8 +138,41 @@ export default function Showcase({ showcaseItems, engagements, onBookmark }: Sho
   /* ── render ── */
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      {/* ═══ Header Banner ═══ */}
-      <div style={{
+      
+      {/* Master Toggle */}
+      {!onlyStudents && !onlyContributors && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+          <button
+            onClick={() => setViewModeState('contributors')}
+            className="font-pixel"
+            style={{
+              padding: '10px 16px', fontSize: 16, fontWeight: 'bold', borderRadius: 8, cursor: 'pointer',
+              border: `2px solid ${activeViewMode === 'contributors' ? 'var(--gold,#ffd23f)' : 'var(--ln,#3d2668)'}`,
+              background: activeViewMode === 'contributors' ? 'rgba(255,210,63,.1)' : 'transparent',
+              color: activeViewMode === 'contributors' ? 'var(--gold,#ffd23f)' : 'var(--mu,#a493c9)'
+            }}
+          >
+            CONTRIBUTORS
+          </button>
+          <button
+            onClick={() => setViewModeState('students')}
+            className="font-pixel"
+            style={{
+              padding: '10px 16px', fontSize: 16, fontWeight: 'bold', borderRadius: 8, cursor: 'pointer',
+              border: `2px solid ${activeViewMode === 'students' ? '#ff5fd2' : 'var(--ln,#3d2668)'}`,
+              background: activeViewMode === 'students' ? 'rgba(255,95,210,.1)' : 'transparent',
+              color: activeViewMode === 'students' ? '#ff5fd2' : 'var(--mu,#a493c9)'
+            }}
+          >
+            STUDENTS
+          </button>
+        </div>
+      )}
+
+      {activeViewMode === 'contributors' && !onlyStudents && (
+        <>
+          {/* ═══ Header Banner ═══ */}
+          <div style={{
         border: '2px solid var(--gold,#ffd23f)',
         borderRadius: 12,
         padding: 'clamp(14px,2.2vw,22px)',
@@ -139,8 +210,9 @@ export default function Showcase({ showcaseItems, engagements, onBookmark }: Sho
               onClick={() => setFilter(tab.key)}
               className="font-pixel"
               style={{
-                fontSize: 9,
-                padding: '7px 14px',
+                fontSize: 16,
+                fontWeight: 'bold',
+                padding: '11px 18px',
                 borderRadius: 6,
                 border: `2px solid var(--s,#45d6ff)`,
                 background: active ? 'var(--s,#45d6ff)' : 'transparent',
@@ -168,7 +240,7 @@ export default function Showcase({ showcaseItems, engagements, onBookmark }: Sho
             item={item}
             bookmarked={isBookmarked(item)}
             onOpen={() => setPreview(item.id)}
-            onBookmark={() => onBookmark('contrib-' + item.id, item.title, 'Showcase · ' + item.theme, item.url || undefined)}
+            onBookmark={() => onBookmark && onBookmark('contrib-' + item.id, item.title, 'Showcase · ' + item.theme, item.url || undefined)}
           />
         ))}
 
@@ -204,6 +276,77 @@ export default function Showcase({ showcaseItems, engagements, onBookmark }: Sho
           </p>
         </div>
       </div>
+      </>
+      )}
+
+      {activeViewMode === 'students' && !onlyContributors && (
+        <>
+          {/* ═══ Header Banner ═══ */}
+          <div style={{
+            border: '2px solid #ff5fd2',
+            borderRadius: 12,
+            padding: 'clamp(14px,2.2vw,22px)',
+            background: 'linear-gradient(180deg,rgba(255,95,210,.07),rgba(255,95,210,.02))',
+            boxShadow: '0 0 24px rgba(255,95,210,.08)',
+          }}>
+            <h2 className="font-pixel" style={{
+              fontSize: 'clamp(12px,1.8vw,18px)',
+              color: '#ff5fd2',
+              margin: 0,
+              lineHeight: 1.5,
+            }}>
+              ★ STUDENT SHOWCASE LIBRARY
+            </h2>
+            <p style={{
+              fontSize: 15,
+              color: 'var(--mu,#a493c9)',
+              margin: '8px 0 0',
+              lineHeight: 1.55,
+            }}>
+              Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.
+            </p>
+          </div>
+
+          {studentsLoading ? (
+            <div className="p-8 text-center font-pixel" style={{ color: '#ff5fd2', marginTop: 40 }}>LOADING SHOWCASE...</div>
+          ) : studentItems.length === 0 ? (
+            <div className="p-12 text-center font-pixel" style={{ color: '#ff5fd2', border: '2px dashed rgba(255,95,210,0.3)', borderRadius: 12, marginTop: 20 }}>
+              The Student Showcase is currently empty.<br /><br />
+              <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>Generations will appear here when approved by the instructor.</span>
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))',
+              gap: 16,
+              marginTop: 18
+            }}>
+              {studentItems.map(item => (
+                <div key={item.id} style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 9, overflow: 'hidden', background: 'var(--pn,#241542)', cursor: 'pointer' }} onClick={() => window.open(item.url || '#', '_blank')}>
+                  <div style={{ height: 140, background: 'linear-gradient(135deg, rgba(255,95,210,0.2), rgba(255,95,210,0.05))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 40, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
+                  </div>
+                  <div style={{ padding: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <h3 className="font-pixel" style={{ fontSize: 10, color: 'var(--tx,#d6ffe0)', margin: 0, lineHeight: 1.4 }}>{item.title}</h3>
+                    </div>
+                    
+                    <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>
+                      By {item.profiles?.full_name || 'Student'}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                      <span className="font-pixel" style={{ fontSize: 7, color: '#12081e', background: '#ff5fd2', padding: '4px 6px', borderRadius: 3 }}>
+                        {item.source || 'AI GEN'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       {/* ═══ Preview Modal ═══ */}
       {previewItem && (
@@ -211,7 +354,7 @@ export default function Showcase({ showcaseItems, engagements, onBookmark }: Sho
           item={previewItem}
           bookmarked={isBookmarked(previewItem)}
           onClose={() => setPreview(null)}
-          onBookmark={() => onBookmark('contrib-' + previewItem.id, previewItem.title, 'Showcase · ' + previewItem.theme, previewItem.url || undefined)}
+          onBookmark={() => onBookmark && onBookmark('contrib-' + previewItem.id, previewItem.title, 'Showcase · ' + previewItem.theme, previewItem.url || undefined)}
         />
       )}
     </div>
@@ -325,6 +468,7 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
             style={{
               flex: 1,
               fontSize: 16,
+              fontWeight: 'bold',
               padding: '7px 10px',
               borderRadius: 5,
               border: 'none',
@@ -502,15 +646,8 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <button
               onClick={() => {
-                if (item.url) {
-                  let finalUrl = item.url
-                  if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-                    finalUrl = 'https://' + finalUrl
-                  }
-                  window.open(finalUrl, '_blank')
-                } else {
-                  alert('No external link provided for this item.')
-                }
+                // Navigate to library with "How to Use AI" category pre-selected
+                window.location.href = '/hub/library?category=how-to-use-ai'
               }}
               className="font-pixel"
               style={{
@@ -524,7 +661,7 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
                 letterSpacing: '.5px',
               }}
             >
-              ▶ OPEN FULL IN LIBRARY ↗
+              ▶ OPEN IN LIBRARY ↗
             </button>
 
             <button

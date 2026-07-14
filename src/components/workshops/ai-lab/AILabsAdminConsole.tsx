@@ -18,6 +18,10 @@ import {
   addShowcaseItem,
   deleteShowcaseItem
 } from '@/app/actions/workshops/showcase';
+import {
+  approveShowcaseEngagement,
+  removeShowcaseEngagement
+} from '@/app/actions/workshops/engagement';
 
 interface AILabsAdminConsoleProps {
   cohortId?: string;
@@ -47,6 +51,7 @@ interface ApprovalItem {
   source?: string;
   created_at: string;
   status: 'pending' | 'approved' | 'rejected';
+  content?: string;
   profile: {
     id: string;
     full_name: string;
@@ -78,6 +83,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
   const [approvalStatusFilter, setApprovalStatusFilter] = useState<'pending' | 'history'>('pending');
   const [approvalView, setApprovalView] = useState<'log' | 'steward'>('log');
   const [expandedStewards, setExpandedStewards] = useState<Record<string, boolean>>({});
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
 
   const toggleSteward = (id: string) => {
     setExpandedStewards(prev => ({ ...prev, [id]: !prev[id] }));
@@ -234,7 +240,12 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
 
   const handleApprove = async (id: string, kind: string) => {
     try {
-      await reviewApprovalItem(id, kind, 'approve');
+      await reviewApprovalItem(id, kind, 'approve', reviewNotes[id]);
+      setReviewNotes(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       await loadData(approvalStatusFilter);
     } catch (error) {
       console.error('Error approving:', error);
@@ -244,7 +255,12 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
 
   const handleReject = async (itemId: string, kind: string) => {
     try {
-      await reviewApprovalItem(itemId, kind as any, 'reject');
+      await reviewApprovalItem(itemId, kind as any, 'reject', reviewNotes[itemId]);
+      setReviewNotes(prev => {
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
       await loadData(approvalStatusFilter);
     } catch (e) {
       console.error(e);
@@ -254,10 +270,21 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
 
   const handleAddToShowcase = async (item: ApprovalItem) => {
     try {
+      if (item.kind === 'generation') {
+        // For pending items, approve them first before adding to showcase
+        if (item.status === 'pending') {
+          await reviewApprovalItem(item.id, item.kind, 'approve', reviewNotes[item.id]);
+        }
+        // Then set showcaseVisible to true
+        await approveShowcaseEngagement(item.id);
+        await loadData(approvalStatusFilter);
+        return;
+      }
+      
       await addShowcaseItem(cohortId!, {
         title: item.title,
         author: item.profile.full_name || item.profile.email,
-        type: item.kind === 'generation' ? 'aigen' : item.kind,
+        type: item.kind as any,
         url: item.url || ''
       });
       const updated = await getShowcaseItems(cohortId!);
@@ -268,11 +295,16 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
     }
   };
 
-  const handleRemoveFromShowcase = async (url?: string) => {
-    if (!url) return;
-    const sItem = showcaseData.find(s => s.url === url);
-    if (!sItem) return;
+  const handleRemoveFromShowcase = async (item: ApprovalItem) => {
     try {
+      if (item.kind === 'generation') {
+        await removeShowcaseEngagement(item.id);
+        await loadData(approvalStatusFilter);
+        return;
+      }
+      
+      const sItem = showcaseData.find(s => s.url === item.url);
+      if (!sItem) return;
       await deleteShowcaseItem(sItem.id);
       const updated = await getShowcaseItems(cohortId!);
       setShowcaseData(updated || []);
@@ -282,12 +314,304 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
     }
   };
 
+  const isInShowcase = (item: ApprovalItem) => {
+    if (item.kind === 'generation') {
+      try {
+        const data = JSON.parse(item.content || '{}');
+        // Only consider it "in showcase" if showcaseVisible is true AND status is approved
+        return data.showcaseVisible === true && item.status === 'approved';
+      } catch (e) {
+        return false;
+      }
+    }
+    return item.url ? showcaseData.some(s => s.url === item.url) : false;
+  };
+
+  const renderApprovalItem = (item: ApprovalItem) => {
+    const rawText = item.content || '';
+    
+    // Parse JSON content to check for showcaseRequested field
+    let isShowcaseRequested = false;
+    let principleName = '';
+    
+    if (item.kind === 'generation') {
+      try {
+        const data = JSON.parse(rawText);
+        isShowcaseRequested = data.showcaseRequested === true;
+      } catch (e) {
+        // Fallback to text marker for legacy data
+        isShowcaseRequested = rawText.includes('[SHOWCASE_REQUESTED]');
+      }
+    } else {
+      // For non-generation items, check for text marker
+      isShowcaseRequested = rawText.includes('[SHOWCASE_REQUESTED]');
+    }
+    
+    let cleanText = rawText.replace('[SHOWCASE_REQUESTED]', '').trim();
+    const principleMatch = cleanText.match(/Selected Principle ID:\s*([a-zA-Z0-9-]+)/);
+    if (principleMatch) {
+      const pId = principleMatch[1];
+      const found = principlesData?.find(p => p.id === pId);
+      principleName = found ? found.name : `Principle ${pId.slice(0, 4)}`;
+    }
+
+    const kindLabel = item.kind === 'generation' || item.kind === 'deliverable' ? (item.kind === 'generation' ? 'MEDIA' : 'DELIVERABLE') : item.kind === 'bookmark' ? 'BOOKMARK' : 'PROMPT';
+    const authorName = item.profile.full_name || item.profile.email;
+    const sourceLabel = item.kind === 'generation' ? 'EDEN' : 'OTHER';
+
+    return (
+      <div
+        key={item.id}
+        style={{
+          border: '1px solid #2f3d36',
+          borderRadius: 6,
+          background: '#0e1512',
+          padding: '12px 14px',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,.05)'
+        }}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          
+          {/* Left Side */}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flex: 1, minWidth: 200 }}>
+            <span
+              className="font-pixel"
+              style={{
+                fontSize: 8,
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: '1px solid #77b78d',
+                color: '#77b78d',
+                letterSpacing: 1
+              }}
+            >
+              {kindLabel}
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ fontSize: 16, color: '#dbe4de', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {item.title || 'Untitled'}
+                {item.url && (
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.1)', borderRadius: 4, width: 20, height: 20, textDecoration: 'none' }}>
+                    <span style={{ color: '#4dffa0', fontSize: 12 }}>↗</span>
+                  </a>
+                )}
+              </div>
+              <div style={{ fontSize: 13, color: '#8b9d93' }}>
+                {authorName}
+                {principleName && <> · <span style={{ color: '#74b998' }}>◈ {principleName}</span></>}
+                {' · '}{sourceLabel}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side Badges */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {isShowcaseRequested && item.status === 'pending' && (
+              <span className="font-pixel" style={{ fontSize: 7, padding: '5px 10px', borderRadius: 20, background: '#ff5fd2', color: '#101613', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 10 }}>↺</span> WANTS SHOWCASE
+              </span>
+            )}
+            {isInShowcase(item) && item.status === 'approved' && (
+              <span className="font-pixel" style={{ fontSize: 7, padding: '5px 10px', borderRadius: 20, background: '#ff5fd2', color: '#101613', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 10 }}>★</span> IN SHOWCASE
+              </span>
+            )}
+            <span
+              className="font-pixel"
+              style={{
+                fontSize: 7,
+                padding: '5px 10px',
+                borderRadius: 20,
+                border: `1px solid ${item.status === 'approved' ? '#74b998' : item.status === 'rejected' ? '#ff5f5f' : '#c9a55b'}`,
+                color: item.status === 'approved' ? '#74b998' : item.status === 'rejected' ? '#ff5f5f' : '#c9a55b',
+                letterSpacing: 1
+              }}
+            >
+              {item.status === 'approved' ? (item.kind === 'generation' ? 'ACCEPTED' : 'APPROVED') : item.status.toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        {/* Content/URL Display */}
+        {item.url && (
+          <div style={{ 
+            marginTop: 12,
+            padding: '12px',
+            background: 'rgba(0,0,0,.2)',
+            borderRadius: 6,
+            border: '1px solid #2f3d36'
+          }}>
+            {(item.url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || item.url.includes('/public/content-uploads/') || item.url.includes('/storage/v1/object/public/')) ? (
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <a 
+                  href={item.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ display: 'block', transition: 'opacity 0.2s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '0.8'}
+                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '1'}
+                >
+                  <img 
+                    src={item.url} 
+                    alt="Submission" 
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: 240, 
+                      borderRadius: 6, 
+                      objectFit: 'contain', 
+                      border: '1px solid #2f3d36', 
+                      background: 'rgba(0,0,0,.3)' 
+                    }} 
+                  />
+                  <div 
+                    className="font-pixel" 
+                    style={{ 
+                      position: 'absolute', 
+                      top: 8, 
+                      right: 8, 
+                      background: 'rgba(0,0,0,.7)', 
+                      color: '#4dffa0', 
+                      border: '1px solid #4dffa0', 
+                      padding: '4px 6px', 
+                      borderRadius: 4, 
+                      fontSize: 8, 
+                      letterSpacing: 1 
+                    }}
+                  >
+                    ↗ OPEN
+                  </div>
+                </a>
+              </div>
+            ) : (
+              <a 
+                href={item.url} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{ 
+                  color: '#4dffa0', 
+                  textDecoration: 'underline',
+                  fontSize: 14,
+                  wordBreak: 'break-all',
+                  lineHeight: 1.4
+                }}
+              >
+                {item.url} ↗
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Bottom Actions */}
+        {item.status === 'pending' && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 14 }}>
+            <button
+              onClick={() => handleApprove(item.id, item.kind)}
+              className="font-pixel"
+              style={{
+                fontSize: 7,
+                padding: '8px 12px',
+                border: 'none',
+                borderRadius: 5,
+                cursor: 'pointer',
+                background: '#74b998',
+                color: '#101613',
+                letterSpacing: 1
+              }}
+            >
+              ✓ {item.kind === 'deliverable' ? 'APPROVE +25%' : 'ACCEPT +2%'}
+            </button>
+            
+            {isShowcaseRequested && !isInShowcase(item) && (
+              <button
+                onClick={() => handleAddToShowcase(item)}
+                className="font-pixel"
+                style={{
+                  fontSize: 7,
+                  padding: '8px 12px',
+                  border: 'none',
+                  borderRadius: 5,
+                  cursor: 'pointer',
+                  background: '#ff5fd2',
+                  color: '#101613',
+                  letterSpacing: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span style={{ fontSize: 10 }}>★</span> ADD TO SHOWCASE
+              </button>
+            )}
+
+            <button
+              onClick={() => handleReject(item.id, item.kind)}
+              className="font-pixel"
+              style={{
+                fontSize: 7,
+                padding: '8px 12px',
+                border: '1px solid #c9a55b',
+                borderRadius: 5,
+                cursor: 'pointer',
+                background: 'transparent',
+                color: '#c9a55b',
+                letterSpacing: 1
+              }}
+            >
+              ✕ RETURN
+            </button>
+
+            <input 
+              type="text" 
+              placeholder="Add a note for the student..." 
+              value={reviewNotes[item.id] || ''}
+              onChange={(e) => setReviewNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+              style={{ 
+                flex: 1, 
+                minWidth: 200, 
+                background: 'transparent', 
+                border: '1px solid #2f3d36', 
+                borderRadius: 5, 
+                padding: '6px 12px', 
+                color: '#dbe4de', 
+                fontSize: 13, 
+                fontFamily: 'inherit',
+                outline: 'none'
+              }} 
+            />
+          </div>
+        )}
+
+        {item.status === 'approved' && (item.kind === 'generation' || item.kind === 'deliverable') && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 14 }}>
+            {isInShowcase(item) ? (
+              <button
+                onClick={() => handleRemoveFromShowcase(item)}
+                className="font-pixel"
+                style={{ fontSize: 7, padding: '7px 11px', border: '1px solid #c9a55b', borderRadius: 5, cursor: 'pointer', background: 'transparent', color: '#c9a55b' }}
+              >
+                ✕ PULL FROM SHOWCASE
+              </button>
+            ) : (
+              <button
+                onClick={() => handleAddToShowcase(item)}
+                className="font-pixel"
+                style={{ fontSize: 7, padding: '7px 11px', border: '1px solid #c9a55b', borderRadius: 5, cursor: 'pointer', background: 'transparent', color: '#c9a55b' }}
+              >
+                ✓ ADD TO SHOWCASE
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={{
       maxWidth: 1160,
       margin: '0 auto',
       '--ng': '#74b998',
-      '--pk': '#c98bad',
+      '--pk': '#ff5fd2',
       '--sy': '#c9a55b',
       '--cy': '#84a9c4',
       '--tx': '#dbe4de',
@@ -331,9 +655,10 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
             <button onClick={() => setActiveView('principles')} style={navButtonStyle(activeView === 'principles')}>
               <span>◉ PRINCIPLES</span>
             </button>
-            <button onClick={() => setActiveView('platforms')} style={navButtonStyle(activeView === 'platforms')}>
+            {/* Platforms tab hidden until workshop_platforms table is created in database */}
+            {/* <button onClick={() => setActiveView('platforms')} style={navButtonStyle(activeView === 'platforms')}>
               <span>❖ PLATFORMS</span>
-            </button>
+            </button> */}
             <button onClick={() => setActiveView('approvals')} style={navButtonStyle(activeView === 'approvals')}>
               <span>✓ APPROVALS</span>
             </button>
@@ -356,7 +681,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 11 }}>
                   {[
-                    { label: 'Deliverables', count: approvalsData.filter(a => a.kind === 'generation').length, color: '#c98bad', filter: 'deliverables' },
+                    { label: 'Deliverables', count: approvalsData.filter(a => a.kind === 'generation').length, color: '#ff5fd2', filter: 'deliverables' },
                     { label: 'Bookmarks', count: approvalsData.filter(a => a.kind === 'bookmark').length, color: '#84a9c4', filter: 'bookmarks' },
                     { label: 'Notes', count: approvalsData.filter(a => a.kind === 'note').length, color: '#c9a55b', filter: 'all' },
                     { label: 'Prompts', count: approvalsData.filter(a => a.kind === 'prompt').length, color: '#74b998', filter: 'prompts' }
@@ -404,8 +729,8 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
                             padding: '5px 8px',
                             borderRadius: 5,
                             background: a.kind === 'generation' ? 'rgba(201,139,173,.15)' : a.kind === 'bookmark' ? 'rgba(132,169,196,.15)' : 'rgba(201,165,91,.15)',
-                            color: a.kind === 'generation' ? '#c98bad' : a.kind === 'bookmark' ? '#84a9c4' : '#c9a55b',
-                            border: `1px solid ${a.kind === 'generation' ? '#c98bad' : a.kind === 'bookmark' ? '#84a9c4' : '#c9a55b'}`
+                            color: a.kind === 'generation' ? '#ff5fd2' : a.kind === 'bookmark' ? '#84a9c4' : '#c9a55b',
+                            border: `1px solid ${a.kind === 'generation' ? '#ff5fd2' : a.kind === 'bookmark' ? '#84a9c4' : '#c9a55b'}`
                           }}
                         >
                           {a.kind === 'generation' ? 'DELIVERABLE' : a.kind === 'bookmark' ? 'BOOKMARK' : a.kind === 'prompt' ? 'PROMPT' : 'NOTE'}
@@ -752,118 +1077,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
                       );
                     }
 
-                    return filtered.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          border: '2px solid #2f3d36',
-                          borderRadius: 8,
-                          background: 'rgba(0,0,0,.2)',
-                          padding: '12px 14px'
-                        }}
-                      >
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, alignItems: 'center' }}>
-                          <span
-                            className="font-pixel"
-                            style={{
-                              fontSize: 7,
-                              padding: '5px 8px',
-                              borderRadius: 5,
-                              background: item.kind === 'generation' || item.kind === 'deliverable' ? 'rgba(201,139,173,.15)' : item.kind === 'bookmark' ? 'rgba(132,169,196,.15)' : 'rgba(201,165,91,.15)',
-                              color: item.kind === 'generation' || item.kind === 'deliverable' ? '#c98bad' : item.kind === 'bookmark' ? '#84a9c4' : '#c9a55b',
-                              border: `1px solid ${item.kind === 'generation' || item.kind === 'deliverable' ? '#c98bad' : item.kind === 'bookmark' ? '#84a9c4' : '#c9a55b'}`
-                            }}
-                          >
-                            {item.kind === 'generation' || item.kind === 'deliverable' ? 'DELIVERABLE' : item.kind === 'bookmark' ? 'BOOKMARK' : 'PROMPT'}
-                          </span>
-                          <div style={{ flex: 1, minWidth: 150 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <div style={{ fontSize: 17, color: '#dbe4de', lineHeight: 1.22 }}>{item.title || 'Untitled'}</div>
-                              {item.url && (
-                                <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.1)', borderRadius: 4, width: 22, height: 22, textDecoration: 'none' }}>
-                                  <span style={{ color: '#4dffa0', fontSize: 14 }}>↗</span>
-                                </a>
-                              )}
-                              {item.url && showcaseData.some(s => s.url === item.url) && (
-                                <div className="font-pixel" style={{ fontSize: 6, color: '#ff5fd2', display: 'flex', alignItems: 'center', marginLeft: 8 }}>
-                                  ★ IN SHOWCASE
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 13, color: '#8b9d93', marginTop: 2 }}>
-                              {item.profile.full_name || item.profile.email} · {new Date(item.created_at).toLocaleDateString()}
-                            </div>
-                          </div>
-                          <span
-                            className="font-pixel"
-                            style={{
-                              fontSize: 7,
-                              padding: '5px 8px',
-                              borderRadius: 5,
-                              background: item.status === 'approved' ? 'rgba(116,185,152,.15)' : item.status === 'rejected' ? 'rgba(255,95,95,.15)' : 'rgba(201,165,91,.15)',
-                              color: item.status === 'approved' ? '#74b998' : item.status === 'rejected' ? '#ff5f5f' : '#c9a55b'
-                            }}
-                          >
-                            {item.status.toUpperCase()}
-                          </span>
-                        </div>
-                        {item.status === 'approved' && (item.kind === 'generation' || item.kind === 'deliverable') && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 10 }}>
-                            {showcaseData.some(s => s.url === item.url) ? (
-                              <button
-                                onClick={() => handleRemoveFromShowcase(item.url)}
-                                className="font-pixel"
-                                style={{ fontSize: 7, padding: '7px 11px', border: '1px solid #c9a55b', borderRadius: 5, cursor: 'pointer', background: 'transparent', color: '#c9a55b' }}
-                              >
-                                ✕ PULL FROM SHOWCASE
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleAddToShowcase(item)}
-                                className="font-pixel"
-                                style={{ fontSize: 7, padding: '7px 11px', border: '1px solid #c9a55b', borderRadius: 5, cursor: 'pointer', background: 'transparent', color: '#c9a55b' }}
-                              >
-                                ✓ ADD TO SHOWCASE
-                              </button>
-                            )}
-                          </div>
-                        )}
-                        {item.status === 'pending' && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 10 }}>
-                            <button
-                              onClick={() => handleApprove(item.id, item.kind)}
-                              className="font-pixel"
-                              style={{
-                                fontSize: 7,
-                                padding: '8px 11px',
-                                border: '2px solid #74b998',
-                                borderRadius: 5,
-                                cursor: 'pointer',
-                                background: 'rgba(116,185,152,.1)',
-                                color: '#74b998'
-                              }}
-                            >
-                              ✓ APPROVE
-                            </button>
-                            <button
-                              onClick={() => handleReject(item.id, item.kind)}
-                              className="font-pixel"
-                              style={{
-                                fontSize: 7,
-                                padding: '8px 11px',
-                                border: '2px solid #c98bad',
-                                borderRadius: 5,
-                                cursor: 'pointer',
-                                background: 'transparent',
-                                color: '#c98bad'
-                              }}
-                            >
-                              ✕ REJECT
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ));
+                    return filtered.map((item) => renderApprovalItem(item));
                   })()}
                 </div>
               )}
@@ -924,88 +1138,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
                           </button>
                           {isExpanded && (
                             <div style={{ padding: '2px 12px 13px', display: 'flex', flexDirection: 'column', gap: 9, borderTop: '1px dashed #2f3d36' }}>
-                              {items.map((item) => (
-                                <div key={item.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 9, alignItems: 'center', border: '2px solid #2f3d36', borderRadius: 8, background: 'rgba(0,0,0,.2)', padding: '12px 14px', marginTop: 9 }}>
-                                  <span
-                                    className="font-pixel"
-                                    style={{
-                                      fontSize: 7,
-                                      padding: '5px 8px',
-                                      borderRadius: 5,
-                                      background: item.kind === 'generation' || item.kind === 'deliverable' ? 'rgba(201,139,173,.15)' : item.kind === 'bookmark' ? 'rgba(132,169,196,.15)' : 'rgba(201,165,91,.15)',
-                                      color: item.kind === 'generation' || item.kind === 'deliverable' ? '#c98bad' : item.kind === 'bookmark' ? '#84a9c4' : '#c9a55b',
-                                      border: `1px solid ${item.kind === 'generation' || item.kind === 'deliverable' ? '#c98bad' : item.kind === 'bookmark' ? '#84a9c4' : '#c9a55b'}`
-                                    }}
-                                  >
-                                    {item.kind === 'generation' || item.kind === 'deliverable' ? 'DELIVERABLE' : item.kind === 'bookmark' ? 'BOOKMARK' : 'PROMPT'}
-                                  </span>
-                                  <div style={{ flex: 1, minWidth: 150 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <div style={{ fontSize: 16, color: '#dbe4de', lineHeight: 1.22 }}>{item.title || 'Untitled'}</div>
-                                      {item.url && (
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.1)', borderRadius: 4, width: 20, height: 20, textDecoration: 'none' }}>
-                                          <span style={{ color: '#4dffa0', fontSize: 12 }}>↗</span>
-                                        </a>
-                                      )}
-                                      {item.url && showcaseData.some(s => s.url === item.url) && (
-                                        <div className="font-pixel" style={{ fontSize: 6, color: '#ff5fd2', display: 'flex', alignItems: 'center', marginLeft: 8 }}>
-                                          ★ IN SHOWCASE
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div style={{ fontSize: 13, color: '#8b9d93', marginTop: 2 }}>{new Date(item.created_at).toLocaleDateString()}</div>
-                                  </div>
-                                  <span className="font-pixel" style={{ 
-                                      fontSize: 7, 
-                                      padding: '5px 8px', 
-                                      borderRadius: 5, 
-                                      background: item.status === 'approved' ? 'rgba(116,185,152,.15)' : item.status === 'rejected' ? 'rgba(255,95,95,.15)' : 'rgba(201,165,91,.15)',
-                                      color: item.status === 'approved' ? '#74b998' : item.status === 'rejected' ? '#ff5f5f' : '#c9a55b'
-                                  }}>
-                                    {item.status.toUpperCase()}
-                                  </span>
-                                  <div style={{ flexBasis: '100%', height: 0 }}></div>
-                                  {item.status === 'approved' && (item.kind === 'generation' || item.kind === 'deliverable') && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                                      {showcaseData.some(s => s.url === item.url) ? (
-                                        <button
-                                          onClick={() => handleRemoveFromShowcase(item.url)}
-                                          className="font-pixel"
-                                          style={{ fontSize: 7, padding: '7px 11px', border: '1px solid #c9a55b', borderRadius: 5, cursor: 'pointer', background: 'transparent', color: '#c9a55b' }}
-                                        >
-                                          ✕ PULL FROM SHOWCASE
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => handleAddToShowcase(item)}
-                                          className="font-pixel"
-                                          style={{ fontSize: 7, padding: '7px 11px', border: '1px solid #c9a55b', borderRadius: 5, cursor: 'pointer', background: 'transparent', color: '#c9a55b' }}
-                                        >
-                                          ✓ ADD TO SHOWCASE
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                  {item.status === 'pending' && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                                      <button
-                                        onClick={() => handleApprove(item.id, item.kind)}
-                                        className="font-pixel"
-                                        style={{ fontSize: 7, padding: '8px 11px', border: '2px solid #74b998', borderRadius: 5, cursor: 'pointer', background: 'rgba(116,185,152,.1)', color: '#74b998' }}
-                                      >
-                                        ✓ APPROVE
-                                      </button>
-                                      <button
-                                        onClick={() => handleReject(item.id, item.kind)}
-                                        className="font-pixel"
-                                        style={{ fontSize: 7, padding: '8px 11px', border: '2px solid #c98bad', borderRadius: 5, cursor: 'pointer', background: 'transparent', color: '#c98bad' }}
-                                      >
-                                        ✕ REJECT
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                              {items.map((item) => renderApprovalItem(item))}
                             </div>
                           )}
                         </div>

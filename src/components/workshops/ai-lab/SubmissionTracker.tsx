@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { uploadCreationImage } from '@/app/actions/workshops/engagement';
+import { submitDeliverable } from '@/app/actions/workshops/participants';
 
 function chiaRects(stage: number) {
   const gL='#d9b34d',gM='#c19a33',gD='#9c7a28',eye='#3a2c14',bD='#1c150f',bM='#33281b',gr='#5fa83c',gr2='#8fd85f',fp='#ff5fd2',fy='#ffd23f',fv='#b06bff';
@@ -35,13 +37,14 @@ function buildChiaUri(stage: number, accent: string = '#4dffa0') {
   return "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='20' viewBox='0 0 16 20' shape-rendering='crispEdges'>${body}</svg>`);
 }
 
-export default function SubmissionTracker({ day, dayId, daysComplete = 0, days = [], principles = [] }: { day: number, dayId: string, daysComplete?: number, days?: any[], principles?: any[] }) {
+export default function SubmissionTracker({ day, dayId, daysComplete = 0, days = [], principles = [], approvedDays = 0, initialEngagements = [] }: { day: number, dayId?: string, daysComplete?: number, days?: any[], principles?: any[], approvedDays?: number, initialEngagements?: any[] }) {
   const [minimized, setMinimized] = useState(false);
   const [selectedPrinciple, setSelectedPrinciple] = useState('');
   const [submissionUrl, setSubmissionUrl] = useState('');
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   if (!days || days.length === 0) {
     return (
@@ -105,12 +108,24 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
         finalUrl = await uploadCreationImage(formData);
       }
       
+      if (dayId) {
+        const result = await submitDeliverable(dayId, {
+          submission_text: finalUrl,
+          principle_id: selectedPrinciple,
+          showcase_requested: false
+        });
+        
+        if (!result.success && result.message) {
+          throw new Error(result.message);
+        }
+      }
+      
       toast.success(`Deliverable submitted successfully!`, { position: 'bottom-center' });
-      // TODO: Integrate with actual submission action
       
       setSubmissionUrl('');
       setFileToUpload(null);
       setSelectedPrinciple('');
+      router.refresh();
     } catch (e) {
       console.error(e);
       toast.error('Failed to upload image.', { position: 'bottom-center' });
@@ -124,6 +139,29 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
     : ['STORY', 'RÉSUMÉ', 'PORTFOLIO'];
 
   const daysToMap = days && days.length > 0 ? days : [{day_number: 1}, {day_number: 2}, {day_number: 3}];
+
+  // Base deliverables on approvedDays
+  const delivPct = Math.min(approvedDays * 25, 75);
+  // Optional engagement bonus
+  const engPct = Math.min(
+    initialEngagements
+      .filter(e => e.status === 'approved')
+      .reduce((a, e) => a + 25, 0),
+    25
+  );
+  
+  const chiaPct = Math.min(delivPct + engPct, 100);
+
+  const chiaStage = (function(pct: number) {
+    if (pct >= 100) return 5;
+    if (pct >= 75) return 4;
+    if (pct >= 50) return 3;
+    if (pct >= 25) return 2;
+    if (pct > 0) return 1;
+    return 0;
+  })(chiaPct);
+  
+  const chiaStageLabel = ['Bare bud', 'Sprouting', 'Filling in', 'Leafy crown', 'Lush mane', 'Full bloom 🌸'][chiaStage] || 'Bare bud';
 
   return (
     <div style={{ 
@@ -141,8 +179,8 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
         justifyContent: 'space-between', 
         marginBottom: minimized ? 0 : 16 
       }}>
-        <div className="font-pixel" style={{ fontSize: 9, color: 'var(--sy,#ffd23f)', letterSpacing: 1 }}>
-          ▚ DELIVERABLE TRACKER &amp; SUBMISSION CONSOLE
+        <div className="font-pixel" style={{ fontSize: 10, color: 'var(--gold,#ffd23f)', letterSpacing: 1 }}>
+          ◈ DELIVERABLE TRACKER &amp; SUBMISSION CONSOLE
         </div>
         <button 
           onClick={() => setMinimized(!minimized)}
@@ -150,16 +188,16 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
           className="font-pixel"
           style={{ 
             fontSize: 8, 
-            color: 'var(--mu,#77b78d)', 
-            background: 'rgba(0,0,0,.3)', 
-            border: '2px solid var(--ln,#28432f)', 
-            borderRadius: 5, 
-            padding: '8px 10px', 
+            color: 'var(--mu,#a493c9)', 
+            background: 'transparent', 
+            border: '1px solid var(--ln,#3d2668)', 
+            borderRadius: 4, 
+            padding: '6px 10px', 
             cursor: 'pointer', 
             flex: 'none' 
           }}
         >
-          {minimized ? '▾ SHOW' : '▴ HIDE'}
+          {minimized ? '▶ SHOW' : '▼ HIDE'}
         </button>
       </div>
 
@@ -177,16 +215,16 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
             background: 'rgba(77,255,160,.05)'
           }}>
             <img 
-              src={buildChiaUri(daysComplete > 0 ? (daysComplete === 3 ? 5 : 2) : 1)} 
+              src={buildChiaUri(chiaStage)} 
               alt="Chia Guardian" 
               style={{ width: 48, height: 60, imageRendering: 'pixelated', filter: 'drop-shadow(0 3px 0 rgba(0,0,0,.4))' }} 
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div className="font-pixel" style={{ fontSize: 9, color: 'var(--ng,#4dffa0)', letterSpacing: 1 }}>
-                ◈ YOUR CHIA GUARDIAN · {daysComplete * 25}% GROWN
+                ◈ YOUR CHIA GUARDIAN · {chiaPct}% GROWN
               </div>
               <div style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: 'var(--mu,#77b78d)', lineHeight: 1.2 }}>
-                Sprouting — each teacher-approved deliverable grows it +25%. Bank below; it sprouts once your instructor approves.
+                {chiaStageLabel} - each teacher-approved deliverable grows it +25%. Bank below; it sprouts once your instructor approves.
               </div>
             </div>
           </div>

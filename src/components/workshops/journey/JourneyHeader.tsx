@@ -121,7 +121,7 @@ export default function JourneyHeader({
           color="var(--gold, #ffd23f)"
           onClick={() => onTabChange('showcase')}
         >
-          ★ SHOWCASE
+          ★ CONTRIBUTOR SHOWCASE
         </ArcadeButton>
         <a
           href={`/hub/ai-lab${cohortId ? '?cohortId=' + cohortId : ''}`}

@@ -538,6 +538,7 @@ export interface WorkshopDayEntry {
   body: string | null;
   // Type: list
   items: string[];          // string array
+    external_video_url?: string | null;
   // Type: dual
   modern_title: string | null;
   modern_body: string | null;
@@ -591,6 +592,7 @@ export interface WorkshopEngagement {
   status: EngagementStatus;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  review_note: string | null;
   created_at: string;
 }
 

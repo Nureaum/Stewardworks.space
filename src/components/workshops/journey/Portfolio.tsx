@@ -188,7 +188,7 @@ export default function Portfolio({
               ? 1
               : 0
 
-  const stage = ['Bare bud', 'Seedling', 'Sprout', 'Sprouting', 'Lush mane', 'Fully Bloomed!'][stageNum] || 'Bare bud'
+  const stage = ['Bare bud', 'Sprouting', 'Filling in', 'Leafy crown', 'Lush mane', 'Full bloom 🌸'][stageNum] || 'Bare bud'
 
   const deskChiaUri = useMemo(() => buildChiaUri(stageNum, character.accent_color || '#ff5fd2'), [stageNum, character.accent_color])
 
@@ -423,6 +423,17 @@ export default function Portfolio({
                     );
                   })()}
                 </div>
+
+                {prog?.review_note && (
+                  <div style={{ width: '100%', borderTop: '1px dashed var(--ln,#3d2668)', paddingTop: 9, marginTop: 9 }}>
+                    <div className="font-pixel" style={{ fontSize: 6, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 6 }}>
+                      ✦ INSTRUCTOR NOTE
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, wordWrap: 'break-word' }}>
+                      {prog.review_note}
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
@@ -833,6 +844,18 @@ export default function Portfolio({
             <div style={{ fontSize: 14, color: viewingItem.status === 'approved' ? 'var(--ok,#74f0a0)' : 'var(--gold,#ffd23f)', marginBottom: 16 }}>
               {viewingItem.status === 'approved' ? '✓ Approved · counts toward your Chia' : viewingItem.status === 'pending' ? '◔ Pending instructor approval' : viewingItem.status}
             </div>
+
+            {/* Review Note */}
+            {viewingItem.review_note && (
+              <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 6, background: 'rgba(255,210,63,.12)', borderLeft: '4px solid var(--gold,#ffd23f)' }}>
+                <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', marginBottom: 6 }}>
+                  ▤ TEACHER NOTE:
+                </div>
+                <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>
+                  {viewingItem.review_note}
+                </div>
+              </div>
+            )}
             
             {/* For generation/assets: show preview if URL is an image */}
             {viewingItem.kind === 'generation' && viewingItem.url && (

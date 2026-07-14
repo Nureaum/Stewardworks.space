@@ -563,7 +563,7 @@ export async function updateRegistrationStatus(params: UpdateRegistrationStatusP
  * @returns Updated engagement record
  * @throws Error if not authenticated or not admin
  */
-export async function reviewEngagement(engagementId: string, status: 'approved' | 'rejected') {
+export async function reviewEngagement(engagementId: string, status: 'approved' | 'rejected', note?: string) {
   try {
     const { userId } = await auth()
     
@@ -594,6 +594,7 @@ export async function reviewEngagement(engagementId: string, status: 'approved' 
         status,
         reviewed_by: profile.id,
         reviewed_at: new Date().toISOString(),
+        review_note: note || null,
       })
       .eq('id', engagementId)
       .select()

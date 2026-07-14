@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Shield, User as UserIcon, AlertCircle, Loader2, Plus, X, Eye, EyeOff } from 'lucide-react';
+import { Search, Shield, User as UserIcon, AlertCircle, Loader2, Plus, X, Eye, EyeOff, Mail } from 'lucide-react';
 import { useAdminLoading } from '@/context/AdminLoadingContext';
 
 interface Profile {
@@ -34,6 +34,10 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
 
   useEffect(() => {
     console.log("UserManagement mounted, fetching users...");
@@ -86,6 +90,33 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
       setAddError(err.message);
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteError('');
+    setIsInviting(true);
+
+    try {
+      const res = await fetch('/api/admin/invite-guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to invite guest');
+      }
+
+      setInviteEmail('');
+      setIsInviteModalOpen(false);
+      alert('Guest invited successfully!');
+    } catch (err: any) {
+      setInviteError(err.message);
+    } finally {
+      setIsInviting(false);
     }
   };
 
@@ -150,12 +181,20 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
         {/* Actions & Search */}
         <div className="flex flex-col sm:flex-row gap-[10px] w-full md:w-auto items-center">
           {isMainAdmin && (
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-[#241c12] text-[#efd9a8] px-6 py-[11px] h-full rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
-            >
-              <Plus size={16} /> Add User
-            </button>
+            <div className="flex gap-2 h-full">
+              <button
+                onClick={() => setIsInviteModalOpen(true)}
+                className="bg-white text-[#241c12] px-6 py-[11px] h-full rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-[#fbf5e6] transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.05)] border border-[#785a32]/20"
+              >
+                <Mail size={16} /> Invite Guest
+              </button>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-[#241c12] text-[#efd9a8] px-6 py-[11px] h-full rounded-[14px] font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
+              >
+                <Plus size={16} /> Add User
+              </button>
+            </div>
           )}
           <div className="flex items-center gap-[10px] bg-white border border-[#785a32]/16 rounded-[14px] px-[18px] py-[11px] min-w-[320px] shadow-[0_4px_12px_rgba(120,90,50,0.07)]">
             <Search size={17} className="text-[#a89a82]" />
@@ -345,6 +384,52 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
               >
                 {isAdding && <Loader2 size={16} className="animate-spin" />}
                 {isAdding ? 'Creating...' : 'Create User'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Guest Modal */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 bg-[#171009]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#fbf5e6] rounded-[22px] p-[34px] max-w-md w-full relative shadow-[0_14px_34px_rgba(120,90,50,0.2)] border border-[#785a32]/10">
+            <button
+              onClick={() => setIsInviteModalOpen(false)}
+              className="absolute right-6 top-6 text-[#a89a82] hover:text-[#241c12] transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <h3 className="text-[24px] font-[800] text-[#241c12] uppercase tracking-normal mb-6">Invite Guest</h3>
+            <p className="text-sm text-[#8a7c66] mb-6">Send an invitation link to a contributor. They will automatically be assigned the Guest role upon signing up.</p>
+
+            {inviteError && (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold mb-6">
+                {inviteError}
+              </div>
+            )}
+
+            <form onSubmit={handleInviteSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em] mb-[6px]">Guest Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="w-full bg-white border border-[#785a32]/16 rounded-[14px] p-[11px_16px] focus:outline-none focus:ring-1 focus:ring-[#785a32]/30 text-[14.5px] text-[#241c12] placeholder-[#a89a82] transition-all"
+                  placeholder="Enter email address to invite"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isInviting}
+                className="w-full bg-[#241c12] text-[#efd9a8] py-[14px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[12px] hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-[24px] flex justify-center items-center gap-2 shadow-[0_6px_16px_rgba(36,28,18,0.2)]"
+              >
+                {isInviting && <Loader2 size={16} className="animate-spin" />}
+                {isInviting ? 'Sending Invite...' : 'Send Invitation'}
               </button>
             </form>
           </div>

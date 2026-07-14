@@ -30,9 +30,12 @@ const NODES = [
 
 // ── Chia Guardian sprite ──
 function chiaStageFor(pct: number): number {
-  if (pct >= 100) return 5
-  // User requested the full green "lush mane" to be visible by default
-  return 4
+  if (pct >= 100) return 5;
+  if (pct >= 75) return 4;
+  if (pct >= 50) return 3;
+  if (pct >= 25) return 2;
+  if (pct > 0) return 1;
+  return 0;
 }
 
 function chiaRects(stage: number): SpriteRect[] {
@@ -90,7 +93,7 @@ function chiaUri(stage: number): string {
 
 // ── Stage label ──
 function chiaStageLabel(stage: number): string {
-  return ['Seedling', 'Seedling', 'Sprout', 'Sprouting', 'Lush mane', 'Fully Bloomed!'][stage] || 'Seedling'
+  return ['Bare bud', 'Sprouting', 'Filling in', 'Leafy crown', 'Lush mane', 'Full bloom 🌸'][stage] || 'Bare bud'
 }
 
 export default function TreasureMap({
@@ -154,7 +157,7 @@ export default function TreasureMap({
           <button
             onClick={onChangeChar}
             className="font-pixel"
-            style={{ fontSize: 10, color: 'var(--s, #45d6ff)', background: 'none', border: '2px solid var(--s, #45d6ff)', borderRadius: 4, padding: '10px 14px', cursor: 'pointer' }}
+            style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--s, #45d6ff)', background: 'none', border: '2px solid var(--s, #45d6ff)', borderRadius: 4, padding: '10px 14px', cursor: 'pointer' }}
           >
             ⇆ CHANGE CHARACTER
           </button>
@@ -162,7 +165,7 @@ export default function TreasureMap({
             <button
               onClick={onOpenWin}
               className="font-pixel"
-              style={{ fontSize: 10, color: 'var(--bg, #12081e)', background: 'var(--gold, #ffd23f)', border: 'none', borderRadius: 4, padding: '12px 16px', cursor: 'pointer', boxShadow: '0 0 16px rgba(255,210,63,.5)' }}
+              style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--bg, #12081e)', background: 'var(--gold, #ffd23f)', border: 'none', borderRadius: 4, padding: '12px 16px', cursor: 'pointer', boxShadow: '0 0 16px rgba(255,210,63,.5)' }}
             >
               ⛃ OPEN VICTORY SCREEN
             </button>

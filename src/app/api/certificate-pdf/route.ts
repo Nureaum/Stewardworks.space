@@ -63,9 +63,6 @@ export async function POST(request: NextRequest) {
               margin: 0;
               width: 210mm;
               height: 297mm;
-              display: flex;
-              align-items: center;
-              justify-content: center;
             }
             
             .certificate-container {
@@ -80,16 +77,16 @@ export async function POST(request: NextRequest) {
               color: #3a2c14;
               position: relative;
               page-break-inside: avoid;
+              padding: 36px 52px;
               display: flex;
-              flex-direction: column;
+              align-items: center;
+              justify-content: center;
             }
             
             .certificate-content {
-              padding: 32px 48px 28px;
               text-align: center;
               position: relative;
-              display: flex;
-              flex-direction: column;
+              width: 100%;
             }
             
             .font-pixel {
@@ -98,20 +95,15 @@ export async function POST(request: NextRequest) {
             }
             
             .cert-header {
-              flex-shrink: 0;
-              margin-bottom: 20px;
+              margin-bottom: 12px;
             }
             
             .cert-body {
-              flex: 0;
-              display: flex;
-              flex-direction: column;
-              justify-content: flex-start;
+              margin-bottom: 22px;
             }
             
             .cert-footer {
-              flex-shrink: 0;
-              margin-top: 24px;
+              padding-top: 0;
             }
             
             .org-header {
@@ -179,14 +171,14 @@ export async function POST(request: NextRequest) {
               line-height: 1.6;
               color: #3a2c14;
               max-width: 580px;
-              margin: 0 auto;
+              margin: 0 auto 12px;
               white-space: pre-wrap;
             }
             
             .deliverables-section {
               border-top: 2px solid #dcc890;
               border-bottom: 2px solid #dcc890;
-              margin: 18px auto;
+              margin: 14px auto 20px;
               padding: 12px 0;
               max-width: 580px;
               text-align: left;
@@ -197,7 +189,7 @@ export async function POST(request: NextRequest) {
               color: #a07d2c;
               letter-spacing: 2px;
               text-align: center;
-              margin-bottom: 12px;
+              margin-bottom: 10px;
             }
             
             .deliverable-row {
@@ -235,11 +227,11 @@ export async function POST(request: NextRequest) {
             .signatures-section {
               display: flex;
               flex-wrap: wrap;
-              gap: 20px;
+              gap: 18px;
               justify-content: space-between;
               align-items: flex-end;
               max-width: 580px;
-              margin: 0 auto;
+              margin: 0 auto 12px;
               page-break-inside: avoid;
             }
             
@@ -301,7 +293,7 @@ export async function POST(request: NextRequest) {
             
             .sponsor-section {
               max-width: 300px;
-              margin: 20px auto 0;
+              margin: 10px auto 0;
               text-align: center;
               page-break-inside: avoid;
             }
@@ -312,7 +304,7 @@ export async function POST(request: NextRequest) {
               gap: 8px;
               justify-content: space-between;
               max-width: 580px;
-              margin: 22px auto 0;
+              margin: 12px auto 0;
               font-size: 11px;
               color: #8a6a2a;
               letter-spacing: 1px;
@@ -321,8 +313,8 @@ export async function POST(request: NextRequest) {
             
             .funding-section {
               border-top: 1px solid rgba(138,106,42,.3);
-              margin: 20px auto 0;
-              padding-top: 16px;
+              margin: 10px auto 0;
+              padding-top: 12px;
               max-width: 580px;
               text-align: center;
               page-break-inside: avoid;
@@ -332,21 +324,21 @@ export async function POST(request: NextRequest) {
               font-size: 7px;
               color: #a07d2c;
               letter-spacing: 2px;
-              margin-bottom: 14px;
+              margin-bottom: 8px;
             }
             
             .funding-logos {
               display: flex;
               justify-content: center;
               align-items: center;
-              gap: 28px;
+              gap: 32px;
               flex-wrap: wrap;
             }
             
             .funding-logos img {
-              height: 30px;
+              height: 42px;
               object-fit: contain;
-              max-width: 110px;
+              max-width: 140px;
             }
           </style>
         </head>

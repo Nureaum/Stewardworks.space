@@ -24,6 +24,8 @@ import RichEditor from './RichEditor'
 import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia } from '@/app/actions/workshops/entry-media'
 import { createPrinciple, updatePrinciple, deletePrinciple } from '@/app/actions/workshops/principles'
 import { addShowcaseItem, updateShowcaseItem, deleteShowcaseItem, getShowcaseItems, seedShowcaseItems } from '@/app/actions/workshops/showcase'
+import ConfirmDialog from './ConfirmDialog'
+import RetroToast from './RetroToast'
 
 // ─── Types ─────────────────────────────────────────────────
 type AdminSection = 'cohort' | 'curriculum' | 'principles' | 'contributors' | 'approvals' | 'certificate'
@@ -108,6 +110,7 @@ export default function AdminConsole({
   const [ncType, setNcType] = useState<string>('video')
   const [ncTitle, setNcTitle] = useState('')
   const [ncAuthor, setNcAuthor] = useState('')
+  const [ncEmail, setNcEmail] = useState('')
   const [ncLink, setNcLink] = useState('')
   const [ncBlurb, setNcBlurb] = useState('')
   const [ncMeta, setNcMeta] = useState('')
@@ -120,6 +123,14 @@ export default function AdminConsole({
   const [approvalFilter, setApprovalFilter] = useState('all')
   const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([])
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false)
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
+
+  // Toast and confirm dialog state
+  const [toast, setToast] = useState<string | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    message: string
+    onConfirm: () => void
+  } | null>(null)
 
   React.useEffect(() => {
     const loadApprovals = async () => {
@@ -161,11 +172,16 @@ export default function AdminConsole({
   const handleReview = async (progressId: string, status: 'approved' | 'rejected', note?: string, isEngagement?: boolean) => {
     try {
       if (isEngagement) {
-        await reviewEngagement(progressId, status)
+        await reviewEngagement(progressId, status, note)
       } else {
         await reviewDeliverable(progressId, status, note)
       }
       setPendingSubmissions(prev => prev.filter(p => (p.progress_id || p.id) !== progressId))
+      setReviewNotes(prev => {
+        const next = { ...prev };
+        delete next[progressId];
+        return next;
+      });
     } catch (e) {
       console.error('Failed to review item', e)
     }
@@ -179,29 +195,65 @@ export default function AdminConsole({
   const [certSponsorOrg, setCertSponsorOrg] = useState('The Becoming Project')
   const [certMessage, setCertMessage] = useState('')
   const [showCertPreview, setShowCertPreview] = useState(false)
+  const [certSaving, setCertSaving] = useState(false)
 
+  // Fetch certificate settings from database on mount
   React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem('stewardworks.admin.certSettings')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed.certOrg) setCertOrg(parsed.certOrg)
-        if (parsed.certFacilitator) setCertFacilitator(parsed.certFacilitator)
-        if (parsed.certFacTitle) setCertFacTitle(parsed.certFacTitle)
-        if (parsed.certSponsor !== undefined) setCertSponsor(parsed.certSponsor)
-        if (parsed.certSponsorOrg) setCertSponsorOrg(parsed.certSponsorOrg)
-        if (parsed.certMessage !== undefined) setCertMessage(parsed.certMessage)
+    const fetchCertSettings = async () => {
+      try {
+        const response = await fetch(`/api/workshops/${cohortId}/certificate-settings`)
+        if (response.ok) {
+          const data = await response.json()
+          setCertOrg(data.certOrg)
+          setCertFacilitator(data.certFacilitator)
+          setCertFacTitle(data.certFacTitle)
+          setCertSponsor(data.certSponsor)
+          setCertSponsorOrg(data.certSponsorOrg)
+          setCertMessage(data.certMessage)
+        }
+      } catch (e) {
+        console.error('Failed to fetch cert settings', e)
       }
-    } catch (e) {}
-  }, [])
+    }
+    fetchCertSettings()
+  }, [cohortId])
 
-  const saveCertSettings = (updates: any) => {
+  const saveCertSettings = async (updates: any) => {
+    setCertSaving(true)
     try {
       const current = { certOrg, certFacilitator, certFacTitle, certSponsor, certSponsorOrg, certMessage }
       const newSettings = { ...current, ...updates }
-      localStorage.setItem('stewardworks.admin.certSettings', JSON.stringify(newSettings))
+      
+      const response = await fetch(`/api/workshops/${cohortId}/certificate-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save certificate settings')
+      }
     } catch (e) {
       console.error('Failed to save cert settings', e)
+    } finally {
+      setCertSaving(false)
+    }
+  }
+
+  const refreshCertSettings = async () => {
+    try {
+      const response = await fetch(`/api/workshops/${cohortId}/certificate-settings`)
+      if (response.ok) {
+        const data = await response.json()
+        setCertOrg(data.certOrg)
+        setCertFacilitator(data.certFacilitator)
+        setCertFacTitle(data.certFacTitle)
+        setCertSponsor(data.certSponsor)
+        setCertSponsorOrg(data.certSponsorOrg)
+        setCertMessage(data.certMessage)
+      }
+    } catch (e) {
+      console.error('Failed to refresh cert settings', e)
     }
   }
 
@@ -432,10 +484,36 @@ export default function AdminConsole({
           theme: 'How to Use AI',
         })
       }
+
+      // Send invitation email if email is provided
+      if (ncEmail.trim() && !editingShowcaseId) {
+        try {
+          const inviteRes = await fetch('/api/admin/invite-guest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: ncEmail.trim() }),
+          })
+          
+          if (inviteRes.ok) {
+            setToast(`✓ Contributor published and invitation sent to ${ncEmail}`)
+          } else {
+            const errorData = await inviteRes.json()
+            setToast(`✓ Contributor published but invitation failed: ${errorData.error || 'Unknown error'}`)
+          }
+        } catch (inviteError) {
+          console.error('Failed to send invitation:', inviteError)
+          setToast('✓ Contributor published but invitation email failed to send')
+        }
+      } else if (!editingShowcaseId) {
+        setToast('✓ Contributor published successfully')
+      } else {
+        setToast('✓ Contributor updated successfully')
+      }
       
       // Clear form
       setNcTitle('')
       setNcAuthor('')
+      setNcEmail('')
       setNcLink('')
       setNcBlurb('')
       setNcMeta('')
@@ -445,6 +523,7 @@ export default function AdminConsole({
       setShowcaseList(items as WorkshopShowcase[])
     } catch (e: any) {
       console.error('Failed to publish contributor', e)
+      setToast('✗ Failed to publish contributor')
     } finally {
       setIsSaving(false)
     }
@@ -492,6 +571,7 @@ export default function AdminConsole({
     setNcType(item.type)
     setNcTitle(item.title)
     setNcAuthor(item.author || '')
+    setNcEmail('')
     setNcLink(item.url || '')
     setNcBlurb(item.blurb || '')
     setNcMeta(item.meta || '')
@@ -502,24 +582,32 @@ export default function AdminConsole({
     setEditingShowcaseId(null)
     setNcTitle('')
     setNcAuthor('')
+    setNcEmail('')
     setNcLink('')
     setNcBlurb('')
     setNcMeta('')
   }
 
   const handleDeleteShowcase = async (id: string) => {
-    if (!confirm('Delete this showcase item? This cannot be undone.')) return
-    setIsSaving(true)
-    try {
-      await deleteShowcaseItem(id)
-      // Reload showcase list
-      const items = await getShowcaseItems(cohortId)
-      setShowcaseList(items as WorkshopShowcase[])
-    } catch (e: any) {
-      console.error('Failed to delete showcase item', e)
-    } finally {
-      setIsSaving(false)
-    }
+    setConfirmDialog({
+      message: 'Delete this showcase item? This cannot be undone.',
+      onConfirm: async () => {
+        setConfirmDialog(null)
+        setIsSaving(true)
+        try {
+          await deleteShowcaseItem(id)
+          // Reload showcase list
+          const items = await getShowcaseItems(cohortId)
+          setShowcaseList(items as WorkshopShowcase[])
+          setToast('✓ Showcase item deleted successfully')
+        } catch (e: any) {
+          console.error('Failed to delete showcase item', e)
+          setToast('✗ Failed to delete showcase item')
+        } finally {
+          setIsSaving(false)
+        }
+      }
+    })
   }
 
   const handleSeedShowcase = async () => {
@@ -843,77 +931,146 @@ export default function AdminConsole({
                 <label style={{ display: 'block' }}>
                   <div className="font-pixel" style={{ fontSize: 12, color: 'var(--s,#8aa6c4)', marginBottom: 8 }}>ORGANIZATION NAME</div>
                   <input
+                    type="text"
                     value={certOrg}
-                    onChange={e => setCertOrg(e.target.value)}
-                    onBlur={() => saveCertSettings({ certOrg })}
+                    onChange={e => {
+                      console.log('Org changed to:', e.target.value)
+                      setCertOrg(e.target.value)
+                    }}
+                    onBlur={() => {
+                      console.log('Saving org:', certOrg)
+                      saveCertSettings({ certOrg })
+                    }}
                     placeholder="StewardWorks"
                     style={{ ...inputStyle }}
+                    autoComplete="off"
                   />
                 </label>
                 <label style={{ display: 'block' }}>
                   <div className="font-pixel" style={{ fontSize: 12, color: 'var(--s,#8aa6c4)', marginBottom: 8 }}>FACILITATOR NAME</div>
                   <input
+                    type="text"
                     value={certFacilitator}
-                    onChange={e => setCertFacilitator(e.target.value)}
-                    onBlur={() => saveCertSettings({ certFacilitator })}
+                    onChange={e => {
+                      console.log('Facilitator changed to:', e.target.value)
+                      setCertFacilitator(e.target.value)
+                    }}
+                    onBlur={() => {
+                      console.log('Saving facilitator:', certFacilitator)
+                      saveCertSettings({ certFacilitator })
+                    }}
                     placeholder="Marisol Vega"
                     style={{ ...inputStyle }}
+                    autoComplete="off"
                   />
                 </label>
                 <label style={{ display: 'block' }}>
                   <div className="font-pixel" style={{ fontSize: 12, color: 'var(--s,#8aa6c4)', marginBottom: 8 }}>FACILITATOR TITLE</div>
                   <input
+                    type="text"
                     value={certFacTitle}
-                    onChange={e => setCertFacTitle(e.target.value)}
-                    onBlur={() => saveCertSettings({ certFacTitle })}
+                    onChange={e => {
+                      console.log('Title changed to:', e.target.value)
+                      setCertFacTitle(e.target.value)
+                    }}
+                    onBlur={() => {
+                      console.log('Saving title:', certFacTitle)
+                      saveCertSettings({ certFacTitle })
+                    }}
                     placeholder="Lead Steward"
                     style={{ ...inputStyle }}
+                    autoComplete="off"
                   />
                 </label>
                 <label style={{ display: 'block' }}>
                   <div className="font-pixel" style={{ fontSize: 12, color: 'var(--s,#8aa6c4)', marginBottom: 8 }}>FISCAL SPONSOR SIGNER</div>
                   <input
+                    type="text"
                     value={certSponsor}
-                    onChange={e => setCertSponsor(e.target.value)}
-                    onBlur={() => saveCertSettings({ certSponsor })}
+                    onChange={e => {
+                      console.log('Sponsor changed to:', e.target.value)
+                      setCertSponsor(e.target.value)
+                    }}
+                    onBlur={() => {
+                      console.log('Saving sponsor:', certSponsor)
+                      saveCertSettings({ certSponsor })
+                    }}
                     placeholder="Signer name"
                     style={{ ...inputStyle }}
+                    autoComplete="off"
                   />
                 </label>
                 <label style={{ display: 'block' }}>
                   <div className="font-pixel" style={{ fontSize: 12, color: 'var(--s,#8aa6c4)', marginBottom: 8 }}>FISCAL SPONSOR ORG</div>
                   <input
+                    type="text"
                     value={certSponsorOrg}
-                    onChange={e => setCertSponsorOrg(e.target.value)}
-                    onBlur={() => saveCertSettings({ certSponsorOrg })}
+                    onChange={e => {
+                      console.log('Sponsor org changed to:', e.target.value)
+                      setCertSponsorOrg(e.target.value)
+                    }}
+                    onBlur={() => {
+                      console.log('Saving sponsor org:', certSponsorOrg)
+                      saveCertSettings({ certSponsorOrg })
+                    }}
                     placeholder="The Becoming Project"
                     style={{ ...inputStyle }}
+                    autoComplete="off"
                   />
                 </label>
               </div>
 
               <label style={{ display: 'block', marginBottom: 16 }}>
                 <div className="font-pixel" style={{ fontSize: 12, color: 'var(--s,#8aa6c4)', marginBottom: 8 }}>
-                  CERTIFICATE WORDING <span style={{ color: 'var(--mu,#9990ab)', fontFamily: "'Inter', sans-serif", fontSize: 13, textTransform: 'none', letterSpacing: 'normal' }}>· leave blank for the default</span>
+                  CERTIFICATE WORDING <span style={{ color: 'var(--mu,#9990ab)', fontFamily: "'Inter', sans-serif", fontSize: 13, textTransform: 'normal', letterSpacing: 'normal' }}>· leave blank for the default</span>
                 </div>
                 <textarea
                   value={certMessage}
-                  onChange={e => { setCertMessage(e.target.value); localStorage.setItem('cert_message', e.target.value) }}
+                  onChange={e => {
+                    console.log('Message changed to:', e.target.value)
+                    setCertMessage(e.target.value)
+                  }}
+                  onBlur={() => {
+                    console.log('Saving message:', certMessage)
+                    saveCertSettings({ certMessage })
+                  }}
                   rows={4}
                   placeholder="has completed the full three-day intensive of The Steward's Journey…"
                   style={{ ...textareaStyle, minHeight: 100 }}
                 />
               </label>
 
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
                 <button
-                  onClick={() => setShowCertPreview(true)}
+                  onClick={() => saveCertSettings({})}
+                  disabled={certSaving}
+                  className="font-pixel"
+                  style={{ 
+                    fontSize: 9, 
+                    color: '#141019', 
+                    background: certSaving ? '#8a7a4f' : 'var(--ok,#74f0a0)', 
+                    border: 'none', 
+                    borderRadius: 6, 
+                    padding: '11px 15px', 
+                    cursor: certSaving ? 'wait' : 'pointer',
+                    opacity: certSaving ? 0.7 : 1
+                  }}
+                >
+                  {certSaving ? '✓ SAVING...' : '✓ SAVE SETTINGS'}
+                </button>
+                <button
+                  onClick={async () => {
+                    await refreshCertSettings()
+                    setShowCertPreview(true)
+                  }}
                   className="font-pixel"
                   style={{ fontSize: 9, color: '#141019', background: 'var(--gold,#c9a85f)', border: 'none', borderRadius: 6, padding: '11px 15px', cursor: 'pointer' }}
                 >
                   ◆ PREVIEW CERTIFICATE
                 </button>
-                <span style={{ fontSize: 14, color: 'var(--mu,#9990ab)' }}>Opens the live certificate with your current wording.</span>
+                <span style={{ fontSize: 14, color: 'var(--mu,#9990ab)' }}>
+                  {certSaving ? 'Saving to database...' : 'Changes save on blur or click Save'}
+                </span>
               </div>
             </div>
           )}
@@ -1397,7 +1554,7 @@ export default function AdminConsole({
                       onClick={() => setNcType(t)}
                       className="font-pixel"
                       style={{
-                        fontSize: 8,
+                        fontSize: 14,
                         padding: '8px 12px',
                         border: `2px solid ${ncType === t ? 'var(--ok,#74f0a0)' : 'var(--ln,#3d2668)'}`,
                         borderRadius: 6,
@@ -1412,6 +1569,18 @@ export default function AdminConsole({
                 </div>
                 <input value={ncTitle} onChange={e => setNcTitle(e.target.value)} placeholder="Media title…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
                 <input value={ncAuthor} onChange={e => setNcAuthor(e.target.value)} placeholder="Contributor name…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
+                <div style={{ marginBottom: 9 }}>
+                  <input 
+                    value={ncEmail} 
+                    onChange={e => setNcEmail(e.target.value)} 
+                    placeholder="Contributor email (optional)…" 
+                    type="email" 
+                    style={{ ...inputStyle, fontSize: 18, marginBottom: 4 }} 
+                  />
+                  <div style={{ fontSize: 12, color: 'var(--s,#8aa6c4)', paddingLeft: 4, lineHeight: 1.3 }}>
+                    ✉ When provided, sends an invitation email with guest access
+                  </div>
+                </div>
                 <input value={ncLink} onChange={e => setNcLink(e.target.value)} placeholder="Public share link / creation ID…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
                 <input value={ncMeta} onChange={e => setNcMeta(e.target.value)} placeholder="Duration / word count (e.g., 8:24 · Video)…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
                 <textarea 
@@ -1429,7 +1598,7 @@ export default function AdminConsole({
                     onClick={() => setNcPaid(true)}
                     className="font-pixel"
                     style={{
-                      fontSize: 8,
+                      fontSize: 11,
                       padding: '8px 14px',
                       border: `2px solid ${ncPaid ? 'var(--gold,#c9a85f)' : 'var(--ln,#3d2668)'}`,
                       borderRadius: 6,
@@ -1442,7 +1611,7 @@ export default function AdminConsole({
                     onClick={() => setNcPaid(false)}
                     className="font-pixel"
                     style={{
-                      fontSize: 8,
+                      fontSize: 11,
                       padding: '8px 14px',
                       border: `2px solid ${!ncPaid ? 'var(--ok,#74f0a0)' : 'var(--ln,#3d2668)'}`,
                       borderRadius: 6,
@@ -1462,7 +1631,7 @@ export default function AdminConsole({
                     className="font-pixel"
                     style={{
                       flex: 1,
-                      fontSize: 9,
+                      fontSize: 11,
                       color: 'var(--bg,#12081e)',
                       background: isSaving || !ncTitle.trim() ? 'var(--mu,#a493c9)' : 'var(--ok,#74f0a0)',
                       border: 'none',
@@ -1478,7 +1647,7 @@ export default function AdminConsole({
                       onClick={handleCancelEdit}
                       className="font-pixel"
                       style={{
-                        fontSize: 9,
+                        fontSize: 11,
                         color: 'var(--mu,#a493c9)',
                         background: 'transparent',
                         border: '2px solid var(--mu,#a493c9)',
@@ -1821,11 +1990,12 @@ export default function AdminConsole({
                                   
                                   {isShowcaseRequested && (
                                     <div className="font-pixel" style={{
-                                      fontSize: 7, color: 'var(--pk,#ff5fd2)', border: '1px solid var(--pk,#ff5fd2)',
+                                      fontSize: 7, color: '#101613', border: 'none',
                                       borderRadius: 20, padding: '4px 9px', letterSpacing: 1, marginTop: 4,
-                                      background: 'rgba(255,95,210,.1)'
+                                      background: 'var(--pk,#ff5fd2)',
+                                      display: 'flex', alignItems: 'center', gap: 4
                                     }}>
-                                      ★ WANTS SHOWCASE
+                                      <span style={{ fontSize: 10 }}>↺</span> WANTS SHOWCASE
                                     </div>
                                   )}
                                 </div>
@@ -1878,9 +2048,9 @@ export default function AdminConsole({
                         })()}
 
                         {/* Bottom row: Buttons (flush left) */}
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                           <button
-                            onClick={() => handleReview(reviewId, 'approved', undefined, !isDeliverable)}
+                            onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], !isDeliverable)}
                             style={{
                               fontFamily: "'VT323', monospace",
                               fontSize: 16,
@@ -1895,8 +2065,9 @@ export default function AdminConsole({
                           >
                             {approveLabel}
                           </button>
+                          
                           <button
-                            onClick={() => handleReview(reviewId, 'rejected', 'Needs more work', !isDeliverable)}
+                            onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId] || 'Needs more work', !isDeliverable)}
                             style={{
                               fontFamily: "'VT323', monospace",
                               fontSize: 16,
@@ -1911,6 +2082,25 @@ export default function AdminConsole({
                           >
                             ↩ RETURN
                           </button>
+                          
+                          <input 
+                            type="text" 
+                            placeholder="Add a note for the student..." 
+                            value={reviewNotes[reviewId] || ''}
+                            onChange={(e) => setReviewNotes(prev => ({ ...prev, [reviewId]: e.target.value }))}
+                            style={{ 
+                              flex: 1, 
+                              minWidth: 200, 
+                              background: 'transparent', 
+                              border: '1px solid #2f3d36', 
+                              borderRadius: 5, 
+                              padding: '4px 12px', 
+                              color: '#dbe4de', 
+                              fontSize: 16, 
+                              fontFamily: "'VT323', monospace",
+                              outline: 'none'
+                            }} 
+                          />
                         </div>
                       </div>
                     )
@@ -2011,77 +2201,126 @@ export default function AdminConsole({
                 <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBTITLE / SIDEBAR LABEL</div>
                 <input defaultValue={selEntry.subtitle || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'subtitle', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16 }} />
                 
-                {selEntry.entry_type === 'deliverable' && (
-                  <>
-                    <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBMIT BUTTON LABEL (OPTIONAL)</div>
-                    <input defaultValue={selEntry.submit_label || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'submit_label', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16 }} placeholder="e.g. Paste your deliverable link" />
-                  </>
-                )}
-                <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
-                  CONTENT · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — bold, italic, lists & links</span>
-                </div>
-                {(() => {
-                  const bodyParts = (selEntry.body || '').split('<!--BLOCK-->')
-                  const mainBody = bodyParts[0] || ''
-                  const additionalBlocks = bodyParts.slice(1)
-                  
-                  return (
-                    <>
-                      <RichEditor
-                        value={mainBody}
-                        onBlur={val => handleEntryFieldBlur(selEntry.id, 'body', [val, ...additionalBlocks].join('<!--BLOCK-->'))}
-                        minHeight={200}
-                        accent="var(--ok,#74f0a0)"
-                      />
-                      
-                      <div style={{ borderTop: '1px dashed var(--ln,#3d2668)', marginTop: 18, paddingTop: 16 }}>
-                        <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 10, lineHeight: 1.4 }}>
-                          ADDITIONAL TEXT BLOCKS · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — each block appears below the content in the student's session</span>
+                {selEntry.entry_type === 'deliverable' ? (
+                  (() => {
+                    const bodyParts = (selEntry.body || '').split('<!--BLOCK-->')
+                    const appliedBody = bodyParts[0] || ''
+                    const labBody = bodyParts[1] || ''
+                    const goalBody = bodyParts[2] || ''
+
+                    const updateDeliverableBody = (idx: number, val: string) => {
+                      const newParts = [...bodyParts]
+                      while (newParts.length < 3) newParts.push('')
+                      newParts[idx] = val
+                      handleEntryFieldBlur(selEntry.id, 'body', newParts.join('<!--BLOCK-->'))
+                    }
+
+                    return (
+                      <>
+                        <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>PRINCIPLE APPLIED</div>
+                        <div style={{ marginBottom: 16 }}>
+                          <RichEditor
+                            value={appliedBody}
+                            onBlur={val => updateDeliverableBody(0, val)}
+                            minHeight={150}
+                            accent="var(--ok,#74f0a0)"
+                          />
                         </div>
-                        {additionalBlocks.map((blk, idx) => (
-                          <div key={idx} style={{ marginBottom: 14 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <span className="font-pixel" style={{ fontSize: 7, color: 'var(--gold,#ffd23f)' }}>◈ BLOCK {idx + 1}</span>
-                              <button 
-                                onClick={() => {
-                                  const newBlocks = [...additionalBlocks]
-                                  newBlocks.splice(idx, 1)
-                                  handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))
-                                }} 
-                                className="font-pixel"
-                                style={{
-                                  fontSize: 7, cursor: 'pointer', color: 'var(--warn,#ff7a7a)', background: 'transparent',
-                                  border: '2px solid var(--ln,#3d2668)', borderRadius: 4, padding: '6px 9px'
-                                }}
-                              >✕ REMOVE</button>
+
+                        <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>LAB PROCESS</div>
+                        <div style={{ marginBottom: 16 }}>
+                          <RichEditor
+                            value={labBody}
+                            onBlur={val => updateDeliverableBody(1, val)}
+                            minHeight={150}
+                            accent="var(--ok,#74f0a0)"
+                          />
+                        </div>
+
+                        <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>DELIVERABLE GOAL</div>
+                        <div style={{ marginBottom: 16 }}>
+                          <RichEditor
+                            value={goalBody}
+                            onBlur={val => updateDeliverableBody(2, val)}
+                            minHeight={150}
+                            accent="var(--ok,#74f0a0)"
+                          />
+                        </div>
+
+                        <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBMISSION PROMPT LABEL</div>
+                        <input defaultValue={selEntry.submit_label || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'submit_label', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16 }} placeholder="e.g. Paste your story asset link..." />
+                      </>
+                    )
+                  })()
+                ) : (
+                  <>
+                    <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
+                      CONTENT · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — bold, italic, lists & links</span>
+                    </div>
+                    {(() => {
+                      const bodyParts = (selEntry.body || '').split('<!--BLOCK-->')
+                      const mainBody = bodyParts[0] || ''
+                      const additionalBlocks = bodyParts.slice(1)
+                      
+                      return (
+                        <>
+                          <RichEditor
+                            value={mainBody}
+                            onBlur={val => handleEntryFieldBlur(selEntry.id, 'body', [val, ...additionalBlocks].join('<!--BLOCK-->'))}
+                            minHeight={200}
+                            accent="var(--ok,#74f0a0)"
+                          />
+                          
+                          <div style={{ borderTop: '1px dashed var(--ln,#3d2668)', marginTop: 18, paddingTop: 16 }}>
+                            <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 10, lineHeight: 1.4 }}>
+                              ADDITIONAL TEXT BLOCKS · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — each block appears below the content in the student's session</span>
                             </div>
-                            <RichEditor
-                              value={blk}
-                              onBlur={val => {
-                                const newBlocks = [...additionalBlocks]
-                                newBlocks[idx] = val
+                            {additionalBlocks.map((blk, idx) => (
+                              <div key={idx} style={{ marginBottom: 14 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                  <span className="font-pixel" style={{ fontSize: 7, color: 'var(--gold,#ffd23f)' }}>◈ BLOCK {idx + 1}</span>
+                                  <button 
+                                    onClick={() => {
+                                      const newBlocks = [...additionalBlocks]
+                                      newBlocks.splice(idx, 1)
+                                      handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))
+                                    }} 
+                                    className="font-pixel"
+                                    style={{
+                                      fontSize: 7, cursor: 'pointer', color: 'var(--warn,#ff7a7a)', background: 'transparent',
+                                      border: '2px solid var(--ln,#3d2668)', borderRadius: 4, padding: '6px 9px'
+                                    }}
+                                  >✕ REMOVE</button>
+                                </div>
+                                <RichEditor
+                                  value={blk}
+                                  onBlur={val => {
+                                    const newBlocks = [...additionalBlocks]
+                                    newBlocks[idx] = val
+                                    handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))
+                                  }}
+                                  minHeight={150}
+                                  accent="var(--ok,#74f0a0)"
+                                />
+                              </div>
+                            ))}
+                            <button 
+                              onClick={() => {
+                                const newBlocks = [...additionalBlocks, '']
                                 handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))
                               }}
-                              minHeight={150}
-                              accent="var(--ok,#74f0a0)"
-                            />
+                              className="font-pixel"
+                              style={{
+                                fontSize: 8, cursor: 'pointer', color: 'var(--ok,#74f0a0)', background: 'transparent',
+                                border: '2px dashed var(--ok,#74f0a0)', borderRadius: 6, padding: '11px 13px', marginTop: 2
+                              }}
+                            >＋ ADD TEXT BLOCK</button>
                           </div>
-                        ))}
-                        <button 
-                          onClick={() => {
-                            const newBlocks = [...additionalBlocks, '']
-                            handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))
-                          }}
-                          className="font-pixel"
-                          style={{
-                            fontSize: 8, cursor: 'pointer', color: 'var(--ok,#74f0a0)', background: 'transparent',
-                            border: '2px dashed var(--ok,#74f0a0)', borderRadius: 6, padding: '11px 13px', marginTop: 2
-                          }}
-                        >＋ ADD TEXT BLOCK</button>
-                      </div>
-                    </>
-                  )
-                })()}
+                        </>
+                      )
+                    })()}
+                  </>
+                )}
               </div>
 
               {/* RIGHT: media rail */}
@@ -2261,6 +2500,21 @@ export default function AdminConsole({
           </div>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
+
+      {/* Toast Notification */}
+      <RetroToast
+        message={toast}
+        onClose={() => setToast(null)}
+      />
     </div>
   )
 }

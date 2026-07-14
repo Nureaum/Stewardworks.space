@@ -269,6 +269,7 @@ export default function JourneyClient({
                   bankedPrinciples={bankedPrinciples}
                   days={days}
                   progressRows={progressRows}
+                  cohortId={cohortId}
                   onBack={() => setVictoryVisible(false)}
                   onViewPortfolio={() => {
                     setVictoryVisible(false)

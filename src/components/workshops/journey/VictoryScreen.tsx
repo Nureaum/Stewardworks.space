@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { PixelSprite, buildIconUri } from '@/components/workshops/journey';
 import type { WorkshopCharacter, WorkshopProgressPrinciple, WorkshopDay, WorkshopProgress } from '@/types/workshops';
+import { MAP_ICONS } from './character-data';
+import { getCelebrateProps, getWinSkill, buildCastFx } from './VictoryEffects';
 
 interface VictoryScreenProps {
   character: WorkshopCharacter;
@@ -11,6 +13,7 @@ interface VictoryScreenProps {
   bankedPrinciples: WorkshopProgressPrinciple[];
   days: WorkshopDay[];
   progressRows: WorkshopProgress[];
+  cohortId: string;
   onBack: () => void;
   onViewPortfolio: () => void;
 }
@@ -22,10 +25,12 @@ export default function VictoryScreen({
   bankedPrinciples,
   days,
   progressRows,
+  cohortId,
   onBack,
   onViewPortfolio,
 }: VictoryScreenProps) {
   const [skillCasting, setSkillCasting] = useState(false);
+  const [castCount, setCastCount] = useState(0);
   const [confetti, setConfetti] = useState<Array<{
     id: number;
     left: number;
@@ -39,6 +44,9 @@ export default function VictoryScreen({
 
   const playerName = character.player_name || character.character_key.toUpperCase();
   const accent = character.accent_color || '#ffd23f';
+  const ceb = getCelebrateProps();
+  const skill = getWinSkill(character.character_key);
+  const goalUri = buildIconUri(MAP_ICONS.goal, accent);
   
   // Read certificate settings from localStorage (set by admin)
   const [certSettings, setCertSettings] = React.useState(() => {
@@ -90,6 +98,7 @@ export default function VictoryScreen({
 
   const handleCastSkill = () => {
     setSkillCasting(true);
+    setCastCount(c => c + 1);
     setTimeout(() => setSkillCasting(false), 2000);
   };
 
@@ -97,6 +106,10 @@ export default function VictoryScreen({
     setIsDownloadingPDF(true);
     
     try {
+      // Fetch latest certificate settings from database
+      const certResponse = await fetch(`/api/workshops/${cohortId}/certificate-settings`);
+      const latestCertSettings = certResponse.ok ? await certResponse.json() : certSettings;
+      
       // Generate character sprite URI
       const { buildSpriteUri } = await import('@/components/workshops/journey/PixelSprite');
       const characterSpriteUri = buildSpriteUri(
@@ -112,7 +125,7 @@ export default function VictoryScreen({
       const deliverables = days.slice(0, 3).map((day, idx) => {
         const progress = progressRows.find(p => p.workshop_day_id === day.id);
         return {
-          title: day.title?.toUpperCase() || `DAY ${day.day_number}`,
+          title: (day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`,
           url: (progress as any)?.deliverable_url || ''
         };
       });
@@ -126,12 +139,12 @@ export default function VictoryScreen({
         body: JSON.stringify({
           playerName: playerName,
           characterKey: character.character_key,
-          certOrg: certSettings.certOrg,
-          certFacilitator: certSettings.certFacilitator,
-          certFacTitle: certSettings.certFacTitle,
-          certSponsor: certSettings.certSponsor,
-          certSponsorOrg: certSettings.certSponsorOrg,
-          certMessage: certSettings.certMessage,
+          certOrg: latestCertSettings.certOrg,
+          certFacilitator: latestCertSettings.certFacilitator,
+          certFacTitle: latestCertSettings.certFacTitle,
+          certSponsor: latestCertSettings.certSponsor,
+          certSponsorOrg: latestCertSettings.certSponsorOrg,
+          certMessage: latestCertSettings.certMessage,
           deliverables: deliverables,
           characterSpriteUri: characterSpriteUri
         })
@@ -158,21 +171,6 @@ export default function VictoryScreen({
       setIsDownloadingPDF(false);
     }
   };
-
-  // Map character to their signature skill
-  const skillData: Record<string, { title: string; desc: string }> = {
-    jordan: {
-      title: "SONGKEEPER'S ECHO",
-      desc: "Attuned voice sows that carries the tongues at once"
-    },
-    nayeli: {
-      title: "STEWARD — WALKS THE HONEST PATH",
-      desc: "Guides with transparency, building trust through shared knowledge rather than gatekeeping."
-    },
-    // Add other characters as needed
-  };
-
-  const skill = skillData[character.character_key] || skillData.nayeli;
   
   // Generate Chia sprite using the same logic as TreasureMap
   function chiaStageFor(pct: number): number {
@@ -240,16 +238,22 @@ export default function VictoryScreen({
   const chiaStage = chiaStageFor(chiaPct);
   const chiaSvg = chiaUri(chiaStage);
 
-  return (
+return (
     <div style={{ 
       position: 'relative', 
       maxWidth: 920, 
       margin: '0 auto', 
-      padding: 'clamp(20px,4vw,44px) clamp(16px,3vw,26px)', 
-      overflow: 'hidden', 
-      borderRadius: 18 
+      padding: '40px 20px', 
+      minHeight: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center'
     }}>
-      {/* Victory vista gradient */}
+      {/* Background elements */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+        {ceb.map((p, i) => <div key={'bgp'+i} style={p.style} />)}
+      </div>
       <div style={{ 
         position: 'absolute', 
         left: 0, 
@@ -327,59 +331,37 @@ export default function VictoryScreen({
           alignItems: 'flex-end',
           justifyContent: 'center'
         }}>
-          {/* Skill glow effect when casting */}
-          {skillCasting && (
-            <div style={{
-              position: 'absolute',
-              left: '42%',
-              bottom: 8,
-              transform: 'translateX(-50%)',
-              width: 180,
-              height: 180,
-              borderRadius: '50%',
-              background: `radial-gradient(circle, ${accent}40, transparent 70%)`,
-              animation: 'skillGlow 1s ease-out',
-              zIndex: 2
-            }} />
-          )}
-          
           {/* Character sprite */}
           <div style={{ 
             position: 'absolute', 
-            left: '42%', 
+            left: '50%', 
             bottom: 8, 
             transform: 'translateX(-50%)', 
-            zIndex: 3,
-            animation: skillCasting ? 'skillCast 1s ease' : 'none'
-          }}>
-            <PixelSprite
-              characterKey={character.character_key}
-              accent={accent}
-              opts={{
-                gear: (character as any).gear || 'none',
-                outfit: (character as any).outfit || 'plain'
-              }}
-              size={108}
-              style={{
-                imageRendering: 'pixelated',
-                filter: `drop-shadow(0 0 14px ${accent}) drop-shadow(0 4px 2px rgba(0,0,0,.55))`
-              }}
-            />
-          </div>
-          
-          {/* Chia pet companion */}
-          <div style={{ 
-            position: 'absolute', 
-            right: '28%', 
-            bottom: 12, 
             zIndex: 3
           }}>
-            <div style={{ 
-              fontSize: 64, 
-              filter: 'drop-shadow(0 4px 2px rgba(0,0,0,.4))',
-              animation: 'chiaBob 2.5s ease-in-out infinite'
-            }}>
-              🌱
+            <div style={{ position: 'relative' }}>
+              {/* The character image itself */}
+              <PixelSprite
+                characterKey={character.character_key}
+                accent={accent}
+                opts={{
+                  gear: (character as any).gear || 'none',
+                  outfit: (character as any).outfit || 'plain'
+                }}
+                size={108}
+                style={{
+                  imageRendering: 'pixelated',
+                  filter: `drop-shadow(0 0 14px ${skill.tone}) drop-shadow(0 4px 2px rgba(0,0,0,.55))`,
+                  animation: skillCasting ? skill.heroStyle?.animation : 'none'
+                }}
+              />
+              {/* Treasure Box / cast fx instead of Chia Plant */}
+              <img src={goalUri} alt="" width="54" height="54" style={{
+                position: 'absolute', right: '5%', bottom: 6,
+                imageRendering: 'pixelated', filter: 'drop-shadow(0 0 10px var(--gold,#ffd23f))',
+                opacity: 0.92, zIndex: 1
+              }} />
+              {skillCasting && buildCastFx(character.character_key, castCount)}
             </div>
           </div>
         </div>
@@ -388,22 +370,18 @@ export default function VictoryScreen({
           <span className="font-pixel" style={{ fontSize: 7, color: 'var(--s,#45d6ff)', letterSpacing: 2 }}>
             ✧ SIGNATURE SKILL
           </span>
-          <div className="font-pixel" style={{ 
-            fontSize: 'clamp(10px,1.9vw,14px)', 
-            color: '#ff5fd2', 
-            marginTop: 9, 
-            textShadow: '0 0 12px rgba(255,95,210,.45), 2px 2px 0 rgba(0,0,0,.35)' 
-          }}>
+          <div style={{ fontSize: 24, color: skill.tone || 'var(--gold,#ffd23f)', marginTop: 8, textShadow: `0 0 12px ${skill.tone}` }}>
             {skill.title}
           </div>
+          
           <div style={{ 
             fontSize: 16, 
-            color: 'var(--mu,#a493c9)', 
+            color: skill.tone || 'var(--mu,#a493c9)', 
             marginTop: 7, 
             maxWidth: 460, 
             marginLeft: 'auto', 
-            marginRight: 'auto', 
-            lineHeight: 1.35 
+            marginRight: 'auto',
+            lineHeight: 1.4 
           }}>
             {skill.desc}
           </div>
@@ -416,7 +394,7 @@ export default function VictoryScreen({
               onClick={handleCastSkill}
               className="font-pixel"
               style={{ 
-                fontSize: 10, 
+                fontSize: 14, 
                 color: 'var(--bg,#12081e)', 
                 background: 'var(--gold,#ffd23f)', 
                 border: 'none', 
@@ -625,12 +603,12 @@ export default function VictoryScreen({
             onClick={onViewPortfolio}
             className="font-pixel"
             style={{ 
-              fontSize: 10, 
+              fontSize: 14, 
               color: 'var(--bg,#12081e)', 
               background: 'var(--ok,#74f0a0)', 
               border: 'none', 
               borderRadius: 6, 
-              padding: '14px 20px', 
+              padding: '16px 24px', 
               cursor: 'pointer', 
               boxShadow: '0 4px 0 #2b9c64' 
             }}
@@ -643,12 +621,12 @@ export default function VictoryScreen({
             rel="noopener noreferrer"
             className="font-pixel"
             style={{ 
-              fontSize: 10, 
+              fontSize: 14, 
               color: 'var(--s,#45d6ff)', 
               textDecoration: 'none', 
               border: '2px solid var(--s,#45d6ff)', 
               borderRadius: 6, 
-              padding: '14px 20px',
+              padding: '16px 24px',
               display: 'inline-block'
             }}
           >
@@ -658,12 +636,12 @@ export default function VictoryScreen({
             onClick={() => setShowCertPreview(true)}
             className="font-pixel"
             style={{ 
-              fontSize: 10, 
+              fontSize: 14, 
               color: 'var(--gold,#ffd23f)', 
               background: 'transparent', 
               border: '2px solid var(--gold,#ffd23f)', 
               borderRadius: 6, 
-              padding: '14px 20px', 
+              padding: '16px 24px', 
               cursor: 'pointer', 
               transition: 'all 0.2s'
             }}
@@ -675,12 +653,12 @@ export default function VictoryScreen({
             disabled={isDownloadingPDF}
             className="font-pixel"
             style={{ 
-              fontSize: 10, 
+              fontSize: 14, 
               color: 'var(--bg,#12081e)', 
               background: isDownloadingPDF ? '#9c7a28' : 'var(--gold,#ffd23f)', 
               border: 'none', 
               borderRadius: 6, 
-              padding: '14px 20px', 
+              padding: '16px 24px', 
               cursor: isDownloadingPDF ? 'wait' : 'pointer', 
               boxShadow: '0 4px 0 #c99020',
               opacity: isDownloadingPDF ? 0.7 : 1,
@@ -699,12 +677,12 @@ export default function VictoryScreen({
           onClick={onBack}
           className="font-pixel"
           style={{ 
-            fontSize: 10, 
+            fontSize: 14, 
             color: 'var(--s,#45d6ff)', 
             background: 'none', 
             border: '2px solid var(--s,#45d6ff)', 
             borderRadius: 5, 
-            padding: '13px 18px', 
+            padding: '16px 24px', 
             cursor: 'pointer' 
           }}
         >
@@ -868,6 +846,40 @@ export default function VictoryScreen({
             opacity: 0;
           }
         }
+      `}</style>
+      <style jsx global>{`
+        @keyframes confetti{0%{transform:translateY(-10px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(560px) rotate(220deg);opacity:0}}
+        @keyframes rise{0%{transform:translateY(0);opacity:0}16%{opacity:.9}100%{transform:translateY(-96px);opacity:0}}
+        @keyframes skRing{0%{transform:scale(.2);opacity:.85}70%{opacity:.22}100%{transform:scale(2.6);opacity:0}}
+        @keyframes skNote{0%{transform:translateY(0) rotate(-8deg);opacity:0}20%{opacity:1}100%{transform:translateY(-84px) rotate(14deg);opacity:0}}
+        @keyframes skSpin{to{transform:rotate(360deg)}}
+        @keyframes skSpark{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1)}}
+        @keyframes skShimmer{0%,100%{opacity:.18}50%{opacity:.6}}
+        @keyframes skStreak{0%{opacity:0;transform:translateX(12px)}40%{opacity:.9}100%{opacity:0;transform:translateX(-36px)}}
+        @keyframes skLeap{0%,100%{transform:translateY(0)}42%{transform:translateY(-42px)}58%{transform:translateY(-42px)}}
+        @keyframes skDash{0%,100%{transform:translateX(-14px)}50%{transform:translateX(14px)}}
+        @keyframes skClimb{0%,100%{transform:translate(-8px,4px)}50%{transform:translate(10px,-26px)}}
+        @keyframes skWobble{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+        @keyframes skOrbit{from{transform:rotate(0deg) translateX(var(--orb,48px)) rotate(0deg)}to{transform:rotate(360deg) translateX(var(--orb,48px)) rotate(-360deg)}}
+        @keyframes skOrbitR{from{transform:rotate(0deg) translateX(var(--orb,48px)) rotate(0deg)}to{transform:rotate(-360deg) translateX(var(--orb,48px)) rotate(360deg)}}
+        @keyframes skPop{0%{transform:translateY(6px) scale(.5);opacity:0}22%{opacity:1}52%{transform:translateY(-26px) scale(1.2);opacity:1}80%{opacity:.45}100%{transform:translateY(-42px) scale(.55);opacity:0}}
+        @keyframes skBeam{0%,100%{opacity:0;transform:scaleY(.3)}45%,55%{opacity:.85;transform:scaleY(1)}}
+        @keyframes skRain{0%{transform:translateY(-30px);opacity:0}20%{opacity:1}100%{transform:translateY(78px);opacity:0}}
+        @keyframes skZig{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}50%{transform:translate(120px,-16px)}85%{opacity:1}100%{opacity:0;transform:translate(240px,0)}}
+        @keyframes skBurst{0%{transform:scale(.3);opacity:.9}100%{transform:scale(4.2);opacity:0}}
+        @keyframes skFlash{0%{opacity:.5;transform:scale(.6)}100%{opacity:0;transform:scale(1.35)}}
+        @keyframes skFan{0%{transform:rotate(var(--ang)) translateY(0) scale(1);opacity:1}100%{transform:rotate(var(--ang)) translateY(-72px) scale(.3);opacity:0}}
+        @keyframes cShieldD{0%{transform:scale(.2);opacity:0}28%{opacity:.9}100%{transform:scale(2.5);opacity:0}}
+        @keyframes cScatter{0%{transform:translate(0,0) scale(1);opacity:1}18%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
+        @keyframes cRise{0%{transform:translateY(28px) scale(.5);opacity:0}25%{opacity:1}100%{transform:translateY(-78px) scale(1.1);opacity:0}}
+        @keyframes cSweepX{0%{transform:translateX(-60px);opacity:0}16%{opacity:.95}84%{opacity:.95}100%{transform:translateX(480px);opacity:0}}
+        @keyframes cSweepY{0%{transform:translateY(-16px);opacity:0}16%{opacity:.95}84%{opacity:.95}100%{transform:translateY(200px);opacity:0}}
+        @keyframes cVig{0%{box-shadow:inset 0 0 0 0 rgba(4,2,12,0);opacity:0}42%{opacity:1;box-shadow:inset 0 0 90px 40px rgba(4,2,12,.9)}100%{box-shadow:inset 0 0 120px 70px rgba(4,2,12,.95);opacity:0}}
+        @keyframes cSpinFade{0%{transform:rotate(0) scale(.4);opacity:0}25%{opacity:1}100%{transform:rotate(320deg) scale(1.7);opacity:0}}
+        @keyframes cArcL{0%{transform:translate(0,0) scale(.6);opacity:0}18%{opacity:1}50%{transform:translate(66px,-96px)}100%{transform:translate(150px,14px) scale(.4);opacity:0}}
+        @keyframes cRay{0%{transform:rotate(var(--ang)) translateY(0) scaleY(.2);opacity:0}30%{opacity:1}100%{transform:rotate(var(--ang)) translateY(-46px) scaleY(1.4);opacity:0}}
+        @keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+        @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
       `}</style>
     </div>
   );

@@ -193,3 +193,141 @@ export async function updateEngagement(engagementId: string, updates: { title?: 
   console.log('[Server] Returning updated data:', data)
   return data
 }
+
+/**
+ * Gets all generations for a cohort (for AI Labs admin and showcase)
+ */
+export async function getAllGenerations(cohortId: string) {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Authentication required')
+  
+  const supabase = createServerSupabaseClient()
+  
+  // We need to fetch engagements of kind 'generation' with profile information
+  const { data, error } = await supabase
+    .from('workshop_engagement')
+    .select(`
+      *,
+      profiles!inner (
+        id,
+        full_name,
+        email
+      )
+    `)
+    .eq('cohort_id', cohortId)
+    .eq('kind', 'generation')
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Get all generations error:', error)
+    return []
+  }
+  
+  return data || []
+}
+
+/**
+ * Admin action: Approves a generation to be visible in the AI Labs Showcase
+ */
+export async function approveShowcaseEngagement(engagementId: string) {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Authentication required')
+  
+  const supabase = createServerSupabaseClient()
+  
+  // Verify admin status
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('clerk_user_id', userId)
+    .single()
+    
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+    throw new Error('Unauthorized')
+  }
+
+  // First fetch the current content
+  const { data: current } = await supabase
+    .from('workshop_engagement')
+    .select('content')
+    .eq('id', engagementId)
+    .single()
+    
+  if (!current) throw new Error('Engagement not found')
+  
+  let contentData: any = {}
+  try {
+    contentData = JSON.parse(current.content || '{}')
+  } catch (e) {
+    // If not valid JSON, ignore
+  }
+  
+  contentData.showcaseVisible = true
+  
+  const { data, error } = await supabase
+    .from('workshop_engagement')
+    .update({ content: JSON.stringify(contentData) })
+    .eq('id', engagementId)
+    .select()
+    .single()
+    
+  if (error) {
+    throw new Error(`Failed to approve showcase: ${error.message}`)
+  }
+  
+  revalidatePath('/hub/ai-lab')
+  return data
+}
+
+/**
+ * Admin action: Removes a generation from the AI Labs Showcase
+ */
+export async function removeShowcaseEngagement(engagementId: string) {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Authentication required')
+  
+  const supabase = createServerSupabaseClient()
+  
+  // Verify admin status
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('clerk_user_id', userId)
+    .single()
+    
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+    throw new Error('Unauthorized')
+  }
+
+  // First fetch the current content
+  const { data: current } = await supabase
+    .from('workshop_engagement')
+    .select('content')
+    .eq('id', engagementId)
+    .single()
+    
+  if (!current) throw new Error('Engagement not found')
+  
+  let contentData: any = {}
+  try {
+    contentData = JSON.parse(current.content || '{}')
+  } catch (e) {
+    // If not valid JSON, ignore
+  }
+  
+  contentData.showcaseVisible = false
+  
+  const { data, error } = await supabase
+    .from('workshop_engagement')
+    .update({ content: JSON.stringify(contentData) })
+    .eq('id', engagementId)
+    .select()
+    .single()
+    
+  if (error) {
+    throw new Error(`Failed to remove from showcase: ${error.message}`)
+  }
+  
+  revalidatePath('/hub/ai-lab')
+  return data
+}

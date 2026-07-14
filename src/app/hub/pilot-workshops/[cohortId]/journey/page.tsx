@@ -140,6 +140,7 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       bankedPrinciples={bankedPrinciples || []}
       initialEngagements={initialEngagements || []}
       showcaseItems={showcaseItems || []}
+      submissions={submissions || []}
       isAdmin={isAdmin}
       profileId={profile.id}
       initialTab={(searchParams?.tab as any) || 'journey'}

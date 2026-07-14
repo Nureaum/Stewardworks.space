@@ -11,6 +11,7 @@ import GenerationSandbox from './GenerationSandbox';
 import SubmissionTracker from './SubmissionTracker';
 import SaveCreationPanel from './SaveCreationPanel';
 import AILabsAdminConsole from './AILabsAdminConsole';
+import Showcase from '../journey/Showcase';
 import { WorkshopDayEntry, WorkshopDay } from '@/types/workshops';
 
 export default function AILabClient({
@@ -18,19 +19,25 @@ export default function AILabClient({
   edenEmbedUrl = 'https://app.eden.art/',
   initialCurriculum,
   daysComplete = 0,
+  approvedDays = 0,
   cohortId,
   days = [],
   principles = [],
   userRole = 'participant',
+  showcaseItems = [],
+  initialEngagements = [],
 }: {
   initialRole?: 'student' | 'admin';
   edenEmbedUrl?: string;
   initialCurriculum: Record<number, any>;
   daysComplete?: number;
+  approvedDays?: number;
   cohortId?: string;
   days?: WorkshopDay[];
   principles?: any[];
   userRole?: string;
+  showcaseItems?: any[];
+  initialEngagements?: any[];
 }) {
   const router = useRouter();
   const [role, setRole] = useState<'student' | 'admin'>(initialRole);
@@ -51,19 +58,11 @@ export default function AILabClient({
     
     try {
       // Save as an engagement so it shows up in the Admin approvals queue
-      await addEngagement(cohortId, 'generation', `Creation from ${data.platform}`, data.platform, data.url);
-      
-      // If requested, also add to the showcase queue
-      if (data.showcase) {
-        await addShowcaseItem(cohortId, {
-          type: 'aigen',
-          title: `Creation from ${data.platform}`,
-          author: 'Student', // Ideally we'd pass the actual student name here, but this works for now
-          url: data.url,
-          blurb: 'Submitted via AI Labs Workbench',
-          theme: data.platform
-        });
-      }
+      const contentData = JSON.stringify({
+        showcaseRequested: data.showcase,
+        showcaseVisible: false,
+      });
+      await addEngagement(cohortId, 'generation', `Creation from ${data.platform}`, data.platform, data.url, contentData);
       
       toast.success(`Creation saved successfully!`, { position: 'bottom-center' });
     } catch (err) {
@@ -129,7 +128,7 @@ export default function AILabClient({
                 {/* student sub-nav */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <button 
-                    onClick={() => router.push('/hub/pilot-workshops')}
+                    onClick={() => router.push(cohortId ? `/hub/pilot-workshops/${cohortId}/journey` : '/hub/pilot-workshops')}
                     className="font-pixel"
                     style={{ fontSize: 8, color: '#4dffa0', textDecoration: 'none', background: 'rgba(77,255,160,.08)', border: '2px solid #4dffa0', borderRadius: 7, padding: '11px 13px', whiteSpace: 'nowrap', boxShadow: '0 0 12px rgba(77,255,160,.15)', cursor: 'pointer' }}
                   >
@@ -144,16 +143,14 @@ export default function AILabClient({
                       <button
                         key={tab.id}
                         onClick={() => {
-                          if (tab.id === 'lab') {
-                            setStudentView('lab');
-                          } else {
-                            // Navigate to the existing pilot workshops journey page with the tab query param
-                            const targetTab = tab.id;
+                          if (tab.id === 'portfolio') {
                             if (cohortId) {
-                              router.push(`/hub/pilot-workshops/${cohortId}/journey?tab=${targetTab}`);
+                              router.push(`/hub/pilot-workshops/${cohortId}/journey?tab=portfolio`);
                             } else {
                               router.push('/hub/pilot-workshops');
                             }
+                          } else {
+                            setStudentView(tab.id as any);
                           }
                         }}
                         className="font-pixel"
@@ -211,14 +208,16 @@ export default function AILabClient({
                     <SaveCreationPanel onSave={handleSaveCreation} />
 
                     {/* Submission Tracker */}
-                    <SubmissionTracker day={day} dayId={initialCurriculum[day]?.id} daysComplete={daysComplete} days={days} principles={principles} />
+                    <SubmissionTracker day={day} dayId={days?.find(d => d.day_number === day)?.id || initialCurriculum[day]?.id} daysComplete={daysComplete} approvedDays={approvedDays} days={days} principles={principles} initialEngagements={initialEngagements} />
                   </div>
                 )}
-                {studentView === 'portfolio' && (
-                  <div className="p-8 text-center font-pixel text-steward-blue">Portfolio View Coming Soon...</div>
-                )}
                 {studentView === 'showcase' && (
-                  <div className="p-8 text-center font-pixel text-steward-pink">Showcase View Coming Soon...</div>
+                  <Showcase 
+                    cohortId={cohortId || ''} 
+                    showcaseItems={showcaseItems} 
+                    engagements={initialEngagements}
+                    onlyStudents={true}
+                  />
                 )}
               </>
             ) : (
