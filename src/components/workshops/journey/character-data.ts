@@ -222,13 +222,13 @@ export const MAP_ICONS = {
 // ── Default character state ──
 export const DEFAULT_CHARACTER = {
   character_key: 'nayeli',
-  player_name: 'NAYELI',
+  player_name: '',
   accent_color: '#45d6ff',
   tint: 'default',
   headgear: 'bare',
   loadout: 'camera',
   outfit: 'plain',
-  hair: 'signature',
+  hair: 'long',  // Changed from 'signature' to match HTML reference
   hair_color: 'default',
   facial: 'none',
   companion: 'roadrunner',

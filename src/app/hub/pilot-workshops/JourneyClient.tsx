@@ -190,9 +190,15 @@ export default function JourneyClient({
   }, [showToast])
 
   const handleBookmark = useCallback(async (key: string, title: string, source: string) => {
-    const exists = engagements.some(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
-    if (exists) {
-      showToast('Already bookmarked!')
+    const existingBookmark = engagements.find(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
+    if (existingBookmark) {
+      if (existingBookmark.status === 'pending') {
+        showToast('Already bookmarked! Pending admin approval.')
+      } else if (existingBookmark.status === 'approved') {
+        showToast('Already bookmarked and approved!')
+      } else {
+        showToast('Already bookmarked!')
+      }
       return
     }
     await handleAddEngagement('bookmark', title, source)
@@ -227,7 +233,7 @@ export default function JourneyClient({
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
             <a
               href="/hub"
-              title="Back to hub"
+              title="Return to hub"
               className="font-pixel"
               style={{
                 fontSize: 10,
@@ -239,7 +245,7 @@ export default function JourneyClient({
                 whiteSpace: 'nowrap',
               }}
             >
-              ◂ DEV HUB
+              ◄ RETURN TO HUB
             </a>
             <div
               className="font-pixel"
@@ -388,6 +394,8 @@ export default function JourneyClient({
                   onSceneView={() => setScreen('scene')}
                   progressRows={progressRows}
                   cohortId={cohortId}
+                  onBookmark={handleBookmark}
+                  bookmarkedTitles={engagements.filter(e => e.kind === 'bookmark' && e.status !== 'rejected').map(e => e.title)}
                 />
               ) : (
                 <TreasureMap

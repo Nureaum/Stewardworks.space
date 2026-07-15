@@ -207,6 +207,10 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
           if (a) { e.preventDefault(); openArtifactRef.current(a) }
         }
       }
+      if (k === 'f') {
+        // Cast skill - TODO: implement cast functionality
+        e.preventDefault()
+      }
       if (k === 'escape') {
         if (activeEntryRef.current) closeReaderRef.current()
         else onBackRef.current()
@@ -268,7 +272,7 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
       const bob = moving ? Math.sin(now / 90) * 3 : Math.sin(now / 500) * 1.5
       if (playerRef.current) {
         playerRef.current.style.left = `${pxRef.current}px`
-        playerRef.current.style.transform = `translate(-50%, ${bob}px) scaleX(${faceRef.current})`
+        playerRef.current.style.transform = `translateX(-50%) translateY(${bob}px) scaleX(${faceRef.current})`
       }
 
       // Nearest artifact
@@ -319,8 +323,8 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
     .length
 
   return (
-    <div style={{ padding: 'clamp(10px,2vw,18px) clamp(8px,2vw,18px)', maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+    <div style={{ padding: 'clamp(6px,1.5vw,12px) clamp(8px,2vw,18px)', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
         <button onClick={handleBack} className="font-pixel" style={{ fontSize: 13, color: 'var(--s,#45d6ff)', background: 'none', border: '2px solid var(--s,#45d6ff)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 10px rgba(69,214,255,.2)' }}>
           ◂ MAP
         </button>
@@ -458,11 +462,13 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
             style={{
               position: 'absolute',
               bottom: 92,
+              left: pxRef.current,
               width: 96, height: 96,
               imageRendering: 'pixelated' as any,
               zIndex: 6,
               willChange: 'transform,left',
               filter: `drop-shadow(0 6px 0 rgba(0,0,0,.4)) drop-shadow(0 0 12px ${accent})`,
+              transform: 'translateX(-50%) scaleX(1)',
             }}
           />
         </div>
@@ -501,8 +507,35 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
         >
           ◂ ▸ / A D · walk<br />
           click ground · move<br />
-          E · open artifact
+          E · open artifact<br />
+          F · cast skill
         </div>
+
+        {/* CAST button - bottom right inside viewport */}
+        {!activeEntry && !introOpen && (
+          <button
+            onClick={() => {/* TODO: Cast skill functionality */}}
+            className="font-pixel"
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: nearArt ? 58 : 16,
+              zIndex: 9,
+              fontSize: 9,
+              color: 'var(--bg,#12081e)',
+              background: 'var(--gold,#ffd23f)',
+              border: 'none',
+              borderRadius: 20,
+              padding: '9px 14px',
+              cursor: 'pointer',
+              boxShadow: '0 0 18px rgba(255,210,63,.5)',
+              animation: 'floaty 2s ease-in-out infinite',
+              transition: 'all 0.2s',
+            }}
+          >
+            CAST (F)
+          </button>
+        )}
 
         {/* ── Intro overlay ── */}
         {introOpen && (
@@ -533,7 +566,9 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
                 {day.intro}
               </div>
               <button
-                onClick={() => setIntroOpen(false)}
+                onClick={() => {
+                  setIntroOpen(false)
+                }}
                 className="font-pixel"
                 style={{
                   fontSize: 10, color: 'var(--bg,#12081e)',

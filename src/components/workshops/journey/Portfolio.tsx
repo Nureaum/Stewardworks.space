@@ -96,6 +96,7 @@ export default function Portfolio({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState({ title: '', content: '', url: '' })
   const [assetInput, setAssetInput] = useState('')
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
 
   const inputState: Record<string, { value: string; set: (v: string) => void }> = {
     bookmark: { value: bookmarkInput, set: setBookmarkInput },
@@ -575,80 +576,111 @@ export default function Portfolio({
                       key={item.id}
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
+                        flexDirection: 'column',
                         border: '1px solid var(--ln,#3d2668)',
                         borderRadius: 7,
-                        padding: '8px 9px',
                         background: 'rgba(0,0,0,.25)',
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-                        <div
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px' }}>
+                        <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                          <div
+                            style={{
+                              fontSize: 15,
+                              color: 'var(--tx,#efe6ff)',
+                              lineHeight: 1.25,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {item.title}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginTop: 2 }}>
+                            {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[col.kind] || 1}%` : item.status === 'rejected' ? '↩ returned' : '🕒 pending'}
+                          </div>
+                        </div>
+                        {item.review_note && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === item.id ? null : item.id); }}
+                            title={expandedNoteId === item.id ? "Hide admin note" : "Show admin note"}
+                            className="font-pixel"
+                            style={{
+                              flex: 'none',
+                              background: expandedNoteId === item.id ? 'var(--gold,#ffd23f)' : 'rgba(255,210,63,.2)',
+                              border: '1px solid var(--gold,#ffd23f)',
+                              color: expandedNoteId === item.id ? '#12081e' : 'var(--gold,#ffd23f)',
+                              fontSize: 7,
+                              cursor: 'pointer',
+                              lineHeight: 1,
+                              padding: '4px 6px',
+                              borderRadius: 3,
+                              letterSpacing: 0.5,
+                            }}
+                          >
+                            {expandedNoteId === item.id ? '✕ NOTE' : '📝 NOTE'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setViewingId(item.id)}
+                          title="Open this item"
                           style={{
-                            fontSize: 15,
-                            color: 'var(--tx,#efe6ff)',
-                            lineHeight: 1.25,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            flex: 'none',
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--s,#45d6ff)',
+                            fontSize: 14,
+                            cursor: 'pointer',
+                            lineHeight: 1,
                           }}
                         >
-                          {item.title}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginTop: 2 }}>
-                          {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[col.kind] || 1}%` : item.status === 'rejected' ? '↩ returned' : '🕒 pending'}
-                        </div>
+                          ⤢
+                        </button>
+                        <button
+                          onClick={() => {
+                            console.log('[Portfolio] Edit button clicked for item:', item.id)
+                            console.log('[Portfolio] Item data:', item)
+                            handleStartEdit(item.id)
+                          }}
+                          title="Edit"
+                          style={{
+                            flex: 'none',
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--gold,#ffd23f)',
+                            fontSize: 13,
+                            cursor: 'pointer',
+                            lineHeight: 1,
+                          }}
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => onRemoveEngagement(item.id)}
+                          title="Remove"
+                          style={{
+                            flex: 'none',
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--mu,#a493c9)',
+                            fontSize: 14,
+                            cursor: 'pointer',
+                            lineHeight: 1,
+                          }}
+                        >
+                          ✕
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setViewingId(item.id)}
-                        title="Open this item"
-                        style={{
-                          flex: 'none',
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--s,#45d6ff)',
-                          fontSize: 14,
-                          cursor: 'pointer',
-                          lineHeight: 1,
-                        }}
-                      >
-                        ⤢
-                      </button>
-                      <button
-                        onClick={() => {
-                          console.log('[Portfolio] Edit button clicked for item:', item.id)
-                          console.log('[Portfolio] Item data:', item)
-                          handleStartEdit(item.id)
-                        }}
-                        title="Edit"
-                        style={{
-                          flex: 'none',
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--gold,#ffd23f)',
-                          fontSize: 13,
-                          cursor: 'pointer',
-                          lineHeight: 1,
-                        }}
-                      >
-                        ✎
-                      </button>
-                      <button
-                        onClick={() => onRemoveEngagement(item.id)}
-                        title="Remove"
-                        style={{
-                          flex: 'none',
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--mu,#a493c9)',
-                          fontSize: 14,
-                          cursor: 'pointer',
-                          lineHeight: 1,
-                        }}
-                      >
-                        ✕
-                      </button>
+                      {expandedNoteId === item.id && item.review_note && (
+                        <div style={{ padding: '8px 9px', borderTop: '1px dashed var(--ln,#3d2668)', background: 'rgba(255,210,63,.08)' }}>
+                          <div className="font-pixel" style={{ fontSize: 7, color: 'var(--gold,#ffd23f)', letterSpacing: 0.5, marginBottom: 5 }}>
+                            ADMIN NOTE
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                            {item.review_note}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

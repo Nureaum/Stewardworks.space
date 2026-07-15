@@ -67,6 +67,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
   const activeViewMode = onlyStudents ? 'students' : onlyContributors ? 'contributors' : viewModeState
   const [filter, setFilter] = useState<string>('all')
   const [preview, setPreview] = useState<string | null>(null)
+  const [studentDetail, setStudentDetail] = useState<any | null>(null)
   
   // Student showcase data
   const [studentItems, setStudentItems] = useState<any[]>([])
@@ -317,32 +318,259 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
           ) : (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))',
-              gap: 16,
+              gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))',
+              gap: 13,
               marginTop: 18
             }}>
-              {studentItems.map(item => (
-                <div key={item.id} style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 9, overflow: 'hidden', background: 'var(--pn,#241542)', cursor: 'pointer' }} onClick={() => window.open(item.url || '#', '_blank')}>
-                  <div style={{ height: 140, background: 'linear-gradient(135deg, rgba(255,95,210,0.2), rgba(255,95,210,0.05))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 40, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
+              {studentItems.map(item => {
+                const isItemBookmarked = engagements.some(e => e.kind === 'bookmark' && e.title === item.title && e.status !== 'rejected');
+                return (
+                  <div 
+                    key={item.id} 
+                    onClick={() => setStudentDetail(item)}
+                    style={{ 
+                      border: '2px solid var(--ln,#28432f)', 
+                      borderRadius: 9, 
+                      overflow: 'hidden', 
+                      background: 'var(--pn,#14211b)',
+                      cursor: 'pointer',
+                      transition: 'transform 0.15s, box-shadow 0.15s'
+                    }}
+                  >
+                    <div 
+                      style={{ 
+                        height: 120, 
+                        background: 'linear-gradient(135deg, rgba(255,95,210,0.2), rgba(255,95,210,0.05))', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        position: 'relative'
+                      }}
+                    >
+                      {item.url && (item.url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || item.url.includes('/storage/v1/object/public/')) ? (
+                        <img 
+                          src={item.url} 
+                          alt={item.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 40, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
+                      )}
+                    </div>
+                    <div style={{ padding: '11px 12px' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                        <span className="font-pixel" style={{ 
+                          fontSize: 7, 
+                          padding: '3px 7px', 
+                          borderRadius: 4, 
+                          background: '#ff5fd2', 
+                          color: '#0e1512',
+                          letterSpacing: '.5px'
+                        }}>
+                          {item.kind === 'generation' ? '✦ AI GEN' : '◎ MEDIA'}
+                        </span>
+                        <span className="font-pixel" style={{ 
+                          fontSize: 7, 
+                          padding: '3px 7px', 
+                          borderRadius: 4, 
+                          background: 'rgba(77,255,160,.15)', 
+                          color: '#4dffa0',
+                          border: '1px solid rgba(77,255,160,.3)'
+                        }}>
+                          {item.source || 'EDEN'}
+                        </span>
+                      </div>
+                      
+                      <div style={{ fontSize: 16, color: 'var(--tx,#d6ffe0)', lineHeight: 1.2, marginBottom: 5 }}>
+                        {item.title}
+                      </div>
+                      
+                      <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', marginTop: 5 }}>
+                        by {item.profiles?.full_name || 'Student'}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ padding: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <h3 className="font-pixel" style={{ fontSize: 10, color: 'var(--tx,#d6ffe0)', margin: 0, lineHeight: 1.4 }}>{item.title}</h3>
-                    </div>
-                    
-                    <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>
-                      By {item.profiles?.full_name || 'Student'}
-                    </div>
+                );
+              })}
+            </div>
+          )}
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                      <span className="font-pixel" style={{ fontSize: 7, color: '#12081e', background: '#ff5fd2', padding: '4px 6px', borderRadius: 3 }}>
-                        {item.source || 'AI GEN'}
+          {/* Student Detail Popup */}
+          {studentDetail && (
+            <div 
+              onClick={() => setStudentDetail(null)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 60,
+                background: 'rgba(6,12,9,.82)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 20
+              }}
+            >
+              <div 
+                onClick={e => e.stopPropagation()}
+                style={{
+                  maxWidth: 440,
+                  width: '100%',
+                  border: '2px solid #ff5fd2',
+                  borderRadius: 12,
+                  background: 'var(--pn,#14211b)',
+                  boxShadow: '0 24px 60px rgba(0,0,0,.6), 0 0 30px rgba(255,95,210,.25)',
+                  animation: 'popin .22s ease',
+                  overflow: 'hidden'
+                }}
+              >
+                <div style={{ padding: '16px 18px' }}>
+                  {/* Header with tags and close button */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 13 }}>
+                    <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                      <span className="font-pixel" style={{ 
+                        fontSize: 7, 
+                        padding: '4px 8px', 
+                        borderRadius: 4, 
+                        background: '#ff5fd2', 
+                        color: '#0e1512'
+                      }}>
+                        {studentDetail.kind === 'generation' ? '✦ AI GEN' : '◎ MEDIA'}
+                      </span>
+                      <span className="font-pixel" style={{ 
+                        fontSize: 7, 
+                        padding: '4px 8px', 
+                        borderRadius: 4, 
+                        background: 'rgba(77,255,160,.15)', 
+                        color: '#4dffa0',
+                        border: '1px solid rgba(77,255,160,.3)'
+                      }}>
+                        {studentDetail.source || 'EDEN'}
                       </span>
                     </div>
+                    <button 
+                      onClick={() => setStudentDetail(null)}
+                      title="Close"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        flex: 'none',
+                        border: '2px solid var(--ln,#28432f)',
+                        borderRadius: 6,
+                        background: 'rgba(0,0,0,.3)',
+                        color: 'var(--mu,#77b78d)',
+                        fontSize: 16,
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {/* Thumbnail */}
+                  <div style={{
+                    height: 180,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    background: 'linear-gradient(135deg, rgba(255,95,210,0.2), rgba(255,95,210,0.05))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid var(--ln,#28432f)'
+                  }}>
+                    {studentDetail.url && (studentDetail.url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || studentDetail.url.includes('/storage/v1/object/public/')) ? (
+                      <img 
+                        src={studentDetail.url} 
+                        alt={studentDetail.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: 60, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
+                    )}
+                  </div>
+
+                  {/* Title and author */}
+                  <div className="font-pixel" style={{ 
+                    fontSize: 12, 
+                    color: 'var(--tx,#d6ffe0)', 
+                    lineHeight: 1.5, 
+                    margin: '15px 0 7px' 
+                  }}>
+                    {studentDetail.title}
+                  </div>
+                  <div style={{ fontSize: 15, color: 'var(--mu,#77b78d)' }}>
+                    by {studentDetail.profiles?.full_name || 'Student'}
+                  </div>
+
+                  {/* In Showcase badge */}
+                  <div style={{ marginTop: 9 }}>
+                    <span className="font-pixel" style={{ fontSize: 7, color: '#ff5fd2' }}>
+                      ★ IN STUDENT SHOWCASE
+                    </span>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginTop: 17 }}>
+                    {studentDetail.url && (
+                      <a 
+                        href={studentDetail.url} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-pixel"
+                        style={{
+                          fontSize: 8,
+                          color: 'var(--bg,#0e1512)',
+                          background: 'var(--ng,#4dffa0)',
+                          textDecoration: 'none',
+                          borderRadius: 5,
+                          padding: '11px 14px'
+                        }}
+                      >
+                        ↗ VISIT CREATION
+                      </a>
+                    )}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onBookmark) {
+                          onBookmark('student-' + studentDetail.id, studentDetail.title, studentDetail.source || 'Student Showcase', studentDetail.url || undefined);
+                        }
+                        setStudentDetail(null);
+                      }}
+                      className="font-pixel"
+                      style={{
+                        fontSize: 8,
+                        color: engagements.some(e => e.kind === 'bookmark' && e.title === studentDetail.title) ? '#0e1512' : '#45d6ff',
+                        background: engagements.some(e => e.kind === 'bookmark' && e.title === studentDetail.title) ? '#45d6ff' : 'transparent',
+                        border: '2px solid #45d6ff',
+                        borderRadius: 5,
+                        padding: '11px 14px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {engagements.some(e => e.kind === 'bookmark' && e.title === studentDetail.title) ? '★ BOOKMARKED' : '☆ BOOKMARK'}
+                    </button>
+                    <button 
+                      onClick={() => setStudentDetail(null)}
+                      className="font-pixel"
+                      style={{
+                        fontSize: 8,
+                        color: 'var(--mu,#77b78d)',
+                        background: 'none',
+                        border: '2px solid var(--ln,#28432f)',
+                        borderRadius: 5,
+                        padding: '11px 14px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      CLOSE
+                    </button>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
           )}
         </>

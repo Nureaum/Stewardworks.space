@@ -74,6 +74,8 @@ export async function addEngagement(cohortId: string, kind: string, title: strin
   }
   
   revalidatePath('/hub/pilot-workshops')
+  revalidatePath('/hub/ai-lab')
+  revalidatePath('/admin/pilot-workshops')
   return data
 }
 
@@ -208,7 +210,7 @@ export async function getAllGenerations(cohortId: string) {
     .from('workshop_engagement')
     .select(`
       *,
-      profiles!inner (
+      profiles!workshop_engagement_profile_id_fkey (
         id,
         full_name,
         email

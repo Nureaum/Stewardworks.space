@@ -78,6 +78,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resources, setResources] = useState<any[]>(initialResources);
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
+  const [isNavigatingToProfile, setIsNavigatingToProfile] = useState(false);
 
   // Check for category parameter in URL
   useEffect(() => {
@@ -97,7 +98,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
     });
   }, []);
 
-  const toggleBookmark = async (id: string, e?: React.MouseEvent) => {
+  const toggleBookmark = async (id: string, e?: React.MouseEvent, resource?: any) => {
     if (e && e.stopPropagation) e.stopPropagation();
     const isBookmarked = !!bookmarks[id];
     
@@ -110,7 +111,27 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
     });
 
     try {
-      await toggleDbBookmark(id, 'library');
+      // Find the resource to get title and URL
+      const res = resources.find(r => r.id === id);
+      await toggleDbBookmark(
+        id, 
+        'library', 
+        res?.title || `Resource ${id}`,
+        res?.url || ''
+      );
+      
+      // Refetch bookmarks to sync state with database
+      const bmData = await fetchUserBookmarks('library');
+      const bm: Record<string, boolean> = {};
+      bmData.forEach((b: any) => bm[b.item_id] = true);
+      setBookmarks(bm);
+      
+      // Show success message
+      if (!isBookmarked) {
+        toast.success('Bookmark request submitted! Awaiting admin approval.');
+      } else {
+        toast.success('Bookmark removed.');
+      }
     } catch (err) {
       // Revert if failed
       toast.error('Failed to save bookmark.');
@@ -395,20 +416,69 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
 
           <div style={{ flex: 1 }}></div>
 
-          <Link href="/hub/my-profile" target="_blank" rel="noopener" title="Your bookmarks & reading on Steward Works" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '7px', background: '#fff', color: '#21282E', border: '1.5px solid rgba(33,40,46,.18)', padding: '8px 13px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer', textDecoration: 'none' }}>
-            ★ My Shelf
-            {Object.keys(bookmarks).length > 0 && (
-              <span style={{ minWidth: '18px', height: '18px', padding: '0 5px', borderRadius: '999px', background: '#A27532', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Object.keys(bookmarks).length}</span>
+          <button 
+            onClick={() => {
+              setIsNavigatingToProfile(true);
+              router.push('/hub/my-profile');
+            }}
+            disabled={isNavigatingToProfile}
+            title="Your bookmarks & reading on Steward Works" 
+            style={{ 
+              position: 'relative', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '7px', 
+              background: isNavigatingToProfile ? 'rgba(255,255,255,0.5)' : '#fff', 
+              color: '#21282E', 
+              border: '1.5px solid rgba(33,40,46,.18)', 
+              padding: '8px 13px', 
+              borderRadius: '8px', 
+              fontFamily: '"Exo", sans-serif', 
+              fontWeight: 800, 
+              fontSize: '12px', 
+              textTransform: 'uppercase', 
+              letterSpacing: '.06em', 
+              cursor: isNavigatingToProfile ? 'wait' : 'pointer', 
+              textDecoration: 'none',
+              opacity: isNavigatingToProfile ? 0.7 : 1
+            }}
+          >
+            {isNavigatingToProfile ? (
+              <>
+                <span style={{ 
+                  width: '12px', 
+                  height: '12px', 
+                  border: '2px solid rgba(33,40,46,.2)', 
+                  borderTopColor: '#21282E', 
+                  borderRadius: '50%', 
+                  animation: 'spin 0.6s linear infinite' 
+                }} />
+                Loading...
+              </>
+            ) : (
+              <>
+                ★ My Shelf
+                {Object.keys(bookmarks).length > 0 && (
+                  <span style={{ minWidth: '18px', height: '18px', padding: '0 5px', borderRadius: '999px', background: '#A27532', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Object.keys(bookmarks).length}</span>
+                )}
+              </>
             )}
-          </Link>
+          </button>
+          
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
 
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the stacks…" className="sl-placeholder" style={{ width: '230px', maxWidth: '42vw', padding: '9px 14px', border: '1.5px solid rgba(33,40,46,.2)', borderRadius: '999px', background: '#fff', fontFamily: '"Exo", sans-serif', fontSize: '13px', color: '#21282E', outline: 'none' }} />
           </div>
 
           <div style={{ display: 'flex', gap: '3px', background: 'rgba(33,40,46,.07)', padding: '3px', borderRadius: '9px' }}>
-            <button onClick={() => setView('shelf')} style={{ padding: '7px 15px', fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: '6px', background: showShelf || showCategory || (view === 'shelf' && !isSearching) ? '#fff' : 'transparent', color: showShelf || showCategory || (view === 'shelf' && !isSearching) ? '#21282E' : 'rgba(33,40,46,.5)', boxShadow: showShelf || showCategory || (view === 'shelf' && !isSearching) ? '0 1px 2px rgba(0,0,0,.14)' : 'none' }}>Shelf</button>
-            <button onClick={() => setView('catalog')} style={{ padding: '7px 15px', fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: '6px', background: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '#fff' : 'transparent', color: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '#21282E' : 'rgba(33,40,46,.5)', boxShadow: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '0 1px 2px rgba(0,0,0,.14)' : 'none' }}>Catalog</button>
+            <button onClick={() => { setView('shelf'); setCat(null); setQ(''); }} style={{ padding: '7px 15px', fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: '6px', background: showShelf || showCategory || (view === 'shelf' && !isSearching) ? '#fff' : 'transparent', color: showShelf || showCategory || (view === 'shelf' && !isSearching) ? '#21282E' : 'rgba(33,40,46,.5)', boxShadow: showShelf || showCategory || (view === 'shelf' && !isSearching) ? '0 1px 2px rgba(0,0,0,.14)' : 'none' }}>Bookcase</button>
+            <button onClick={() => { setView('catalog'); setCat(null); setQ(''); }} style={{ padding: '7px 15px', fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: '6px', background: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '#fff' : 'transparent', color: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '#21282E' : 'rgba(33,40,46,.5)', boxShadow: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '0 1px 2px rgba(0,0,0,.14)' : 'none' }}>Catalog</button>
           </div>
 
           <button onClick={() => setForm({ mode: 'add', data: { title: '', url: '', cat: currentCat ? currentCat.id : (cats[0] && cats[0].id), type: 'article', note: '' } })} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#2E5534', color: '#FEFAE0', border: 'none', padding: '9px 16px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.08em', cursor: 'pointer', boxShadow: '0 3px 0 #1d3a23' }}>+ Suggest Resource</button>

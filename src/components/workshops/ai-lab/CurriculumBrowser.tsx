@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import toast from 'react-hot-toast';
 
 export default function CurriculumBrowser({ 
   day, 
@@ -9,7 +10,9 @@ export default function CurriculumBrowser({
   onSetDay,
   curriculumData,
   daysComplete = 0,
-  onToggleVisibility
+  onToggleVisibility,
+  onBookmark,
+  bookmarkedTitles = []
 }: { 
   day: number;
   activeEntry: string | null;
@@ -18,22 +21,89 @@ export default function CurriculumBrowser({
   curriculumData: Record<number, any>;
   daysComplete?: number;
   onToggleVisibility?: () => void;
+  onBookmark?: (title: string) => Promise<{ success: boolean; alreadyExists?: boolean }>;
+  bookmarkedTitles?: string[];
 }) {
-  const [bookmarkedEntries, setBookmarkedEntries] = useState<Set<string>>(new Set());
+  const [pendingBookmarks, setPendingBookmarks] = useState<Set<string>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const currentDayData = curriculumData[day] || { title: 'NO DATA', blurb: 'No data available for this day.', sessions: [] };
 
-  const handleBookmark = (entryTitle: string) => {
-    setBookmarkedEntries(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(entryTitle)) {
-        newSet.delete(entryTitle);
-        alert(`Removed "${entryTitle}" from bookmarks`);
-      } else {
-        newSet.add(entryTitle);
-        alert(`Bookmarked "${entryTitle}" - Access it later from My Portfolio`);
+  // Combine server bookmarks with pending local ones
+  const bookmarkedEntries = new Set([...Array.from(bookmarkedTitles), ...Array.from(pendingBookmarks)]);
+
+  const handleBookmark = async (entryTitle: string) => {
+    // Prevent double-clicks
+    if (isSubmitting === entryTitle) {
+      return;
+    }
+    
+    // If already bookmarked (from server), show message that it's pending approval
+    if (bookmarkedTitles.includes(entryTitle)) {
+      toast.success(`"${entryTitle}" is already bookmarked and pending admin approval`, { 
+        position: 'bottom-center',
+        id: `bookmark-exists-${entryTitle}` // Prevent duplicate toasts
+      });
+      return;
+    }
+    
+    // If pending local bookmark, ignore
+    if (pendingBookmarks.has(entryTitle)) {
+      return;
+    }
+
+    // If we have a callback, use it to submit to server
+    if (onBookmark) {
+      setIsSubmitting(entryTitle);
+      setPendingBookmarks(prev => new Set(prev).add(entryTitle));
+      
+      try {
+        const result = await onBookmark(entryTitle);
+        if (result.success) {
+          toast.success(`Bookmarked "${entryTitle}" - Sent to admin for approval`, { 
+            position: 'bottom-center',
+            id: `bookmark-success-${entryTitle}`
+          });
+        } else if (result.alreadyExists) {
+          toast.success(`"${entryTitle}" is already bookmarked`, { 
+            position: 'bottom-center',
+            id: `bookmark-exists-${entryTitle}`
+          });
+        } else {
+          setPendingBookmarks(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(entryTitle);
+            return newSet;
+          });
+          toast.error(`Failed to bookmark "${entryTitle}"`, { 
+            position: 'bottom-center',
+            id: `bookmark-error-${entryTitle}`
+          });
+        }
+      } catch (error) {
+        setPendingBookmarks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(entryTitle);
+          return newSet;
+        });
+        toast.error(`Failed to bookmark "${entryTitle}"`, { 
+          position: 'bottom-center',
+          id: `bookmark-error-${entryTitle}`
+        });
+      } finally {
+        setIsSubmitting(null);
       }
-      return newSet;
-    });
+    } else {
+      // Fallback to local-only bookmarking
+      setPendingBookmarks(prev => {
+        const newSet = new Set(prev);
+        newSet.add(entryTitle);
+        return newSet;
+      });
+      toast.success(`Bookmarked "${entryTitle}" - Access it later from My Portfolio`, { 
+        position: 'bottom-center',
+        id: `bookmark-local-${entryTitle}`
+      });
+    }
   };
 
   let selectedEntryData = null;
@@ -75,7 +145,7 @@ export default function CurriculumBrowser({
                 key={d}
                 onClick={() => {
                   if (isLocked) {
-                    alert(`Locked - finish Day 0${d - 1} first.`);
+                    toast.error(`🔒 Locked - finish Day 0${d - 1} first`, { position: 'bottom-center' });
                     return;
                   }
                   onSelectEntry(null);
@@ -125,20 +195,22 @@ export default function CurriculumBrowser({
                     </button>
                     <button 
                       onClick={() => handleBookmark(en.title)}
-                      title={bookmarkedEntries.has(en.title) ? 'Remove bookmark' : 'Bookmark this session'}
+                      disabled={isSubmitting === en.title}
+                      title={bookmarkedEntries.has(en.title) ? 'Already bookmarked' : 'Bookmark this session'}
                       style={{ 
                         flex: 'none', 
                         background: bookmarkedEntries.has(en.title) ? '#45d6ff' : 'transparent', 
                         border: '1px solid #28432f', 
                         borderRadius: 6, 
                         padding: '10px 12px', 
-                        cursor: 'pointer', 
+                        cursor: isSubmitting === en.title ? 'wait' : 'pointer', 
                         color: bookmarkedEntries.has(en.title) ? '#0e1512' : '#45d6ff', 
                         fontSize: 16,
-                        transition: 'all 0.15s'
+                        transition: 'all 0.15s',
+                        opacity: isSubmitting === en.title ? 0.6 : 1
                       }}
                     >
-                      {bookmarkedEntries.has(en.title) ? '★' : '☆'}
+                      {isSubmitting === en.title ? '⏳' : bookmarkedEntries.has(en.title) ? '★' : '☆'}
                     </button>
                   </div>
                 ))}

@@ -145,101 +145,102 @@ export default function JourneyClient({
         padding: 'clamp(8px, 2.5vw, 34px)',
       }}
     >
-      {/* Title bar above the monitor */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 1220,
-          marginBottom: 0,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            padding: '5px 10px 9px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-            <a
-              href={`/hub/pilot-workshops/${cohortId}`}
-              title="Back to cohort"
-              className="font-pixel"
-              style={{
-                fontSize: 8,
-                color: '#6f5e8f',
-                textDecoration: 'none',
-                border: '2px solid #cbb98f',
-                borderRadius: 5,
-                padding: '6px 8px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              ◄ COHORT
-            </a>
+      <MonitorFrame
+        header={
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 1220,
+              marginBottom: 0,
+            }}
+          >
             <div
-              className="font-pixel"
               style={{
-                fontSize: 9,
-                letterSpacing: 1,
-                color: '#8a7a5c',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                padding: '5px 10px 9px',
               }}
             >
-              STEWARD OS · PILOT WORKSHOPS
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 'none' }}>
-            {/* Student / Admin toggle */}
-            {isAdmin && (
-              <div style={{ display: 'flex', border: '2px solid #cbb98f', borderRadius: 6, overflow: 'hidden' }}>
-                <button
-                  onClick={() => setRole('student')}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+                <a
+                  href={`/hub/pilot-workshops/${cohortId}`}
+                  title="Back to cohort"
                   className="font-pixel"
                   style={{
                     fontSize: 8,
-                    padding: '7px 10px',
-                    cursor: 'pointer',
-                    border: 'none',
-                    background: role === 'student' ? '#cbb98f' : 'transparent',
-                    color: role === 'student' ? '#3a2e1a' : '#8a7a5c',
+                    color: '#6f5e8f',
+                    textDecoration: 'none',
+                    border: '2px solid #cbb98f',
+                    borderRadius: 5,
+                    padding: '6px 8px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  ▸ STUDENT
-                </button>
-                <button
-                  onClick={() => setRole('admin')}
+                  ◄ COHORT
+                </a>
+                <div
                   className="font-pixel"
                   style={{
-                    fontSize: 8,
-                    padding: '7px 10px',
-                    cursor: 'pointer',
-                    border: 'none',
-                    background: role === 'admin' ? '#cbb98f' : 'transparent',
-                    color: role === 'admin' ? '#3a2e1a' : '#8a7a5c',
+                    fontSize: 9,
+                    letterSpacing: 1,
+                    color: '#8a7a5c',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
-                  ⚙ ADMIN
-                </button>
+                  STEWARD OS · PILOT WORKSHOPS
+                </div>
               </div>
-            )}
-            {/* Traffic light dots */}
-            <div style={{ display: 'flex', gap: 7 }}>
-              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e06a5a' }} />
-              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e0b84a' }} />
-              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#5fbf7a' }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 'none' }}>
+                {/* Student / Admin toggle */}
+                {isAdmin && (
+                  <div style={{ display: 'flex', border: '2px solid #cbb98f', borderRadius: 6, overflow: 'hidden' }}>
+                    <button
+                      onClick={() => setRole('student')}
+                      className="font-pixel"
+                      style={{
+                        fontSize: 8,
+                        padding: '7px 10px',
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: role === 'student' ? '#cbb98f' : 'transparent',
+                        color: role === 'student' ? '#3a2e1a' : '#8a7a5c',
+                      }}
+                    >
+                      ▸ STUDENT
+                    </button>
+                    <button
+                      onClick={() => setRole('admin')}
+                      className="font-pixel"
+                      style={{
+                        fontSize: 8,
+                        padding: '7px 10px',
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: role === 'admin' ? '#cbb98f' : 'transparent',
+                        color: role === 'admin' ? '#3a2e1a' : '#8a7a5c',
+                      }}
+                    >
+                      ⚙ ADMIN
+                    </button>
+                  </div>
+                )}
+                {/* Traffic light dots */}
+                <div style={{ display: 'flex', gap: 7 }}>
+                  <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e06a5a' }} />
+                  <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e0b84a' }} />
+                  <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#5fbf7a' }} />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <MonitorFrame>
+        }
+      >
         {/* Student header */}
         {role === 'student' && (
           <JourneyHeader
@@ -355,7 +356,8 @@ export default function JourneyClient({
               <Showcase
                 showcaseItems={showcaseItems}
                 engagements={engagements}
-                onBookmark={(key, title, source) => handleAddEngagement(key, title, source)}
+                cohortId={cohortId}
+                onBookmark={(key, title, source) => handleAddEngagement('bookmark', title, source)}
               />
             </div>
           )}

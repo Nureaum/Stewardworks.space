@@ -208,7 +208,7 @@ export default function HelpdeskUI({
                               <div style={{borderTop:'1px solid #F0E6D0',paddingTop:'16px'}}>
                                 <div style={{fontFamily:"'Space Mono',monospace",fontSize:'9.5px',letterSpacing:'.1em',textTransform:'uppercase',color:'#B85C3E',fontWeight:700,marginBottom:'8px'}}>Official Answer</div>
                                 <p style={{margin:0,fontSize:'14.5px',lineHeight:1.6,color:'#5E4E36'}}>{q.answer}</p>
-                                <a href="#" onClick={(e) => { e.preventDefault(); setThread(q); }} style={{display:'inline-block',marginTop:'14px',fontFamily:"'Fredoka',sans-serif",fontWeight:500,fontSize:'13px',color:'#B85C3E',textDecoration:'none'}}>Open full thread &rarr;</a>
+                                <a href="#" onClick={(e) => { e.preventDefault(); setThread(q); setList(null); }} style={{display:'inline-block',marginTop:'14px',fontFamily:"'Fredoka',sans-serif",fontWeight:500,fontSize:'13px',color:'#B85C3E',textDecoration:'none'}}>Open full thread &rarr;</a>
                               </div>
                             </div>
                           )}
@@ -227,7 +227,7 @@ export default function HelpdeskUI({
                     {filteredMine.length > 0 ? (
                       <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
                         {filteredMine.map(m => (
-                          <button key={m.id} onClick={() => setThread(m)} style={{textAlign:'left',width:'100%',background:'#fff',border:'1px solid #ECE0C8',borderRadius:'16px',cursor:'pointer',padding:'18px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'14px',boxShadow:'0 12px 28px -24px rgba(80,52,20,.5)'}}>
+                          <button key={m.id} onClick={() => { setThread(m); setList(null); }} style={{textAlign:'left',width:'100%',background:'#fff',border:'1px solid #ECE0C8',borderRadius:'16px',cursor:'pointer',padding:'18px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'14px',boxShadow:'0 12px 28px -24px rgba(80,52,20,.5)'}}>
                             <span>
                               <span style={{display:'block',fontFamily:"'Fredoka',sans-serif",fontWeight:500,fontSize:'16px',color:'#33271A',marginBottom:'6px'}}>{m.title}</span>
                               <span style={{fontFamily:"'Space Mono',monospace",fontSize:'10px',letterSpacing:'.06em',textTransform:'uppercase',color:'#A38A5E'}}>{m.date} &middot; {m.category}</span>
@@ -424,7 +424,7 @@ export default function HelpdeskUI({
                           <div style={{borderTop:'1px solid #F0E6D0',paddingTop:'16px'}}>
                             <div style={{fontFamily:"'Space Mono',monospace",fontSize:'9.5px',letterSpacing:'.1em',textTransform:'uppercase',color:'#B85C3E',fontWeight:700,marginBottom:'8px'}}>Official Answer</div>
                             <p style={{margin:0,fontSize:'14.5px',lineHeight:1.6,color:'#5E4E36'}}>{q.answer}</p>
-                            <a href="#" onClick={(e) => { e.preventDefault(); setThread(q); }} style={{display:'inline-block',marginTop:'14px',fontFamily:"'Fredoka',sans-serif",fontWeight:500,fontSize:'13px',color:'#B85C3E',textDecoration:'none'}}>Open full thread &rarr;</a>
+                            <a href="#" onClick={(e) => { e.preventDefault(); setThread(q); setList(null); }} style={{display:'inline-block',marginTop:'14px',fontFamily:"'Fredoka',sans-serif",fontWeight:500,fontSize:'13px',color:'#B85C3E',textDecoration:'none'}}>Open full thread &rarr;</a>
                           </div>
                         </div>
                       )}
@@ -437,7 +437,7 @@ export default function HelpdeskUI({
                 filteredMine.length > 0 ? (
                   <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
                     {filteredMine.map(m => (
-                      <button key={m.id} onClick={() => setThread(m)} style={{textAlign:'left',width:'100%',background:'#fff',border:'1px solid #ECE0C8',borderRadius:'16px',cursor:'pointer',padding:'18px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'14px',boxShadow:'0 12px 28px -24px rgba(80,52,20,.5)'}}>
+                      <button key={m.id} onClick={() => { setThread(m); setList(null); }} style={{textAlign:'left',width:'100%',background:'#fff',border:'1px solid #ECE0C8',borderRadius:'16px',cursor:'pointer',padding:'18px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'14px',boxShadow:'0 12px 28px -24px rgba(80,52,20,.5)'}}>
                         <span>
                           <span style={{display:'block',fontFamily:"'Fredoka',sans-serif",fontWeight:500,fontSize:'16px',color:'#33271A',marginBottom:'6px'}}>{m.title}</span>
                           <span style={{fontFamily:"'Space Mono',monospace",fontSize:'10px',letterSpacing:'.06em',textTransform:'uppercase',color:'#A38A5E'}}>{m.date} &middot; {m.category}</span>

@@ -13,6 +13,8 @@ interface JourneyDayListProps {
   onSceneView: () => void
   progressRows: WorkshopProgress[]
   cohortId: string
+  onBookmark?: (key: string, title: string, source: string) => void
+  bookmarkedTitles?: string[]
 }
 
 function secColor(a: string) {
@@ -25,7 +27,9 @@ export default function JourneyDayList({
   onBack,
   onSceneView,
   progressRows,
-  cohortId
+  cohortId,
+  onBookmark,
+  bookmarkedTitles = []
 }: JourneyDayListProps) {
   // Get all entries flat
   const allEntries = day.sections?.flatMap(s => s.entries?.map(e => ({
@@ -47,11 +51,9 @@ export default function JourneyDayList({
         <button onClick={onBack} className="font-pixel" style={{ fontSize: 13, color: 'var(--s,#45d6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s' }}>
           ◂ MAP
         </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <button onClick={onSceneView} className="font-pixel" style={{ fontSize: 13, color: 'var(--p,#ff5fd2)', background: 'rgba(255,95,210,.08)', border: '2px solid var(--p,#ff5fd2)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 0 12px rgba(255,95,210,.18)', transition: 'all 0.2s' }}>
-            ▶ GAME VIEW
-          </button>
-        </div>
+        <button onClick={onSceneView} className="font-pixel" style={{ fontSize: 13, color: 'var(--p,#ff5fd2)', background: 'rgba(255,95,210,.08)', border: '2px solid var(--p,#ff5fd2)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 0 12px rgba(255,95,210,.18)', transition: 'all 0.2s' }}>
+          ▶ GAME VIEW
+        </button>
       </div>
 
       {/* ── Two-column Master/Detail ── */}
@@ -82,7 +84,7 @@ export default function JourneyDayList({
                       const isActive = activeEntry?.id === it.id
                       const tCol = secColor(sec.section_key)
                       return (
-                        <div key={it.id} style={{ display: 'flex', gap: 4 }}>
+                        <div key={it.id} style={{ display: 'flex', gap: 6 }}>
                           <button
                             onClick={() => setActiveEntry({ ...it, sectionTitle: sec.title, sectionKey: sec.section_key, hour: sec.title })}
                             style={{
@@ -105,6 +107,30 @@ export default function JourneyDayList({
                             </div>
                             <div className="font-pixel" style={{ fontSize: 8, color: isActive ? tCol : 'var(--ln,#3d2668)', flex: 'none' }}>›</div>
                           </button>
+                          {onBookmark && (() => {
+                            const isBookmarked = bookmarkedTitles.includes(it.title)
+                            return (
+                              <button
+                                onClick={() => onBookmark(`${day.id}-${it.id}`, it.title, `Day ${day.day_number}: ${sec.title}`)}
+                                title={isBookmarked ? "Already bookmarked" : "Bookmark this lesson"}
+                                className="font-pixel"
+                                style={{
+                                  fontSize: 12,
+                                  color: isBookmarked ? 'var(--gold,#ffd23f)' : 'var(--mu,#a493c9)',
+                                  background: isBookmarked ? 'rgba(255,210,63,.15)' : 'transparent',
+                                  border: isBookmarked ? '1px solid var(--gold,#ffd23f)' : '1px solid var(--ln,#3d2668)',
+                                  borderRadius: 6,
+                                  padding: '8px 10px',
+                                  cursor: 'pointer',
+                                  flex: 'none',
+                                  transition: 'all 0.2s',
+                                  boxShadow: isBookmarked ? '0 0 8px rgba(255,210,63,.3)' : 'none',
+                                }}
+                              >
+                                {isBookmarked ? '★' : '☆'}
+                              </button>
+                            )
+                          })()}
                         </div>
                       )
                     })}

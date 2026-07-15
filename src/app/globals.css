@@ -48,6 +48,16 @@ body {
   font-family: 'Courier New', Courier, monospace;
 }
 
+/* Retro/Arcade Animations */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: .25; }
+  50% { opacity: 1; }
+}
 .font-exo {
   font-family: 'Exo', sans-serif;
 }

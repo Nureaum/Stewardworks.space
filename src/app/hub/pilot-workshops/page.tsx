@@ -26,12 +26,18 @@ export default async function PilotWorkshopsPage() {
   // Get profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, role, onboarding_completed, community_status')
     .eq('clerk_user_id', userId)
     .single()
 
   if (!profile) {
     redirect('/onboarding')
+  }
+
+  // Check if onboarding is completed (either by flag or legacy community_status field)
+  const onboardingDone = profile.onboarding_completed === true || !!profile.community_status;
+  if (!onboardingDone) {
+    redirect(`/hub/onboarding?returnUrl=${encodeURIComponent('/hub/pilot-workshops')}`);
   }
 
   // Get all active cohorts (open or completed)

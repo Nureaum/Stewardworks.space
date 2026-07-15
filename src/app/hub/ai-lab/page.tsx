@@ -16,11 +16,17 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
   const supabase = createServerSupabaseClient();
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, role, onboarding_completed, community_status')
     .eq('clerk_user_id', userId)
     .single();
 
   if (!profile) redirect('/onboarding');
+
+  // Check if onboarding is completed (either by flag or legacy community_status field)
+  const onboardingDone = profile.onboarding_completed === true || !!profile.community_status;
+  if (!onboardingDone) {
+    redirect(`/hub/onboarding?returnUrl=${encodeURIComponent('/hub/ai-lab')}`);
+  }
 
   let activeCohort;
   
@@ -33,15 +39,21 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
     activeCohort = data;
   }
   
-  if (!activeCohort) {
+  // Only fall back to finding another cohort if no cohortId was provided
+  if (!activeCohort && !searchParams?.cohortId) {
     const { data } = await supabase
       .from('cohorts')
       .select('id')
-      .in('status', ['open', 'completed', 'draft', 'planned'])
+      .in('status', ['open', 'completed'])  // Only open/completed, not draft/planned
       .order('start_date', { ascending: false })
       .limit(1)
       .single();
     activeCohort = data;
+  }
+  
+  // If cohortId was provided but not found, redirect back to workshops
+  if (!activeCohort && searchParams?.cohortId) {
+    redirect('/hub/pilot-workshops');
   }
 
   let daysComplete = 0;
@@ -66,7 +78,7 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
     }
   }
 
-  const curriculum = await getAILabCurriculum();
+  const curriculum = await getAILabCurriculum(activeCohort?.id);
 
   let showcaseItems = [];
   let initialEngagements = [];

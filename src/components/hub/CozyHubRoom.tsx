@@ -11,9 +11,10 @@ interface CozyHubRoomProps {
   isGuest?: boolean;
   avatarUrl?: string | null;
   onLogout?: () => void;
+  initialChiaProgress?: number;
 }
 
-export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl, onLogout }: CozyHubRoomProps) {
+export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl, onLogout, initialChiaProgress = 0 }: CozyHubRoomProps) {
   const router = useRouter();
   
   const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements' | 'showcase'>('hub');
@@ -24,12 +25,20 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
   const [unreadIds, setUnreadIds] = useState<string[]>([]);
   const [bulletinText, setBulletinText] = useState('');
   
+  // Bookmarks & Engagements Data
+  const [bookmarksAndEngagements, setBookmarksAndEngagements] = useState<any[]>([]);
+  const [loadingBookmarks, setLoadingBookmarks] = useState(false);
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+  
   // Showcase Data for guests
   const [showcaseItems, setShowcaseItems] = useState<any[]>([]);
   const [showcaseLoading, setShowcaseLoading] = useState(false);
   
+  // Onboarding completion status for AI Labs / Pilot Works access
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  
   // State from DCLogic
-  const [progress, setProgress] = useState(35);
+  const [progress, setProgress] = useState(initialChiaProgress);
   const [timeOfDay, setTimeOfDay] = useState<'day' | 'dusk' | 'night'>('day');
   const [exitStyle, setExitStyle] = useState('neon');
 
@@ -47,7 +56,13 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
   const _timer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    try { const p = localStorage.getItem('sw_progress'); if (p !== null && !isNaN(parseInt(p))) setProgress(Math.max(0, Math.min(100, parseInt(p)))); } catch (e) {}
+    // Only load from localStorage if no initialChiaProgress was provided
+    if (initialChiaProgress === 0) {
+      try { const p = localStorage.getItem('sw_progress'); if (p !== null && !isNaN(parseInt(p))) setProgress(Math.max(0, Math.min(100, parseInt(p)))); } catch (e) {}
+    } else {
+      // Use the calculated progress from workshop data
+      setProgress(initialChiaProgress);
+    }
     try { const t = localStorage.getItem('sw_timeofday') as 'day'|'dusk'|'night'; if (t) setTimeOfDay(t); } catch (e) {}
     try { const ex = localStorage.getItem('sw_exit'); if (ex) setExitStyle(ex); } catch (e) {}
     
@@ -71,6 +86,56 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
         const sys = await getSystemBulletins();
         if (sys && sys.project_bulletin_text) {
           setBulletinText(sys.project_bulletin_text);
+        }
+        
+        // Check onboarding completion status
+        try {
+          const profileRes = await fetch('/api/profile');
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            // Check if onboarding_completed flag is set, OR if they have community_status (legacy check)
+            const completed = profileData.profile?.onboarding_completed === true || 
+                             !!profileData.profile?.community_status;
+            setOnboardingCompleted(completed);
+          }
+        } catch (err) {
+          console.error("Failed to check onboarding status", err);
+          setOnboardingCompleted(false);
+        }
+        
+        // Load bookmarks and engagements
+        setLoadingBookmarks(true);
+        try {
+          const response = await fetch('/api/workshops/progress');
+          if (response.ok) {
+            const data = await response.json();
+            const engagements = data.engagements || [];
+            
+            // Get approved bookmarks, notes, prompts, and generations
+            const items = engagements
+              .filter((e: any) => e.status === 'approved')
+              .map((e: any) => ({
+                id: e.id,
+                kind: e.kind,
+                title: e.title,
+                source: e.source === 'library' ? 'Steward Library' : 
+                        e.source === 'workforce' ? 'Workforce Development' : 
+                        e.source === 'ai-lab' ? 'AI Lab' : 
+                        e.source === 'manual' ? 'Pilot Workshops' : 
+                        e.source || 'Hub',
+                url: e.url,
+                created_at: e.created_at,
+                review_note: e.review_note || null
+              }))
+              .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+              .slice(0, 8); // Show max 8 items
+            
+            setBookmarksAndEngagements(items);
+          }
+        } catch (err) {
+          console.error("Failed to load bookmarks and engagements", err);
+        } finally {
+          setLoadingBookmarks(false);
         }
         
         // Load showcase items for guest users
@@ -102,12 +167,13 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
       window.removeEventListener('resize', handleResize);
       clearInterval(lampTimer);
     };
-  }, []);
+  }, [initialChiaProgress]);
 
   const persist = (k: string, v: string) => { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-  const setProg = (v: number) => { v = Math.max(0, Math.min(100, Math.round(v))); setProgress(v); persist('sw_progress', String(v)); }
-  const incProg = () => setProg(progress + 5);
-  const decProg = () => setProg(progress - 5);
+  // Progress is now read-only from workshop data, so we don't allow manual changes
+  // const setProg = (v: number) => { v = Math.max(0, Math.min(100, Math.round(v))); setProgress(v); persist('sw_progress', String(v)); }
+  // const incProg = () => setProg(progress + 5);
+  // const decProg = () => setProg(progress - 5);
   const setTime = (t: 'day'|'dusk'|'night') => { setTimeOfDay(t); persist('sw_timeofday', t); }
   const setExit = (x: string) => { setExitStyle(x); persist('sw_exit', x); }
 
@@ -118,8 +184,8 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
   const setWood = () => setExit('wood');
 
   const open = (d: any) => {
-    // If guest, only allow permitted bridges
-    if (isGuest && d.id !== 'profile' && d.id !== 'library' && d.id !== 'logout') {
+    // If guest, only allow permitted bridges: profile, library, logout, env, community, wellness (meditation)
+    if (isGuest && d.id !== 'profile' && d.id !== 'library' && d.id !== 'logout' && d.id !== 'env' && d.id !== 'community' && d.id !== 'wellness' && d.kind !== 'meditation') {
       return;
     }
 
@@ -143,9 +209,21 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
   
   const goHub = () => { pauseMed(); setScreen('hub'); setBridgeId(null); setHovered(null); }
   const openBridge = (id: string) => { 
-    if (isGuest && id !== 'profile' && id !== 'library' && id !== 'logout') {
+    // If guest, only allow permitted bridges: profile, library, logout, env, community
+    if (isGuest && id !== 'profile' && id !== 'library' && id !== 'logout' && id !== 'env' && id !== 'community') {
       return;
     }
+    
+    // Check if AI Labs or Pilot Works requires onboarding
+    const requiresOnboarding = id === 'pilot' || id === 'ailab';
+    if (requiresOnboarding && onboardingCompleted === false) {
+      // Redirect to onboarding with return URL
+      const route = bridges[id]?.route;
+      setScreen('navigating');
+      router.push(`/hub/onboarding?returnUrl=${encodeURIComponent(route || '/hub')}`);
+      return;
+    }
+    
     const route = bridges[id]?.route;
     if (route) {
       setScreen('navigating');
@@ -391,7 +469,6 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
     </div>
 
     {/*  WINDOW → SEA PHOTO (Environmental Literacy)  */}
-    { !isGuest && (
     <div style={{"position":"absolute","left":"404px","top":"20px","width":"486px","height":"266px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-2" onMouseEnter={o.env.enter} onMouseLeave={leave} onClick={o.env.click}>
       { o.env.show && (
 <><div style={{"position":"absolute","left":"50%","top":"26px","transform":"translateX(-50%)","background":"rgba(33,40,46,.94)","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","border":"1px solid rgba(254,250,224,.45)","boxShadow":"0 4px 14px rgba(0,0,0,.55)","zIndex":"50","pointerEvents":"none","animation":"sw-fadein .15s ease"}}>Environmental Literacy</div></>
@@ -434,7 +511,6 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
         <div style={{"position":"absolute","left":"12px","top":"12px","width":"19px","height":"19px","borderRadius":"50%","background":"radial-gradient(circle at 42% 40%,#ffe79c,#f0b53e)","boxShadow":"inset 0 0 0 2px rgba(180,120,30,.25)"}}></div>
       </div>
     </div>
-    )}
 
     {/*  ADMIN KEY (only for admins)  */}
     { isAdmin && (
@@ -553,9 +629,9 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
     {/*  ============ DESK OBJECTS ============  */}
 
     {/*  LAMP (Help Desk) — iridescent dome  */}
-    { !isGuest && (
-    <div style={{"position":"absolute","left":"64px","bottom":"126px","width":"172px","height":"212px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-5" onMouseEnter={o.helpdesk.enter} onMouseLeave={leave} onClick={o.helpdesk.click}>
-      { o.helpdesk.show && (
+    {/*  For guests: visible but not interactive (no cursor, no hover, no click)  */}
+    <div style={{"position":"absolute","left":"64px","bottom":"126px","width":"172px","height":"212px","zIndex":"9","cursor": isGuest ? "default" : "pointer","transition":"transform .28s ease,filter .28s ease","pointerEvents": isGuest ? "none" : "auto"}} className={isGuest ? "" : "sw-hover-5"} onMouseEnter={isGuest ? undefined : o.helpdesk.enter} onMouseLeave={isGuest ? undefined : leave} onClick={isGuest ? undefined : o.helpdesk.click}>
+      { !isGuest && o.helpdesk.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Help Desk<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
       {/*  glass dome  */}
@@ -568,11 +644,13 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
       {/*  chrome base  */}
       <div style={{"position":"absolute","left":"50%","bottom":"8px","width":"120px","height":"30px","transform":"translateX(-50%)","borderRadius":"50%","background":"linear-gradient(180deg,#e7e9ee,#aab0bd 55%,#7d8595)","boxShadow":"0 8px 14px rgba(0,0,0,.3),inset 0 2px 3px rgba(255,255,255,.8)"}}></div>
       <div style={{"position":"absolute","left":"50%","bottom":"22px","width":"120px","height":"16px","transform":"translateX(-50%)","borderRadius":"50%","background":"linear-gradient(180deg,#cdd2dc,#9aa1ae)"}}></div>
+      {/*  "MEMBERS ONLY" label for guests  */}
+      { isGuest && (
+        <div style={{"position":"absolute","left":"50%","bottom":"42px","transform":"translateX(-50%)","fontFamily":"'DM Mono',monospace","fontSize":"8px","letterSpacing":".12em","color":"rgba(255,255,255,.85)","textShadow":"0 1px 3px rgba(0,0,0,.6)","whiteSpace":"nowrap","pointerEvents":"none"}}>MEMBERS ONLY</div>
+      )}
     </div>
-    )}
 
     {/*  ZEN WATER FOUNTAIN (Wellness & Meditation)  */}
-    { !isGuest && (
     <div style={{"position":"absolute","left":"228px","bottom":"162px","width":"138px","height":"172px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-6" onMouseEnter={o.wellness.enter} onMouseLeave={leave} onClick={o.wellness.click}>
       { o.wellness.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Wellness &amp; Meditation<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
@@ -606,7 +684,6 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
       {/*  spout bubble at top  */}
       <div style={{"position":"absolute","left":"50%","bottom":"89px","width":"16px","height":"8px","transform":"translateX(-50%)","borderRadius":"50%","background":"radial-gradient(ellipse,#eafaff,#c4e9f1)","boxShadow":"0 0 8px rgba(190,235,245,.7)","zIndex":"6","animation":"sw-lamppulse 4s ease-in-out infinite"}}></div>
     </div>
-    )}
 
     {/*  STATUE + CHIA (Progress & Generations)  */}
     { !isGuest && (
@@ -646,8 +723,9 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
     )}
 
     {/*  MONITOR (Workshops · AI Lab · Workforce)  */}
-    <div style={{"position":"absolute","left":"524px","bottom":"140px","width":"330px","height":"248px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-8" onMouseEnter={o.monitor.enter} onMouseLeave={leave} onClick={o.monitor.click}>
-      { o.monitor.show && (
+    {/*  For guests: visible but not interactive (no cursor, no hover, no click)  */}
+    <div style={{"position":"absolute","left":"524px","bottom":"140px","width":"330px","height":"248px","zIndex":"7","cursor": isGuest ? "default" : "pointer","transition":"transform .28s ease,filter .28s ease", "pointerEvents": isGuest ? "none" : "auto"}} className={isGuest ? "" : "sw-hover-8"} onMouseEnter={isGuest ? undefined : o.monitor.enter} onMouseLeave={isGuest ? undefined : leave} onClick={isGuest ? undefined : o.monitor.click}>
+      { !isGuest && o.monitor.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Workshops · AI Lab · Workforce<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
       {/*  stand  */}
@@ -674,7 +752,7 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
           {/*  bottom label  */}
           <div style={{"position":"absolute","left":"0","right":"0","bottom":"13px","textAlign":"center"}}>
             <div style={{"fontFamily":"'DM Mono',monospace","fontWeight":"400","fontSize":"11px","color":"#fff","letterSpacing":".08em","textShadow":"0 1px 4px rgba(0,0,0,.5)"}}>Stewardworks AI Labs</div>
-            <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".18em","color":"rgba(255,255,255,.85)","marginTop":"3px","textShadow":"0 1px 3px rgba(0,0,0,.4)"}}>CLICK TO ENTER</div>
+            <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".18em","color":"rgba(255,255,255,.85)","marginTop":"3px","textShadow":"0 1px 3px rgba(0,0,0,.4)"}}>{isGuest ? "MEMBERS ONLY" : "CLICK TO ENTER"}</div>
           </div>
           {/*  glare  */}
           <div style={{"position":"absolute","top":"-10%","left":"-20%","width":"60%","height":"140%","background":"linear-gradient(120deg,rgba(255,255,255,.22),transparent 60%)","transform":"rotate(8deg)","pointerEvents":"none"}}></div>
@@ -683,17 +761,14 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
     </div>
 
     {/*  KEYBOARD (decor, in front of monitor)  */}
-    { !isGuest && (
     <div style={{"position":"absolute","left":"524px","bottom":"112px","width":"330px","zIndex":"8","pointerEvents":"none","display":"flex","justifyContent":"center"}}>
       <div style={{"width":"228px","height":"58px","borderRadius":"9px","background":"linear-gradient(180deg,#eceef2,#c7ccd5)","boxShadow":"0 12px 18px rgba(0,0,0,.32),inset 0 2px 0 rgba(255,255,255,.85)","transform":"perspective(360px) rotateX(40deg)","transformOrigin":"bottom","padding":"8px 10px"}}>
         <div style={{"width":"100%","height":"34px","borderRadius":"4px","backgroundColor":"#f4f6f9","backgroundImage":"repeating-linear-gradient(90deg, rgba(120,120,140,.32) 0 1.5px, transparent 1.5px 17px), repeating-linear-gradient(0deg, rgba(120,120,140,.32) 0 1.5px, transparent 1.5px 11px)","boxShadow":"inset 0 0 0 1px rgba(0,0,0,.06)"}}></div>
         <div style={{"width":"46%","height":"7px","margin":"5px auto 0","borderRadius":"3px","background":"#e2e6ec","boxShadow":"inset 0 0 0 1px rgba(0,0,0,.05)"}}></div>
       </div>
     </div>
-    )}
 
     {/*  GROUP PHOTO FRAME (Community Listening)  */}
-    { !isGuest && (
     <div style={{"position":"absolute","left":"874px","bottom":"126px","width":"152px","height":"168px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-9" onMouseEnter={o.community.enter} onMouseLeave={leave} onClick={o.community.click}>
       { o.community.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Community Listening<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
@@ -714,7 +789,6 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
       </div>
       </div>
     </div>
-    )}
 
     {/*  BOOKS (Steward Library)  */}
     <div style={{"position":"absolute","left":"1046px","bottom":"130px","width":"204px","height":"206px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-10" onMouseEnter={o.library.enter} onMouseLeave={leave} onClick={o.library.click}>
@@ -735,42 +809,6 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
       </div>
     </div>
 
-    {/*  SHOWCASE DISPLAY CASE (Guest Users Only - Contributors Showcase)  */}
-    { isGuest && (
-    <div style={{"position":"absolute","left":"874px","bottom":"126px","width":"152px","height":"168px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-9" onMouseEnter={o.showcase.enter} onMouseLeave={leave} onClick={o.showcase.click}>
-      { o.showcase.show && (
-<><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Contributor Showcase<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
-)}
-      <div style={{"position":"absolute","left":"50%","bottom":"-4px","width":"140px","height":"18px","transform":"translateX(-50%)","background":"radial-gradient(ellipse,rgba(0,0,0,.32),transparent 70%)","filter":"blur(3px)","zIndex":"-1","pointerEvents":"none"}}></div>
-      
-      {/* Display case frame */}
-      <div style={{"position":"absolute","inset":"0","background":"linear-gradient(160deg,#5a3a24,#3d2817)","borderRadius":"6px","boxShadow":"0 14px 24px rgba(0,0,0,.32)","padding":"12px"}}>
-        {/* Glass front */}
-        <div style={{"position":"relative","width":"100%","height":"100%","background":"linear-gradient(165deg,rgba(196,178,216,.15),rgba(145,128,172,.25))","borderRadius":"3px","overflow":"hidden","boxShadow":"inset 0 0 0 2px rgba(180,160,200,.2)","padding":"8px"}}>
-          {/* Mini showcase items inside */}
-          <div style={{"display":"grid","gridTemplateColumns":"repeat(2,1fr)","gap":"6px","height":"100%"}}>
-            {/* Item 1 - Video */}
-            <div style={{"background":"linear-gradient(135deg,rgba(69,214,255,.3),rgba(69,214,255,.1))","borderRadius":"4px","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"20px","color":"#45d6ff","opacity":".7"}}>▶</div>
-            {/* Item 2 - Article */}
-            <div style={{"background":"linear-gradient(135deg,rgba(255,210,63,.3),rgba(255,210,63,.1))","borderRadius":"4px","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"20px","color":"#ffd23f","opacity":".7"}}>✎</div>
-            {/* Item 3 - Audio */}
-            <div style={{"background":"linear-gradient(135deg,rgba(255,95,210,.3),rgba(255,95,210,.1))","borderRadius":"4px","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"20px","color":"#ff5fd2","opacity":".7"}}>♫</div>
-            {/* Item 4 - AI Gen */}
-            <div style={{"background":"linear-gradient(135deg,rgba(116,240,160,.3),rgba(116,240,160,.1))","borderRadius":"4px","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"20px","color":"#74f0a0","opacity":".7"}}>✦</div>
-          </div>
-          
-          {/* Glass glare effect */}
-          <div style={{"position":"absolute","top":"-10%","left":"-20%","width":"60%","height":"130%","background":"linear-gradient(120deg,rgba(255,255,255,.22),transparent 60%)","transform":"rotate(8deg)","pointerEvents":"none"}}></div>
-          
-          {/* Showcase badge */}
-          <div style={{"position":"absolute","bottom":"6px","left":"50%","transform":"translateX(-50%)","fontFamily":"'DM Mono',monospace","fontSize":"7px","letterSpacing":".08em","background":"rgba(255,95,210,.8)","color":"#12081e","padding":"2px 6px","borderRadius":"3px","fontWeight":"bold"}}>SHOWCASE</div>
-        </div>
-        
-        {/* Frame border detail */}
-        <div style={{"position":"absolute","inset":"9px","border":"1px solid rgba(0,0,0,.25)","borderRadius":"4px","pointerEvents":"none"}}></div>
-      </div>
-    </div>
-    )}
 
   </div>
 
@@ -932,11 +970,9 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
           <div style={{"height":"18px","background":"rgba(33,40,46,.08)","borderRadius":"10px","overflow":"hidden","marginBottom":"18px"}}>
             <div style={progressBarStyle}></div>
           </div>
-          <div style={{"display":"flex","gap":"10px"}}>
-            <button style={{"flex":"1","background":"#2E5534","color":"#FEFAE0","border":"none","borderRadius":"9px","padding":"11px 0","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px"}} onClick={incProg}>+ Grow (+5%)</button>
-            <button style={{"flex":"1","background":"rgba(33,40,46,.08)","color":"#3a2412","border":"none","borderRadius":"9px","padding":"11px 0","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px"}} onClick={decProg}>− Reset (−5%)</button>
+          <div style={{"fontSize":"12px","color":"#7a5a3a","lineHeight":"1.5"}}>
+            Your progress grows as you complete pilot workshop deliverables and engage with the platform. Each approved deliverable adds 25% to your growth.
           </div>
-          <div style={{"fontSize":"12px","color":"#7a5a3a","marginTop":"12px","lineHeight":"1.5"}}>Progress is shared with the chia statue on your desk — its sprouts grow taller as you complete milestones.</div>
         </div>
         {/*  mirrored chia visual  */}
         <div style={{"width":"200px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.12)","borderRadius":"16px","padding":"18px","boxShadow":"0 12px 26px rgba(0,0,0,.08)","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"flex-end"}}>
@@ -954,28 +990,51 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
 
       {/*  saved / generated  */}
       <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".2em","color":"#8a5a2e","marginBottom":"12px"}}>SAVED &amp; GENERATED — your library of bookmarks and creations</div>
-      <div style={{"display":"grid","gridTemplateColumns":"repeat(auto-fill,minmax(200px,1fr))","gap":"14px"}}>
-        <div style={{"background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.1)","borderRadius":"13px","padding":"16px","boxShadow":"0 8px 18px rgba(0,0,0,.06)"}}>
-          <span style={{"display":"inline-block","fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".14em","background":"#417C98","color":"#fff","padding":"3px 8px","borderRadius":"20px","marginBottom":"10px"}}>BOOKMARK</span>
-          <div style={{"fontWeight":"700","color":"#3a2412","fontSize":"15px","lineHeight":"1.3"}}>Salton Sea Restoration Guide</div>
-          <div style={{"fontSize":"12px","color":"#7a5a3a","marginTop":"5px"}}>Saved from Steward Library</div>
+      
+      {loadingBookmarks ? (
+        <div style={{"padding":"40px","textAlign":"center","color":"#8a5a2e"}}>
+          <div style={{"width":"32px","height":"32px","border":"3px solid rgba(138,90,46,.2)","borderTopColor":"#8a5a2e","borderRadius":"50%","margin":"0 auto 12px","animation":"spin 1s linear infinite"}}></div>
+          Loading your library...
         </div>
-        <div style={{"background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.1)","borderRadius":"13px","padding":"16px","boxShadow":"0 8px 18px rgba(0,0,0,.06)"}}>
-          <span style={{"display":"inline-block","fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".14em","background":"#2E5534","color":"#fff","padding":"3px 8px","borderRadius":"20px","marginBottom":"10px"}}>GENERATION</span>
-          <div style={{"fontWeight":"700","color":"#3a2412","fontSize":"15px","lineHeight":"1.3"}}>My Eco-Career Roadmap</div>
-          <div style={{"fontSize":"12px","color":"#7a5a3a","marginTop":"5px"}}>Created in AI Lab</div>
+      ) : bookmarksAndEngagements.length === 0 ? (
+        <div style={{"padding":"40px","textAlign":"center","color":"#8a5a2e","background":"rgba(254,250,224,.3)","borderRadius":"16px","border":"2px dashed rgba(138,90,46,.3)"}}>
+          <div style={{"fontSize":"15px","fontWeight":"600","marginBottom":"8px"}}>No items yet</div>
+          <div style={{"fontSize":"13px"}}>Visit the Library or AI Lab to save bookmarks and create content!</div>
         </div>
-        <div style={{"background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.1)","borderRadius":"13px","padding":"16px","boxShadow":"0 8px 18px rgba(0,0,0,.06)"}}>
-          <span style={{"display":"inline-block","fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".14em","background":"#A27532","color":"#fff","padding":"3px 8px","borderRadius":"20px","marginBottom":"10px"}}>NOTE</span>
-          <div style={{"fontWeight":"700","color":"#3a2412","fontSize":"15px","lineHeight":"1.3"}}>Workshop reflections</div>
-          <div style={{"fontSize":"12px","color":"#7a5a3a","marginTop":"5px"}}>Pilot Workshops · bilingual media</div>
+      ) : (
+        <div style={{"display":"grid","gridTemplateColumns":"repeat(auto-fill,minmax(200px,1fr))","gap":"14px"}}>
+          {bookmarksAndEngagements.map((item: any) => {
+            const kindColors: Record<string, {bg: string, label: string}> = {
+              bookmark: { bg: '#417C98', label: 'BOOKMARK' },
+              generation: { bg: '#2E5534', label: 'GENERATION' },
+              note: { bg: '#A27532', label: 'NOTE' },
+              prompt: { bg: '#DB9B2F', label: 'PROMPT' }
+            };
+            const kindConfig = kindColors[item.kind] || kindColors.bookmark;
+            
+            return (
+              <div key={item.id} style={{"background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.1)","borderRadius":"13px","padding":"16px","boxShadow":"0 8px 18px rgba(0,0,0,.06)","transition":"transform .2s ease, box-shadow .2s ease"}} className="hover:-translate-y-1 hover:shadow-xl">
+                <span style={{"display":"inline-block","fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".14em","background":kindConfig.bg,"color":"#fff","padding":"3px 8px","borderRadius":"20px","marginBottom":"10px"}}>{kindConfig.label}</span>
+                <div style={{"fontWeight":"700","color":"#3a2412","fontSize":"15px","lineHeight":"1.3","wordBreak":"break-word","cursor":"pointer"}} onClick={() => { if (item.url) window.open(item.url, '_blank'); }}>{item.title}</div>
+                <div style={{"display":"flex","justifyContent":"space-between","alignItems":"center","marginTop":"5px","gap":"6px","flexWrap":"wrap"}}>
+                  <div style={{"fontSize":"12px","color":"#7a5a3a","flex":"1","minWidth":"100px"}}>Saved from {item.source}</div>
+                  {item.review_note && (
+                    <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === item.id ? null : item.id); }} style={{"background": expandedNoteId === item.id ? '#A27532' : '#FDF3E0',"border":"1.5px solid #A27532","fontFamily":"'DM Mono',monospace","fontSize":"10px","fontWeight":"700","color": expandedNoteId === item.id ? '#fff' : '#A27532',"cursor":"pointer","padding":"5px 10px","borderRadius":"6px","letterSpacing":".06em"}}>
+                      {expandedNoteId === item.id ? '✕ NOTE' : '📝 NOTE'}
+                    </button>
+                  )}
+                </div>
+                {expandedNoteId === item.id && item.review_note && (
+                  <div style={{"marginTop":"10px","padding":"10px","background":"rgba(162,117,50,.08)","border":"1px solid rgba(162,117,50,.2)","borderRadius":"8px"}}>
+                    <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".1em","color":"#8a5a2e","marginBottom":"5px"}}>ADMIN NOTE</div>
+                    <div style={{"fontSize":"12px","lineHeight":"1.4","color":"#3a2412"}}>{item.review_note}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div style={{"background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.1)","borderRadius":"13px","padding":"16px","boxShadow":"0 8px 18px rgba(0,0,0,.06)"}}>
-          <span style={{"display":"inline-block","fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".14em","background":"#417C98","color":"#fff","padding":"3px 8px","borderRadius":"20px","marginBottom":"10px"}}>BOOKMARK</span>
-          <div style={{"fontWeight":"700","color":"#3a2412","fontSize":"15px","lineHeight":"1.3"}}>Imperial County Green Jobs</div>
-          <div style={{"fontSize":"12px","color":"#7a5a3a","marginTop":"5px"}}>Saved from Workforce Development</div>
-        </div>
-      </div>
+      )}
     </div>
   </div>
   </>

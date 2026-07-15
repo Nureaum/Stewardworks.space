@@ -70,6 +70,8 @@ export default function WorkforcePathwaysPage() {
   const [libFilter, setLibFilter] = useState('all');
   const [libNode, setLibNode] = useState('all');
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
+  const [jobBookmarks, setJobBookmarks] = useState<Record<string, boolean>>({});
+  const [isSubmittingJobBookmark, setIsSubmittingJobBookmark] = useState<string | null>(null);
   const [initialAvatar, setInitialAvatar] = useState<any>(null);
 
   const [dbQuizzes, setDbQuizzes] = useState<any[]>([]);
@@ -167,8 +169,15 @@ export default function WorkforcePathwaysPage() {
         fetchUserPicks(user.id)
       ]).then(([bmData, picksData]) => {
         const bm: Record<string, boolean> = {};
-        bmData.forEach((b: any) => bm[b.item_id] = true);
+        const jbm: Record<string, boolean> = {};
+        bmData.forEach((b: any) => {
+          if (b.item_id) {
+            bm[b.item_id] = true;
+            jbm[b.item_id] = true; // Jobs also use item_id (URL)
+          }
+        });
         setBookmarks(bm);
+        setJobBookmarks(jbm);
         setDbUserPicks(picksData || []);
         setDataLoaded(true);
       });
@@ -225,7 +234,7 @@ export default function WorkforcePathwaysPage() {
   const showJobs = true;
 
   const [jobFilter, setJobFilter] = useState('CREATOR');
-  const [theme, setTheme] = useState<'modern' | 'arcade' | null>(null);
+  const [theme, setTheme] = useState<'modern' | 'arcade'>('arcade');
 
   const filteredJobs = jobFilter === 'ALL' ? jobs : jobs.filter(j => 
     (jobFilter === 'CREATOR' && j.pathway_id === 'creator') ||
@@ -242,16 +251,23 @@ export default function WorkforcePathwaysPage() {
       return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
     };
     const isCreatorJob = j.pathway_id === 'creator';
+    const url = j.apply_url;
+    const isBookmarked = !!jobBookmarks[url];
+    const isSubmitting = isSubmittingJobBookmark === url;
     return {
       title: j.title,
       kind: j.job_type,
       org: j.organization,
       place: j.location,
-      url: j.apply_url,
+      url: url,
       posted: timeAgo(j.created_at),
       note: j.description || "",
       tagLabel: isCreatorJob ? "CREATOR" : "ENVIRO",
-      tagColor: isCreatorJob ? "#ff6a2e" : "#45d4ff"
+      tagColor: isCreatorJob ? "#ff6a2e" : "#45d4ff",
+      isBookmarked,
+      isSubmitting,
+      bmIcon: isSubmitting ? '⏳' : (isBookmarked ? '★' : '☆'),
+      onToggleBookmark: () => toggleJobBookmark({ title: j.title, org: j.organization, url: url })
     };
   });
 
@@ -410,28 +426,101 @@ export default function WorkforcePathwaysPage() {
   const domainOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return (u || "").replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]; } };
   
   const toggleBookmark = async (rec: any) => {
-    const id = rec.id;
-    const isBookmarked = !!bookmarks[id];
+    const url = rec.url;
+    const isBookmarked = !!bookmarks[url];
     
-    // Optimistic update
+    // Optimistic update - use URL as key
     setBookmarks(prev => {
       const next = { ...prev };
-      if (next[id]) delete next[id];
-      else next[id] = true;
+      if (next[url]) delete next[url];
+      else next[url] = true;
       return next;
     });
 
     try {
-      await toggleDbBookmark(id, 'workforce');
+      await toggleDbBookmark(
+        url,  // Use URL as itemId since that's what's stored in database
+        'workforce', 
+        rec.label || rec.title || `Workforce Resource`,
+        url
+      );
+      
+      // Refetch bookmarks to sync state with database
+      const bmData = await fetchUserBookmarks('workforce');
+      const bm: Record<string, boolean> = {};
+      bmData.forEach((b: any) => bm[b.item_id] = true);
+      setBookmarks(bm);
+      
+      // Show success message
+      if (!isBookmarked) {
+        toast.success('Bookmark request submitted! Awaiting admin approval.');
+      } else {
+        toast.success('Bookmark removed.');
+      }
     } catch (err) {
       toast.error('Failed to save bookmark.');
       // Revert if failed
       setBookmarks(prev => {
         const next = { ...prev };
-        if (isBookmarked) next[id] = true;
-        else delete next[id];
+        if (isBookmarked) next[url] = true;
+        else delete next[url];
         return next;
       });
+    }
+  };
+
+  const toggleJobBookmark = async (job: any) => {
+    const url = job.url;
+    if (!url) return;
+    
+    // Prevent double-click
+    if (isSubmittingJobBookmark === url) return;
+    setIsSubmittingJobBookmark(url);
+    
+    const isBookmarked = !!jobBookmarks[url];
+    
+    // Optimistic update
+    setJobBookmarks(prev => {
+      const next = { ...prev };
+      if (next[url]) delete next[url];
+      else next[url] = true;
+      return next;
+    });
+
+    try {
+      await toggleDbBookmark(
+        url,
+        'workforce',
+        `Job: ${job.title} at ${job.org}`,
+        url
+      );
+      
+      // Refetch to sync
+      const bmData = await fetchUserBookmarks('workforce');
+      const jbm: Record<string, boolean> = {};
+      bmData.forEach((b: any) => {
+        // Check if this is a job bookmark (title starts with "Job:")
+        if (b.item_id) jbm[b.item_id] = true;
+      });
+      // Only update job bookmarks that are jobs
+      setJobBookmarks(jbm);
+      
+      if (!isBookmarked) {
+        toast.success('Job bookmark submitted! Awaiting admin approval.', { id: `job-bm-${url}`, position: 'bottom-center' });
+      } else {
+        toast.success('Job bookmark removed.', { id: `job-bm-${url}`, position: 'bottom-center' });
+      }
+    } catch (err) {
+      toast.error('Failed to save job bookmark.', { id: `job-bm-error-${url}`, position: 'bottom-center' });
+      // Revert
+      setJobBookmarks(prev => {
+        const next = { ...prev };
+        if (isBookmarked) next[url] = true;
+        else delete next[url];
+        return next;
+      });
+    } finally {
+      setIsSubmittingJobBookmark(null);
     }
   };
 
@@ -455,10 +544,11 @@ export default function WorkforcePathwaysPage() {
       spEntries.forEach(e => {
         (e.sources || []).forEach((x: any, i: number) => {
           const recId = e.id + "_" + i;
-          const isSaved = !!bookmarks[recId];
+          const url = x[1];
+          const isSaved = !!bookmarks[url];  // Check by URL, not recId
           const rec = {
             id: recId,
-            label: x[0], url: x[1], domain: domainOf(x[1]),
+            label: x[0], url: url, domain: domainOf(url),
             about: e.subtitle || "", source: e.title, type: e.type || "Resource",
             pathway: p.id, stopName: sp.name, accent: pAccent,
             saved: isSaved, bmIcon: isSaved ? "★" : "☆", bmStyle: bmBtnStyle(isSaved), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
@@ -469,10 +559,11 @@ export default function WorkforcePathwaysPage() {
       (sp.entries || []).forEach((e: any) => {
         (e.src || []).forEach((x: any, i: number) => {
           const recId = "cat_" + e.id + "_" + i;
-          const isSaved = !!bookmarks[recId];
+          const url = x[1];
+          const isSaved = !!bookmarks[url];  // Check by URL, not recId
           const rec = {
             id: recId,
-            label: x[0], url: x[1], domain: domainOf(x[1]),
+            label: x[0], url: url, domain: domainOf(url),
             about: e.s || "", source: e.t || "", type: e.type || "Resource",
             pathway: p.id, stopName: sp.name, accent: pAccent,
             saved: isSaved, bmIcon: isSaved ? "★" : "☆", bmStyle: bmBtnStyle(isSaved), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
@@ -515,10 +606,11 @@ export default function WorkforcePathwaysPage() {
       spEntries.forEach(e => {
         (e.sources || []).forEach((x: any, i: number) => {
           const recId = e.id + "_" + i;
-          if (bookmarks[recId]) {
+          const url = x[1];
+          if (bookmarks[url]) {  // Check by URL, not recId
             const rec = {
               id: recId,
-              label: x[0], url: x[1], domain: domainOf(x[1]),
+              label: x[0], url: url, domain: domainOf(url),
               about: e.subtitle || "", source: e.title, type: e.type || "Resource",
               pathway: p.id, stopName: sp.name, accent: pAccent,
               saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
@@ -530,10 +622,11 @@ export default function WorkforcePathwaysPage() {
       (sp.entries || []).forEach((e: any) => {
         (e.src || []).forEach((x: any, i: number) => {
           const recId = "cat_" + e.id + "_" + i;
-          if (bookmarks[recId]) {
+          const url = x[1];
+          if (bookmarks[url]) {  // Check by URL, not recId
             const rec = {
               id: recId,
-              label: x[0], url: x[1], domain: domainOf(x[1]),
+              label: x[0], url: url, domain: domainOf(url),
               about: e.s || "", source: e.t || "", type: e.type || "Resource",
               pathway: p.id, stopName: sp.name, accent: pAccent,
               saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import {
   getPrinciples,
   createPrinciple,
@@ -143,7 +144,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
 
   const handleAddPrinciple = async () => {
     if (!newPrincipleName) {
-      alert('Please enter a principle name');
+      toast.error('Please enter a principle name', { position: 'bottom-center' });
       return;
     }
     
@@ -159,9 +160,10 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
       setNewPrincipleExample('');
       
       await loadData();
+      toast.success('Principle added successfully', { position: 'bottom-center' });
     } catch (error) {
       console.error('Error adding principle:', error);
-      alert('Failed to add principle');
+      toast.error('Failed to add principle', { position: 'bottom-center' });
     }
   };
 
@@ -173,7 +175,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
       ));
     } catch (error) {
       console.error('Error updating principle:', error);
-      alert('Failed to update principle');
+      toast.error('Failed to update principle', { position: 'bottom-center' });
     }
   };
 
@@ -184,15 +186,16 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
       await deletePrinciple(id);
       setPrinciplesData(principlesData.filter(p => p.id !== id));
       setExpandedPrinciple(null);
+      toast.success('Principle removed', { position: 'bottom-center' });
     } catch (error) {
       console.error('Error removing principle:', error);
-      alert('Failed to remove principle');
+      toast.error('Failed to remove principle', { position: 'bottom-center' });
     }
   };
 
   const handleAddPlatform = async () => {
     if (!newPlatformName || !newPlatformUrl) {
-      alert('Please enter both platform name and URL');
+      toast.error('Please enter both platform name and URL', { position: 'bottom-center' });
       return;
     }
     
@@ -211,30 +214,32 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
       setNewPlatformUrl('');
       
       await loadData();
+      toast.success('Platform added successfully', { position: 'bottom-center' });
     } catch (error) {
       console.error('Error adding platform:', error);
-      alert('Failed to add platform');
+      toast.error('Failed to add platform', { position: 'bottom-center' });
     }
   };
 
   const handleRemovePlatform = async (id: string) => {
     const platform = platformsData.find(p => p.id === id);
     if (platform?.is_default) {
-      alert('Cannot remove the default platform (Eden.art)');
+      toast.error('Cannot remove the default platform (Eden.art)', { position: 'bottom-center' });
       return;
     }
     
     if (platformsData.length <= 1) {
-      alert('Keep at least one platform embedded.');
+      toast.error('Keep at least one platform embedded', { position: 'bottom-center' });
       return;
     }
     
     try {
       await deletePlatform(id);
       setPlatformsData(platformsData.filter(p => p.id !== id));
+      toast.success('Platform removed', { position: 'bottom-center' });
     } catch (error) {
       console.error('Error removing platform:', error);
-      alert('Failed to remove platform');
+      toast.error('Failed to remove platform', { position: 'bottom-center' });
     }
   };
 
@@ -247,9 +252,10 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
         return next;
       });
       await loadData(approvalStatusFilter);
+      toast.success('Item approved', { position: 'bottom-center' });
     } catch (error) {
       console.error('Error approving:', error);
-      alert('Failed to approve');
+      toast.error('Failed to approve', { position: 'bottom-center' });
     }
   };
 
@@ -262,9 +268,10 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
         return next;
       });
       await loadData(approvalStatusFilter);
+      toast.success('Item returned to student', { position: 'bottom-center' });
     } catch (e) {
       console.error(e);
-      alert('Failed to reject item');
+      toast.error('Failed to reject item', { position: 'bottom-center' });
     }
   };
 
@@ -278,6 +285,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
         // Then set showcaseVisible to true
         await approveShowcaseEngagement(item.id);
         await loadData(approvalStatusFilter);
+        toast.success('Added to showcase', { position: 'bottom-center' });
         return;
       }
       
@@ -289,9 +297,10 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
       });
       const updated = await getShowcaseItems(cohortId!);
       setShowcaseData(updated || []);
+      toast.success('Added to showcase', { position: 'bottom-center' });
     } catch (e) {
       console.error(e);
-      alert('Failed to add to showcase');
+      toast.error('Failed to add to showcase', { position: 'bottom-center' });
     }
   };
 
@@ -300,6 +309,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
       if (item.kind === 'generation') {
         await removeShowcaseEngagement(item.id);
         await loadData(approvalStatusFilter);
+        toast.success('Removed from showcase', { position: 'bottom-center' });
         return;
       }
       
@@ -308,9 +318,10 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
       await deleteShowcaseItem(sItem.id);
       const updated = await getShowcaseItems(cohortId!);
       setShowcaseData(updated || []);
+      toast.success('Removed from showcase', { position: 'bottom-center' });
     } catch (e) {
       console.error(e);
-      alert('Failed to remove from showcase');
+      toast.error('Failed to remove from showcase', { position: 'bottom-center' });
     }
   };
 
@@ -518,7 +529,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
                 letterSpacing: 1
               }}
             >
-              ✓ {item.kind === 'deliverable' ? 'APPROVE +25%' : 'ACCEPT +2%'}
+              ✓ {item.kind === 'deliverable' ? 'APPROVE' : item.kind === 'generation' ? 'ACCEPT' : 'APPROVE'}
             </button>
             
             {isShowcaseRequested && !isInShowcase(item) && (
@@ -637,7 +648,7 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
         </div>
         <div style={{ textAlign: 'center', flex: 'none' }}>
           <div className="font-pixel" style={{ fontSize: 14, color: '#c9a55b' }}>{needsReviewCount}</div>
-          <div style={{ fontSize: 13, color: '#8b9d93', marginTop: 5 }}>NEED 2%</div>
+          <div style={{ fontSize: 13, color: '#8b9d93', marginTop: 5 }}>PENDING</div>
         </div>
       </div>
 
@@ -1129,8 +1140,8 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
                                 <span className="font-pixel" style={{ fontSize: 7, padding: '4px 7px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: '#8b9d93' }}>{items.length} TOTAL</span>
                               </div>
                             </div>
-                            <span className="font-pixel" style={{ fontSize: 8, padding: '5px 8px', borderRadius: 12, background: '#c9a55b', color: '#101613' }}>
-                              {items.length} PENDING
+                            <span className="font-pixel" style={{ fontSize: 8, padding: '5px 8px', borderRadius: 12, background: approvalStatusFilter === 'pending' ? '#c9a55b' : '#74b998', color: '#101613' }}>
+                              {items.length} {approvalStatusFilter === 'pending' ? 'PENDING' : 'REVIEWED'}
                             </span>
                             <span className="font-pixel" style={{ fontSize: 10, color: isExpanded ? '#c9a55b' : '#8b9d93', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>
                               ▸

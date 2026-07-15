@@ -383,10 +383,7 @@ return (<>
         <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "var(--paper)", letterSpacing: ".5px", textShadow: "0 0 9px rgba(255,138,61,.75),2px 2px 0 rgba(255,77,125,.45)", lineHeight: "1.5", whiteSpace: "nowrap"}}>WORKFORCE ADVENTURE</span>
       </div>
       <div style={{flex: "1 1 0", minWidth: "6px"}}></div>
-            <div role="group" aria-label="Theme" style={{flex: "0 0 auto", display: "inline-flex", gap: "0", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", marginRight: "6px"}}>
-        <button onClick={() => setTheme('modern')} style={{...roleExplorerStyle, background: theme === 'modern' ? '#ffdd2e' : 'transparent', color: theme === 'modern' ? '#1c1526' : '#9fc0ee'}}>Modern</button>
-        <button onClick={() => setTheme('arcade')} style={{...roleExplorerStyle, background: theme === 'arcade' ? '#ffdd2e' : 'transparent', color: theme === 'arcade' ? '#1c1526' : '#9fc0ee'}}>Arcade</button>
-      </div>
+
       {isAdminUser && (<>
       <div role="group" aria-label="Player view" style={{flex: "0 0 auto", display: "inline-flex", gap: "0", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>
         <button onClick={onRoleExplorer} style={roleExplorerStyle}>Explorer</button>
@@ -544,7 +541,7 @@ return (<>
     {showMap && (<>
     <div data-screen-label="Arcade — overworld map" style={{padding: "16px 18px 26px"}}>
       <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "14px"}}>
-        <button onClick={onBackSelect} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--panel)", color: "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>◀ Change path</button>
+        <button onClick={onBackTrailhead} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--panel)", color: "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>◀ Change path</button>
         <div role="group" aria-label="Choose trail" style={{display: "inline-flex", gap: "0", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", overflow: "hidden"}}>
           <button onClick={onPickCreator} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: pwIsCreator ? "#ff7e40" : "#163a82", color: pwIsCreator ? "#1c1526" : "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", borderRight: "3px solid #1c1526"}}>◍ Content Creator</button>
           <button onClick={onPickEnviro} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: pwIsEnviro ? "#43e97b" : "#163a82", color: pwIsEnviro ? "#1c1526" : "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase"}}>❋ Environmental Career</button>
@@ -739,20 +736,33 @@ return (<>
         </div>
         {showJobList && (<>
         {jobRows.map((j: any, i: number) => (<React.Fragment key={i}>
-          <a href={j.url} target="_blank" rel="noopener" style={{display: "grid", gridTemplateColumns: "1fr auto", gap: "14px", alignItems: "center", padding: "15px 18px", borderBottom: "3px solid #10285e", textDecoration: "none", background: "#163a82"}}>
-            <div style={{minWidth: "0"}}>
+          <div style={{display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "14px", alignItems: "center", padding: "15px 18px", borderBottom: "3px solid #10285e", background: "#163a82"}}>
+            <button 
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); j.onToggleBookmark && j.onToggleBookmark(); }}
+              style={{
+                all: "unset", cursor: j.isSubmitting ? "wait" : "pointer", boxSizing: "border-box",
+                width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center",
+                background: j.isBookmarked ? "#ffdd2e" : "#2656a4", color: j.isBookmarked ? "#10285e" : "#8f88ad",
+                fontSize: "18px", border: "3px solid #1c1526", boxShadow: "2px 2px 0 rgba(18,12,26,.4)", borderRadius: "7px",
+                flex: "0 0 auto"
+              } as any}
+              title={j.isBookmarked ? "Remove bookmark" : "Bookmark this job"}
+            >
+              {j.bmIcon}
+            </button>
+            <a href={j.url} target="_blank" rel="noopener" style={{minWidth: "0", textDecoration: "none"}}>
               <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
                 <span style={{fontFamily: "'VT323',monospace", fontSize: "23px", color: "var(--paper)", lineHeight: "1.15", letterSpacing: ".3px"}}>{j.title}</span>
                 <span style={{padding: "3px 7px", background: j.tagColor, color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "6px", border: "2px solid #1c1526"}}>{j.tagLabel}</span>
                 <span style={{padding: "3px 7px", background: "var(--panel2)", color: "var(--muted)", fontFamily: "'Press Start 2P',monospace", fontSize: "6px", border: "2px solid #1c1526"}}>{j.kind}</span>
               </div>
               <div style={{fontSize: "17px", lineHeight: "1.3", color: "var(--muted)", marginTop: "7px"}}>{j.org} · {j.place} — {j.note}</div>
-            </div>
-            <div style={{textAlign: "right", flex: "0 0 auto"}}>
+            </a>
+            <a href={j.url} target="_blank" rel="noopener" style={{textAlign: "right", flex: "0 0 auto", textDecoration: "none"}}>
               <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "#45d4ff"}}>APPLY ↗</div>
               <div style={{fontSize: "15px", color: "var(--muted)", marginTop: "6px"}}>{j.posted}</div>
-            </div>
-          </a>
+            </a>
+          </div>
         </React.Fragment>))}
         <div style={{padding: "13px 18px", background: "#10285e", fontSize: "16px", color: "var(--muted)", lineHeight: "1.4"}}>Looking wider? Switch to the <span style={{color: "#ffdd2e", fontFamily: "'Press Start 2P',monospace", fontSize: "8px"}}>◇ BOARDS</span> filter above for the big regional &amp; national job boards.</div>
         </>)}

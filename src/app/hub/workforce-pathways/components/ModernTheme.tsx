@@ -473,27 +473,41 @@ export default function ModernTheme(props: any) {
         </div>
         <span style={{font:"700 10px/1 'Courier New',monospace",letterSpacing:".14em",textTransform:"uppercase",color:"var(--foil)"}}>{pwJobCount} postings</span>
       </div>
-      {jobRows.map((j, i) => (
+      {jobRows.map((j: any, i: number) => (
 <React.Fragment key={i}>
-        <a href={j.url} target="_blank" rel="noopener" style={{display:"grid",gridTemplateColumns:"1fr auto",gap:"14px",alignItems:"center",padding:"14px 22px",borderBottom:"1px solid rgba(60,42,24,.1)",textDecoration:"none",color:"var(--ink)"}}>
-          <div style={{minWidth:0}}>
+        <div style={{display:"grid",gridTemplateColumns:"auto 1fr auto",gap:"14px",alignItems:"center",padding:"14px 22px",borderBottom:"1px solid rgba(60,42,24,.1)"}}>
+          <button 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); j.onToggleBookmark && j.onToggleBookmark(); }}
+            style={{
+              all:"unset" as any, cursor: j.isSubmitting ? "wait" : "pointer", boxSizing:"border-box" as any,
+              width:"32px", height:"32px", display:"flex", alignItems:"center", justifyContent:"center",
+              background: j.isBookmarked ? "var(--gold)" : "var(--parch)", 
+              color: j.isBookmarked ? "#fff" : "var(--ink2)",
+              fontSize:"16px", border:"1px solid rgba(60,42,24,.2)", borderRadius:"8px",
+              flex:"0 0 auto", transition:"all .2s ease"
+            }}
+            title={j.isBookmarked ? "Remove bookmark" : "Bookmark this job"}
+          >
+            {j.bmIcon}
+          </button>
+          <a href={j.url} target="_blank" rel="noopener" style={{minWidth:0,textDecoration:"none",color:"var(--ink)"}}>
             <div style={{display:"flex",alignItems:"center",gap:"9px",flexWrap:"wrap"}}>
               <span style={{font:"800 14px/1.2 'Exo'",color:"var(--ink)"}}>{j.title}</span>
               <span style={{padding:"4px 9px",borderRadius:"999px",background:"var(--parch)",border:"1px solid rgba(60,42,24,.14)",font:"700 8.5px/1 'Exo'",letterSpacing:".06em",textTransform:"uppercase",color:"var(--wood-d)"}}>{j.kind}</span>
             </div>
             <div style={{font:"600 12px/1.4 'Exo'",color:"var(--ink2)",marginTop:"3px"}}>{j.org} · {j.place}</div>
-          </div>
-          <div style={{textAlign:"right"}}>
+          </a>
+          <a href={j.url} target="_blank" rel="noopener" style={{textAlign:"right",textDecoration:"none"}}>
             <div style={{font:"800 10px/1 'Exo'",letterSpacing:".1em",textTransform:"uppercase",color:"var(--blue)"}}>Apply ↗</div>
             <div style={{font:"700 9px/1 'Courier New',monospace",color:"var(--ink2)",opacity:0.7,marginTop:"5px"}}>{j.posted}</div>
-          </div>
-        </a>
+          </a>
+        </div>
       </React.Fragment>
 ))}
       <div style={{padding:"14px 22px 18px",background:"var(--cream)"}}>
         <div style={{font:"700 9px/1 'Courier New',monospace",letterSpacing:".18em",textTransform:"uppercase",color:"var(--ink2)",marginBottom:"10px"}}>More boards worth a saved search</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
-          {boardChips.map((b, i) => (
+          {boardChips.map((b: any, i: number) => (
 <React.Fragment key={i}>
             <a href={b.url} target="_blank" rel="noopener" title={b.desc} style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"8px 12px",borderRadius:"999px",background:"#fff",border:"1px solid rgba(60,42,24,.18)",textDecoration:"none",color:"var(--wood-d)",font:"700 10.5px/1 'Exo'"}}>↗ {b.label}</a>
           </React.Fragment>

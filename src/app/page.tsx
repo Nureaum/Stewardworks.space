@@ -71,7 +71,7 @@ export default function PreHome() {
       </div>
 
       {/* 6. Buttons (Center Bottom) */}
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex flex-col md:flex-row gap-4 lg:gap-6 items-center w-full px-4 md:px-0 md:w-auto">
+      <div className="mt-12 md:mt-16 z-20 flex flex-col md:flex-row gap-4 lg:gap-6 items-center w-full px-4 md:px-0 md:w-auto">
         <Link href="/info" className="w-full md:w-auto">
           <button className="w-full md:w-auto group relative overflow-hidden px-6 lg:px-8 py-4 text-base lg:text-lg font-bold tracking-[0.1em] transition-all duration-300 border-2 border-steward-gold text-steward-gold hover:bg-steward-gold hover:text-steward-offwhite bg-transparent rounded-full whitespace-nowrap">
             <span className="relative z-10">{t('learn.more')}</span>

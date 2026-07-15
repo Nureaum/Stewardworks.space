@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { getEnvironmentalCatalog, submitSuggestion } from '@/actions/environmental';
 import { EnvironmentalScene } from '@/components/environmental-literacy/EnvironmentalScene';
+import { toggleBookmark as toggleDbBookmark, fetchUserBookmarks } from '@/app/actions/bookmarks';
 import toast from 'react-hot-toast';
 
 const THEMES = [
@@ -34,6 +35,10 @@ export default function EnvironmentalLiteracyPage() {
 
   const [introExpanded, setIntroExpanded] = useState(true);
   const [isLibrarian, setIsLibrarian] = useState(false);
+
+  // Bookmark state
+  const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
+  const [isSubmittingBookmark, setIsSubmittingBookmark] = useState<string | null>(null);
 
   const { user, isLoaded } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -85,6 +90,76 @@ export default function EnvironmentalLiteracyPage() {
     }
     fetchData();
   }, []);
+
+  // Fetch user bookmarks
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserBookmarks('environmental').then((bmData) => {
+        const bm: Record<string, boolean> = {};
+        bmData.forEach((b: any) => {
+          if (b.item_id) {
+            bm[b.item_id] = true;
+          }
+        });
+        setBookmarks(bm);
+      });
+    }
+  }, [user?.id]);
+
+  // Toggle bookmark for field note
+  const toggleFieldNoteBookmark = async (entry: any, themeName: string) => {
+    // Use URL as key (matches what's stored in database via fetchUserBookmarks)
+    const bookmarkUrl = `environmental-literacy/${entry.id}`;
+    if (!bookmarkUrl) return;
+    
+    // Prevent double-click
+    if (isSubmittingBookmark === bookmarkUrl) return;
+    setIsSubmittingBookmark(bookmarkUrl);
+    
+    const isBookmarked = !!bookmarks[bookmarkUrl];
+    
+    // Optimistic update
+    setBookmarks(prev => {
+      const next = { ...prev };
+      if (next[bookmarkUrl]) delete next[bookmarkUrl];
+      else next[bookmarkUrl] = true;
+      return next;
+    });
+
+    try {
+      await toggleDbBookmark(
+        bookmarkUrl,
+        'environmental',
+        `Field Note: ${entry.t} (${themeName})`,
+        bookmarkUrl
+      );
+      
+      // Refetch to sync
+      const bmData = await fetchUserBookmarks('environmental');
+      const bm: Record<string, boolean> = {};
+      bmData.forEach((b: any) => {
+        if (b.item_id) bm[b.item_id] = true;
+      });
+      setBookmarks(bm);
+      
+      if (!isBookmarked) {
+        toast.success('Bookmark submitted! Awaiting admin approval.', { id: `env-bm-${bookmarkUrl}`, position: 'bottom-center' });
+      } else {
+        toast.success('Bookmark removed.', { id: `env-bm-${bookmarkUrl}`, position: 'bottom-center' });
+      }
+    } catch (err) {
+      toast.error('Failed to save bookmark.', { id: `env-bm-error-${bookmarkUrl}`, position: 'bottom-center' });
+      // Revert
+      setBookmarks(prev => {
+        const next = { ...prev };
+        if (isBookmarked) next[bookmarkUrl] = true;
+        else delete next[bookmarkUrl];
+        return next;
+      });
+    } finally {
+      setIsSubmittingBookmark(null);
+    }
+  };
 
   const activeCat = catalog.find(c => c.id === catId);
   const activeEntries = activeCat?.entries || [];
@@ -230,23 +305,95 @@ export default function EnvironmentalLiteracyPage() {
                 <p style={{ margin: '0 0 20px', fontSize: '15px', lineHeight: 1.6, color: '#6e5f49' }}>{activeCat.intro}</p>
                 <div style={{ font: "700 10px/1 'Courier New',monospace", letterSpacing: '.2em', textTransform: 'uppercase', color: '#A27532', marginBottom: '12px' }}>Field notes · {activeEntries.length}</div>
                 
-                {activeEntries.map((e: any, i: number) => (
-                  <button key={e.id} onClick={() => setEntryId(e.id)} style={{ all: 'unset', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', margin: '0 -14px 4px', borderRadius: '12px', cursor: 'pointer', boxSizing: 'border-box', background: entryId === e.id ? '#fff' : 'transparent', boxShadow: entryId === e.id ? '0 6px 16px rgba(60,42,24,.08)' : 'none', border: entryId === e.id ? `1px solid ${activeCat.color}` : '1px solid transparent' }}>
-                    <span style={{ font: "700 12px/1 'Courier New',monospace", color: '#A27532', flex: '0 0 auto', marginTop: '2px' }}>0{i + 1}</span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontFamily: "'Baloo 2',cursive", fontWeight: 700, fontSize: '15px', lineHeight: 1.15, color: '#3C2A18' }}>{e.t}</span>
-                      <span style={{ display: 'block', font: "700 9.5px/1.3 'Courier New',monospace", letterSpacing: '.08em', textTransform: 'uppercase', color: '#6e5f49', marginTop: '3px' }}>{e.s}</span>
-                    </span>
-                    <span style={{ color: '#A27532', flex: '0 0 auto', fontSize: '15px', marginTop: '2px' }}>›</span>
-                  </button>
-                ))}
+                {activeEntries.map((e: any, i: number) => {
+                  const bookmarkUrl = `environmental-literacy/${e.id}`;
+                  const isBookmarked = !!bookmarks[bookmarkUrl];
+                  const isSubmitting = isSubmittingBookmark === bookmarkUrl;
+                  
+                  return (
+                    <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '0 -14px 4px' }}>
+                      <button onClick={() => setEntryId(e.id)} style={{ all: 'unset', flex: 1, display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', borderRadius: '12px', cursor: 'pointer', boxSizing: 'border-box', background: entryId === e.id ? '#fff' : 'transparent', boxShadow: entryId === e.id ? '0 6px 16px rgba(60,42,24,.08)' : 'none', border: entryId === e.id ? `1px solid ${activeCat.color}` : '1px solid transparent' }}>
+                        <span style={{ font: "700 12px/1 'Courier New',monospace", color: '#A27532', flex: '0 0 auto', marginTop: '2px' }}>0{i + 1}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'block', fontFamily: "'Baloo 2',cursive", fontWeight: 700, fontSize: '15px', lineHeight: 1.15, color: '#3C2A18' }}>{e.t}</span>
+                          <span style={{ display: 'block', font: "700 9.5px/1.3 'Courier New',monospace", letterSpacing: '.08em', textTransform: 'uppercase', color: '#6e5f49', marginTop: '3px' }}>{e.s}</span>
+                        </span>
+                        <span style={{ color: '#A27532', flex: '0 0 auto', fontSize: '15px', marginTop: '2px' }}>›</span>
+                      </button>
+                      {user && (
+                        <button
+                          onClick={(ev) => { ev.stopPropagation(); toggleFieldNoteBookmark(e, activeCat.topic); }}
+                          disabled={isSubmitting}
+                          title={isBookmarked ? 'Remove bookmark' : 'Save to bookmarks'}
+                          style={{
+                            all: 'unset',
+                            cursor: isSubmitting ? 'wait' : 'pointer',
+                            boxSizing: 'border-box',
+                            width: '36px',
+                            height: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '18px',
+                            borderRadius: '8px',
+                            background: isBookmarked ? '#A27532' : 'rgba(162,117,50,.1)',
+                            color: isBookmarked ? '#fff' : '#A27532',
+                            border: `1px solid ${isBookmarked ? '#A27532' : 'rgba(162,117,50,.3)'}`,
+                            marginTop: '10px',
+                            transition: 'all 0.2s ease',
+                            opacity: isSubmitting ? 0.6 : 1
+                          }}
+                        >
+                          {isSubmitting ? '⏳' : (isBookmarked ? '★' : '☆')}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="el-scroll" style={detailColStyle}>
                 {activeEntry ? (
                   <div style={{ padding: '26px 28px 40px' }}>
-                    <div style={{ font: "700 10px/1.4 'Courier New',monospace", letterSpacing: '.14em', textTransform: 'uppercase', color: '#A27532' }}>{`${activeCat.shelf} · ${activeEntry.call_no || ''} · ${activeEntry.type || ''}`.toUpperCase()}</div>
-                    <div style={{ marginTop: '12px' }}><span style={{ display: 'inline-block', font: "700 9px/1 'Courier New',monospace", letterSpacing: '.16em', textTransform: 'uppercase', color: activeCat.color, background: `${activeCat.color}22`, padding: '5px 10px', borderRadius: '999px' }}>{activeEntry.s}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ font: "700 10px/1.4 'Courier New',monospace", letterSpacing: '.14em', textTransform: 'uppercase', color: '#A27532' }}>{`${activeCat.shelf} · ${activeEntry.call_no || ''} · ${activeEntry.type || ''}`.toUpperCase()}</div>
+                        <div style={{ marginTop: '12px' }}><span style={{ display: 'inline-block', font: "700 9px/1 'Courier New',monospace", letterSpacing: '.16em', textTransform: 'uppercase', color: activeCat.color, background: `${activeCat.color}22`, padding: '5px 10px', borderRadius: '999px' }}>{activeEntry.s}</span></div>
+                      </div>
+                      {user && (() => {
+                        const bookmarkUrl = `environmental-literacy/${activeEntry.id}`;
+                        const isBookmarked = !!bookmarks[bookmarkUrl];
+                        const isSubmitting = isSubmittingBookmark === bookmarkUrl;
+                        return (
+                          <button
+                            onClick={() => toggleFieldNoteBookmark(activeEntry, activeCat.topic)}
+                            disabled={isSubmitting}
+                            title={isBookmarked ? 'Remove bookmark' : 'Save to bookmarks'}
+                            style={{
+                              all: 'unset',
+                              cursor: isSubmitting ? 'wait' : 'pointer',
+                              boxSizing: 'border-box',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '8px 14px',
+                              borderRadius: '10px',
+                              background: isBookmarked ? '#A27532' : 'rgba(162,117,50,.08)',
+                              color: isBookmarked ? '#fff' : '#A27532',
+                              border: `1px solid ${isBookmarked ? '#A27532' : 'rgba(162,117,50,.25)'}`,
+                              font: "700 10px/1 'Courier New',monospace",
+                              letterSpacing: '.1em',
+                              textTransform: 'uppercase',
+                              transition: 'all 0.2s ease',
+                              opacity: isSubmitting ? 0.6 : 1
+                            }}
+                          >
+                            <span style={{ fontSize: '14px' }}>{isSubmitting ? '⏳' : (isBookmarked ? '★' : '☆')}</span>
+                            {isBookmarked ? 'Saved' : 'Save'}
+                          </button>
+                        );
+                      })()}
+                    </div>
                     <h2 style={{ fontFamily: "'Baloo 2',cursive", fontWeight: 800, fontSize: 'clamp(24px,3vw,32px)', lineHeight: 1.05, color: '#3C2A18', margin: '10px 0 0' }}>{activeEntry.t}</h2>
 
                     {activeEntry.gallery_ids && activeEntry.gallery_ids.length > 0 ? (

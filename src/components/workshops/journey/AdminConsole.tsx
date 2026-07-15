@@ -141,9 +141,9 @@ export default function AdminConsole({
           getPendingEngagements(cohortId)
         ])
         
-        // Merge and sort them chronologically (oldest first, so we clear backlogs)
+        // Merge and sort them chronologically (newest first, like AI Labs admin)
         const allPending = [...subs, ...engs].sort(
-          (a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime()
+          (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
         )
         setPendingSubmissions(allPending)
       } catch (e) {

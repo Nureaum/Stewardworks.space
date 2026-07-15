@@ -40,7 +40,9 @@ export default function AILabClient({
   initialEngagements?: any[];
 }) {
   const router = useRouter();
-  const [role, setRole] = useState<'student' | 'admin'>(initialRole);
+  // Default to admin role if user is admin or super_admin
+  const defaultRole = (userRole === 'admin' || userRole === 'super_admin') ? 'admin' : 'student';
+  const [role, setRole] = useState<'student' | 'admin'>(defaultRole);
   const [studentView, setStudentView] = useState<'lab' | 'portfolio' | 'showcase'>('lab');
   const [day, setDay] = useState(1);
   const [activeEntry, setActiveEntry] = useState<string | null>(null);
@@ -100,11 +102,11 @@ export default function AILabClient({
             </div>
             )}
             <button
-              onClick={() => router.push('/hub')}
+              onClick={() => router.push(role === 'admin' ? '/admin' : '/hub')}
               className="font-pixel"
               style={{ fontSize: 8, color: '#6f7e5e', textDecoration: 'none', border: '2px solid #b9ac86', borderRadius: 5, padding: '6px 8px', whiteSpace: 'nowrap', background: 'transparent', cursor: 'pointer' }}
             >
-              ◄ DEV HUB
+              {role === 'admin' ? '◄ BACK TO ADMIN' : '◄ HUB'}
             </button>
             <div style={{ display: 'flex', gap: 7 }}>
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e06a5a' }}></span>
@@ -199,6 +201,24 @@ export default function AILabClient({
                           curriculumData={initialCurriculum}
                           daysComplete={daysComplete}
                           onToggleVisibility={() => setCurriculumVisible(false)}
+                          bookmarkedTitles={initialEngagements.filter(e => e.kind === 'bookmark').map(e => e.title)}
+                          onBookmark={async (title: string) => {
+                            if (!cohortId) {
+                              return { success: false };
+                            }
+                            // Check if already bookmarked
+                            const existing = initialEngagements.find(e => e.kind === 'bookmark' && e.title === title);
+                            if (existing) {
+                              return { success: false, alreadyExists: true };
+                            }
+                            try {
+                              await addEngagement(cohortId, 'bookmark', title, 'curriculum', '', `Bookmarked from Day ${day} curriculum`);
+                              return { success: true };
+                            } catch (error) {
+                              console.error('Error adding bookmark:', error);
+                              return { success: false };
+                            }
+                          }}
                         />
                       )}
                       <GenerationSandbox edenEmbedUrl={edenEmbedUrl} />
@@ -217,6 +237,25 @@ export default function AILabClient({
                     showcaseItems={showcaseItems} 
                     engagements={initialEngagements}
                     onlyStudents={true}
+                    onBookmark={async (key: string, title: string, source: string, url?: string) => {
+                      if (!cohortId) {
+                        toast.error('Error: Cohort ID is missing.', { position: 'bottom-center', id: `bookmark-error-${key}` });
+                        return;
+                      }
+                      // Check if already bookmarked
+                      const existing = initialEngagements.find(e => e.kind === 'bookmark' && e.title === title);
+                      if (existing) {
+                        toast.success(`"${title}" is already bookmarked and pending admin approval`, { position: 'bottom-center', id: `bookmark-exists-${key}` });
+                        return;
+                      }
+                      try {
+                        await addEngagement(cohortId, 'bookmark', title, source, url || '', `Bookmarked from Student Showcase`);
+                        toast.success(`Bookmarked "${title}" - Sent to admin for approval`, { position: 'bottom-center', id: `bookmark-success-${key}` });
+                      } catch (error) {
+                        console.error('Error adding bookmark:', error);
+                        toast.error(`Failed to bookmark "${title}"`, { position: 'bottom-center', id: `bookmark-error-${key}` });
+                      }
+                    }}
                   />
                 )}
               </>
