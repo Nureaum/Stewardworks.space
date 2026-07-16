@@ -439,6 +439,9 @@ export default function JourneyClient({
               onAddEngagement={handleAddEngagement}
               onRemoveEngagement={handleRemoveEngagement}
               onUpdateEngagement={handleUpdateEngagement}
+              cohortId={cohortId}
+              cohortName={cohortName}
+              userId={profileId}
             />
           )}
 

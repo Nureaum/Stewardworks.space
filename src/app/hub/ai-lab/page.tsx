@@ -91,10 +91,11 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
       .order('created_at', { ascending: false });
     if (sData) showcaseItems = sData;
 
+    // Get engagements - GLOBAL (not filtered by cohort)
+    // Engagement contributes 25% to progress and is shared across all cohorts
     const { data: eData } = await supabase
       .from('workshop_engagement')
       .select('*')
-      .eq('cohort_id', activeCohort.id)
       .eq('profile_id', profile.id);
     if (eData) initialEngagements = eData;
   }

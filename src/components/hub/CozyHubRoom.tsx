@@ -5,6 +5,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
 import { getShowcaseItems } from '@/app/actions/workshops/showcase';
+import type { CohortProgress } from '@/app/api/workshops/progress/route';
+import CohortSwitcher from '@/components/hub/CohortSwitcher';
 
 interface CozyHubRoomProps {
   isAdmin?: boolean;
@@ -12,9 +14,25 @@ interface CozyHubRoomProps {
   avatarUrl?: string | null;
   onLogout?: () => void;
   initialChiaProgress?: number;
+  // Multi-cohort support props - integrated with CohortSwitcher
+  cohortProgress?: CohortProgress[];
+  globalEngagement?: number;
+  selectedCohortId?: string;
+  onCohortChange?: (cohortId: string) => void;
 }
 
-export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl, onLogout, initialChiaProgress = 0 }: CozyHubRoomProps) {
+export default function CozyHubRoom({ 
+  isAdmin = true, 
+  isGuest = false, 
+  avatarUrl, 
+  onLogout, 
+  initialChiaProgress = 0,
+  // Multi-cohort props - used by CohortSwitcher integration
+  cohortProgress,
+  globalEngagement,
+  selectedCohortId,
+  onCohortChange
+}: CozyHubRoomProps) {
   const router = useRouter();
   
   const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements' | 'showcase'>('hub');
@@ -56,13 +74,10 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
   const _timer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Only load from localStorage if no initialChiaProgress was provided
-    if (initialChiaProgress === 0) {
-      try { const p = localStorage.getItem('sw_progress'); if (p !== null && !isNaN(parseInt(p))) setProgress(Math.max(0, Math.min(100, parseInt(p)))); } catch (e) {}
-    } else {
-      // Use the calculated progress from workshop data
-      setProgress(initialChiaProgress);
-    }
+    // Always use initialChiaProgress from the API (supports multi-cohort switching)
+    // This value comes from the Progress API's totalProgress calculation
+    // Validates: Requirements 4.3 - Update Chia Guardian when cohort selection changes
+    setProgress(initialChiaProgress);
     try { const t = localStorage.getItem('sw_timeofday') as 'day'|'dusk'|'night'; if (t) setTimeOfDay(t); } catch (e) {}
     try { const ex = localStorage.getItem('sw_exit'); if (ex) setExitStyle(ex); } catch (e) {}
     
@@ -109,7 +124,8 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
           const response = await fetch('/api/workshops/progress');
           if (response.ok) {
             const data = await response.json();
-            const engagements = data.engagements || [];
+            // Multi-cohort API returns engagements in globalEngagement.items
+            const engagements = data.globalEngagement?.items || [];
             
             // Get approved bookmarks, notes, prompts, and generations
             const items = engagements
@@ -958,7 +974,18 @@ export default function CozyHubRoom({ isAdmin = true, isGuest = false, avatarUrl
       <button style={{"background":"#21282E","border":"none","borderRadius":"10px","padding":"9px 15px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".06em","color":"#FEFAE0","marginBottom":"24px"}} onClick={goHub}>← Back to desk</button>
 
       <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".3em","color":"#8a5a2e"}}>PROGRESS &amp; GENERATIONS</div>
-      <h1 style={{"margin":"4px 0 24px","fontSize":"34px","fontWeight":"700","color":"#3a2412"}}>Your chia is growing.</h1>
+      <div style={{"display":"flex","justifyContent":"space-between","alignItems":"center","flexWrap":"wrap","gap":"12px","marginBottom":"24px"}}>
+        <h1 style={{"margin":"4px 0 0","fontSize":"34px","fontWeight":"700","color":"#3a2412"}}>Your chia is growing.</h1>
+        {/* Cohort Switcher - Validates: Requirements 4.1, 4.3 */}
+        {cohortProgress && cohortProgress.length > 1 && selectedCohortId && onCohortChange && (
+          <CohortSwitcher
+            cohorts={cohortProgress}
+            selectedId={selectedCohortId}
+            onSelect={onCohortChange}
+            globalEngagement={globalEngagement}
+          />
+        )}
+      </div>
 
       {/*  progress meter + chia  */}
       <div style={{"display":"flex","gap":"24px","flexWrap":"wrap","alignItems":"stretch","marginBottom":"30px"}}>

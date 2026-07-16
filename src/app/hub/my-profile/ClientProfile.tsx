@@ -10,6 +10,8 @@ import { fetchAllWorkforceEntries, fetchUserPicks } from '@/app/admin/workforce-
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
 import { addEngagement } from '@/app/actions/workshops/engagement';
 import RetroToast from '@/components/workshops/journey/RetroToast';
+import { PixelSprite } from '@/components/workshops/journey';
+import type { CohortProgressData } from './page';
 
 // Status pill mapping for deliverables (same as Portfolio)
 const STATUS_PILL: Record<string, { label: string; color: string }> = {
@@ -26,7 +28,9 @@ export default function ClientProfile({
   workshopDays = [],
   progressRows = [],
   submissions = [],
-  activeCohortId: initialCohortId = null
+  activeCohortId: initialCohortId = null,
+  allCohortProgress = [],
+  workshopCharacter: initialWorkshopCharacter = null
 }: { 
   initialProfile: any; 
   chiaProgress?: number; 
@@ -35,6 +39,8 @@ export default function ClientProfile({
   progressRows?: any[];
   submissions?: any[];
   activeCohortId?: string | null;
+  allCohortProgress?: CohortProgressData[];
+  workshopCharacter?: any;
 }) {
   const router = useRouter();
   const { user, isLoaded } = useUser();
@@ -82,7 +88,7 @@ export default function ClientProfile({
   const [actualChiaProgress, setActualChiaProgress] = useState(chiaProgress);
   const [showCertPreview, setShowCertPreview] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
-  const [workshopCharacter, setWorkshopCharacter] = useState<any>(null);
+  const [workshopCharacter, setWorkshopCharacter] = useState<any>(initialWorkshopCharacter);
   const [certSettings, setCertSettings] = useState({
     certOrg: 'StewardWorks',
     certFacilitator: 'Marisol Vega',
@@ -92,8 +98,43 @@ export default function ClientProfile({
     certMessage: ''
   });
   
-  // Certificate eligibility is based on 100% chia progress
-  const certificateEligible = actualChiaProgress >= 100;
+  // Multi-cohort certificate support
+  // Filter cohorts that are eligible (100% progress)
+  const eligibleCohorts = allCohortProgress.filter(c => c.isEligibleForCertificate);
+  const [selectedCertCohortId, setSelectedCertCohortId] = useState<string | null>(
+    eligibleCohorts.length > 0 ? eligibleCohorts[0].cohortId : null
+  );
+  const [certCohortDropdownOpen, setCertCohortDropdownOpen] = useState(false);
+  
+  // Get the selected cohort's progress data (includes workshopDays and progressRows)
+  const selectedCertCohort = allCohortProgress.find(c => c.cohortId === selectedCertCohortId);
+  
+  // Get workshop days and progress for the selected certificate cohort
+  // Fallback chain: selectedCertCohort -> first eligible cohort -> props
+  const certWorkshopDays = selectedCertCohort?.workshopDays || 
+    (eligibleCohorts.length > 0 ? eligibleCohorts[0].workshopDays : null) || 
+    workshopDays;
+  const certProgressRows = selectedCertCohort?.progressRows || 
+    (eligibleCohorts.length > 0 ? eligibleCohorts[0].progressRows : null) || 
+    progressRows;
+  
+  // Debug logging
+  console.log('[ClientProfile] Certificate data:', {
+    eligibleCohorts: eligibleCohorts.length,
+    selectedCertCohortId,
+    selectedCertCohort: selectedCertCohort?.cohortName,
+    certWorkshopDaysCount: certWorkshopDays?.length,
+    certProgressRowsCount: certProgressRows?.length,
+    workshopDaysFromProps: workshopDays?.length,
+  });
+  
+  // Certificate eligibility: at least one cohort has 100% progress
+  const certificateEligible = eligibleCohorts.length > 0;
+  
+  // For display purposes, show the highest progress among all cohorts
+  const highestProgress = allCohortProgress.length > 0 
+    ? Math.max(...allCohortProgress.map(c => c.chiaProgress))
+    : actualChiaProgress;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -141,12 +182,15 @@ export default function ClientProfile({
         if (progressRes.ok) {
           const progressData = await progressRes.json();
           console.log('[ClientProfile] Raw API response:', progressData);
-          const engagements = progressData.engagements || [];
+          
+          // Use NEW multi-cohort API structure
+          // Engagements are in progressData.globalEngagement.items (not progressData.engagements)
+          const engagements = progressData.globalEngagement?.items || [];
           console.log('[ClientProfile] Engagements array:', engagements);
           
-          // Get cohort ID from first engagement or fetch active cohort
-          if (engagements.length > 0 && engagements[0].cohort_id) {
-            setActiveCohortId(engagements[0].cohort_id);
+          // Set active cohort from the API response
+          if (progressData.selectedCohortId) {
+            setActiveCohortId(progressData.selectedCohortId);
           }
           
           // Count approved engagements by kind
@@ -210,35 +254,31 @@ export default function ClientProfile({
             }));
           setPrompts(promptEngagements);
           
-          // Calculate chia progress EXACTLY as Hub page does
-          const approvedDeliverables = (progressData.progressRows || []).filter(
-            (p: any) => p.deliverable_status === 'approved'
-          ).length;
+          // Use NEW multi-cohort API structure for progress calculation
+          // The API already calculates totalProgress correctly (deliverables + engagement)
+          // We use the API's totalProgress directly which matches Hub page calculation
+          const totalProgress = progressData.totalProgress || 0;
+          const globalEngPct = progressData.globalEngagement?.percentage || 0;
           
-          const delivPct = Math.min(approvedDeliverables * 25, 75);
-          
-          // Engagement calculation - EXACT same values as Portfolio/Hub
-          const ENGPCT: Record<string, number> = {
-            bookmark: 1,
-            note: 1,
-            generation: 2,
-            prompt: 3,
-          };
-          
-          const engPct = Math.min(
-            (engagements || [])
-              .filter((e: any) => e.status === 'approved')
-              .reduce((a: number, e: any) => a + (ENGPCT[e.kind] || 0), 0),
-            25,
+          // Get selected cohort's deliverable progress
+          const selectedCohort = progressData.cohortProgress?.find(
+            (c: any) => c.cohortId === progressData.selectedCohortId
           );
+          const delivPct = selectedCohort?.deliverables?.percentage || 0;
           
-          const totalProgress = Math.min(delivPct + engPct, 100);
+          console.log('[ClientProfile] Progress calculation:', {
+            totalProgress,
+            globalEngPct,
+            delivPct,
+            selectedCohortId: progressData.selectedCohortId
+          });
+          
+          // Use API's calculated total progress directly (same as Hub page)
           setActualChiaProgress(totalProgress);
           
           console.log('[ClientProfile] Chia progress calculated:', {
-            approvedDeliverables,
             delivPct,
-            engPct,
+            globalEngPct,
             totalProgress
           });
         }
@@ -353,42 +393,35 @@ export default function ClientProfile({
     }
   }, [user?.id]);
 
-  // Load workshop character and certificate settings (eligibility is based on actualChiaProgress state)
+  // Load certificate settings for the selected cohort
   const loadWorkshopData = useCallback(async () => {
-    if (!activeCohortId) return;
+    const cohortIdForCert = selectedCertCohortId || activeCohortId;
+    if (!cohortIdForCert) return;
     
     try {
-      // Fetch workshop progress data to get character info
-      const progressRes = await fetch('/api/workshops/progress');
-      if (progressRes.ok) {
-        const progressData = await progressRes.json();
-        const character = progressData.character || null;
-        setWorkshopCharacter(character);
-        
-        // Fetch certificate settings if eligible (100% chia progress)
-        if (actualChiaProgress >= 100) {
-          try {
-            const certResponse = await fetch(`/api/workshops/${activeCohortId}/certificate-settings`);
-            if (certResponse.ok) {
-              const settings = await certResponse.json();
-              setCertSettings({
-                certOrg: settings.certOrg || 'StewardWorks',
-                certFacilitator: settings.certFacilitator || 'Marisol Vega',
-                certFacTitle: settings.certFacTitle || 'Program Director',
-                certSponsor: settings.certSponsor || 'Dr. Jane Smith',
-                certSponsorOrg: settings.certSponsorOrg || 'SDSU Research Foundation',
-                certMessage: settings.certMessage || ''
-              });
-            }
-          } catch (e) {
-            console.error('Failed to fetch certificate settings:', e);
+      // Fetch certificate settings if eligible (any cohort has 100%)
+      if (certificateEligible) {
+        try {
+          const certResponse = await fetch(`/api/workshops/${cohortIdForCert}/certificate-settings`);
+          if (certResponse.ok) {
+            const settings = await certResponse.json();
+            setCertSettings({
+              certOrg: settings.certOrg || 'StewardWorks',
+              certFacilitator: settings.certFacilitator || 'Marisol Vega',
+              certFacTitle: settings.certFacTitle || 'Program Director',
+              certSponsor: settings.certSponsor || 'Dr. Jane Smith',
+              certSponsorOrg: settings.certSponsorOrg || 'SDSU Research Foundation',
+              certMessage: settings.certMessage || ''
+            });
           }
+        } catch (e) {
+          console.error('Failed to fetch certificate settings:', e);
         }
       }
     } catch (error) {
       console.error('Failed to load workshop data:', error);
     }
-  }, [activeCohortId, actualChiaProgress]);
+  }, [activeCohortId, selectedCertCohortId, certificateEligible]);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -572,6 +605,9 @@ export default function ClientProfile({
       const characterKey = workshopCharacter?.character_key || 'steward';
       const accent = workshopCharacter?.accent_color || '#ffd23f';
       
+      // Get selected cohort name for filename
+      const cohortName = selectedCertCohort?.cohortName || 'workshop';
+      
       // Build character sprite URI if we have a character
       let characterSpriteUri = '';
       if (workshopCharacter) {
@@ -590,6 +626,16 @@ export default function ClientProfile({
         }
       }
 
+      // Build deliverables data from the selected certificate cohort's workshop days
+      // This matches how VictoryScreen builds deliverables for the PDF
+      const deliverables = (certWorkshopDays || []).slice(0, 3).map((day: any, idx: number) => {
+        const progress = (certProgressRows || []).find((p: any) => p.workshop_day_id === day.id);
+        return {
+          title: day.deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`,
+          url: progress?.deliverable_url || ''
+        };
+      });
+
       // Call the certificate PDF API
       const response = await fetch('/api/certificate-pdf', {
         method: 'POST',
@@ -597,13 +643,14 @@ export default function ClientProfile({
         body: JSON.stringify({
           playerName,
           characterKey,
+          cohortName: cohortName,
           certOrg: certSettings.certOrg,
           certFacilitator: certSettings.certFacilitator,
           certFacTitle: certSettings.certFacTitle,
           certSponsor: certSettings.certSponsor,
           certSponsorOrg: certSettings.certSponsorOrg,
           certMessage: certSettings.certMessage,
-          deliverables: [
+          deliverables: deliverables.length > 0 ? deliverables : [
             { title: 'DAY 1 DELIVERABLE', url: '' },
             { title: 'DAY 2 DELIVERABLE', url: '' },
             { title: 'DAY 3 DELIVERABLE', url: '' }
@@ -616,12 +663,12 @@ export default function ClientProfile({
         throw new Error('Failed to generate PDF');
       }
 
-      // Download the PDF
+      // Download the PDF with cohort name in filename
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+      a.download = `certificate-${cohortName.replace(/\s+/g, '-')}-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -1526,7 +1573,12 @@ export default function ClientProfile({
         {/* CERTIFICATE SECTION */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', marginTop: '20px' }}>
           <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#2E5534' }}>CERTIFICATE</span>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#4a8a5a' }}>{actualChiaProgress}% complete</span>
+          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#4a8a5a' }}>
+            {allCohortProgress.length > 0 
+              ? `${highestProgress}% complete` 
+              : `${actualChiaProgress}% complete`
+            }
+          </span>
         </div>
         
         {certificateEligible ? (
@@ -1535,9 +1587,93 @@ export default function ClientProfile({
               <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg,#2E5534,#4a8a5a)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>📜</div>
               <div>
                 <div style={{ fontWeight: 700, color: '#2E5534', fontSize: '17px' }}>Congratulations!</div>
-                <div style={{ fontSize: '13px', color: '#4a6a4a' }}>You've reached 100% and earned your certificate.</div>
+                <div style={{ fontSize: '13px', color: '#4a6a4a' }}>
+                  {eligibleCohorts.length === 1 
+                    ? `You've completed ${eligibleCohorts[0].cohortName} and earned your certificate.`
+                    : `You've earned certificates for ${eligibleCohorts.length} cohorts!`
+                  }
+                </div>
               </div>
             </div>
+            
+            {/* Cohort selector dropdown - only show if multiple eligible cohorts */}
+            {eligibleCohorts.length > 1 && (
+              <div style={{ marginBottom: '16px', position: 'relative' }}>
+                <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '10px', letterSpacing: '.1em', color: '#4a6a4a', marginBottom: '6px' }}>
+                  SELECT COHORT FOR CERTIFICATE
+                </div>
+                <button
+                  onClick={() => setCertCohortDropdownOpen(!certCohortDropdownOpen)}
+                  style={{ 
+                    width: '100%', 
+                    maxWidth: '320px',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                    padding: '10px 14px',
+                    background: '#FEFAE0',
+                    border: '2px solid #2E5534',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontFamily: '"DM Mono", monospace',
+                    fontSize: '13px',
+                    color: '#2E5534',
+                  }}
+                >
+                  <span>{selectedCertCohort?.cohortName || 'Select cohort'}</span>
+                  <ChevronDown size={16} style={{ transform: certCohortDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </button>
+                
+                {certCohortDropdownOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    width: '100%',
+                    maxWidth: '320px',
+                    marginTop: '4px',
+                    background: '#FEFAE0',
+                    border: '2px solid #2E5534',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,.15)',
+                    zIndex: 100,
+                    overflow: 'hidden',
+                  }}>
+                    {eligibleCohorts.map((cohort) => (
+                      <button
+                        key={cohort.cohortId}
+                        onClick={() => {
+                          setSelectedCertCohortId(cohort.cohortId);
+                          setCertCohortDropdownOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: cohort.cohortId === selectedCertCohortId ? 'rgba(46,85,52,.1)' : 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontFamily: '"DM Mono", monospace',
+                          fontSize: '12px',
+                          color: '#2E5534',
+                          borderBottom: '1px solid rgba(46,85,52,.1)',
+                        }}
+                      >
+                        <span style={{ fontWeight: cohort.cohortId === selectedCertCohortId ? 700 : 400 }}>
+                          {cohort.cohortName}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#4a8a5a' }}>
+                          {cohort.chiaProgress}%
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <button
@@ -1562,54 +1698,166 @@ export default function ClientProfile({
             <div style={{ fontSize: '14px', lineHeight: 1.5 }}>
               Reach 100% chia progress in <Link href="/hub/pilot-workshops" style={{ color: '#6B4A2A', textDecoration: 'underline' }}>Pilot Workshops</Link> to unlock your certificate.
               <br />
-              <span style={{ fontSize: '12px', color: '#9a7a5a' }}>Current progress: {actualChiaProgress}%</span>
+              {allCohortProgress.length > 0 ? (
+                <span style={{ fontSize: '12px', color: '#9a7a5a' }}>
+                  {allCohortProgress.length === 1 
+                    ? `${allCohortProgress[0].cohortName}: ${allCohortProgress[0].chiaProgress}%`
+                    : `Highest progress: ${highestProgress}%`
+                  }
+                </span>
+              ) : (
+                <span style={{ fontSize: '12px', color: '#9a7a5a' }}>Current progress: {actualChiaProgress}%</span>
+              )}
             </div>
+            
+            {/* Show progress per cohort if multiple */}
+            {allCohortProgress.length > 1 && (
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+                {allCohortProgress.map((cohort) => (
+                  <div 
+                    key={cohort.cohortId}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '10px',
+                      fontSize: '12px',
+                      color: '#7a5a3a',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{cohort.cohortName}:</span>
+                    <div style={{ 
+                      width: '100px', 
+                      height: '8px', 
+                      background: 'rgba(0,0,0,.1)', 
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{ 
+                        width: `${cohort.chiaProgress}%`, 
+                        height: '100%', 
+                        background: cohort.chiaProgress >= 100 ? '#4a8a5a' : '#c9a24a',
+                        borderRadius: '4px',
+                      }} />
+                    </div>
+                    <span>{cohort.chiaProgress}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
       </div>
       
-      {/* Certificate Preview Modal */}
+      {/* Certificate Preview Modal - Matching VictoryScreen design */}
       {showCertPreview && (
         <div 
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} 
-          onClick={() => setShowCertPreview(false)}
+          onClick={() => setShowCertPreview(false)} 
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(8,4,16,.92)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(12px,3vw,40px)', overflow: 'auto' }}
         >
-          <div style={{ position: 'relative', background: 'linear-gradient(160deg,#fdf8eb,#f7eed8)', borderRadius: '8px', maxWidth: '800px', width: '100%', padding: '40px', boxShadow: '0 30px 80px rgba(0,0,0,.4)', border: '3px solid #c9a24a' }} onClick={(e) => e.stopPropagation()}>
+          <div 
+            onClick={e => e.stopPropagation()} 
+            style={{ width: '100%', maxWidth: 760, maxHeight: '94vh', overflow: 'auto', background: '#f7f1e0', border: '3px solid #b58a2e', borderRadius: 5, boxShadow: '0 0 0 9px #f8f0da, 0 0 0 11px #c9a24a, 0 30px 70px rgba(0,0,0,.6)', position: 'relative', color: '#3a2c14', fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
             <button 
               onClick={() => setShowCertPreview(false)} 
               title="Close certificate" 
-              style={{ position: 'absolute', top: 10, right: 10, fontSize: 9, color: '#8a6a2a', background: 'rgba(0,0,0,.05)', border: '2px solid #c9a24a', borderRadius: 4, padding: '7px 9px', cursor: 'pointer', zIndex: 3, fontFamily: '"DM Mono", monospace' }}
+              style={{ position: 'absolute', top: 10, right: 10, fontSize: 9, color: '#8a6a2a', background: 'rgba(0,0,0,.05)', border: '2px solid #c9a24a', borderRadius: 4, padding: '7px 9px', cursor: 'pointer', zIndex: 3, fontFamily: '"DM Mono", monospace', letterSpacing: 1 }}
             >
-              ✕ CLOSE
+              ✕
             </button>
-            
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 'clamp(11px,1.5vw,13px)', letterSpacing: 5, color: '#8a6a2a', marginTop: 9, textTransform: 'uppercase', fontFamily: '"DM Mono", monospace' }}>Pilot Workshops · The Steward's Journey</div>
+            <div style={{ padding: 'clamp(26px,4.5vw,48px) clamp(22px,4.5vw,56px)', textAlign: 'center', position: 'relative' }}>
+              <div style={{ fontSize: 8, letterSpacing: 3, color: '#a07d2c', fontFamily: '"DM Mono", monospace' }}>✦ {certSettings.certOrg.toUpperCase()} ✦</div>
+              <div style={{ fontSize: 'clamp(11px,1.5vw,13px)', letterSpacing: 5, color: '#8a6a2a', marginTop: 9, textTransform: 'uppercase' }}>Pilot Workshops · The Steward's Journey</div>
               <div style={{ height: 2, width: 130, background: '#c9a24a', margin: '18px auto' }}></div>
               <div style={{ fontSize: 'clamp(25px,4.8vw,42px)', fontWeight: 700, letterSpacing: 2, color: '#241a08' }}>Certificate of Completion</div>
               <div style={{ fontSize: 'clamp(14px,1.8vw,17px)', color: '#5a4626', marginTop: 22, fontStyle: 'italic' }}>This certifies that</div>
-              <div style={{ fontSize: 'clamp(28px,5vw,48px)', fontWeight: 700, color: '#3a2412', margin: '12px 0 6px', fontFamily: '"Exo", sans-serif' }}>
-                {profile?.full_name || user?.fullName || 'Steward'}
-              </div>
-              <div style={{ fontSize: 'clamp(13px,1.6vw,16px)', color: '#5a4626', marginTop: 18, lineHeight: 1.6, maxWidth: 500, margin: '18px auto 0' }}>
-                {certSettings.certMessage || 'has successfully completed the Pilot Workshops program, demonstrating commitment to digital stewardship and creative storytelling.'}
-              </div>
-              
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 30, justifyContent: 'center', marginTop: 40 }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 14, color: '#8a6a2a', marginBottom: 4 }}>{certSettings.certFacilitator}</div>
-                  <div style={{ fontSize: 11, color: '#b89050', fontFamily: '"DM Mono", monospace' }}>{certSettings.certFacTitle}</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 14, color: '#8a6a2a', marginBottom: 4 }}>{certSettings.certSponsor}</div>
-                  <div style={{ fontSize: 11, color: '#b89050', fontFamily: '"DM Mono", monospace' }}>{certSettings.certSponsorOrg}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 15, margin: '12px 0 6px', flexWrap: 'wrap' }}>
+                {workshopCharacter && (
+                  <PixelSprite 
+                    characterKey={workshopCharacter.character_key} 
+                    accent={workshopCharacter.accent_color || '#ffd23f'} 
+                    size={48} 
+                    opts={{ gear: workshopCharacter.gear || 'none', outfit: workshopCharacter.outfit || 'plain' }} 
+                  />
+                )}
+                <div style={{ fontSize: 'clamp(23px,4.2vw,36px)', fontWeight: 700, color: '#1a1206', borderBottom: '2px solid #c9a24a', padding: '0 18px 6px' }}>
+                  {profile?.full_name || user?.fullName || 'Steward'}
                 </div>
               </div>
+              <div style={{ fontSize: 13, color: '#8a6a2a', letterSpacing: 2, marginBottom: 22, textTransform: 'uppercase' }}>Steward · Certified Steward</div>
               
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', maxWidth: 580, margin: '26px auto 0', fontSize: 11, color: '#8a6a2a', letterSpacing: 1, fontFamily: '"DM Mono", monospace' }}>
+              <div style={{ fontSize: 'clamp(15px,1.9vw,17px)', lineHeight: 1.75, color: '#3a2c14', maxWidth: 580, margin: '0 auto' }}>
+                {certSettings.certMessage || 'has journeyed the full three-day intensive of The Steward\'s Journey, practicing Active Production over Passive Consumption and banking three original deliverables into the StewardWorks portfolio. In recognition of principled, human-in-the-loop craft with artificial intelligence — and of 12 Steward Principles carried forward — this steward is hereby conferred the standing of Certified Steward.'}
+              </div>
+
+              {/* Deliverables of Record */}
+              <div style={{ borderTop: '2px solid #dcc890', borderBottom: '2px solid #dcc890', margin: '26px auto', padding: '18px 0', maxWidth: 580, textAlign: 'left' }}>
+                <div style={{ fontSize: 8, color: '#a07d2c', letterSpacing: 2, textAlign: 'center', marginBottom: 15, fontFamily: '"DM Mono", monospace' }}>◆ DELIVERABLES OF RECORD ◆</div>
+                {certWorkshopDays && certWorkshopDays.length > 0 ? (
+                  certWorkshopDays.slice(0, 3).map((day: any, idx: number) => {
+                    const progress = certProgressRows?.find((p: any) => p.workshop_day_id === day.id);
+                    return (
+                      <div key={day.id} style={{ display: 'flex', gap: 14, alignItems: 'baseline', marginBottom: 11 }}>
+                        <div style={{ flex: 'none', fontWeight: 700, color: '#8a6a2a', minWidth: 52 }}>D{idx + 1}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 16, color: '#241a08', fontWeight: 700 }}>{day.deliverable_title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`}</div>
+                          {progress?.deliverable_url && <div style={{ fontSize: 13, color: '#6a542c', wordBreak: 'break-all', fontFamily: "'Courier New',monospace" }}>{progress.deliverable_url}</div>}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  // Fallback: show default deliverable names if days data is not available
+                  [1, 2, 3].map((num) => (
+                    <div key={num} style={{ display: 'flex', gap: 14, alignItems: 'baseline', marginBottom: 11 }}>
+                      <div style={{ flex: 'none', fontWeight: 700, color: '#8a6a2a', minWidth: 52 }}>D{num}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 16, color: '#241a08', fontWeight: 700 }}>DAY {num} DELIVERABLE</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Signatures Section */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22, justifyContent: 'space-between', alignItems: 'flex-end', maxWidth: 580, margin: '30px auto 0' }}>
+                <div style={{ flex: 1, minWidth: 160, textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Segoe Script','Snell Roundhand','Brush Script MT',cursive", fontSize: 27, color: '#1a1206', lineHeight: 1 }}>{certSettings.certFacilitator}</div>
+                  <div style={{ borderTop: '2px solid #3a2c14', marginTop: 5, paddingTop: 6, fontSize: 11, letterSpacing: 1, color: '#5a4626', textTransform: 'uppercase' }}>{certSettings.certFacTitle} · {certSettings.certOrg}</div>
+                </div>
+                <div style={{ flex: 'none', textAlign: 'center' }}>
+                  <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'radial-gradient(circle at 38% 30%,#f6dd8c 0%,#e6bd54 46%,#c69528 78%,#9c7015 100%)', border: '3px solid #8a6a2a', boxShadow: '0 3px 10px rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,255,255,.4),inset 0 -6px 14px rgba(120,84,18,.5)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                    <img src="/images/cert/steward-seal.png" alt="Seal" style={{ width: '85%', height: '85%', objectFit: 'contain', opacity: 0.9 }} />
+                  </div>
+                  <div style={{ fontSize: 6, color: '#8a6a2a', marginTop: 7, letterSpacing: 2, fontFamily: '"DM Mono", monospace' }}>OFFICIAL SEAL</div>
+                </div>
+                <div style={{ flex: 1, minWidth: 160, textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Segoe Script','Snell Roundhand','Brush Script MT',cursive", fontSize: 27, color: '#1a1206', lineHeight: 1 }}>{profile?.full_name || user?.fullName || 'Steward'}</div>
+                  <div style={{ borderTop: '2px solid #3a2c14', marginTop: 5, paddingTop: 6, fontSize: 11, letterSpacing: 1, color: '#5a4626' }}>THE STEWARD</div>
+                </div>
+              </div>
+
+              {/* Fiscal Sponsor */}
+              <div style={{ maxWidth: 300, margin: '24px auto 0', textAlign: 'center' }}>
+                <div style={{ fontFamily: "'Segoe Script','Snell Roundhand','Brush Script MT',cursive", fontSize: 27, color: '#1a1206', lineHeight: 1 }}>{certSettings.certSponsor}</div>
+                <div style={{ borderTop: '2px solid #3a2c14', marginTop: 5, paddingTop: 6, fontSize: 11, letterSpacing: 1, color: '#5a4626', textTransform: 'uppercase' }}>FISCAL SPONSOR · {certSettings.certSponsorOrg}</div>
+              </div>
+
+              {/* Issue Info */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', maxWidth: 580, margin: '26px auto 0', fontSize: 11, color: '#8a6a2a', letterSpacing: 1, fontFamily: "'Courier New',monospace" }}>
                 <div>ISSUED {new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
-                <div>CERTIFICATE NO. SW-PW-{Date.now().toString().slice(-4)}</div>
+                <div>CERTIFICATE NO. SW-{workshopCharacter?.character_key?.toUpperCase() || 'PW'}-{Date.now().toString().slice(-4)}</div>
+              </div>
+
+              {/* Funding Logos */}
+              <div style={{ borderTop: '1px solid rgba(138,106,42,.3)', margin: '24px auto 0', paddingTop: 20, paddingBottom: 0, maxWidth: 580, textAlign: 'center' }}>
+                <div style={{ fontSize: 8, color: '#a07d2c', letterSpacing: 2, marginBottom: 12, fontFamily: '"DM Mono", monospace' }}>WITH FUNDING FROM JOBS FIRST THROUGH SDSU</div>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 40, marginBottom: 0 }}>
+                  <img src="/images/cert/logo-ca-jobs-first.png" alt="CA Jobs First" style={{ height: 38, objectFit: 'contain' }} />
+                  <img src="/images/cert/logo-sdsu-rf.png" alt="SDSU Research Foundation" style={{ height: 38, objectFit: 'contain' }} />
+                  <img src="/images/cert/logo-becoming.webp" alt="The Becoming Project" style={{ height: 38, objectFit: 'contain' }} />
+                </div>
               </div>
             </div>
           </div>

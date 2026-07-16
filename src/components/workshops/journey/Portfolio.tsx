@@ -1,8 +1,13 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { ChevronDown } from 'lucide-react'
+import { useUser } from '@clerk/nextjs'
 import { PixelSprite, buildIconUri } from '@/components/workshops/journey'
 import { DEFAULT_CHARACTER } from './character-data'
+import { PATHWAYS, QUIZZES } from '@/data/workforce-content'
+import { fetchUserPicks } from '@/app/admin/workforce-pathways/actions'
 import type {
   WorkshopCharacter,
   DayWithSections,
@@ -22,6 +27,10 @@ interface PortfolioProps {
   onAddEngagement: (kind: string, title: string, source: string, url?: string) => void
   onRemoveEngagement: (id: string) => void
   onUpdateEngagement?: (id: string, updates: { title?: string, content?: string, url?: string }) => void
+  // Certificate data
+  cohortId: string
+  cohortName: string
+  userId?: string
 }
 
 /* ── Helpers ── */
@@ -86,7 +95,13 @@ export default function Portfolio({
   onAddEngagement,
   onRemoveEngagement,
   onUpdateEngagement,
+  cohortId,
+  cohortName,
+  userId,
 }: PortfolioProps) {
+  /* ── Clerk user for workforce picks ── */
+  const { user } = useUser()
+  
   /* ── Local input state ── */
   const [bookmarkInput, setBookmarkInput] = useState('')
   const [noteInput, setNoteInput] = useState('')
@@ -97,6 +112,75 @@ export default function Portfolio({
   const [editDraft, setEditDraft] = useState({ title: '', content: '', url: '' })
   const [assetInput, setAssetInput] = useState('')
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
+
+  // Workforce Pathway Picks State
+  const [workforcePicks, setWorkforcePicks] = useState<any[]>([])
+  const [loadingWorkforcePicks, setLoadingWorkforcePicks] = useState(false)
+
+  // Certificate State
+  const [showCertPreview, setShowCertPreview] = useState(false)
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
+  const [certSettings, setCertSettings] = useState({
+    certOrg: 'StewardWorks',
+    certFacilitator: 'Marisol Vega',
+    certFacTitle: 'Program Director',
+    certSponsor: 'Dr. Jane Smith',
+    certSponsorOrg: 'SDSU Research Foundation',
+    certMessage: ''
+  })
+
+  // Load workforce pathway picks - uses Clerk user.id
+  const loadWorkforcePicks = useCallback(async () => {
+    if (!user?.id) return
+    setLoadingWorkforcePicks(true)
+    try {
+      const picks = await fetchUserPicks(user.id)
+      setWorkforcePicks(picks || [])
+    } catch (error) {
+      console.error('Failed to load workforce picks:', error)
+    } finally {
+      setLoadingWorkforcePicks(false)
+    }
+  }, [user?.id])
+
+  // Load certificate settings
+  const loadCertSettings = useCallback(async () => {
+    if (!cohortId) return
+    try {
+      const response = await fetch(`/api/workshops/${cohortId}/certificate-settings`)
+      if (response.ok) {
+        const settings = await response.json()
+        setCertSettings({
+          certOrg: settings.certOrg || 'StewardWorks',
+          certFacilitator: settings.certFacilitator || 'Marisol Vega',
+          certFacTitle: settings.certFacTitle || 'Program Director',
+          certSponsor: settings.certSponsor || 'Dr. Jane Smith',
+          certSponsorOrg: settings.certSponsorOrg || 'SDSU Research Foundation',
+          certMessage: settings.certMessage || ''
+        })
+      }
+    } catch (e) {
+      console.error('Failed to fetch certificate settings:', e)
+    }
+  }, [cohortId])
+
+  useEffect(() => {
+    loadWorkforcePicks()
+    loadCertSettings()
+  }, [loadWorkforcePicks, loadCertSettings])
+
+  // Helper to get user's answer label for a pick
+  const getAnswerLabel = (pick: any, pathwayId: string, stopId: string) => {
+    if (pick.custom_answer) return pick.custom_answer
+    if (pick.option_id) {
+      const quizData = (QUIZZES as any)[pathwayId]?.[stopId]
+      if (quizData?.options) {
+        const option = quizData.options.find((o: any) => o.id === pick.option_id)
+        return option?.label || pick.option_id
+      }
+    }
+    return 'No answer'
+  }
 
   const inputState: Record<string, { value: string; set: (v: string) => void }> = {
     bookmark: { value: bookmarkInput, set: setBookmarkInput },
@@ -1031,6 +1115,316 @@ export default function Portfolio({
           </div>
         </div>
       )}
+
+      {/* ── Section D: Your Pathway Answers ── */}
+      <div
+        style={{
+          border: '2px solid var(--gold,#ffd23f)',
+          borderRadius: 12,
+          background: 'rgba(255,210,63,.04)',
+          padding: 'clamp(14px,2vw,20px)',
+          marginTop: 18,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+          <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)' }}>
+            ⛰ YOUR PATHWAY ANSWERS
+          </div>
+          <span style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>{workforcePicks.length}</span>
+          <span style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>from Workforce Pathways</span>
+        </div>
+
+        {loadingWorkforcePicks ? (
+          <div style={{ padding: 20, textAlign: 'center', color: 'var(--mu,#a493c9)' }}>Loading your pathway answers...</div>
+        ) : workforcePicks.length === 0 ? (
+          <div style={{ padding: 30, textAlign: 'center', color: 'var(--mu,#a493c9)', background: 'rgba(0,0,0,.2)', border: '2px dashed var(--ln,#3d2668)', borderRadius: 12 }}>
+            No pathway answers yet. Complete your journey in{' '}
+            <Link href="/hub/workforce-pathways" style={{ color: 'var(--s,#45d6ff)', textDecoration: 'underline' }}>Workforce Pathways</Link>!
+          </div>
+        ) : (
+          <div>
+            {PATHWAYS.map((pathway: any) => {
+              const pathwayPicks = workforcePicks.filter((p: any) => p.pathway_id === pathway.id)
+              if (pathwayPicks.length === 0) return null
+              
+              const pathwayColor = pathway.id === 'creator' ? '#ff6a2e' : '#43e97b'
+              
+              return (
+                <div key={pathway.id} style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: `${pathwayColor}15`, borderLeft: `4px solid ${pathwayColor}`, borderRadius: '0 8px 8px 0' }}>
+                    <span className="font-pixel" style={{ fontSize: 9, letterSpacing: 1, color: pathwayColor, fontWeight: 700 }}>{pathway.name.toUpperCase()}</span>
+                    <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>· {pathwayPicks.length} answers</span>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 12 }}>
+                    {pathway.stops.map((stop: any) => {
+                      const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id)
+                      if (!pick) return null
+                      
+                      const quizData = (QUIZZES as any)[pathway.id]?.[stop.id]
+                      const answerLabel = getAnswerLabel(pick, pathway.id, stop.id)
+                      
+                      return (
+                        <div key={stop.id} style={{ background: 'rgba(0,0,0,.25)', border: '2px solid var(--ln,#3d2668)', borderRadius: 10, padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                            <span className="font-pixel" style={{ fontSize: 8, letterSpacing: 1, background: pathwayColor, color: '#12081e', padding: '3px 8px', borderRadius: 20 }}>{stop.name.toUpperCase()}</span>
+                            {stop.optional && (
+                              <span className="font-pixel" style={{ fontSize: 7, letterSpacing: 0.5, background: 'rgba(255,255,255,.1)', color: 'var(--mu,#a493c9)', padding: '2px 6px', borderRadius: 10 }}>OPTIONAL</span>
+                            )}
+                          </div>
+                          
+                          <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginBottom: 8, lineHeight: 1.4 }}>
+                            {quizData?.prompt || 'Your answer'}
+                          </div>
+                          
+                          <div style={{ fontWeight: 700, color: 'var(--tx,#efe6ff)', fontSize: 15, lineHeight: 1.3, padding: '10px 12px', background: 'rgba(255,255,255,.05)', borderRadius: 8, border: '1px solid var(--ln,#3d2668)' }}>
+                            {answerLabel}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Section E: Certificate ── */}
+      <div
+        style={{
+          border: '2px solid var(--ok,#74f0a0)',
+          borderRadius: 12,
+          background: 'linear-gradient(180deg,rgba(116,240,160,.08),var(--pn,#241542))',
+          padding: 'clamp(14px,2vw,20px)',
+          marginTop: 18,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+          <div className="font-pixel" style={{ fontSize: 11, color: 'var(--ok,#74f0a0)' }}>
+            ◈ CERTIFICATE
+          </div>
+          <span style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>{chiaPct}% complete</span>
+        </div>
+
+        {chiaPct >= 100 ? (
+          <div style={{ padding: 20, background: 'rgba(116,240,160,.1)', border: '2px solid var(--ok,#74f0a0)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg,#2E5534,#4a8a5a)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📜</div>
+              <div>
+                <div style={{ fontWeight: 700, color: 'var(--ok,#74f0a0)', fontSize: 17 }}>Congratulations!</div>
+                <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>
+                  You&apos;ve completed {cohortName} and earned your certificate.
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowCertPreview(true)}
+                className="font-pixel"
+                style={{ background: 'transparent', color: 'var(--ok,#74f0a0)', border: '2px solid var(--ok,#74f0a0)', borderRadius: 8, padding: '11px 20px', cursor: 'pointer', fontSize: 10, letterSpacing: 0.5 }}
+              >
+                ◆ PREVIEW CERTIFICATE
+              </button>
+              <button
+                onClick={handleDownloadCertificate}
+                disabled={isDownloadingPDF}
+                className="font-pixel"
+                style={{ background: isDownloadingPDF ? '#4a6a5a' : 'var(--ok,#74f0a0)', color: '#12081e', border: 'none', borderRadius: 8, padding: '11px 20px', cursor: isDownloadingPDF ? 'not-allowed' : 'pointer', fontSize: 10, letterSpacing: 0.5, opacity: isDownloadingPDF ? 0.7 : 1 }}
+              >
+                {isDownloadingPDF ? '⏳ GENERATING...' : '⛊ DOWNLOAD CERTIFICATE'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: 30, textAlign: 'center', background: 'rgba(0,0,0,.2)', border: '2px dashed var(--ln,#3d2668)', borderRadius: 12 }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🎯</div>
+            <div style={{ fontWeight: 600, color: 'var(--tx,#efe6ff)', marginBottom: 8 }}>Certificate Locked</div>
+            <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', lineHeight: 1.5 }}>
+              Reach 100% chia progress to unlock your certificate.
+              <br />
+              <span style={{ fontSize: 12, opacity: 0.8 }}>Current progress: {chiaPct}%</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Certificate Preview Modal */}
+      {showCertPreview && (
+        <div 
+          onClick={() => setShowCertPreview(false)} 
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(8,4,16,.92)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(12px,3vw,40px)', overflow: 'auto' }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()} 
+            style={{ width: '100%', maxWidth: 760, maxHeight: '94vh', overflow: 'auto', background: '#f7f1e0', border: '3px solid #b58a2e', borderRadius: 5, boxShadow: '0 0 0 9px #f8f0da, 0 0 0 11px #c9a24a, 0 30px 70px rgba(0,0,0,.6)', position: 'relative', color: '#3a2c14', fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            <button 
+              onClick={() => setShowCertPreview(false)} 
+              title="Close certificate" 
+              className="font-pixel"
+              style={{ position: 'absolute', top: 10, right: 10, fontSize: 9, color: '#8a6a2a', background: 'rgba(0,0,0,.05)', border: '2px solid #c9a24a', borderRadius: 4, padding: '7px 9px', cursor: 'pointer', zIndex: 3 }}
+            >
+              ✕
+            </button>
+            <div style={{ padding: 'clamp(26px,4.5vw,48px) clamp(22px,4.5vw,56px)', textAlign: 'center', position: 'relative' }}>
+              <div className="font-pixel" style={{ fontSize: 8, letterSpacing: 3, color: '#a07d2c' }}>✦ {certSettings.certOrg.toUpperCase()} ✦</div>
+              <div style={{ fontSize: 'clamp(11px,1.5vw,13px)', letterSpacing: 5, color: '#8a6a2a', marginTop: 9, textTransform: 'uppercase' }}>Pilot Workshops · The Steward&apos;s Journey</div>
+              <div style={{ height: 2, width: 130, background: '#c9a24a', margin: '18px auto' }}></div>
+              <div style={{ fontSize: 'clamp(25px,4.8vw,42px)', fontWeight: 700, letterSpacing: 2, color: '#241a08' }}>Certificate of Completion</div>
+              <div style={{ fontSize: 'clamp(14px,1.8vw,17px)', color: '#5a4626', marginTop: 22, fontStyle: 'italic' }}>This certifies that</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 15, margin: '12px 0 6px', flexWrap: 'wrap' }}>
+                <PixelSprite characterKey={character.character_key} accent={character.accent_color || '#ffd23f'} size={48} opts={{ gear: (character as any).gear || 'none', outfit: (character as any).outfit || 'plain' }} />
+                <div style={{ fontSize: 'clamp(23px,4.2vw,36px)', fontWeight: 700, color: '#1a1206', borderBottom: '2px solid #c9a24a', padding: '0 18px 6px' }}>{character.player_name || character.character_key.toUpperCase()}</div>
+              </div>
+              <div style={{ fontSize: 13, color: '#8a6a2a', letterSpacing: 2, marginBottom: 22, textTransform: 'uppercase' }}>Steward · Certified Steward</div>
+              
+              <div style={{ fontSize: 'clamp(15px,1.9vw,17px)', lineHeight: 1.75, color: '#3a2c14', maxWidth: 580, margin: '0 auto' }}>
+                {certSettings.certMessage || 'has journeyed the full three-day intensive of The Steward\'s Journey, practicing Active Production over Passive Consumption and banking three original deliverables into the StewardWorks portfolio. In recognition of principled, human-in-the-loop craft with artificial intelligence — and of 12 Steward Principles carried forward — this steward is hereby conferred the standing of Certified Steward.'}
+              </div>
+
+              {/* Deliverables of Record */}
+              <div style={{ borderTop: '2px solid #dcc890', borderBottom: '2px solid #dcc890', margin: '26px auto', padding: '18px 0', maxWidth: 580, textAlign: 'left' }}>
+                <div className="font-pixel" style={{ fontSize: 8, color: '#a07d2c', letterSpacing: 2, textAlign: 'center', marginBottom: 15 }}>◆ DELIVERABLES OF RECORD ◆</div>
+                {days.slice(0, 3).map((day, idx) => {
+                  const progress = progressRows.find(p => p.workshop_day_id === day.id)
+                  return (
+                    <div key={day.id} style={{ display: 'flex', gap: 14, alignItems: 'baseline', marginBottom: 11 }}>
+                      <div style={{ flex: 'none', fontWeight: 700, color: '#8a6a2a', minWidth: 52 }}>D{idx + 1}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 16, color: '#241a08', fontWeight: 700 }}>{(day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`}</div>
+                        {(progress as any)?.deliverable_url && <div style={{ fontSize: 13, color: '#6a542c', wordBreak: 'break-all', fontFamily: "'Courier New',monospace" }}>{(progress as any).deliverable_url}</div>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Signatures Section */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22, justifyContent: 'space-between', alignItems: 'flex-end', maxWidth: 580, margin: '30px auto 0' }}>
+                <div style={{ flex: 1, minWidth: 160, textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Segoe Script','Snell Roundhand','Brush Script MT',cursive", fontSize: 27, color: '#1a1206', lineHeight: 1 }}>{certSettings.certFacilitator}</div>
+                  <div style={{ borderTop: '2px solid #3a2c14', marginTop: 5, paddingTop: 6, fontSize: 11, letterSpacing: 1, color: '#5a4626', textTransform: 'uppercase' }}>{certSettings.certFacTitle} · {certSettings.certOrg}</div>
+                </div>
+                <div style={{ flex: 'none', textAlign: 'center' }}>
+                  <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'radial-gradient(circle at 38% 30%,#f6dd8c 0%,#e6bd54 46%,#c69528 78%,#9c7015 100%)', border: '3px solid #8a6a2a', boxShadow: '0 3px 10px rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,255,255,.4),inset 0 -6px 14px rgba(120,84,18,.5)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                    <img src="/images/cert/steward-seal.png" alt="Seal" style={{ width: '85%', height: '85%', objectFit: 'contain', opacity: 0.9 }} />
+                  </div>
+                  <div className="font-pixel" style={{ fontSize: 6, color: '#8a6a2a', marginTop: 7, letterSpacing: 2 }}>OFFICIAL SEAL</div>
+                </div>
+                <div style={{ flex: 1, minWidth: 160, textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Segoe Script','Snell Roundhand','Brush Script MT',cursive", fontSize: 27, color: '#1a1206', lineHeight: 1 }}>{character.player_name || character.character_key.toUpperCase()}</div>
+                  <div style={{ borderTop: '2px solid #3a2c14', marginTop: 5, paddingTop: 6, fontSize: 11, letterSpacing: 1, color: '#5a4626' }}>THE STEWARD</div>
+                </div>
+              </div>
+
+              {/* Fiscal Sponsor */}
+              <div style={{ maxWidth: 300, margin: '24px auto 0', textAlign: 'center' }}>
+                <div style={{ fontFamily: "'Segoe Script','Snell Roundhand','Brush Script MT',cursive", fontSize: 27, color: '#1a1206', lineHeight: 1 }}>{certSettings.certSponsor}</div>
+                <div style={{ borderTop: '2px solid #3a2c14', marginTop: 5, paddingTop: 6, fontSize: 11, letterSpacing: 1, color: '#5a4626', textTransform: 'uppercase' }}>FISCAL SPONSOR · {certSettings.certSponsorOrg}</div>
+              </div>
+
+              {/* Issue Info */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', maxWidth: 580, margin: '26px auto 0', fontSize: 11, color: '#8a6a2a', letterSpacing: 1, fontFamily: "'Courier New',monospace" }}>
+                <div>ISSUED {new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+                <div>CERTIFICATE NO. SW-{character.character_key.toUpperCase()}-{Date.now().toString().slice(-4)}</div>
+              </div>
+
+              {/* Funding Logos */}
+              <div style={{ borderTop: '1px solid rgba(138,106,42,.3)', margin: '24px auto 0', paddingTop: 20, paddingBottom: 0, maxWidth: 580, textAlign: 'center' }}>
+                <div className="font-pixel" style={{ fontSize: 8, color: '#a07d2c', letterSpacing: 2, marginBottom: 12 }}>WITH FUNDING FROM JOBS FIRST THROUGH SDSU</div>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 40, marginBottom: 0 }}>
+                  <img src="/images/cert/logo-ca-jobs-first.png" alt="CA Jobs First" style={{ height: 38, objectFit: 'contain' }} />
+                  <img src="/images/cert/logo-sdsu-rf.png" alt="SDSU Research Foundation" style={{ height: 38, objectFit: 'contain' }} />
+                  <img src="/images/cert/logo-becoming.webp" alt="The Becoming Project" style={{ height: 38, objectFit: 'contain' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+
+  // Certificate download handler
+  async function handleDownloadCertificate() {
+    if (chiaPct < 100) return
+    
+    setIsDownloadingPDF(true)
+    try {
+      const playerName = character.player_name || character.character_key.toUpperCase()
+      const characterKey = character.character_key
+      const accent = character.accent_color || '#ffd23f'
+      
+      // Build character sprite URI
+      let characterSpriteUri = ''
+      try {
+        const { buildSpriteUri } = await import('@/components/workshops/journey/PixelSprite')
+        characterSpriteUri = buildSpriteUri(
+          characterKey,
+          accent,
+          {
+            gear: (character as any).gear || 'none',
+            outfit: (character as any).outfit || 'plain'
+          }
+        )
+      } catch (e) {
+        console.error('Failed to build sprite URI:', e)
+      }
+
+      // Build deliverables data
+      const deliverables = days.slice(0, 3).map((day, idx) => {
+        const progress = progressRows.find(p => p.workshop_day_id === day.id)
+        return {
+          title: (day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`,
+          url: (progress as any)?.deliverable_url || ''
+        }
+      })
+
+      // Call the certificate PDF API
+      const response = await fetch('/api/certificate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerName,
+          characterKey,
+          cohortName,
+          certOrg: certSettings.certOrg,
+          certFacilitator: certSettings.certFacilitator,
+          certFacTitle: certSettings.certFacTitle,
+          certSponsor: certSettings.certSponsor,
+          certSponsorOrg: certSettings.certSponsorOrg,
+          certMessage: certSettings.certMessage,
+          deliverables: deliverables.length > 0 ? deliverables : [
+            { title: 'DAY 1 DELIVERABLE', url: '' },
+            { title: 'DAY 2 DELIVERABLE', url: '' },
+            { title: 'DAY 3 DELIVERABLE', url: '' }
+          ],
+          characterSpriteUri
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF')
+      }
+
+      // Download the PDF
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `certificate-${cohortName.replace(/\s+/g, '-')}-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error downloading certificate:', error)
+      alert('Failed to download certificate. Please try again.')
+    } finally {
+      setIsDownloadingPDF(false)
+    }
+  }
 }

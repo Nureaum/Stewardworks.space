@@ -1,16 +1,22 @@
 import ClientProfile from './ClientProfile';
 import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/utils/supabase/server';
+import { calculateGlobalEngagement, calculateCohortDeliverables } from '@/lib/progress';
+import type { WorkshopEngagement, WorkshopProgress, WorkshopCharacter } from '@/types/workshops';
 
 export const dynamic = 'force-dynamic';
 
-// Engagement percentage values (same as Portfolio component)
-const ENGPCT: Record<string, number> = {
-  bookmark: 1,
-  note: 1,
-  generation: 2,
-  prompt: 3,
-};
+// Type for cohort progress data
+export interface CohortProgressData {
+  cohortId: string;
+  cohortName: string;
+  chiaProgress: number;
+  deliverableProgress: number;
+  engagementProgress: number;
+  isEligibleForCertificate: boolean;
+  workshopDays?: any[];  // Days for this cohort (needed for certificate)
+  progressRows?: any[];  // Progress for this cohort (needed for certificate)
+}
 
 export default async function MyProfilePage() {
   const { userId } = await auth();
@@ -21,117 +27,200 @@ export default async function MyProfilePage() {
   let progressRows: any[] = [];
   let submissions: any[] = [];
   let activeCohortId: string | null = null;
+  let allCohortProgress: CohortProgressData[] = [];
+  let workshopCharacter: WorkshopCharacter | null = null;
 
   if (userId) {
     const supabase = createServerSupabaseClient();
-    const { data } = await supabase
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('*')
       .eq('clerk_user_id', userId)
       .single();
       
-    if (data) {
-      initialProfile = data;
+    if (profileData) {
+      initialProfile = profileData;
+      const profileId = profileData.id;
 
-      // Fetch workshop progress data to calculate chia growth (EXACT same as Portfolio)
       try {
-        // Get active cohort (most recent open/completed)
-        const { data: activeCohort } = await supabase
-          .from('cohorts')
-          .select('id')
-          .in('status', ['open', 'completed'])
-          .order('start_date', { ascending: false })
-          .limit(1)
-          .single();
+        // ============================================
+        // STEP 1: Get all cohorts user is registered in
+        // ============================================
+        const { data: registrations, error: regError } = await supabase
+          .from('workshop_registrations')
+          .select(`
+            cohort_id,
+            cohorts!inner (
+              id,
+              name,
+              start_date,
+              status
+            )
+          `)
+          .eq('profile_id', profileId)
+          .eq('status', 'registered');
 
-        if (activeCohort) {
-          activeCohortId = activeCohort.id;
-          
-          // Get workshop days for this cohort with full info
-          const { data: days } = await supabase
-            .from('workshop_days')
-            .select('id, day_number, title, deliverable_title')
-            .eq('cohort_id', activeCohort.id)
-            .order('day_number');
-
-          workshopDays = days || [];
-          const dayIds = workshopDays.map(d => d.id);
-
-          // Get progress rows - query ALL progress rows for this profile in this cohort's days
-          let progData: any[] = [];
-          if (dayIds.length > 0) {
-            const { data: pd, error: pdError } = await supabase
-              .from('workshop_progress')
-              .select('*')
-              .eq('profile_id', data.id)
-              .in('workshop_day_id', dayIds);
-            
-            if (pdError) {
-              console.error('[Profile Page] Error fetching progress rows:', pdError);
-            }
-            progData = pd || [];
-          }
-          
-          progressRows = progData;
-
-          // Get user's deliverable submissions
-          let submissionsData: any[] = [];
-          if (dayIds.length > 0) {
-            const { data: sd } = await supabase
-              .from('workshop_deliverable_submissions')
-              .select('*')
-              .eq('profile_id', data.id)
-              .in('workshop_day_id', dayIds)
-              .order('submitted_at', { ascending: false });
-            submissionsData = sd || [];
-          }
-          
-          submissions = submissionsData;
-
-          // Get engagements for this cohort
-          const { data: engagements, error: engError } = await supabase
-            .from('workshop_engagement')
-            .select('*')
-            .eq('cohort_id', activeCohort.id)
-            .eq('profile_id', data.id);
-          
-          if (engError) {
-            console.error('[Profile Page] Error fetching engagements:', engError);
-          }
-
-          // Calculate chia progress EXACTLY as Portfolio component does
-          const approvedDeliverables = progressRows.filter(
-            (p: any) => p.deliverable_status === 'approved'
-          ).length;
-          
-          const delivPct = Math.min(approvedDeliverables * 25, 75);
-          
-          const engPct = Math.min(
-            (engagements || [])
-              .filter((e: any) => e.status === 'approved')
-              .reduce((a: number, e: any) => a + (ENGPCT[e.kind] || 0), 0),
-            25,
-          );
-          
-          chiaProgress = Math.min(delivPct + engPct, 100);
-          engagementProgress = engPct;
-          
-          // Debug logging
-          console.log('[Profile Page] === CHIA PROGRESS DEBUG ===');
-          console.log('[Profile Page] Cohort:', activeCohort.id);
-          console.log('[Profile Page] Profile:', data.id);
-          console.log('[Profile Page] Days:', dayIds.length);
-          console.log('[Profile Page] Progress rows:', progressRows.length);
-          console.log('[Profile Page] Progress statuses:', progressRows.map((p: any) => p.deliverable_status));
-          console.log('[Profile Page] Approved deliverables:', approvedDeliverables);
-          console.log('[Profile Page] delivPct:', delivPct);
-          console.log('[Profile Page] Engagements:', (engagements || []).length);
-          console.log('[Profile Page] engPct:', engPct);
-          console.log('[Profile Page] TOTAL chiaProgress:', chiaProgress);
-          console.log('[Profile Page] ==============================');
+        if (regError) {
+          console.error('[Profile] Registration query error:', regError);
         }
+
+        console.log('[Profile] ========== DEBUG START ==========');
+        console.log('[Profile] User ID:', userId);
+        console.log('[Profile] Profile ID:', profileId);
+        console.log('[Profile] Registrations found:', registrations?.length || 0);
+
+        // ============================================
+        // STEP 2: Get ALL engagements globally
+        // ============================================
+        const { data: allEngagements } = await supabase
+          .from('workshop_engagement')
+          .select('*')
+          .eq('profile_id', profileId);
+
+        const engagementItems = (allEngagements || []) as WorkshopEngagement[];
+        const approvedEngagements = engagementItems.filter(e => e.status === 'approved');
+        const globalEngPct = calculateGlobalEngagement(approvedEngagements);
+        engagementProgress = globalEngPct;
+
+        console.log('[Profile] Total engagements:', engagementItems.length);
+        console.log('[Profile] Approved engagements:', approvedEngagements.length);
+        console.log('[Profile] Global engagement %:', globalEngPct);
+
+        // ============================================
+        // STEP 3: Process each cohort
+        // ============================================
+        if (registrations && registrations.length > 0) {
+          // Sort by start_date descending (most recent first)
+          const sortedRegs = [...registrations].sort((a, b) => {
+            const dateA = new Date((a.cohorts as any).start_date).getTime();
+            const dateB = new Date((b.cohorts as any).start_date).getTime();
+            return dateB - dateA;
+          });
+
+          for (const reg of sortedRegs) {
+            const cohortData = reg.cohorts as any;
+            const cohortId = reg.cohort_id;
+            const cohortName = cohortData.name;
+
+            console.log(`[Profile] --- Cohort: ${cohortName} (${cohortId}) ---`);
+
+            // Get workshop_days for this cohort
+            const { data: daysData, error: daysError } = await supabase
+              .from('workshop_days')
+              .select('id')
+              .eq('cohort_id', cohortId);
+
+            if (daysError) {
+              console.error(`[Profile] Days query error for ${cohortName}:`, daysError);
+            }
+
+            const dayIds = (daysData || []).map((d: any) => d.id);
+            console.log(`[Profile]   Workshop days: ${dayIds.length}`, dayIds);
+
+            // Get progress rows for these days
+            let cohortProgressRows: WorkshopProgress[] = [];
+            if (dayIds.length > 0) {
+              const { data: progressData, error: progressError } = await supabase
+                .from('workshop_progress')
+                .select('*')
+                .eq('profile_id', profileId)
+                .in('workshop_day_id', dayIds);
+
+              if (progressError) {
+                console.error(`[Profile] Progress query error for ${cohortName}:`, progressError);
+              }
+
+              cohortProgressRows = (progressData || []) as WorkshopProgress[];
+              console.log(`[Profile]   Progress rows: ${cohortProgressRows.length}`);
+              
+              // Log each progress row
+              cohortProgressRows.forEach((p, i) => {
+                console.log(`[Profile]     Row ${i + 1}: day_id=${p.workshop_day_id}, status=${p.deliverable_status}`);
+              });
+            }
+
+            // Calculate deliverable percentage
+            const delivPct = calculateCohortDeliverables(cohortProgressRows);
+            const totalProgress = Math.min(delivPct + globalEngPct, 100);
+
+            console.log(`[Profile]   Deliverable %: ${delivPct}`);
+            console.log(`[Profile]   Total %: ${totalProgress}`);
+
+            // Fetch full workshop days data for this cohort (needed for certificate)
+            const { data: cohortDaysData } = await supabase
+              .from('workshop_days')
+              .select('id, day_number, title, deliverable_title')
+              .eq('cohort_id', cohortId)
+              .order('day_number');
+
+            allCohortProgress.push({
+              cohortId,
+              cohortName,
+              chiaProgress: totalProgress,
+              deliverableProgress: delivPct,
+              engagementProgress: globalEngPct,
+              isEligibleForCertificate: totalProgress >= 100,
+              workshopDays: cohortDaysData || [],
+              progressRows: cohortProgressRows,
+            });
+
+            // Set first cohort as active (for backwards compatibility)
+            if (!activeCohortId) {
+              activeCohortId = cohortId;
+              chiaProgress = totalProgress;
+              workshopDays = cohortDaysData || [];
+              progressRows = cohortProgressRows;
+
+              // Get submissions
+              if (dayIds.length > 0) {
+                const { data: subsData } = await supabase
+                  .from('workshop_deliverable_submissions')
+                  .select('*')
+                  .eq('profile_id', profileId)
+                  .in('workshop_day_id', dayIds)
+                  .order('submitted_at', { ascending: false });
+                submissions = subsData || [];
+              }
+            }
+          }
+        }
+
+        // Fetch character data for the first eligible cohort (or active cohort)
+        // The character is per-cohort, so we need to get it from the right cohort
+        const eligibleCohorts = allCohortProgress.filter(c => c.isEligibleForCertificate);
+        const characterCohortId = eligibleCohorts.length > 0 
+          ? eligibleCohorts[0].cohortId 
+          : activeCohortId;
+        
+        if (characterCohortId) {
+          const { data: characterData } = await supabase
+            .from('workshop_characters')
+            .select('*')
+            .eq('cohort_id', characterCohortId)
+            .eq('profile_id', profileId)
+            .maybeSingle();
+          
+          if (characterData) {
+            workshopCharacter = characterData as WorkshopCharacter;
+          }
+        }
+
+        console.log('[Profile] ========== FINAL RESULTS ==========');
+        console.log('[Profile] All cohorts:', allCohortProgress.map(c => ({
+          name: c.cohortName,
+          deliv: c.deliverableProgress,
+          eng: c.engagementProgress,
+          total: c.chiaProgress,
+          eligible: c.isEligibleForCertificate,
+          daysCount: c.workshopDays?.length || 0,
+          progressCount: c.progressRows?.length || 0,
+        })));
+        console.log('[Profile] Character:', workshopCharacter?.character_key || 'none');
+        console.log('[Profile] workshopDays (props):', workshopDays?.length || 0);
+        console.log('[Profile] ====================================');
+
       } catch (error) {
-        console.error('Error fetching workshop progress:', error);
+        console.error('[Profile] Error:', error);
       }
     }
   }
@@ -145,6 +234,8 @@ export default async function MyProfilePage() {
       progressRows={progressRows}
       submissions={submissions}
       activeCohortId={activeCohortId}
+      allCohortProgress={allCohortProgress}
+      workshopCharacter={workshopCharacter}
     />
   );
 }

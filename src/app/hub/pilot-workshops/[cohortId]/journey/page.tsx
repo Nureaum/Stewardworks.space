@@ -113,11 +113,11 @@ export default async function JourneyPage({ params, searchParams }: Props) {
         .order('submitted_at', { ascending: false })
     : { data: [] }
 
-  // Get user's engagements
+  // Get user's engagements - GLOBAL (not filtered by cohort)
+  // Engagement contributes 25% to progress and is shared across all cohorts
   const { data: initialEngagements } = await supabase
     .from('workshop_engagement')
     .select('*')
-    .eq('cohort_id', cohortId)
     .eq('profile_id', profile.id)
 
   // Get showcase items

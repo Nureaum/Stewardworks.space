@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useClerk, useUser } from '@clerk/nextjs';
 import CozyHubRoom from '@/components/hub/CozyHubRoom';
+import type { CohortProgress, ProgressAPIResponse } from '@/app/api/workshops/progress/route';
 
 export default function HubPage() {
   const { signOut } = useClerk();
@@ -11,7 +12,42 @@ export default function HubPage() {
   const [isGuest, setIsGuest] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
+  
+  // Multi-cohort progress state (Validates: Requirements 4.1, 4.4)
   const [chiaProgress, setChiaProgress] = useState(0);
+  const [cohortProgress, setCohortProgress] = useState<CohortProgress[]>([]);
+  const [selectedCohortId, setSelectedCohortId] = useState<string>('');
+  const [globalEngagement, setGlobalEngagement] = useState(0);
+
+  // Fetch progress data for a specific cohort (or default to most recent)
+  const fetchProgressData = useCallback(async (cohortId?: string) => {
+    try {
+      const url = cohortId 
+        ? `/api/workshops/progress?cohort_id=${cohortId}`
+        : '/api/workshops/progress';
+      
+      const progressRes = await fetch(url);
+      if (progressRes.ok) {
+        const progressData: ProgressAPIResponse = await progressRes.json();
+        
+        // Store multi-cohort data from enhanced API response
+        setCohortProgress(progressData.cohortProgress);
+        setSelectedCohortId(progressData.selectedCohortId);
+        setGlobalEngagement(progressData.globalEngagement.percentage);
+        
+        // Use totalProgress from API (replaces manual chia calculation)
+        setChiaProgress(progressData.totalProgress);
+      }
+    } catch (error) {
+      console.error('Error fetching progress data:', error);
+    }
+  }, []);
+
+  // Callback for cohort change - re-fetches with new cohort_id parameter
+  const handleCohortChange = useCallback(async (newCohortId: string) => {
+    setSelectedCohortId(newCohortId);
+    await fetchProgressData(newCohortId);
+  }, [fetchProgressData]);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -36,36 +72,8 @@ export default function HubPage() {
           }
         }
 
-        // Fetch workshop progress to calculate chia growth
-        const progressRes = await fetch('/api/workshops/progress');
-        if (progressRes.ok) {
-          const progressData = await progressRes.json();
-          
-          // Calculate chia progress EXACTLY as Portfolio component does
-          const approvedDeliverables = progressData.progressRows?.filter(
-            (p: any) => p.deliverable_status === 'approved'
-          ).length || 0;
-          
-          const delivPct = Math.min(approvedDeliverables * 25, 75);
-          
-          // Engagement calculation - EXACT same values as Portfolio
-          const ENGPCT: Record<string, number> = {
-            bookmark: 1,
-            note: 1,
-            generation: 2,
-            prompt: 3,
-          };
-          
-          const engPct = Math.min(
-            (progressData.engagements || [])
-              .filter((e: any) => e.status === 'approved')
-              .reduce((a: number, e: any) => a + (ENGPCT[e.kind] || 0), 0),
-            25,
-          );
-          
-          const totalProgress = Math.min(delivPct + engPct, 100);
-          setChiaProgress(totalProgress);
-        }
+        // Fetch workshop progress using enhanced multi-cohort API
+        await fetchProgressData();
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {
@@ -73,7 +81,7 @@ export default function HubPage() {
       }
     }
     fetchProfile();
-  }, [isLoaded, user]);
+  }, [isLoaded, user, fetchProgressData]);
 
   const handleLogout = async () => {
     try {
@@ -100,6 +108,11 @@ export default function HubPage() {
       avatarUrl={avatarUrl} 
       onLogout={handleLogout}
       initialChiaProgress={chiaProgress}
+      // Multi-cohort support props
+      cohortProgress={cohortProgress}
+      globalEngagement={globalEngagement}
+      selectedCohortId={selectedCohortId}
+      onCohortChange={handleCohortChange}
     />
   );
 }

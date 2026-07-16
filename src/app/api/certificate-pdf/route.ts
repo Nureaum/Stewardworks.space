@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       deviceScaleFactor: 2
     })
 
-    // Build the certificate HTML
+    // Build the certificate HTML - Matching the preview modal exactly
     const certificateHTML = `
       <!DOCTYPE html>
       <html>
@@ -62,25 +62,19 @@ export async function POST(request: NextRequest) {
               padding: 0;
               margin: 0;
               width: 210mm;
-              height: 297mm;
+              min-height: 297mm;
             }
             
             .certificate-container {
               width: 100%;
-              height: 100%;
-              max-width: none;
-              margin: 0;
+              min-height: 297mm;
               background: #f7f1e0;
               border: 3px solid #b58a2e;
               border-radius: 5px;
               box-shadow: 0 0 0 9px #f8f0da, 0 0 0 11px #c9a24a;
               color: #3a2c14;
               position: relative;
-              page-break-inside: avoid;
-              padding: 36px 52px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
+              padding: 48px 56px;
             }
             
             .certificate-content {
@@ -92,18 +86,6 @@ export async function POST(request: NextRequest) {
             .font-pixel {
               font-family: 'Courier Prime', 'Courier New', monospace;
               font-weight: bold;
-            }
-            
-            .cert-header {
-              margin-bottom: 12px;
-            }
-            
-            .cert-body {
-              margin-bottom: 22px;
-            }
-            
-            .cert-footer {
-              padding-top: 0;
             }
             
             .org-header {
@@ -128,16 +110,16 @@ export async function POST(request: NextRequest) {
             }
             
             .cert-title {
-              font-size: 36px;
+              font-size: 42px;
               font-weight: 700;
               letter-spacing: 2px;
               color: #241a08;
             }
             
             .certifies-text {
-              font-size: 15px;
+              font-size: 17px;
               color: #5a4626;
-              margin-top: 14px;
+              margin-top: 22px;
               font-style: italic;
             }
             
@@ -146,12 +128,12 @@ export async function POST(request: NextRequest) {
               align-items: center;
               justify-content: center;
               gap: 15px;
-              margin: 8px 0 4px;
+              margin: 12px 0 6px;
               flex-wrap: wrap;
             }
             
             .student-name {
-              font-size: 32px;
+              font-size: 36px;
               font-weight: 700;
               color: #1a1206;
               border-bottom: 2px solid #c9a24a;
@@ -162,24 +144,23 @@ export async function POST(request: NextRequest) {
               font-size: 13px;
               color: #8a6a2a;
               letter-spacing: 2px;
-              margin-bottom: 16px;
+              margin-bottom: 22px;
               text-transform: uppercase;
             }
             
             .cert-message {
-              font-size: 15px;
-              line-height: 1.6;
+              font-size: 17px;
+              line-height: 1.75;
               color: #3a2c14;
               max-width: 580px;
-              margin: 0 auto 12px;
-              white-space: pre-wrap;
+              margin: 0 auto;
             }
             
             .deliverables-section {
               border-top: 2px solid #dcc890;
               border-bottom: 2px solid #dcc890;
-              margin: 14px auto 20px;
-              padding: 12px 0;
+              margin: 26px auto;
+              padding: 18px 0;
               max-width: 580px;
               text-align: left;
             }
@@ -189,14 +170,14 @@ export async function POST(request: NextRequest) {
               color: #a07d2c;
               letter-spacing: 2px;
               text-align: center;
-              margin-bottom: 10px;
+              margin-bottom: 15px;
             }
             
             .deliverable-row {
               display: flex;
               gap: 14px;
               align-items: baseline;
-              margin-bottom: 9px;
+              margin-bottom: 11px;
             }
             
             .deliverable-label {
@@ -227,12 +208,11 @@ export async function POST(request: NextRequest) {
             .signatures-section {
               display: flex;
               flex-wrap: wrap;
-              gap: 18px;
+              gap: 22px;
               justify-content: space-between;
               align-items: flex-end;
               max-width: 580px;
-              margin: 0 auto 12px;
-              page-break-inside: avoid;
+              margin: 30px auto 0;
             }
             
             .signature-box {
@@ -264,8 +244,8 @@ export async function POST(request: NextRequest) {
             }
             
             .seal {
-              width: 76px;
-              height: 76px;
+              width: 88px;
+              height: 88px;
               border-radius: 50%;
               background: radial-gradient(circle at 38% 30%, #f6dd8c 0%, #e6bd54 46%, #c69528 78%, #9c7015 100%);
               border: 3px solid #8a6a2a;
@@ -287,15 +267,14 @@ export async function POST(request: NextRequest) {
             .seal-label {
               font-size: 6px;
               color: #8a6a2a;
-              margin-top: 5px;
+              margin-top: 7px;
               letter-spacing: 2px;
             }
             
             .sponsor-section {
               max-width: 300px;
-              margin: 10px auto 0;
+              margin: 24px auto 0;
               text-align: center;
-              page-break-inside: avoid;
             }
             
             .metadata-footer {
@@ -304,7 +283,7 @@ export async function POST(request: NextRequest) {
               gap: 8px;
               justify-content: space-between;
               max-width: 580px;
-              margin: 12px auto 0;
+              margin: 26px auto 0;
               font-size: 11px;
               color: #8a6a2a;
               letter-spacing: 1px;
@@ -313,32 +292,29 @@ export async function POST(request: NextRequest) {
             
             .funding-section {
               border-top: 1px solid rgba(138,106,42,.3);
-              margin: 10px auto 0;
-              padding-top: 12px;
+              margin: 24px auto 0;
+              padding-top: 20px;
               max-width: 580px;
               text-align: center;
-              page-break-inside: avoid;
             }
             
             .funding-header {
-              font-size: 7px;
+              font-size: 8px;
               color: #a07d2c;
               letter-spacing: 2px;
-              margin-bottom: 8px;
+              margin-bottom: 12px;
             }
             
             .funding-logos {
               display: flex;
               justify-content: center;
               align-items: center;
-              gap: 32px;
-              flex-wrap: wrap;
+              gap: 40px;
             }
             
             .funding-logos img {
-              height: 42px;
+              height: 38px;
               object-fit: contain;
-              max-width: 140px;
             }
           </style>
         </head>
@@ -426,8 +402,14 @@ export async function POST(request: NextRequest) {
 
     // Set the HTML content
     await page.setContent(certificateHTML, {
-      waitUntil: 'domcontentloaded'
+      waitUntil: 'load'
     })
+
+    // Wait for fonts to load (Google Fonts)
+    await page.waitForFunction(() => document.fonts.ready)
+    
+    // Small additional delay for font rendering
+    await new Promise(resolve => setTimeout(resolve, 300))
 
     // Generate PDF
     const pdf = await page.pdf({
