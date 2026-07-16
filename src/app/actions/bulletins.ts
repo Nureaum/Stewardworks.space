@@ -27,6 +27,38 @@ export async function createAnnouncement(title: string, body: string) {
   return data;
 }
 
+export async function updateAnnouncement(id: string, title: string, body: string) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase
+    .from('hub_announcements')
+    .update({ title, body })
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/hub');
+}
+
+export async function deleteAnnouncement(id: string) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase
+    .from('hub_announcements')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/hub');
+}
+
 export async function getAnnouncements() {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase

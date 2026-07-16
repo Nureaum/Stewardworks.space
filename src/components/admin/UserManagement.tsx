@@ -21,6 +21,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
   const { setIsLoading } = useAdminLoading();
   const [users, setUsers] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -155,7 +156,16 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
     const query = searchQuery.toLowerCase();
     const name = (u.full_name || `${u.first_name || ''} ${u.last_name || ''}`).toLowerCase();
     const email = (u.email || '').toLowerCase();
-    return name.includes(query) || email.includes(query);
+    const matchesSearch = name.includes(query) || email.includes(query);
+    
+    const currentRole = u.role || 'participant';
+    let matchesRole = true;
+    if (roleFilter === 'participants') matchesRole = currentRole === 'participant';
+    if (roleFilter === 'admins') matchesRole = currentRole === 'admin';
+    if (roleFilter === 'superadmins') matchesRole = currentRole === 'super_admin';
+    if (roleFilter === 'guests') matchesRole = currentRole === 'guest';
+    
+    return matchesSearch && matchesRole;
   });
 
   if (error) {
@@ -172,15 +182,15 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
 
   return (
     <div className="animate-[ac-fade_0.3s_ease] w-full">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
         <div>
           <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">User Management</h1>
           <p className="mt-2 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">Total Users: {users.length}</p>
         </div>
         
-        {/* Actions & Search */}
-        <div className="flex flex-col sm:flex-row gap-[10px] w-full md:w-auto items-center">
-          {isMainAdmin && (
+        {/* Actions */}
+        {isMainAdmin && (
+          <div className="flex flex-col sm:flex-row gap-[10px] w-full md:w-auto items-center">
             <div className="flex gap-2 h-full">
               <button
                 onClick={() => setIsInviteModalOpen(true)}
@@ -195,18 +205,33 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
                 <Plus size={16} /> Add User
               </button>
             </div>
-          )}
-          <div className="flex items-center gap-[10px] bg-white border border-[#785a32]/16 rounded-[14px] px-[18px] py-[11px] min-w-[320px] shadow-[0_4px_12px_rgba(120,90,50,0.07)]">
-            <Search size={17} className="text-[#a89a82]" />
-            <input
-              type="text"
-              className="flex-1 border-none bg-transparent text-[14.5px] text-[#241c12] focus:outline-none placeholder:text-[#a89a82]"
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex items-center gap-[10px] bg-white border border-[#785a32]/16 rounded-[14px] px-[18px] py-[13px] w-full shadow-[0_4px_12px_rgba(120,90,50,0.07)] mb-4 transition-shadow focus-within:shadow-[0_4px_20px_rgba(120,90,50,0.15)] focus-within:border-[#785a32]/30">
+        <Search size={20} className="text-[#a89a82]" />
+        <input
+          type="text"
+          className="flex-1 border-none bg-transparent text-[16px] text-[#241c12] focus:outline-none placeholder:text-[#a89a82]"
+          placeholder="Search emails, usernames..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* Role Filters */}
+      <div className="flex flex-wrap gap-2 mt-4">
+        {['All', 'Participants', 'Admins', 'Superadmins', 'Guests'].map(filter => (
+          <button
+            key={filter}
+            onClick={() => setRoleFilter(filter.toLowerCase())}
+            className={`px-4 py-2 rounded-[12px] text-[11px] font-black uppercase tracking-[0.12em] transition-colors ${roleFilter === filter.toLowerCase() ? 'bg-[#241c12] text-[#efd9a8] shadow-md' : 'bg-white text-[#8a7c66] border border-[#785a32]/20 hover:bg-[#fbf5e6]'}`}
+          >
+            {filter}
+          </button>
+        ))}
       </div>
 
       <div className="bg-white rounded-[22px] mt-[22px] shadow-[0_14px_34px_rgba(120,90,50,0.1)] border border-[#785a32]/10 overflow-x-auto">
@@ -247,6 +272,8 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
                     <span className={`px-[12px] py-[4px] inline-flex text-[10px] leading-[14px] font-black uppercase tracking-[0.12em] rounded-full border ${isAdmin ? 'bg-[#241c12] text-[#efd9a8] border-[#241c12]' : 'bg-[#fbf5e6] text-[#8a7c66] border-[#efd9a8]'}`}>
                       {isAdmin ? (
                         <span className="flex items-center gap-1"><Shield size={10} /> Admin</span>
+                      ) : currentRole === 'guest' ? (
+                        <span className="flex items-center gap-1"><UserIcon size={10} /> Guest</span>
                       ) : (
                         <span className="flex items-center gap-1"><UserIcon size={10} /> Participant</span>
                       )}

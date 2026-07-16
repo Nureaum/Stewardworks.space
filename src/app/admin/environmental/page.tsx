@@ -130,6 +130,40 @@ export default function EnvironmentalAdminPage() {
     setUpdatingId(null);
   };
 
+  const [deleteSourceConfirmId, setDeleteSourceConfirmId] = useState<string | null>(null);
+
+  const handleDeleteSource = (id: string) => {
+    setDeleteSourceConfirmId(id);
+  };
+
+  const confirmDeleteSource = async () => {
+    if (!deleteSourceConfirmId) return;
+    const id = deleteSourceConfirmId;
+    setUpdatingId(id);
+    try {
+      const res = await fetch(`/api/admin/content/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      setSources(prev => prev.filter(s => s.id !== id));
+      toast.success('Source deleted');
+      fetchData(true);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete');
+    }
+    setUpdatingId(null);
+    setDeleteSourceConfirmId(null);
+  };
+
+  const openSourceEdit = (item: any) => {
+    setEditMode('source');
+    setEdit({
+      id: item.id,
+      theme: item.theme_id,
+      t: item.label,
+      url: item.url,
+      body: item.item_description || ''
+    });
+  };
+
   const handleApprove = async (sug: any) => {
     setApprovingId(sug.id);
     const { success, error } = await approveSuggestion(sug);
@@ -255,6 +289,25 @@ export default function EnvironmentalAdminPage() {
       
       if (!success) toast.error('Failed to save');
       else { toast.success('Note saved'); setEdit(null); setEditMode(null); fetchData(); }
+    } else if (editMode === 'source') {
+      try {
+        const res = await fetch(`/api/admin/content/${edit.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: edit.t,
+            body: edit.body,
+            media: [{ media_type: 'external_link', url: edit.url }]
+          })
+        });
+        if (!res.ok) throw new Error('Failed to save source');
+        toast.success('Source saved');
+        setEdit(null);
+        setEditMode(null);
+        fetchData(true);
+      } catch (e: any) {
+        toast.error(e.message || 'Failed to save');
+      }
     } else {
       toast.success('Edits saved to suggestion. Please approve to publish.');
       setEdit(null);
@@ -501,9 +554,15 @@ export default function EnvironmentalAdminPage() {
                         </div>
                         <div style={{ font: "600 11.5px/1.3 'Exo', sans-serif", color: '#6b6d70', marginTop: '3px' }}>{s.item_description || 'Catalogued source'} · <span style={{ color: '#417C98' }}>{s.url}</span></div>
                       </div>
-                      <div style={{ textAlign: 'right', flex: '0 0 auto' }}>
-                        <div style={{ font: "800 8.5px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase', color: '#6b6d70' }}>{tm.short}</div>
-                        <div style={{ font: "700 10px/1 'Courier New',monospace", color: '#6b6d70', opacity: .75, marginTop: '5px' }}>{new Date(s.created_at).toLocaleDateString()}</div>
+                      <div style={{ textAlign: 'right', flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                        <div>
+                          <div style={{ font: "800 8.5px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase', color: '#6b6d70' }}>{tm.short}</div>
+                          <div style={{ font: "700 10px/1 'Courier New',monospace", color: '#6b6d70', opacity: .75, marginTop: '2px' }}>{new Date(s.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={(e) => { e.preventDefault(); openSourceEdit(s); }} style={{ cursor: 'pointer', padding: '4px 10px', borderRadius: '6px', border: '1px solid #e9e6dd', background: '#fff', color: '#21282E', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.05em', textTransform: 'uppercase' }}>Edit</button>
+                          <button onClick={(e) => { e.preventDefault(); handleDeleteSource(s.id); }} style={{ cursor: 'pointer', padding: '4px 10px', borderRadius: '6px', border: '1px solid #eadfd7', background: '#fff', color: '#b4675b', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.05em', textTransform: 'uppercase' }}>Delete</button>
+                        </div>
                       </div>
                     </a>
                   )
@@ -628,6 +687,23 @@ export default function EnvironmentalAdminPage() {
                 </div>
               )}
               
+              {editMode === 'source' && (
+                <div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', color: '#21282E', marginBottom: '8px' }}>Source Title</label>
+                    <input value={edit.t} onChange={e => setEdit({...edit, t: e.target.value})} placeholder="Title" style={{ width: '100%', padding: '11px 13px', border: '1px solid #e9e6dd', borderRadius: '11px', background: '#f7f5ef', font: "600 14px/1.3 'Exo', sans-serif", color: '#21282E', outline: 0 }} />
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', color: '#21282E', marginBottom: '8px' }}>URL</label>
+                    <input value={edit.url} onChange={e => setEdit({...edit, url: e.target.value})} placeholder="https://..." style={{ width: '100%', padding: '11px 13px', border: '1px solid #e9e6dd', borderRadius: '11px', background: '#f7f5ef', font: "600 14px/1.3 'Exo', sans-serif", color: '#21282E', outline: 0 }} />
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', color: '#21282E', marginBottom: '8px' }}>Description</label>
+                    <textarea value={edit.body} onChange={e => setEdit({...edit, body: e.target.value})} placeholder="Short description" style={{ width: '100%', padding: '11px 13px', border: '1px solid #e9e6dd', borderRadius: '11px', background: '#f7f5ef', font: "600 14px/1.3 'Exo', sans-serif", color: '#21282E', outline: 0, minHeight: '80px', resize: 'vertical' }}></textarea>
+                  </div>
+                </div>
+              )}
+
               {editMode === 'suggestion' && (
                 <div>
                   <div style={{ marginBottom: '16px' }}>
@@ -657,6 +733,23 @@ export default function EnvironmentalAdminPage() {
                   {isSaving ? 'Saving...' : 'Save changes'}
                 </button>
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {deleteSourceConfirmId && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(30,22,10,.45)', backdropFilter: 'blur(3px)' }} onClick={() => setDeleteSourceConfirmId(null)}></div>
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 65, width: '380px', background: '#fff', borderRadius: '18px', padding: '24px', boxShadow: '0 40px 90px -30px rgba(30,22,10,.6)', border: '1px solid #e9e6dd', textAlign: 'center' }}>
+            <div style={{ width: '50px', height: '50px', borderRadius: '14px', background: '#faebe9', color: '#b4675b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', margin: '0 auto 16px' }}>!</div>
+            <h3 style={{ margin: '0 0 8px', font: "900 20px/1.2 'Exo', sans-serif", color: '#21282E' }}>Delete Source?</h3>
+            <p style={{ margin: '0 0 24px', font: "500 14px/1.5 'Exo', sans-serif", color: '#6b6d70' }}>Are you sure you want to delete this source? This action cannot be undone.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <button onClick={() => setDeleteSourceConfirmId(null)} style={{ cursor: 'pointer', padding: '12px', borderRadius: '10px', border: '1px solid #e9e6dd', background: '#fff', color: '#21282E', font: "800 11px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase' }}>Cancel</button>
+              <button onClick={confirmDeleteSource} disabled={!!updatingId} style={{ cursor: updatingId ? 'wait' : 'pointer', padding: '12px', borderRadius: '10px', border: 'none', background: '#b4675b', color: '#fff', font: "800 11px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase', opacity: updatingId ? 0.7 : 1 }}>
+                {updatingId ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </>

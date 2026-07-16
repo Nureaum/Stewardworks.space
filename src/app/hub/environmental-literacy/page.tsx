@@ -210,6 +210,12 @@ export default function EnvironmentalLiteracyPage() {
       return;
     }
 
+    setSTitle('');
+    setSWhat('');
+    setSUrl('');
+    setSTheme('bioregion');
+    setSShowErr(false);
+
     setSent(true);
   };
 
@@ -463,7 +469,7 @@ export default function EnvironmentalLiteracyPage() {
       {suggestOpen && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(30,22,10,.5)', backdropFilter: 'blur(3px)', animation: 'el-fadein .25s ease' }} onClick={() => setSuggestOpen(false)}></div>
-          <div className="el-scroll" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 65, width: 'min(560px,94vw)', maxHeight: '92vh', overflow: 'auto', background: '#F5EDD6', borderRadius: '18px', boxShadow: '0 40px 90px -30px rgba(30,22,10,.7)', border: '1px solid rgba(60,42,24,.3)', animation: 'el-pagein .34s cubic-bezier(.22,1,.36,1)' }} onClick={e => e.stopPropagation()}>
+          <div className="el-scroll" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 65, width: 'min(560px,94vw)', maxHeight: '92vh', overflow: 'auto', background: '#F5EDD6', borderRadius: '18px', boxShadow: '0 40px 90px -30px rgba(30,22,10,.7)', border: '1px solid rgba(60,42,24,.3)', animation: 'el-modalin .34s cubic-bezier(.22,1,.36,1)' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '15px 20px', background: 'linear-gradient(120deg,#A27532,#8a5f28)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', color: '#fff' }}>＋</div>
@@ -505,10 +511,7 @@ export default function EnvironmentalLiteracyPage() {
                   <input value={sUrl} onChange={e => setSUrl(e.target.value)} placeholder="https://…" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(60,42,24,.2)', background: '#FBF8F1', color: '#3C2A18', fontSize: '15px', outline: 'none' }}/>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div><label style={{ display: 'block', font: "700 10.5px/1 'Courier New',monospace", letterSpacing: '.12em', textTransform: 'uppercase', color: '#A27532', marginBottom: '8px' }}>Your name</label><input value={sName} onChange={e => setSName(e.target.value)} placeholder="Optional" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(60,42,24,.2)', background: '#FBF8F1', color: '#3C2A18', fontSize: '15px', outline: 'none' }}/></div>
-                  <div><label style={{ display: 'block', font: "700 10.5px/1 'Courier New',monospace", letterSpacing: '.12em', textTransform: 'uppercase', color: '#A27532', marginBottom: '8px' }}>Email</label><input value={sEmail} onChange={e => setSEmail(e.target.value)} placeholder="Optional" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(60,42,24,.2)', background: '#FBF8F1', color: '#3C2A18', fontSize: '15px', outline: 'none' }}/></div>
-                </div>
+
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '22px' }}>
                   <button onClick={() => setSuggestOpen(false)} disabled={isSubmitting} style={{ background: 'transparent', border: 'none', padding: '12px 16px', color: '#6e5f49', fontWeight: 700, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.6 : 1 }}>Cancel</button>

@@ -243,13 +243,22 @@ export default function ContentItemEditor({
 
   const renderTabNavigation = () => {
     if (contentType !== "library_resource" && contentType !== "community_session") return null;
+    
+    const counts = {
+      gallery: mediaItems.filter(m => m.media_type === "image").length,
+      videos: mediaItems.filter(m => m.media_type === "video_link").length,
+      pdfs: mediaItems.filter(m => m.media_type === "pdf").length,
+      audio: mediaItems.filter(m => m.media_type === "external_link").length,
+    };
+    
     const tabs = [
       { id: "summary", label: "Summary" },
-      { id: "gallery", label: "Gallery (Photos)" },
-      { id: "videos", label: "Videos" },
-      { id: "pdfs", label: "PDFs" },
-      { id: "audio", label: "Audio" },
+      { id: "gallery", label: `Gallery (Photos)${counts.gallery > 0 ? ` [${counts.gallery}]` : ''}` },
+      { id: "videos", label: `Videos${counts.videos > 0 ? ` [${counts.videos}]` : ''}` },
+      { id: "pdfs", label: `PDFs${counts.pdfs > 0 ? ` [${counts.pdfs}]` : ''}` },
+      { id: "audio", label: `Audio${counts.audio > 0 ? ` [${counts.audio}]` : ''}` },
     ];
+    
     return (
       <div className="flex gap-2 mb-8 border-b border-gray-100 pb-4 overflow-x-auto">
         {tabs.map((tab) => (

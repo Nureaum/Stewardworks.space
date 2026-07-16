@@ -279,6 +279,7 @@ body {
 @keyframes el-rise{0%{transform:translateY(0);opacity:0}20%{opacity:.5}100%{transform:translateY(-30px);opacity:0}}
 @keyframes el-fadein{from{opacity:0}to{opacity:1}}
 @keyframes el-pagein{from{opacity:0;transform:translate(-50%,10px) scale(.985)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes el-modalin{from{opacity:0;transform:translate(-50%,calc(-50% + 10px)) scale(.985)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @keyframes el-glint{0%,100%{opacity:.3}50%{opacity:.75}}
 @keyframes el-sway{0%,100%{transform:rotate(-1.4deg)}50%{transform:rotate(1.4deg)}}
 @keyframes el-sway2{0%,100%{transform:rotate(1.2deg)}50%{transform:rotate(-1.4deg)}}

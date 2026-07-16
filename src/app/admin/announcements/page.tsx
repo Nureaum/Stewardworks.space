@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   createAnnouncement, 
-  getAnnouncements, 
+  getAnnouncements,
+  updateAnnouncement,
+  deleteAnnouncement,
   updateProjectBulletin, 
   getSystemBulletins,
   getBulletinUpdates,
@@ -25,6 +27,9 @@ export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [isPosting, setIsPosting] = useState(false);
   const [phoneRinging, setPhoneRinging] = useState(false);
+  const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
+  const [annToDelete, setAnnToDelete] = useState<string | null>(null);
+  const [isDeletingAnn, setIsDeletingAnn] = useState(false);
 
   // Bulletins State
   const [bulletinText, setBulletinText] = useState('');
@@ -39,6 +44,8 @@ export default function AdminAnnouncementsPage() {
   const [upDetail, setUpDetail] = useState('');
   const [upCta, setUpCta] = useState('');
   const [isSavingUp, setIsSavingUp] = useState(false);
+  const [updateToDelete, setUpdateToDelete] = useState<string | null>(null);
+  const [isDeletingUp, setIsDeletingUp] = useState(false);
 
   // Events State
   const [events, setEvents] = useState<any[]>([]);
@@ -50,6 +57,8 @@ export default function AdminAnnouncementsPage() {
   const [evLoc, setEvLoc] = useState('');
   const [evImage, setEvImage] = useState('');
   const [isSavingEv, setIsSavingEv] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  const [isDeletingEv, setIsDeletingEv] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -75,6 +84,39 @@ export default function AdminAnnouncementsPage() {
     }
   }
 
+  function handleEditAnnouncement(a: any) {
+    setEditingAnnId(a.id);
+    setAnnTitle(a.title);
+    setAnnBody(a.body);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleCancelEditAnn() {
+    setEditingAnnId(null);
+    setAnnTitle('');
+    setAnnBody('');
+  }
+
+  function handleDeleteAnnouncement(id: string) {
+    setAnnToDelete(id);
+  }
+
+  async function confirmDeleteAnnouncement() {
+    if (!annToDelete) return;
+    setIsDeletingAnn(true);
+    try {
+      await deleteAnnouncement(annToDelete);
+      setAnnouncements(prev => prev.filter(a => a.id !== annToDelete));
+      if (editingAnnId === annToDelete) handleCancelEditAnn();
+      toast.success("Announcement deleted");
+    } catch (error: any) {
+      toast.error("Failed to delete announcement.");
+    } finally {
+      setIsDeletingAnn(false);
+      setAnnToDelete(null);
+    }
+  }
+
   async function handlePostAnnouncement() {
     if (!annTitle.trim() || !annBody.trim()) {
       toast.error("Please enter a title and message.");
@@ -83,12 +125,18 @@ export default function AdminAnnouncementsPage() {
     
     setIsPosting(true);
     try {
-      await createAnnouncement(annTitle, annBody);
-      setAnnTitle('');
-      setAnnBody('');
-      setPhoneRinging(true);
-      setTimeout(() => setPhoneRinging(false), 5000);
-      toast.success("Announcement posted successfully!");
+      if (editingAnnId) {
+        await updateAnnouncement(editingAnnId, annTitle, annBody);
+        toast.success("Announcement updated!");
+        handleCancelEditAnn();
+      } else {
+        await createAnnouncement(annTitle, annBody);
+        setAnnTitle('');
+        setAnnBody('');
+        setPhoneRinging(true);
+        setTimeout(() => setPhoneRinging(false), 5000);
+        toast.success("Announcement posted successfully!");
+      }
       loadData();
     } catch (error: any) {
       toast.error(error.message || "Failed to post announcement.");
@@ -148,15 +196,23 @@ export default function AdminAnnouncementsPage() {
     }
   }
 
-  async function handleDeleteUpdate(id: string) {
-    if (!confirm("Are you sure you want to delete this update?")) return;
+  function handleDeleteUpdate(id: string) {
+    setUpdateToDelete(id);
+  }
+
+  async function confirmDeleteUpdate() {
+    if (!updateToDelete) return;
+    setIsDeletingUp(true);
     try {
-      await deleteBulletinUpdate(id);
-      if (editingUpdateId === id) handleCancelEditUpdate();
+      await deleteBulletinUpdate(updateToDelete);
+      setUpdates(prev => prev.filter(u => u.id !== updateToDelete));
+      if (editingUpdateId === updateToDelete) handleCancelEditUpdate();
       toast.success("Update deleted");
-      loadData();
     } catch (error: any) {
       toast.error("Failed to delete update.");
+    } finally {
+      setIsDeletingUp(false);
+      setUpdateToDelete(null);
     }
   }
 
@@ -200,15 +256,23 @@ export default function AdminAnnouncementsPage() {
     }
   }
 
-  async function handleDeleteEvent(id: string) {
-    if (!confirm("Are you sure you want to delete this event?")) return;
+  function handleDeleteEvent(id: string) {
+    setEventToDelete(id);
+  }
+
+  async function confirmDeleteEvent() {
+    if (!eventToDelete) return;
+    setIsDeletingEv(true);
     try {
-      await deleteBulletinEvent(id);
-      if (editingEventId === id) handleCancelEditEvent();
+      await deleteBulletinEvent(eventToDelete);
+      setEvents(prev => prev.filter(e => e.id !== eventToDelete));
+      if (editingEventId === eventToDelete) handleCancelEditEvent();
       toast.success("Event deleted");
-      loadData();
     } catch (error: any) {
       toast.error("Failed to delete event.");
+    } finally {
+      setIsDeletingEv(false);
+      setEventToDelete(null);
     }
   }
 
@@ -236,8 +300,8 @@ export default function AdminAnnouncementsPage() {
             
             {/* Create Announcement Box */}
             <div className="bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08]">
-              <div className="font-[800] text-[16px] mb-[3px]">Ring the phone</div>
-              <div className="text-[13.5px] text-[#8a7c66] mb-[18px]">Post an announcement — members see the wall phone light up and ring in the Hub until they open it.</div>
+              <div className="font-[800] text-[16px] mb-[3px]">{editingAnnId ? 'Edit Announcement' : 'Ring the phone'}</div>
+              <div className="text-[13.5px] text-[#8a7c66] mb-[18px]">{editingAnnId ? 'Modify this message.' : 'Post an announcement — members see the wall phone light up and ring in the Hub until they open it.'}</div>
               
               <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block">TITLE</label>
               <input 
@@ -255,14 +319,26 @@ export default function AdminAnnouncementsPage() {
                 className="w-full my-[7px] mb-[18px] p-[13px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[14px] min-h-[96px] resize-y leading-relaxed outline-none focus:border-[#785a32]/40 transition-colors"
               />
               
-              <button 
-                onClick={handlePostAnnouncement}
-                disabled={isPosting}
-                className="px-[22px] py-[13px] rounded-[12px] bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-[#241609] font-[800] text-[14px] shadow-[0_6px_16px_rgba(200,150,62,0.3)] hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {isPosting ? 'Sending...' : '📞 Send & ring the phone'}
-              </button>
+              <div className="flex gap-[12px]">
+                <button 
+                  onClick={handlePostAnnouncement}
+                  disabled={isPosting}
+                  className="px-[22px] py-[13px] rounded-[12px] bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-[#241609] font-[800] text-[14px] shadow-[0_6px_16px_rgba(200,150,62,0.3)] hover:opacity-90 transition-opacity disabled:opacity-50 flex-1"
+                >
+                  {isPosting ? (editingAnnId ? 'Saving...' : 'Sending...') : (editingAnnId ? 'Save Changes' : '📞 Send & ring the phone')}
+                </button>
+                {editingAnnId && (
+                  <button 
+                    onClick={handleCancelEditAnn}
+                    disabled={isPosting}
+                    className="px-[22px] py-[13px] rounded-[12px] border border-[#785a32]/20 bg-white text-[#5c4f3c] font-[700] text-[14px] hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
+
 
             {/* Posted Announcements List */}
             <div className="bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08]">
@@ -286,6 +362,14 @@ export default function AdminAnnouncementsPage() {
                       <div className="inline-flex items-center gap-[6px] mt-[9px] px-[10px] py-[4px] rounded-full bg-[#2c8a4a]/10 font-mono text-[10.5px] tracking-[0.06em] text-[#2f6b3a]">
                         👁 {a.reads} MEMBERS READ
                       </div>
+                    </div>
+                    <div className="flex flex-col gap-1 shrink-0 ml-2">
+                      <button onClick={() => handleEditAnnouncement(a)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => handleDeleteAnnouncement(a.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -595,6 +679,85 @@ export default function AdminAnnouncementsPage() {
         </div>
 
       </main>
+
+      {/* Delete Announcement Modal */}
+      {annToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[400px]">
+            <h3 className="text-[18px] font-[800] mb-2 text-[#241c12]">Delete Announcement?</h3>
+            <p className="text-[14px] text-[#5c4f3c] mb-6">Are you sure you want to delete this announcement? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setAnnToDelete(null)}
+                disabled={isDeletingAnn}
+                className="px-4 py-2 rounded-lg border border-[#785a32]/20 text-[#5c4f3c] font-[700] text-sm hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeleteAnnouncement}
+                disabled={isDeletingAnn}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white font-[700] text-sm hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeletingAnn ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Update Modal */}
+      {updateToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[400px]">
+            <h3 className="text-[18px] font-[800] mb-2 text-[#241c12]">Delete Update?</h3>
+            <p className="text-[14px] text-[#5c4f3c] mb-6">Are you sure you want to delete this update? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setUpdateToDelete(null)}
+                disabled={isDeletingUp}
+                className="px-4 py-2 rounded-lg border border-[#785a32]/20 text-[#5c4f3c] font-[700] text-sm hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeleteUpdate}
+                disabled={isDeletingUp}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white font-[700] text-sm hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeletingUp ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Event Modal */}
+      {eventToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[400px]">
+            <h3 className="text-[18px] font-[800] mb-2 text-[#241c12]">Delete Event?</h3>
+            <p className="text-[14px] text-[#5c4f3c] mb-6">Are you sure you want to delete this event? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setEventToDelete(null)}
+                disabled={isDeletingEv}
+                className="px-4 py-2 rounded-lg border border-[#785a32]/20 text-[#5c4f3c] font-[700] text-sm hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeleteEvent}
+                disabled={isDeletingEv}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white font-[700] text-sm hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeletingEv ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

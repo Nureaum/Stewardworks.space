@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Trash2, Pencil, BookOpen, CheckCircle, Clock, ChevronLeft, ChevronRight, Search, Filter, Eye, X } from 'lucide-react'
+import { Trash2, Pencil, BookOpen, CheckCircle, Clock, ChevronLeft, ChevronRight, Search, Filter, Eye, X, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAdminLoading } from '@/context/AdminLoadingContext'
 import { ConfirmModal } from '@/components/admin/ConfirmModal'
@@ -22,7 +22,11 @@ export default function LibraryAdminPage() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
+  const [categoryFilter, setCategoryFilter] = useState('All')
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false)
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [allCategories, setAllCategories] = useState<string[]>([])
   const ITEMS_PER_PAGE = 10
 
   const fetchItems = () => {
@@ -50,9 +54,20 @@ export default function LibraryAdminPage() {
       .catch(console.error)
   }
 
+  const fetchCategories = () => {
+    fetch('/api/admin/categories')
+      .then(res => res.json())
+      .then(data => {
+        const cats = (data.categories || []).map((c: any) => c.label).filter(Boolean).sort()
+        setAllCategories(cats)
+      })
+      .catch(console.error)
+  }
+
   useEffect(() => {
     fetchItems()
     fetchSuggestions()
+    fetchCategories()
   }, [])
 
   const confirmDelete = (id: string) => {
@@ -121,14 +136,35 @@ export default function LibraryAdminPage() {
     return items.filter(item => {
       const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesStatus = statusFilter === 'All' || item.status === statusFilter
-      return matchesSearch && matchesStatus
+      const matchesCategory = categoryFilter === 'All' || item.category?.label === categoryFilter
+      return matchesSearch && matchesStatus && matchesCategory
     })
-  }, [items, searchQuery, statusFilter])
+  }, [items, searchQuery, statusFilter, categoryFilter])
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, statusFilter])
+  }, [searchQuery, statusFilter, categoryFilter])
+
+  // Click away listener for custom dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('.custom-dropdown-container')) {
+        setIsCategoryDropdownOpen(false)
+        setIsStatusDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const uniqueCategories = useMemo(() => {
+    const cats = items.map(i => i.category?.label).filter(Boolean)
+    return Array.from(new Set(cats)).sort()
+  }, [items])
+
+  // Use allCategories from API, fallback to uniqueCategories from items
+  const displayCategories = allCategories.length > 0 ? allCategories : uniqueCategories
 
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE)
   const paginatedItems = filteredItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
@@ -247,21 +283,83 @@ export default function LibraryAdminPage() {
               />
             </div>
             
-            <div className="flex items-center bg-white border border-[#785a32]/16 rounded-full px-[22px] py-[12px] shadow-[0_4px_12px_rgba(120,90,50,0.07)] relative w-full sm:w-auto">
-              <select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="flex-1 sm:w-auto appearance-none bg-transparent border-none text-[14.5px] text-[#241c12] focus:outline-none cursor-pointer pr-[24px]"
+            <div className="relative w-full sm:w-auto custom-dropdown-container">
+              <button 
+                onClick={() => {
+                  setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                  setIsStatusDropdownOpen(false)
+                }}
+                className="w-full flex items-center justify-between bg-white border border-[#785a32]/16 rounded-full px-[22px] py-[12px] shadow-[0_4px_12px_rgba(120,90,50,0.07)] text-[14.5px] text-[#241c12] min-w-[200px]"
               >
-                <option value="All">All Statuses</option>
-                <option value="published">Published</option>
-                <option value="draft">Drafts</option>
-              </select>
-              <div className="absolute right-[18px] top-1/2 -translate-y-1/2 pointer-events-none text-[#a89a82]">
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+                <span className="truncate">{categoryFilter === 'All' ? 'All Categories' : categoryFilter}</span>
+                <ChevronDown size={16} className={`text-[#a89a82] ml-2 transition-transform ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isCategoryDropdownOpen && (
+                <div className="absolute z-50 top-[calc(100%+8px)] left-0 w-full bg-white border border-[#785a32]/10 rounded-[16px] shadow-[0_12px_34px_rgba(120,90,50,0.12)] overflow-hidden max-h-[300px] flex flex-col animate-[ac-fade_0.2s_ease]">
+                  <div className="overflow-y-auto overflow-x-hidden flex flex-col py-2 [&::-webkit-scrollbar]:w-[8px] [&::-webkit-scrollbar-track]:bg-[#f5efe3] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#c9a44e] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-[#f5efe3] hover:[&::-webkit-scrollbar-thumb]:bg-[#b8923d]">
+                    <button 
+                      onClick={() => {
+                        setCategoryFilter('All')
+                        setIsCategoryDropdownOpen(false)
+                      }}
+                      className={`text-left px-5 py-2.5 text-[14px] shrink-0 leading-normal transition-colors ${categoryFilter === 'All' ? 'bg-[#fbf5e6] text-[#3a2708] font-bold' : 'text-[#5c4f3c] hover:bg-[#fbf5e6]/50'}`}
+                    >
+                      All Categories
+                    </button>
+                    {displayCategories.map((cat: any) => (
+                      <button 
+                        key={cat}
+                        onClick={() => {
+                          setCategoryFilter(cat)
+                          setIsCategoryDropdownOpen(false)
+                        }}
+                        className={`text-left px-5 py-2.5 text-[14px] shrink-0 leading-normal truncate transition-colors ${categoryFilter === cat ? 'bg-[#fbf5e6] text-[#3a2708] font-bold' : 'text-[#5c4f3c] hover:bg-[#fbf5e6]/50'}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative w-full sm:w-auto custom-dropdown-container">
+              <button 
+                onClick={() => {
+                  setIsStatusDropdownOpen(!isStatusDropdownOpen)
+                  setIsCategoryDropdownOpen(false)
+                }}
+                className="w-full flex items-center justify-between bg-white border border-[#785a32]/16 rounded-full px-[22px] py-[12px] shadow-[0_4px_12px_rgba(120,90,50,0.07)] text-[14.5px] text-[#241c12] min-w-[180px]"
+              >
+                <span className="truncate">
+                  {statusFilter === 'All' ? 'All Statuses' : statusFilter === 'published' ? 'Published' : 'Drafts'}
+                </span>
+                <ChevronDown size={16} className={`text-[#a89a82] ml-2 transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isStatusDropdownOpen && (
+                <div className="absolute z-50 top-[calc(100%+8px)] left-0 w-full bg-white border border-[#785a32]/10 rounded-[16px] shadow-[0_12px_34px_rgba(120,90,50,0.12)] overflow-hidden flex flex-col animate-[ac-fade_0.2s_ease]">
+                  <div className="overflow-y-auto overflow-x-hidden flex flex-col py-2">
+                    {[
+                      { value: 'All', label: 'All Statuses' },
+                      { value: 'published', label: 'Published' },
+                      { value: 'draft', label: 'Drafts' }
+                    ].map(opt => (
+                      <button 
+                        key={opt.value}
+                        onClick={() => {
+                          setStatusFilter(opt.value)
+                          setIsStatusDropdownOpen(false)
+                        }}
+                        className={`text-left px-5 py-2.5 text-[14px] shrink-0 leading-normal transition-colors ${statusFilter === opt.value ? 'bg-[#fbf5e6] text-[#3a2708] font-bold' : 'text-[#5c4f3c] hover:bg-[#fbf5e6]/50'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

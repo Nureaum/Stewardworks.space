@@ -53,8 +53,8 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
   const images = resource.media?.filter((m: any) => m.media_type === 'image') || [];
   const videos = resource.media?.filter((m: any) => m.media_type === 'video_link' || m.media_type === 'video') || [];
   const pdfs = resource.media?.filter((m: any) => m.media_type === 'pdf') || [];
-  const audios = resource.media?.filter((m: any) => m.media_type === 'external_link') || [];
-  const links = resource.media?.filter((m: any) => m.media_type === 'link' || m.media_type === 'video_link') || [];
+  const audios = resource.media?.filter((m: any) => m.media_type === 'audio') || [];
+  const links = resource.media?.filter((m: any) => m.media_type === 'link' || m.media_type === 'video_link' || m.media_type === 'external_link') || [];
   
   const headerBgUrl = resource.thumbnail_url || (images.length > 0 ? images[0].url : null);
   
