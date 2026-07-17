@@ -14,8 +14,12 @@ interface JourneyDayListProps {
   progressRows: WorkshopProgress[]
   cohortId: string
   onBookmark?: (key: string, title: string, source: string, url?: string) => void
-  bookmarkedTitles?: string[]
+  bookmarkedUrls?: string[]
   defaultTopicId?: string | null
+  days?: DayWithSections[]
+  activeDay?: number
+  daysComplete?: number
+  onChangeDay?: (dayNum: number) => void
 }
 
 function secColor(a: string) {
@@ -30,8 +34,12 @@ export default function JourneyDayList({
   progressRows,
   cohortId,
   onBookmark,
-  bookmarkedTitles = [],
-  defaultTopicId = null
+  bookmarkedUrls = [],
+  defaultTopicId = null,
+  days = [],
+  activeDay = 1,
+  daysComplete = 0,
+  onChangeDay
 }: JourneyDayListProps) {
   // Get all entries flat
   const allEntries = day.sections?.flatMap(s => s.entries?.map(e => ({
@@ -53,15 +61,46 @@ export default function JourneyDayList({
   const dayIconUri = buildIconUri(MAP_ICONS.tent, accent) // Simplified icon
 
   return (
-    <div style={{ padding: 'clamp(14px,3vw,30px) clamp(12px,3vw,26px)' }}>
+    <div style={{ padding: '4px clamp(12px,3vw,26px) clamp(14px,3vw,30px)' }}>
       {/* ── Top bar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
         <button onClick={onBack} className="font-pixel" style={{ fontSize: 13, color: 'var(--s,#45d6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s' }}>
           ◂ MAP
         </button>
         <button onClick={onSceneView} className="font-pixel" style={{ fontSize: 13, color: 'var(--p,#ff5fd2)', background: 'rgba(255,95,210,.08)', border: '2px solid var(--p,#ff5fd2)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 0 12px rgba(255,95,210,.18)', transition: 'all 0.2s' }}>
-          ▶ GAME VIEW
+          -  GAME VIEW
         </button>
+        
+        {/* Day Navigation */}
+        {days.length > 0 && onChangeDay && (
+          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexWrap: 'wrap' }}>
+            {days.map((d) => {
+              const isActive = d.day_number === activeDay;
+              const isLocked = d.day_number > daysComplete + 1;
+              return (
+                <button
+                  key={d.id}
+                  disabled={isLocked}
+                  onClick={() => onChangeDay(d.day_number)}
+                  className="font-pixel"
+                  style={{
+                    fontSize: 12,
+                    padding: '10px 14px',
+                    borderRadius: 6,
+                    border: isActive ? '2px solid var(--gold,#ffd23f)' : '2px solid var(--ln,#3d2668)',
+                    background: isActive ? 'rgba(255,210,63,.1)' : 'transparent',
+                    color: isLocked ? '#666' : isActive ? 'var(--gold,#ffd23f)' : '#efe6ff',
+                    cursor: isLocked ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    opacity: isLocked ? 0.5 : 1
+                  }}
+                >
+                  DAY {d.day_number}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Two-column Master/Detail ── */}
@@ -116,10 +155,12 @@ export default function JourneyDayList({
                             <div className="font-pixel" style={{ fontSize: 8, color: isActive ? tCol : 'var(--ln,#3d2668)', flex: 'none' }}>›</div>
                           </button>
                           {onBookmark && (() => {
-                            const isBookmarked = bookmarkedTitles.includes(it.title)
+                            // Build the unique URL for this entry and check if it's bookmarked
+                            const entryUrl = `/hub/pilot-workshops/${cohortId}/journey?day=${day.day_number}&topic=${it.id}`
+                            const isBookmarked = bookmarkedUrls.some(url => url.includes(`topic=${it.id}`))
                             return (
                               <button
-                                onClick={() => onBookmark(`${day.id}-${it.id}`, it.title, `Day ${day.day_number}: ${sec.title}`, `/hub/pilot-workshops/${cohortId}/journey?day=${day.day_number}&topic=${it.id}`)}
+                                onClick={() => onBookmark(`${day.id}-${it.id}`, it.title, `Day ${day.day_number}: ${sec.title}`, entryUrl)}
                                 title={isBookmarked ? "Already bookmarked" : "Bookmark this lesson"}
                                 className="font-pixel"
                                 style={{
@@ -173,3 +214,6 @@ export default function JourneyDayList({
     </div>
   )
 }
+
+
+

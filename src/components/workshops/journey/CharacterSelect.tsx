@@ -287,7 +287,16 @@ export default function CharacterSelect({
                   filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.4))',
                 }}
               >
-                {/* Companion sprite would go here - you may need to add companion sprite rendering */}
+                                <PixelSprite
+                  characterKey={companion}
+                  accent={accent}
+                  size={70}
+                  style={{
+                    imageRendering: 'pixelated',
+                    animation: 'floaty 2.1s ease-in-out 0.35s infinite',
+                    filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.4))',
+                  }}
+                />
               </div>
             )}
           </div>
@@ -332,13 +341,13 @@ export default function CharacterSelect({
                     onClick={() => handlePickChar(k)}
                     style={{
                       position: 'relative',
-                      background: isSel ? 'var(--pn, #241542)' : 'rgba(0,0,0,.3)',
+                      background: isSel ? 'rgba(255,210,63,.08)' : 'var(--pn, #241542)',
                       border: `2px solid ${isSel ? 'var(--gold, #ffd23f)' : 'var(--ln, #3d2668)'}`,
                       borderRadius: 8,
                       padding: '12px 8px 14px',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
-                      boxShadow: isSel ? '0 0 16px rgba(255,210,63,.2)' : 'none',
+                      boxShadow: isSel ? '0 0 20px rgba(255,210,63,.35)' : 'none',
                     }}
                   >
                     {isSel && (
@@ -361,7 +370,7 @@ export default function CharacterSelect({
                     <div style={{ height: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                       <PixelSprite
                         characterKey={k}
-                        accent={isSel ? accent : '#6f5e8f'}
+                        accent={accent}
                         size={54}
                         style={{ filter: 'drop-shadow(0 3px 0 rgba(0,0,0,.4))' }}
                       />
@@ -479,8 +488,9 @@ export default function CharacterSelect({
                       onClick={() => setHeadgear(k)}
                       className="font-pixel"
                       style={{
-                        fontSize: 10,
-                        padding: '10px 14px',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: 8,
+                        padding: '9px 10px',
                         borderRadius: 6,
                         border: '2px solid var(--s, #45d6ff)',
                         background: isActive ? 'var(--s, #45d6ff)' : 'transparent',
@@ -511,8 +521,9 @@ export default function CharacterSelect({
                       onClick={() => setLoadout(k)}
                       className="font-pixel"
                       style={{
-                        fontSize: 10,
-                        padding: '10px 14px',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: 8,
+                        padding: '9px 10px',
                         borderRadius: 6,
                         border: '2px solid var(--ok, #74f0a0)',
                         background: isActive ? 'var(--ok, #74f0a0)' : 'transparent',
@@ -543,8 +554,9 @@ export default function CharacterSelect({
                       onClick={() => setOutfit(k)}
                       className="font-pixel"
                       style={{
-                        fontSize: 10,
-                        padding: '10px 14px',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: 8,
+                        padding: '9px 10px',
                         borderRadius: 6,
                         border: '2px solid var(--gold, #ffd23f)',
                         background: isActive ? 'var(--gold, #ffd23f)' : 'transparent',
@@ -575,8 +587,9 @@ export default function CharacterSelect({
                       onClick={() => setHair(k)}
                       className="font-pixel"
                       style={{
-                        fontSize: 10,
-                        padding: '10px 14px',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: 8,
+                        padding: '9px 10px',
                         borderRadius: 6,
                         border: '2px solid var(--p, #ff5fd2)',
                         background: isActive ? 'var(--p, #ff5fd2)' : 'transparent',
@@ -649,8 +662,9 @@ export default function CharacterSelect({
                       onClick={() => setFacial(k)}
                       className="font-pixel"
                       style={{
-                        fontSize: 10,
-                        padding: '10px 14px',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: 8,
+                        padding: '9px 10px',
                         borderRadius: 6,
                         border: '2px solid var(--gold, #ffd23f)',
                         background: isActive ? 'var(--gold, #ffd23f)' : 'transparent',
@@ -681,8 +695,9 @@ export default function CharacterSelect({
                       onClick={() => setCompanion(k)}
                       className="font-pixel"
                       style={{
-                        fontSize: 10,
-                        padding: '10px 14px',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: 8,
+                        padding: '9px 10px',
                         borderRadius: 6,
                         border: '2px solid var(--ok, #74f0a0)',
                         background: isActive ? 'var(--ok, #74f0a0)' : 'transparent',
@@ -716,15 +731,15 @@ export default function CharacterSelect({
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 26, flexWrap: 'wrap' }}>
         {hasChar && (
           <button
-            onClick={() => window.history.back()}
+            onClick={() => router.push(`/hub/pilot-workshops/${cohortId}/journey`)}
             className="font-pixel"
-            style={{
-              fontSize: 11,
-              color: 'var(--tx, #efe6ff)',
-              background: 'transparent',
-              border: '2px solid var(--ln, #3d2668)',
-              borderRadius: 6,
-              padding: '14px 24px',
+              style={{
+                fontSize: 16,
+                color: 'var(--tx, #efe6ff)',
+                background: 'transparent',
+                border: '2px solid var(--ln, #3d2668)',
+                borderRadius: 6,
+                padding: '18px 26px',
               cursor: 'pointer',
               letterSpacing: 1,
               transition: 'all 0.15s ease',
@@ -757,3 +772,8 @@ export default function CharacterSelect({
     </div>
   )
 }
+
+
+
+
+

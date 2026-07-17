@@ -2,17 +2,18 @@
 
 import React, { useState } from 'react';
 import PixelSprite from '../journey/PixelSprite';
+import { GEAR_META, CHARACTERS } from '../journey/character-data';
 
 const PRINCIPLE_TIPS = [
-  "◈ Active Production over Passive Consumption — Make with AI - don't just consume it. You are the author; the model is the tool.",
-  "◈ Community over Corporation — Build skills that serve people, not platforms. Your work should help your neighbors, not just your resume.",
-  "◈ Context over Content — No output is useful without the story of why it matters. Explain the prompt, the problem, and the person it serves.",
-  "◈ Iteration over Perfection — First draft is for figuring out what you mean. Second draft is for saying it clearly. Third draft is for the world.",
-  "◈ Reciprocity over Extraction — If AI learned from human culture, your work should give back to human culture. Make things that teach, heal, or connect.",
-  "◈ Consent over Convenience — Just because you can scrape, generate, or remix doesn't mean you should. Ask first. Credit always.",
+  "Active Production over Passive Consumption: Make with AI - don't just consume it. You are the author; the model is the tool.",
+  "Community over Corporation: Build skills that serve people, not platforms. Your work should help your neighbors, not just your resume.",
+  "Context over Content: No output is useful without the story of why it matters. Explain the prompt, the problem, and the person it serves.",
+  "Iteration over Perfection: First draft is for figuring out what you mean. Second draft is for saying it clearly. Third draft is for the world.",
+  "Reciprocity over Extraction: If AI learned from human culture, your work should give back to human culture. Make things that teach, heal, or connect.",
+  "Consent over Convenience: Just because you can scrape, generate, or remix doesn't mean you should. Ask first. Credit always.",
 ];
 
-export default function LabHeader({ day, profilePct, chiaStage }: { day: number, profilePct: number, chiaStage: number }) {
+export default function LabHeader({ day, profilePct, chiaStage, userCharacter }: { day: number, profilePct: number, chiaStage: number, userCharacter?: any }) {
   const [tipIndex, setTipIndex] = useState(0);
   const [tipKey, setTipKey] = useState(0);
   
@@ -22,11 +23,11 @@ export default function LabHeader({ day, profilePct, chiaStage }: { day: number,
   };
 
   const chiaStageNames = ['Bare bust', 'Sprouting', 'Filling in', 'Leafy crown', 'Lush mane', 'Full bloom ❀'];
-  const playerName = 'NAYELI';
-  const playerGear = 'CAMERA RIG';
+  const playerName = userCharacter?.player_name || (userCharacter?.character_key ? CHARACTERS[userCharacter.character_key]?.name : 'NAYELI');
+  const playerGear = userCharacter?.loadout ? (GEAR_META.find(g => g[0] === userCharacter.loadout)?.[1] || 'TRAVEL LIGHT') : 'CAMERA RIG';
   
   return (
-    <div style={{ position: 'relative', border: '2px solid #28432f', borderRadius: 10, overflow: 'hidden', background: 'linear-gradient(180deg,#0a1a13,#0d1512)', height: 'clamp(190px,25vh,238px)', marginBottom: 14 }}>
+    <div style={{ position: 'relative', border: '2px solid #28432f', borderRadius: 10, overflow: 'hidden', background: 'linear-gradient(180deg,#0a1a13,#0d1512)', height: 'clamp(230px, 28vh, 260px)', marginBottom: 14 }}>
       <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(90deg,rgba(77,255,160,.06) 0 1px,transparent 1px 42px),repeating-linear-gradient(0deg,rgba(77,255,160,.045) 0 1px,transparent 1px 42px)' }}></div>
       
       {/* Player info - top left */}
@@ -38,7 +39,7 @@ export default function LabHeader({ day, profilePct, chiaStage }: { day: number,
       </div>
 
       {/* Interactive mascot - center */}
-      <div style={{ position: 'absolute', left: '50%', bottom: 34, transform: 'translateX(-50%)', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, width: 'min(58%,340px)' }}>
+      <div style={{ position: 'absolute', left: '50%', bottom: 34, transform: 'translateX(-50%)', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, width: 'min(75%,480px)' }}>
         <div 
           key={tipKey}
           style={{ 
@@ -78,12 +79,17 @@ export default function LabHeader({ day, profilePct, chiaStage }: { day: number,
             animation: 'bob 1.5s ease-in-out infinite'
           }}>
             <PixelSprite
-              characterKey="nayeli"
-              accent="#4dffa0"
-              opts={{
-                gear: 'camera',
-                outfit: 'vest'
-              }}
+                characterKey={userCharacter?.character_key || 'nayeli'}
+                accent={userCharacter?.accent_color || '#4dffa0'}
+                opts={{
+                  tint: userCharacter?.tint,
+                  hairColor: userCharacter?.hair_color,
+                  hair: userCharacter?.hair,
+                  facial: userCharacter?.facial,
+                  outfit: userCharacter?.outfit || 'vest',
+                  headgear: userCharacter?.headgear,
+                  gear: userCharacter?.loadout || 'camera'
+                }}
               size={76}
               style={{
                 filter: 'drop-shadow(0 0 11px #4dffa0) drop-shadow(0 4px 2px rgba(0,0,0,.55))'
@@ -143,4 +149,8 @@ export default function LabHeader({ day, profilePct, chiaStage }: { day: number,
     </div>
   );
 }
+
+
+
+
 

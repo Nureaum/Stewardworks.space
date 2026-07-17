@@ -27,7 +27,7 @@ import type {
 } from '@/types/workshops'
 import { addEngagement, removeEngagement, updateEngagement } from '@/app/actions/workshops/engagement'
 
-type JourneyTab = 'journey' | 'portfolio' | 'showcase'
+type JourneyTab = 'journey' | 'portfolio' | 'showcase' | 'studentshowcase'
 type JourneyScreen = 'select' | 'map' | 'scene' | 'day'
 type Role = 'student' | 'admin'
 
@@ -211,9 +211,16 @@ export default function JourneyClient({
   const submittingRef = React.useRef<Set<string>>(new Set());
 
   const handleBookmark = useCallback(async (key: string, title: string, source: string, url?: string) => {
-    if (submittingRef.current.has(title)) return;
+    // Use the unique key (day.id-entry.id) as the identifier to prevent duplicates across days
+    if (submittingRef.current.has(key)) return;
     
-    const existingBookmark = engagements.find(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
+    // Check for existing bookmark using the URL which contains the unique topic ID
+    // This fixes the bug where lessons with the same title across different days
+    // would all appear bookmarked when only one was actually bookmarked
+    const existingBookmark = url 
+      ? engagements.find(e => e.kind === 'bookmark' && e.url === url && e.status !== 'rejected')
+      : engagements.find(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
+    
     if (existingBookmark) {
       if (existingBookmark.status === 'pending') {
         showToast('Already bookmarked! Pending admin approval.')
@@ -225,11 +232,11 @@ export default function JourneyClient({
       return
     }
     
-    submittingRef.current.add(title);
+    submittingRef.current.add(key);
     try {
       await handleAddEngagement('bookmark', title, source, url)
     } finally {
-      submittingRef.current.delete(title);
+      submittingRef.current.delete(key);
     }
   }, [engagements, showToast, handleAddEngagement])
 
@@ -424,8 +431,12 @@ export default function JourneyClient({
                   progressRows={progressRows}
                   cohortId={cohortId}
                   onBookmark={handleBookmark}
-                  bookmarkedTitles={engagements.filter(e => e.kind === 'bookmark' && e.status !== 'rejected').map(e => e.title)}
+                  bookmarkedUrls={engagements.filter(e => e.kind === 'bookmark' && e.status !== 'rejected').map(e => e.url || '')}
                   defaultTopicId={defaultTopicId}
+                    days={days}
+                    activeDay={activeDay}
+                    daysComplete={daysComplete}
+                    onChangeDay={(dayNum) => setActiveDay(dayNum)}
                 />
               ) : (
                 <TreasureMap
@@ -522,3 +533,4 @@ export default function JourneyClient({
     </div>
   )
 }
+

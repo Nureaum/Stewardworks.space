@@ -59,8 +59,16 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
   let daysComplete = 0;
   let approvedDays = 0;
   let days = [];
-  let principles = [];
+    let principles = [];
+  let userCharacter = null;
   if (activeCohort) {
+    const { data: charData } = await supabase
+        .from('workshop_characters')
+        .select('*')
+        .eq('cohort_id', activeCohort.id)
+        .eq('profile_id', profile.id)
+        .maybeSingle();
+      if (charData) userCharacter = charData;
     try {
       const dashboard = await getWorkshopDashboard(activeCohort.id);
       daysComplete = dashboard.filter(
@@ -109,5 +117,8 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
     userRole={profile.role}
     showcaseItems={showcaseItems}
     initialEngagements={initialEngagements}
+    userCharacter={userCharacter}
   />;
 }
+
+

@@ -20,23 +20,72 @@ interface JourneySceneProps {
   onOpenList: () => void
 }
 
+/* ── Default scene configurations matching the original reference EXACTLY ── */
+// ALWAYS use these hardcoded values, ignoring any database scene_config
+const DEFAULT_SCENES: Record<number, any> = {
+  1: { key: 'sanctuary', sky: ['#eddb8a', '#9ed685', '#2f5c46'], far: '#3c6b4d', mid: '#2f8551', ground: '#4c7a38', groundEdge: '#2f4d22', accent: '#8fe06a', glow: '#ffe27a', pedestal: ['#3d5a2e', '#22321a'], label: 'ACT I · THE SANCTUARY' },
+  2: { key: 'machine', sky: ['#c9d4dc', '#8aa0b2', '#4a5a72'], far: '#5a6a80', mid: '#6a7284', ground: '#b0a488', groundEdge: '#7a7258', accent: '#45d6ff', glow: '#74f0a0', pedestal: ['#54607a', '#3a4358'], label: 'ACT II · THE THIRSTY MACHINE' },
+  3: { key: 'launchpad', sky: ['#ffd08a', '#ff7a6a', '#5a3a72'], far: '#7a4a86', mid: '#b0563e', ground: '#c98a52', groundEdge: '#8a5230', accent: '#ff5fd2', glow: '#ffd23f', pedestal: ['#7a4a5a', '#4a2c3a'], label: 'ACT III · THE LAUNCHPAD' }
+}
+
 /* ── Artifact pedestal SVG builder (matches HTML prototype exactly) ── */
 function artifactKind(t: string) {
   return { text: 'scroll', custom: 'scroll', list: 'tablet', dual: 'book', featured: 'orb', deliverable: 'chest' }[t] || 'scroll'
 }
 
-function artifactUri(type: string, scene: SceneConfig, accent: string, visited: boolean): string {
-  const kind = artifactKind(type)
+// Maps section + position to specific icon types (matching reference exactly)
+// Section A: flask, rune, tablet, book
+// Section B: chalice, gear, orb
+// Section C: chest (deliverable)
+function artifactIconKind(sectionKey: string, positionInSection: number, entryType: string): string {
+  const iconMap: Record<string, string[]> = {
+    'A': ['flask', 'rune', 'tablet', 'book'],
+    'B': ['chalice', 'gear', 'orb'],
+    'C': ['chest']
+  }
+  // Normalize section key to uppercase
+  const normalizedKey = (sectionKey || '').toUpperCase()
+  const sectionIcons = iconMap[normalizedKey]
+  if (sectionIcons && positionInSection >= 0 && positionInSection < sectionIcons.length) {
+    return sectionIcons[positionInSection]
+  }
+  // Fallback to type-based mapping for admin-added entries or unknown sections
+  return artifactKind(entryType)
+}
+
+function artifactUri(kind: string, scene: SceneConfig, accent: string, visited: boolean): string {
   const p0 = (scene as any).pedestal?.[0] || '#8a6a44'
   const p1 = (scene as any).pedestal?.[1] || '#6a4a2c'
   const gl = visited ? (scene.glow || '#ffd23f') : accent
 
   let relic = ''
-  if (kind === 'scroll') relic = `<rect x='24' y='14' width='24' height='30' rx='2' fill='#f2e6cf'/><rect x='24' y='14' width='24' height='4' fill='#d8c49a'/><rect x='24' y='40' width='24' height='4' fill='#d8c49a'/><rect x='29' y='22' width='14' height='2' fill='${gl}'/><rect x='29' y='27' width='14' height='2' fill='#9a8a6a'/><rect x='29' y='32' width='10' height='2' fill='#9a8a6a'/>`
-  else if (kind === 'tablet') relic = `<rect x='22' y='12' width='28' height='32' rx='3' fill='#3a3352'/><rect x='22' y='12' width='28' height='32' rx='3' fill='none' stroke='${gl}' stroke-width='2'/><rect x='27' y='19' width='18' height='2' fill='${gl}'/><rect x='27' y='24' width='18' height='2' fill='#8a7fb0'/><rect x='27' y='29' width='18' height='2' fill='#8a7fb0'/><rect x='27' y='34' width='11' height='2' fill='#8a7fb0'/>`
-  else if (kind === 'book') relic = `<rect x='20' y='16' width='16' height='26' fill='#45d6ff'/><rect x='36' y='16' width='16' height='26' fill='#ffd23f'/><rect x='34' y='14' width='4' height='30' fill='#f2e6cf'/><rect x='24' y='22' width='9' height='2' fill='#0c0718' opacity='.4'/><rect x='40' y='22' width='9' height='2' fill='#0c0718' opacity='.4'/>`
-  else if (kind === 'orb') relic = `<circle cx='36' cy='28' r='15' fill='${gl}' opacity='.28'/><circle cx='36' cy='28' r='11' fill='${gl}'/><path d='M32 22 L32 34 L44 28 Z' fill='#0c0718'/>`
-  else relic = `<rect x='20' y='24' width='32' height='20' rx='2' fill='#8a5a34'/><rect x='20' y='20' width='32' height='9' rx='3' fill='#a06e40'/><rect x='20' y='31' width='32' height='3' fill='${gl}'/><rect x='33' y='30' width='6' height='6' fill='${gl}'/><rect x='20' y='24' width='32' height='20' rx='2' fill='none' stroke='#5a3a1c' stroke-width='2'/>`
+  if (kind === 'scroll') {
+    relic = `<rect x='24' y='14' width='24' height='30' rx='2' fill='#f2e6cf'/><rect x='24' y='14' width='24' height='4' fill='#d8c49a'/><rect x='24' y='40' width='24' height='4' fill='#d8c49a'/><rect x='29' y='22' width='14' height='2' fill='${gl}'/><rect x='29' y='27' width='14' height='2' fill='#9a8a6a'/><rect x='29' y='32' width='10' height='2' fill='#9a8a6a'/>`
+  } else if (kind === 'tablet') {
+    relic = `<rect x='22' y='12' width='28' height='32' rx='3' fill='#3a3352'/><rect x='22' y='12' width='28' height='32' rx='3' fill='none' stroke='${gl}' stroke-width='2'/><rect x='27' y='19' width='18' height='2' fill='${gl}'/><rect x='27' y='24' width='18' height='2' fill='#8a7fb0'/><rect x='27' y='29' width='18' height='2' fill='#8a7fb0'/><rect x='27' y='34' width='11' height='2' fill='#8a7fb0'/>`
+  } else if (kind === 'book') {
+    relic = `<rect x='20' y='16' width='16' height='26' fill='#45d6ff'/><rect x='36' y='16' width='16' height='26' fill='#ffd23f'/><rect x='34' y='14' width='4' height='30' fill='#f2e6cf'/><rect x='24' y='22' width='9' height='2' fill='#0c0718' opacity='.4'/><rect x='40' y='22' width='9' height='2' fill='#0c0718' opacity='.4'/>`
+  } else if (kind === 'orb') {
+    relic = `<circle cx='36' cy='28' r='15' fill='${gl}' opacity='.28'/><circle cx='36' cy='28' r='11' fill='${gl}'/><path d='M32 22 L32 34 L44 28 Z' fill='#0c0718'/>`
+  } else if (kind === 'flask') {
+    // Flask/beaker icon (for Wellness Practice)
+    relic = `<rect x='31' y='12' width='10' height='2' fill='#9ab0b8'/><rect x='33' y='14' width='6' height='5' fill='#e6eef2'/><path d='M31 19 L41 19 L47 42 L25 42 Z' fill='#dfeaf0' opacity='.5'/><path d='M28 32 L44 32 L47 42 L25 42 Z' fill='${gl}'/><rect x='29' y='24' width='2' height='9' fill='#ffffff' opacity='.55'/>`
+  } else if (kind === 'rune') {
+    // Rune stone icon (for Steward Credo)
+    relic = `<rect x='26' y='14' width='20' height='30' rx='4' fill='#6a6480'/><rect x='26' y='14' width='20' height='30' rx='4' fill='none' stroke='${gl}' stroke-width='2'/><rect x='34' y='19' width='4' height='16' fill='${gl}'/><rect x='30' y='24' width='12' height='3' fill='${gl}'/><rect x='31' y='37' width='10' height='3' fill='#a8a0c0'/>`
+  } else if (kind === 'chalice') {
+    // Chalice/cup icon (for Discussion Group)
+    relic = `<rect x='26' y='15' width='20' height='3' fill='#f2e6cf'/><path d='M27 18 L45 18 L42 28 Q36 33 30 28 Z' fill='${gl}'/><rect x='31' y='20' width='3' height='6' fill='#ffffff' opacity='.5'/><rect x='34' y='31' width='4' height='7' fill='#c9a24a'/><rect x='29' y='40' width='14' height='4' rx='2' fill='#c9a24a'/>`
+  } else if (kind === 'gear') {
+    // Gear/cog icon (for Re-Grouping Exercise)
+    relic = `<circle cx='36' cy='28' r='12' fill='${gl}'/><circle cx='36' cy='28' r='6' fill='#3a3352'/><rect x='34' y='12' width='4' height='8' fill='${gl}'/><rect x='34' y='36' width='4' height='8' fill='${gl}'/><rect x='20' y='26' width='8' height='4' fill='${gl}'/><rect x='44' y='26' width='8' height='4' fill='${gl}'/>`
+  } else if (kind === 'chest') {
+    // Treasure chest icon (for Deliverable)
+    relic = `<rect x='20' y='24' width='32' height='20' rx='2' fill='#8a5a34'/><rect x='20' y='20' width='32' height='9' rx='3' fill='#a06e40'/><rect x='20' y='31' width='32' height='3' fill='${gl}'/><rect x='33' y='30' width='6' height='6' fill='${gl}'/><rect x='20' y='24' width='32' height='20' rx='2' fill='none' stroke='#5a3a1c' stroke-width='2'/>`
+  } else {
+    // Default to scroll
+    relic = `<rect x='24' y='14' width='24' height='30' rx='2' fill='#f2e6cf'/><rect x='24' y='14' width='24' height='4' fill='#d8c49a'/><rect x='24' y='40' width='24' height='4' fill='#d8c49a'/><rect x='29' y='22' width='14' height='2' fill='${gl}'/><rect x='29' y='27' width='14' height='2' fill='#9a8a6a'/><rect x='29' y='32' width='10' height='2' fill='#9a8a6a'/>`
+  }
 
   const glowRing = visited ? '' : `<ellipse cx='36' cy='30' rx='26' ry='26' fill='${gl}' opacity='0.12'/>`
   const check = visited ? `<circle cx='52' cy='14' r='9' fill='${scene.glow || '#ffd23f'}'/><path d='M48 14 L51 17 L57 10' stroke='#0c0718' stroke-width='2.5' fill='none'/>` : ''
@@ -113,16 +162,18 @@ const ARTIFACT_SPACING = 500
 function artifactX(i: number) { return ARTIFACT_X_START + i * ARTIFACT_SPACING }
 
 export default function JourneyScene({ character, day, visited, setVisited, onBack, cohortId, principles, bankedPrincipleIds, progressRows, onDeliverableSubmitted, onOpenList }: JourneySceneProps) {
-  const sc: any = day.scene_config || { sky: ['#f6c98a', '#e88a86', '#7a5a9e'], far: '#8a5a86', mid: '#a86a52', ground: '#caa06a', groundEdge: '#9a7442', accent: '#ff9a5a', glow: '#ffd23f', pedestal: ['#8a6a44', '#6a4a2c'], label: 'ACT I · THE SANCTUARY' }
+  // ALWAYS use hardcoded scene config matching the original reference exactly
+  // (ignoring any database scene_config values which may have old/incorrect colors)
+  const sc: any = DEFAULT_SCENES[day.day_number] || DEFAULT_SCENES[1]
   const accent = character?.accent_color || DEFAULT_CHARACTER.accent_color
   const charKey = character?.character_key || DEFAULT_CHARACTER.character_key
 
-  // Collect all entries flat, preserving section info
+  // Collect all entries flat, preserving section info and position within section
   const entries = useMemo(() => {
-    const out: (WorkshopDayEntry & { sectionTitle: string; sectionKey: string; hour: string })[] = []
+    const out: (WorkshopDayEntry & { sectionTitle: string; sectionKey: string; hour: string; positionInSection: number })[] = []
     ;(day.sections || []).forEach(s => {
-      ;(s.entries || []).forEach(e => {
-        out.push({ ...e, sectionTitle: s.title, sectionKey: s.section_key, hour: s.hour || '' })
+      ;(s.entries || []).forEach((e, idx) => {
+        out.push({ ...e, sectionTitle: s.title, sectionKey: s.section_key, hour: s.hour || '', positionInSection: idx })
       })
     })
     return out
@@ -131,12 +182,10 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
   const worldWidth = entries.length > 0 ? artifactX(entries.length - 1) + 640 : 1000
 
   // State
-  const [introOpen, setIntroOpen] = useState(() => {
-    // If they already have a saved position, they've been here, so don't force the intro open again
-    return !sessionStorage.getItem(`scene_px_${day.day_number}`)
-  })
+  const [introOpen, setIntroOpen] = useState(true) // Always show intro when entering a day fresh
   const [nearIdx, setNearIdx] = useState(-1)
   const [activeEntry, setActiveEntry] = useState<(typeof entries)[0] | null>(null)
+  const [castCount, setCastCount] = useState(0) // Cast skill animation counter
 
   // Refs for imperative scene loop
   const vpRef = useRef<HTMLDivElement>(null)
@@ -144,20 +193,23 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
   const farRef = useRef<HTMLDivElement>(null)
   const midRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<HTMLImageElement>(null)
-  const pxRef = useRef(
-    typeof sessionStorage !== 'undefined'
-      ? Number(sessionStorage.getItem(`scene_px_${day.day_number}`)) || 280
-      : 280
-  )
+  const pxRef = useRef(300) // Initial position on the spring/ring (always start at 300)
   const targetRef = useRef<number | null>(null)
   const faceRef = useRef(1)
   const keysRef = useRef<Record<string, boolean>>({})
   const rafRef = useRef(0)
   const t0Ref = useRef(performance.now())
   const sceneOnRef = useRef(false)
+  const sceneInitRef = useRef(false) // Track if scene position has been initialized
   const nearIdxRef = useRef(-1)
   const activeEntryRef = useRef(activeEntry)
   activeEntryRef.current = activeEntry
+  const castRef = useRef<HTMLDivElement>(null) // Ref for cast effect positioning
+
+  // Cast skill function
+  const castSkill = useCallback(() => {
+    setCastCount(c => c + 1)
+  }, [])
 
   // Build player sprite URI
   const playerUri = useMemo(() => buildIconUri([], accent), [accent]) // placeholder, using PixelSprite below
@@ -191,8 +243,21 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
     if (introOpen) return
 
     sceneOnRef.current = true
-    pxRef.current = pxRef.current || 280
+    
+    // Only reset position on first initialization (when entering scene fresh)
+    if (!sceneInitRef.current) {
+      pxRef.current = 300
+      // Auto-walk halfway to first artifact after closing intro (not all the way)
+      // Start: 300, First artifact: 560, Halfway: 430
+      if (entries.length > 0) {
+        const halfwayTarget = 300 + (artifactX(0) - 300) / 2
+        targetRef.current = halfwayTarget
+      }
+      sceneInitRef.current = true
+    }
+    
     faceRef.current = 1
+    keysRef.current = {} // Reset keys on scene start
     t0Ref.current = performance.now()
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -207,9 +272,12 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
           if (a) { e.preventDefault(); openArtifactRef.current(a) }
         }
       }
-      if (k === 'f') {
-        // Cast skill - TODO: implement cast functionality
-        e.preventDefault()
+      if (k === 'f' || k === 'c') {
+        // Cast skill
+        if (!activeEntryRef.current) {
+          e.preventDefault()
+          setCastCount(c => c + 1)
+        }
       }
       if (k === 'escape') {
         if (activeEntryRef.current) closeReaderRef.current()
@@ -388,7 +456,9 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
             const vis = !!visited[`${day.day_number}-${entry.id}`]
             const near = nearIdx === i
             const col = secColor(SEC_COL_MAP[entry.sectionKey] || 's')
-            const uri = artifactUri(entry.entry_type, sc, accent, vis)
+            // Use artifactIconKind to get the correct icon based on section + position
+            const iconKind = artifactIconKind(entry.sectionKey, entry.positionInSection, entry.entry_type)
+            const uri = artifactUri(iconKind, sc, accent, vis)
 
             return (
               <div
@@ -471,25 +541,137 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
               transform: 'translateX(-50%) scaleX(1)',
             }}
           />
+
+          {/* Cast skill effect - positioned at player location */}
+          {castCount > 0 && (
+            <div
+              ref={castRef}
+              key={`cast-${castCount}`}
+              style={{
+                position: 'absolute',
+                bottom: 92,
+                left: pxRef.current,
+                width: 240,
+                height: 220,
+                transform: 'translateX(-50%)',
+                pointerEvents: 'none',
+                zIndex: 7,
+              }}
+            >
+              {/* Flash */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: 96,
+                  width: 150,
+                  height: 150,
+                  marginLeft: -75,
+                  marginTop: -75,
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${accent}, transparent 62%)`,
+                  animation: 'skFlash 0.7s ease-out both',
+                }}
+              />
+              {/* Expanding rings */}
+              {[0, 0.12, 0.24, 0.36].map((delay, i) => (
+                <div
+                  key={`ring-${i}`}
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: 96,
+                    width: 54,
+                    height: 54,
+                    marginLeft: -27,
+                    marginTop: -27,
+                    border: `3px solid ${accent}`,
+                    borderRadius: '50%',
+                    boxShadow: `0 0 18px ${accent}`,
+                    animation: `cShieldD 1.1s ease-out ${delay}s both`,
+                  }}
+                />
+              ))}
+              {/* Rising symbols */}
+              {['✦', '✧', '◈', '★', '✦', '✧'].map((symbol, i) => (
+                <div
+                  key={`sym-${i}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${24 + i * 9}%`,
+                    top: 132,
+                    fontFamily: "'VT323', monospace",
+                    fontSize: 26 + (i % 3) * 6,
+                    lineHeight: 1,
+                    color: i % 2 ? 'var(--s,#45d6ff)' : accent,
+                    textShadow: `0 0 8px ${i % 2 ? 'var(--s,#45d6ff)' : accent}`,
+                    animation: `cRise 1.1s ease-out ${i * 0.09}s both`,
+                  }}
+                >
+                  {symbol}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Proximity prompt bar */}
-        {nearArt && !activeEntry && (
+        {/* Bottom action bar - contains Press E prompt and CAST button side by side on right */}
+        {!activeEntry && !introOpen && (
           <div
-            className="font-pixel"
             style={{
-              position: 'absolute', left: '50%', bottom: 18,
-              transform: 'translateX(-50%)', zIndex: 9,
-              fontSize: 9, color: 'var(--bg,#12081e)',
-              background: 'var(--gold,#ffd23f)',
-              padding: '9px 14px', borderRadius: 20,
-              boxShadow: '0 0 18px rgba(255,210,63,.5)',
-              animation: 'floaty 1.4s ease-in-out infinite',
-              whiteSpace: 'nowrap', maxWidth: '92%',
-              overflow: 'hidden', textOverflow: 'ellipsis',
+              position: 'absolute',
+              right: 16,
+              bottom: 18,
+              zIndex: 9,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              pointerEvents: 'none',
             }}
           >
-            ▸ Press E / tap · open &ldquo;{nearArt.title}&rdquo;
+            {/* Proximity prompt */}
+            {nearArt && (
+              <div
+                className="font-pixel"
+                style={{
+                  fontSize: 9, 
+                  color: 'var(--bg,#12081e)',
+                  background: 'var(--gold,#ffd23f)',
+                  padding: '9px 18px', 
+                  borderRadius: 20,
+                  boxShadow: '0 0 18px rgba(255,210,63,.5)',
+                  animation: 'floaty 1.4s ease-in-out infinite',
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'auto',
+                }}
+              >
+                ▸ Press E / tap · open &ldquo;{nearArt.title}&rdquo;
+              </div>
+            )}
+
+            {/* CAST button */}
+            <button
+              onClick={(e) => { 
+                e.stopPropagation()
+                setCastCount(c => c + 1)
+              }}
+              title="Cast your steward's signature skill (F)"
+              className="font-pixel"
+              style={{
+                fontSize: 9,
+                color: 'var(--bg,#12081e)',
+                background: 'var(--gold,#ffd23f)',
+                border: 'none',
+                borderRadius: 20,
+                padding: '9px 18px',
+                cursor: 'pointer',
+                boxShadow: '0 0 18px rgba(255,210,63,.5)',
+                pointerEvents: 'auto',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              ✧ CAST (F)
+            </button>
           </div>
         )}
 
@@ -510,32 +692,6 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
           E · open artifact<br />
           F · cast skill
         </div>
-
-        {/* CAST button - bottom right inside viewport */}
-        {!activeEntry && !introOpen && (
-          <button
-            onClick={() => {/* TODO: Cast skill functionality */}}
-            className="font-pixel"
-            style={{
-              position: 'absolute',
-              right: 16,
-              bottom: nearArt ? 58 : 16,
-              zIndex: 9,
-              fontSize: 9,
-              color: 'var(--bg,#12081e)',
-              background: 'var(--gold,#ffd23f)',
-              border: 'none',
-              borderRadius: 20,
-              padding: '9px 14px',
-              cursor: 'pointer',
-              boxShadow: '0 0 18px rgba(255,210,63,.5)',
-              animation: 'floaty 2s ease-in-out infinite',
-              transition: 'all 0.2s',
-            }}
-          >
-            CAST (F)
-          </button>
-        )}
 
         {/* ── Intro overlay ── */}
         {introOpen && (
@@ -568,6 +724,8 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
               <button
                 onClick={() => {
                   setIntroOpen(false)
+                  // Avatar stays at initial position (300, on the spring/ring)
+                  // User manually moves to artifacts using keyboard or clicks
                 }}
                 className="font-pixel"
                 style={{

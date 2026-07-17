@@ -315,3 +315,85 @@ body {
 .el-rattle{transform-box:fill-box;transform-origin:bottom center;animation:el-rattle .9s ease-in-out infinite}
 .el-flag{transform-box:fill-box;transform-origin:left center;animation:el-flagwave 4.6s ease-in-out infinite}
 
+
+/* =====================================================
+   Cast Skill Animation Keyframes (matching reference)
+   ===================================================== */
+
+/* Flash effect - expanding glow burst */
+@keyframes skFlash {
+  0% { opacity: 0.5; transform: scale(0.6); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+/* Shield dome ring expansion */
+@keyframes cShieldD {
+  0% { transform: scale(0.2); opacity: 0; }
+  28% { opacity: 0.9; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* Particle scatter outward */
+@keyframes cScatter {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  18% { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+}
+
+/* Rising text/particles */
+@keyframes cRise {
+  0% { transform: translateY(28px) scale(0.5); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translateY(-78px) scale(1.1); opacity: 0; }
+}
+
+/* Horizontal sweep beam */
+@keyframes cSweepX {
+  0% { transform: translateX(-60px); opacity: 0; }
+  16% { opacity: 0.95; }
+  84% { opacity: 0.95; }
+  100% { transform: translateX(480px); opacity: 0; }
+}
+
+/* Vertical sweep scan */
+@keyframes cSweepY {
+  0% { transform: translateY(-16px); opacity: 0; }
+  16% { opacity: 0.95; }
+  84% { opacity: 0.95; }
+  100% { transform: translateY(200px); opacity: 0; }
+}
+
+/* Vignette darkness effect */
+@keyframes cVig {
+  0% { box-shadow: inset 0 0 0 0 rgba(4,2,12,0); opacity: 0; }
+  42% { opacity: 1; box-shadow: inset 0 0 90px 40px rgba(4,2,12,0.9); }
+  100% { box-shadow: inset 0 0 120px 70px rgba(4,2,12,0.95); opacity: 0; }
+}
+
+/* Spinning fade reticle */
+@keyframes cSpinFade {
+  0% { transform: rotate(0) scale(0.4); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: rotate(320deg) scale(1.7); opacity: 0; }
+}
+
+/* Arc leap trajectory */
+@keyframes cArcL {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  18% { opacity: 1; }
+  50% { transform: translate(66px, -96px); }
+  100% { transform: translate(150px, 14px) scale(0.4); opacity: 0; }
+}
+
+/* Radial ray burst */
+@keyframes cRay {
+  0% { transform: rotate(var(--ang)) translateY(0) scaleY(0.2); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: rotate(var(--ang)) translateY(-46px) scaleY(1.4); opacity: 0; }
+}
+
+/* Sun pulse animation for celestial body */
+@keyframes sunpulse {
+  0%, 100% { opacity: 0.82; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}

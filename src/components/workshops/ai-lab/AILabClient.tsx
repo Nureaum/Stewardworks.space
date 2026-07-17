@@ -26,6 +26,7 @@ export default function AILabClient({
   userRole = 'participant',
   showcaseItems = [],
   initialEngagements = [],
+    userCharacter = null,
 }: {
   initialRole?: 'student' | 'admin';
   edenEmbedUrl?: string;
@@ -38,6 +39,7 @@ export default function AILabClient({
   userRole?: string;
   showcaseItems?: any[];
   initialEngagements?: any[];
+    userCharacter?: any;
 }) {
   const router = useRouter();
   // Default to admin role if user is admin or super_admin
@@ -173,7 +175,7 @@ export default function AILabClient({
 
                 {studentView === 'lab' && (
                   <div>
-                    <LabHeader day={day} profilePct={profilePct} chiaStage={chiaStage} />
+                    <LabHeader day={day} profilePct={profilePct} chiaStage={chiaStage} userCharacter={userCharacter} />
                     
                     {/* Session control bar */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -201,18 +203,19 @@ export default function AILabClient({
                           curriculumData={initialCurriculum}
                           daysComplete={daysComplete}
                           onToggleVisibility={() => setCurriculumVisible(false)}
-                          bookmarkedTitles={initialEngagements.filter(e => e.kind === 'bookmark').map(e => e.title)}
-                          onBookmark={async (title: string) => {
+                          bookmarkedKeys={initialEngagements.filter(e => e.kind === 'bookmark').map(e => e.content || '')}
+                          onBookmark={async (key: string, title: string) => {
                             if (!cohortId) {
                               return { success: false };
                             }
-                            // Check if already bookmarked
-                            const existing = initialEngagements.find(e => e.kind === 'bookmark' && e.title === title);
+                            // Check if already bookmarked using the unique key stored in content
+                            const existing = initialEngagements.find(e => e.kind === 'bookmark' && e.content === key);
                             if (existing) {
                               return { success: false, alreadyExists: true };
                             }
                             try {
-                              await addEngagement(cohortId, 'bookmark', title, 'curriculum', '', `Bookmarked from Day ${day} curriculum`);
+                              // Store the unique key in the content field to identify this specific entry
+                              await addEngagement(cohortId, 'bookmark', title, 'curriculum', '', key);
                               return { success: true };
                             } catch (error) {
                               console.error('Error adding bookmark:', error);
@@ -270,3 +273,5 @@ export default function AILabClient({
     </div>
   );
 }
+
+

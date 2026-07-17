@@ -12,7 +12,7 @@ export default function CurriculumBrowser({
   daysComplete = 0,
   onToggleVisibility,
   onBookmark,
-  bookmarkedTitles = []
+  bookmarkedKeys = []
 }: { 
   day: number;
   activeEntry: string | null;
@@ -21,73 +21,76 @@ export default function CurriculumBrowser({
   curriculumData: Record<number, any>;
   daysComplete?: number;
   onToggleVisibility?: () => void;
-  onBookmark?: (title: string) => Promise<{ success: boolean; alreadyExists?: boolean }>;
-  bookmarkedTitles?: string[];
+  onBookmark?: (key: string, title: string) => Promise<{ success: boolean; alreadyExists?: boolean }>;
+  bookmarkedKeys?: string[];
 }) {
   const [pendingBookmarks, setPendingBookmarks] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const currentDayData = curriculumData[day] || { title: 'NO DATA', blurb: 'No data available for this day.', sessions: [] };
 
   // Combine server bookmarks with pending local ones
-  const bookmarkedEntries = new Set([...Array.from(bookmarkedTitles), ...Array.from(pendingBookmarks)]);
+  const bookmarkedEntries = new Set([...Array.from(bookmarkedKeys), ...Array.from(pendingBookmarks)]);
 
-  const handleBookmark = async (entryTitle: string) => {
+  // Generate a unique key for each entry based on day + session + entry index
+  const getEntryKey = (sessionIdx: number, entryIdx: number) => `day${day}-sec${sessionIdx}-entry${entryIdx}`;
+
+  const handleBookmark = async (entryKey: string, entryTitle: string) => {
     // Prevent double-clicks
-    if (isSubmitting === entryTitle) {
+    if (isSubmitting === entryKey) {
       return;
     }
     
     // If already bookmarked (from server), show message that it's pending approval
-    if (bookmarkedTitles.includes(entryTitle)) {
+    if (bookmarkedKeys.includes(entryKey)) {
       toast.success(`"${entryTitle}" is already bookmarked and pending admin approval`, { 
         position: 'bottom-center',
-        id: `bookmark-exists-${entryTitle}` // Prevent duplicate toasts
+        id: `bookmark-exists-${entryKey}` // Prevent duplicate toasts
       });
       return;
     }
     
     // If pending local bookmark, ignore
-    if (pendingBookmarks.has(entryTitle)) {
+    if (pendingBookmarks.has(entryKey)) {
       return;
     }
 
     // If we have a callback, use it to submit to server
     if (onBookmark) {
-      setIsSubmitting(entryTitle);
-      setPendingBookmarks(prev => new Set(prev).add(entryTitle));
+      setIsSubmitting(entryKey);
+      setPendingBookmarks(prev => new Set(prev).add(entryKey));
       
       try {
-        const result = await onBookmark(entryTitle);
+        const result = await onBookmark(entryKey, entryTitle);
         if (result.success) {
           toast.success(`Bookmarked "${entryTitle}" - Sent to admin for approval`, { 
             position: 'bottom-center',
-            id: `bookmark-success-${entryTitle}`
+            id: `bookmark-success-${entryKey}`
           });
         } else if (result.alreadyExists) {
           toast.success(`"${entryTitle}" is already bookmarked`, { 
             position: 'bottom-center',
-            id: `bookmark-exists-${entryTitle}`
+            id: `bookmark-exists-${entryKey}`
           });
         } else {
           setPendingBookmarks(prev => {
             const newSet = new Set(prev);
-            newSet.delete(entryTitle);
+            newSet.delete(entryKey);
             return newSet;
           });
           toast.error(`Failed to bookmark "${entryTitle}"`, { 
             position: 'bottom-center',
-            id: `bookmark-error-${entryTitle}`
+            id: `bookmark-error-${entryKey}`
           });
         }
       } catch (error) {
         setPendingBookmarks(prev => {
           const newSet = new Set(prev);
-          newSet.delete(entryTitle);
+          newSet.delete(entryKey);
           return newSet;
         });
         toast.error(`Failed to bookmark "${entryTitle}"`, { 
           position: 'bottom-center',
-          id: `bookmark-error-${entryTitle}`
+          id: `bookmark-error-${entryKey}`
         });
       } finally {
         setIsSubmitting(null);
@@ -96,12 +99,12 @@ export default function CurriculumBrowser({
       // Fallback to local-only bookmarking
       setPendingBookmarks(prev => {
         const newSet = new Set(prev);
-        newSet.add(entryTitle);
+        newSet.add(entryKey);
         return newSet;
       });
       toast.success(`Bookmarked "${entryTitle}" - Access it later from My Portfolio`, { 
         position: 'bottom-center',
-        id: `bookmark-local-${entryTitle}`
+        id: `bookmark-local-${entryKey}`
       });
     }
   };
@@ -180,7 +183,10 @@ export default function CurriculumBrowser({
                 {sec.hour} · {sec.title} · {sec.dur}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {sec.entries.map((en, eIdx) => (
+                {sec.entries.map((en, eIdx) => {
+                  const entryKey = getEntryKey(idx, eIdx);
+                  const isBookmarked = bookmarkedEntries.has(entryKey);
+                  return (
                   <div key={eIdx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <button 
                       onClick={() => onSelectEntry(en.title)}
@@ -194,26 +200,27 @@ export default function CurriculumBrowser({
                       <span className="font-pixel" style={{ fontSize: 10, color: '#4dffa0' }}>›</span>
                     </button>
                     <button 
-                      onClick={() => handleBookmark(en.title)}
-                      disabled={isSubmitting === en.title}
-                      title={bookmarkedEntries.has(en.title) ? 'Already bookmarked' : 'Bookmark this session'}
+                      onClick={() => handleBookmark(entryKey, en.title)}
+                      disabled={isSubmitting === entryKey}
+                      title={isBookmarked ? 'Already bookmarked' : 'Bookmark this session'}
                       style={{ 
                         flex: 'none', 
-                        background: bookmarkedEntries.has(en.title) ? '#45d6ff' : 'transparent', 
+                        background: isBookmarked ? '#45d6ff' : 'transparent', 
                         border: '1px solid #28432f', 
                         borderRadius: 6, 
                         padding: '10px 12px', 
-                        cursor: isSubmitting === en.title ? 'wait' : 'pointer', 
-                        color: bookmarkedEntries.has(en.title) ? '#0e1512' : '#45d6ff', 
+                        cursor: isSubmitting === entryKey ? 'wait' : 'pointer', 
+                        color: isBookmarked ? '#0e1512' : '#45d6ff', 
                         fontSize: 16,
                         transition: 'all 0.15s',
-                        opacity: isSubmitting === en.title ? 0.6 : 1
+                        opacity: isSubmitting === entryKey ? 0.6 : 1
                       }}
                     >
-                      {isSubmitting === en.title ? '⏳' : bookmarkedEntries.has(en.title) ? '★' : '☆'}
+                      {isSubmitting === entryKey ? '⏳' : isBookmarked ? '★' : '☆'}
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

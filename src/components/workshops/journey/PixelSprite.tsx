@@ -88,7 +88,8 @@ export function buildSpriteUri(
   let rects = sp.rects.slice()
 
   if (people) {
-    const hr = HAIR[opts?.hair || 'signature']
+          if (sp.faceFx?.length) rects = rects.concat(sp.faceFx)
+      const hr = HAIR[opts?.hair || 'signature']
     if (hr?.length) rects = rects.concat(hr)
     const fh = FACIAL[opts?.facial || 'none']
     if (fh?.length) rects = rects.concat(fh)
@@ -138,3 +139,4 @@ export default PixelSprite
 export function buildIconUri(rects: SpriteRect[], accent: string): string {
   return rectsToSvg(rects, accent, 16)
 }
+
