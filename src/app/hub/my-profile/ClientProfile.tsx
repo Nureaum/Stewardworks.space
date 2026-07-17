@@ -79,7 +79,7 @@ export default function ClientProfile({
   const [tempMultiValue, setTempMultiValue] = useState<string[]>([]);
   const [otherValue, setOtherValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState<'dream_job' | 'learning_style' | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<'dream_job' | 'learning_style' | 'community_serve' | null>(null);
 
   // Workforce Pathway Picks State
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([]);
@@ -169,6 +169,26 @@ export default function ClientProfile({
     "Environmental technician",
     "Community organizer",
     "Not sure yet",
+    "Other (please describe)"
+  ];
+
+  const communityServeOptions = [
+    "El Centro",
+    "Calexico",
+    "Brawley",
+    "Imperial",
+    "Holtville",
+    "Calipatria",
+    "Westmorland",
+    "Heber",
+    "Seeley",
+    "Niland",
+    "Salton City",
+    "Bombay Beach",
+    "Slab City",
+    "Winterhaven",
+    "Ocotillo",
+    "Palo Verde",
     "Other (please describe)"
   ];
 
@@ -476,11 +496,15 @@ export default function ClientProfile({
 
   const startEditing = (field: 'dream_job' | 'learning_style' | 'full_name' | 'why_here' | 'community_serve', currentValue: any) => {
     setEditingField(field);
-    if (field === 'learning_style') {
+    if (field === 'learning_style' || field === 'community_serve') {
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
-      setTempMultiValue(currentArray);
-      const hasCustom = currentArray.some((v: string) => !learningStyleOptions.includes(v));
-      setOtherValue(hasCustom ? currentArray.find((v: string) => !learningStyleOptions.includes(v)) || '' : '');
+      const options = field === 'learning_style' ? learningStyleOptions : communityServeOptions;
+      const hasCustom = currentArray.some((v: string) => !options.includes(v));
+      const newTemp = currentArray.filter((v: string) => options.includes(v));
+      if (hasCustom) newTemp.push("Other (please describe)");
+      
+      setTempMultiValue(newTemp);
+      setOtherValue(hasCustom ? currentArray.find((v: string) => !options.includes(v)) || '' : '');
     } else {
       let val = currentValue || '';
       if (field === 'dream_job') {
@@ -502,7 +526,7 @@ export default function ClientProfile({
     if (!editingField) return;
     setIsSaving(true);
     let updateValue: any;
-    if (editingField === 'learning_style') {
+    if (editingField === 'learning_style' || editingField === 'community_serve') {
       if (tempMultiValue.includes("Other (please describe)") && otherValue) {
         updateValue = tempMultiValue.filter(v => v !== "Other (please describe)").concat([otherValue]);
       } else {
@@ -534,8 +558,19 @@ export default function ClientProfile({
   };
 
   const handleMultiSelectToggle = (option: string) => {
-    if (tempMultiValue.includes(option)) setTempMultiValue(tempMultiValue.filter(v => v !== option));
-    else setTempMultiValue([...tempMultiValue, option]);
+    if (option === "Other (please describe)") {
+      if (tempMultiValue.includes(option)) {
+        setTempMultiValue([]);
+      } else {
+        setTempMultiValue([option]);
+      }
+    } else {
+      if (tempMultiValue.includes(option)) {
+        setTempMultiValue(tempMultiValue.filter(v => v !== option));
+      } else {
+        setTempMultiValue([...tempMultiValue.filter(v => v !== "Other (please describe)"), option]);
+      }
+    }
   };
 
   const handleCustomSelect = async (val: string, field: 'dream_job' | 'learning_style') => {
@@ -575,6 +610,11 @@ export default function ClientProfile({
   const displayLearningStyle = currentLearningStyles.length > 0 
     ? currentLearningStyles.map((style: string) => learningStyleOptions.includes(style) ? style : `Other: ${style}`).join(', ')
     : 'Add learning style';
+
+  const currentCommunityServe = Array.isArray(profile?.community_serve) ? profile.community_serve : [];
+  const displayCommunityServe = currentCommunityServe.length > 0
+    ? currentCommunityServe.map((style: string) => communityServeOptions.includes(style) ? style : `Other: ${style}`).join(', ')
+    : 'Add the communities you connect with, serve, and care about';
 
   const currentDreamJob = profile?.dream_job || "";
   const isDreamJobCustom = currentDreamJob && !dreamJobOptions.includes(currentDreamJob);
@@ -793,7 +833,7 @@ export default function ClientProfile({
                 </div>
                 {editingField === 'why_here' ? (
                   <div style={{ background: '#3f5460', borderRadius: '8px', padding: '10px', color: '#FEFAE0', border: '1px solid rgba(254,250,224,.16)' }}>
-                    <textarea value={tempValue} onChange={e => setTempValue(e.target.value)} autoFocus style={{ width: '100%', padding: '6px 8px', background: 'rgba(0,0,0,.2)', border: '1px solid rgba(254,250,224,.2)', color: '#FEFAE0', borderRadius: '4px', fontSize: '12px', marginBottom: '8px', minHeight: '60px', fontFamily: 'inherit' }} placeholder="Why are you here?" />
+                    <textarea value={tempValue} onChange={e => setTempValue(e.target.value)} autoFocus style={{ width: '100%', padding: '6px 8px', background: 'rgba(0,0,0,.2)', border: '1px solid rgba(254,250,224,.2)', color: '#FEFAE0', borderRadius: '4px', fontSize: '12px', marginBottom: '8px', minHeight: '60px', fontFamily: 'inherit' }} placeholder="Add your goals and intentions..." />
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={handleSaveField} disabled={isSaving} style={{ flex: 1, background: '#FEFAE0', color: '#2c3742', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>{isSaving ? 'Saving...' : 'Save'}</button>
                       <button onClick={() => setEditingField(null)} style={{ background: 'transparent', color: '#FEFAE0', border: '1px solid rgba(254,250,224,.3)', borderRadius: '4px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
@@ -801,7 +841,7 @@ export default function ClientProfile({
                   </div>
                 ) : (
                   <div style={{ fontSize: '14px', lineHeight: 1.4, color: '#FEFAE0', opacity: profile?.why_here ? 1 : 0.6 }}>
-                    {profile?.why_here || 'Add why you are here...'}
+                    {profile?.why_here || 'Add your goals and intentions...'}
                   </div>
                 )}
               </div>
@@ -885,24 +925,48 @@ export default function ClientProfile({
               </div>
 
               {/* Community I Serve Card */}
-              <div style={{ background: 'rgba(254,250,224,.09)', border: '1px solid rgba(254,250,224,.16)', borderRadius: '13px', padding: '13px 15px' }}>
+              <div className="custom-dropdown-container" style={{ background: 'rgba(254,250,224,.09)', border: '1px solid rgba(254,250,224,.16)', borderRadius: '13px', padding: '13px 15px', position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
                   <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9.5px', letterSpacing: '.14em', color: 'rgba(254,250,224,.6)' }}>COMMUNITY I SERVE</span>
-                  {editingField !== 'community_serve' && (
-                    <button onClick={() => startEditing('community_serve', profile?.community_serve)} style={{ background: 'none', border: 'none', color: 'rgba(254,250,224,.8)', fontSize: '10px', cursor: 'pointer', fontFamily: '"DM Mono", monospace' }}>Edit</button>
+                  {openDropdown !== 'community_serve' && (
+                    <button onClick={() => {
+                      startEditing('community_serve', profile?.community_serve);
+                      setOpenDropdown('community_serve');
+                    }} style={{ background: 'none', border: 'none', color: 'rgba(254,250,224,.8)', fontSize: '10px', cursor: 'pointer', fontFamily: '"DM Mono", monospace' }}>Edit</button>
                   )}
                 </div>
-                {editingField === 'community_serve' ? (
-                  <div style={{ background: '#3f5460', borderRadius: '8px', padding: '10px', color: '#FEFAE0', border: '1px solid rgba(254,250,224,.16)' }}>
-                    <textarea value={tempValue} onChange={e => setTempValue(e.target.value)} autoFocus style={{ width: '100%', padding: '6px 8px', background: 'rgba(0,0,0,.2)', border: '1px solid rgba(254,250,224,.2)', color: '#FEFAE0', borderRadius: '4px', fontSize: '12px', marginBottom: '8px', minHeight: '60px', fontFamily: 'inherit' }} placeholder="What community do you serve?" />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={handleSaveField} disabled={isSaving} style={{ flex: 1, background: '#FEFAE0', color: '#2c3742', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>{isSaving ? 'Saving...' : 'Save'}</button>
-                      <button onClick={() => setEditingField(null)} style={{ background: 'transparent', color: '#FEFAE0', border: '1px solid rgba(254,250,224,.3)', borderRadius: '4px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                
+                <div style={{ fontSize: '14px', lineHeight: 1.4, color: '#FEFAE0' }}>{displayCommunityServe}</div>
+
+                {openDropdown === 'community_serve' && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#3f5460', borderRadius: '8px', padding: '10px', color: '#FEFAE0', boxShadow: '0 10px 25px rgba(0,0,0,.3)', marginTop: '4px', border: '1px solid rgba(254,250,224,.16)', maxHeight: '300px', overflowY: 'auto' }}>
+                    {communityServeOptions.map(opt => {
+                      const isSelected = tempMultiValue.includes(opt);
+                      const isOther = opt === "Other (please describe)";
+                      return (
+                        <div key={opt} style={{ marginBottom: '6px' }}>
+                          <button onClick={() => handleMultiSelectToggle(opt)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px', background: isSelected ? 'rgba(254,250,224,.1)' : 'transparent', border: 'none', borderRadius: '4px', cursor: 'pointer', textAlign: 'left', fontFamily: '"Exo", sans-serif', fontSize: '13px', fontWeight: isSelected ? 700 : 400, color: '#FEFAE0' }}>
+                            <div style={{ width: '14px', height: '14px', borderRadius: '3px', border: isSelected ? '1.5px solid #FEFAE0' : '1.5px solid rgba(254,250,224,.5)', background: isSelected ? '#FEFAE0' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {isSelected && <Check size={10} color="#3f5460" />}
+                            </div>
+                            {opt}
+                          </button>
+                          {isOther && isSelected && (
+                            <input value={otherValue} onChange={e => setOtherValue(e.target.value)} placeholder="Please describe..." style={{ width: '100%', padding: '6px 8px', marginTop: '4px', background: 'rgba(0,0,0,.2)', border: '1px solid rgba(254,250,224,.2)', borderRadius: '4px', fontSize: '12px', color: '#FEFAE0' }} />
+                          )}
+                        </div>
+                      );
+                    })}
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                      <button onClick={async () => {
+                        await handleSaveField();
+                        setOpenDropdown(null);
+                      }} disabled={isSaving} style={{ flex: 1, background: '#FEFAE0', color: '#2c3742', border: 'none', borderRadius: '4px', padding: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>{isSaving ? 'Saving...' : 'Save'}</button>
+                      <button onClick={() => {
+                        setEditingField(null);
+                        setOpenDropdown(null);
+                      }} style={{ background: 'transparent', color: '#FEFAE0', border: '1px solid rgba(254,250,224,.3)', borderRadius: '4px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
                     </div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: '14px', lineHeight: 1.4, color: '#FEFAE0', opacity: profile?.community_serve ? 1 : 0.6 }}>
-                    {profile?.community_serve || 'Add the community you serve...'}
                   </div>
                 )}
               </div>

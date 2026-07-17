@@ -5,7 +5,7 @@ import ArcadeButton from './ArcadeButton'
 import PixelSprite from './PixelSprite'
 import type { WorkshopCharacter } from '@/types/workshops'
 
-type JourneyTab = 'journey' | 'portfolio' | 'showcase'
+type JourneyTab = 'journey' | 'portfolio' | 'showcase' | 'studentshowcase'
 
 interface JourneyHeaderProps {
   activeTab: JourneyTab
@@ -59,12 +59,12 @@ export default function JourneyHeader({
           className="font-pixel"
           title="Return to the workshop hub"
           style={{
-            fontSize: 9,
+            fontSize: 12,
             color: 'var(--s, #45d6ff)',
             background: 'transparent',
             border: '2px solid var(--s, #45d6ff)',
-            borderRadius: 5,
-            padding: '8px 12px',
+            borderRadius: 6,
+            padding: '12px 16px',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             boxShadow: '0 0 10px rgba(69,214,255,.2)',
@@ -187,58 +187,76 @@ export default function JourneyHeader({
         )}
       </div>
 
-      {/* Bottom Row: Navigation tabs centered */}
+      {/* Bottom Row: Navigation tabs */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
+          justifyContent: 'space-between',
           padding: '0 clamp(16px, 3vw, 28px) 14px',
           flexWrap: 'wrap',
+          gap: 16,
         }}
       >
-        <ArcadeButton
-          active={activeTab === 'journey'}
-          color="var(--p, #ff5fd2)"
-          onClick={() => onTabChange('journey')}
-        >
-          ◆ JOURNEY
-        </ArcadeButton>
-        {character && (
-          <ArcadeButton
-            active={activeTab === 'portfolio'}
-            color="var(--ok, #74f0a0)"
-            onClick={() => onTabChange('portfolio')}
+        {/* Left: AI Lab */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+          <a
+            href={`/hub/ai-lab${cohortId ? '?cohortId=' + cohortId : ''}`}
+            className="font-pixel"
+            style={{
+              fontSize: 9,
+              cursor: 'pointer',
+              padding: '10px 14px',
+              borderRadius: 5,
+              border: '2px solid var(--ok, #74f0a0)',
+              background: 'transparent',
+              color: 'var(--ok, #74f0a0)',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 0 12px rgba(116,240,160,.18)',
+            }}
           >
-            ❀ MY PORTFOLIO
+            ⚡ AI LAB
+          </a>
+        </div>
+
+        {/* Center: Journey, My Portfolio */}
+        <div style={{ flex: 2, display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <ArcadeButton
+            active={activeTab === 'journey'}
+            color="var(--p, #ff5fd2)"
+            onClick={() => onTabChange('journey')}
+          >
+            ◆ JOURNEY
           </ArcadeButton>
-        )}
-        <ArcadeButton
-          active={activeTab === 'showcase'}
-          color="var(--gold, #ffd23f)"
-          onClick={() => onTabChange('showcase')}
-        >
-          ★ CONTRIBUTOR SHOWCASE
-        </ArcadeButton>
-        <a
-          href={`/hub/ai-lab${cohortId ? '?cohortId=' + cohortId : ''}`}
-          className="font-pixel"
-          style={{
-            fontSize: 9,
-            cursor: 'pointer',
-            padding: '10px 14px',
-            borderRadius: 5,
-            border: '2px solid var(--ok, #74f0a0)',
-            background: 'transparent',
-            color: 'var(--ok, #74f0a0)',
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-            boxShadow: '0 0 12px rgba(116,240,160,.18)',
-          }}
-        >
-          ⚡ AI LAB
-        </a>
+          {character && (
+            <ArcadeButton
+              active={activeTab === 'portfolio'}
+              color="var(--ok, #74f0a0)"
+              onClick={() => onTabChange('portfolio')}
+            >
+              ❀ MY PORTFOLIO
+            </ArcadeButton>
+          )}
+        </div>
+
+        {/* Right: Contributor Showcase, Student Showcase */}
+        <div style={{ flex: 1, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <ArcadeButton
+            active={activeTab === 'showcase'}
+            color="var(--gold, #ffd23f)"
+            onClick={() => onTabChange('showcase')}
+          >
+            ★ CONTRIBUTOR SHOWCASE
+          </ArcadeButton>
+          <ArcadeButton
+            active={activeTab === 'studentshowcase'}
+            color="#ff5fd2"
+            onClick={() => onTabChange('studentshowcase')}
+          >
+            ✧ STUDENT SHOWCASE
+          </ArcadeButton>
+        </div>
       </div>
     </div>
   )

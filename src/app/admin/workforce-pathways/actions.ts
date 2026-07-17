@@ -503,3 +503,25 @@ export async function saveUserPick(pick: any) {
     return data;
   }
 }
+
+export async function fetchWorkforceInitialData() {
+  const [
+    structure,
+    counts,
+    jobs,
+    boards,
+    entries,
+    quizzes,
+    summits
+  ] = await Promise.all([
+    fetchWorkforceStructure(),
+    fetchWorkforceCounts(),
+    fetchWorkforceJobs(),
+    fetchExternalBoards(),
+    fetchAllWorkforceEntries(),
+    fetchAllQuizzes(),
+    fetchAllSummits()
+  ]);
+
+  return { structure, counts, jobs, boards, entries, quizzes, summits };
+}

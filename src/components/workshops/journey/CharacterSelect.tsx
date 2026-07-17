@@ -124,7 +124,7 @@ export default function CharacterSelect({
   }
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: 'clamp(20px, 4vw, 40px) clamp(40px, 6vw, 80px)' }}>
+    <div style={{ maxWidth: '1060px', margin: '0 auto', paddingTop: 4, paddingBottom: 'clamp(14px, 3vw, 30px)', paddingLeft: 'clamp(14px, 3vw, 26px)', paddingRight: 'clamp(14px, 3vw, 26px)' }}>
       
       {/* (1) Minimizable Header */}
       <div
@@ -136,11 +136,11 @@ export default function CharacterSelect({
           overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '13px 16px' }}>
           <div style={{ minWidth: 0 }}>
             <div
               className="font-pixel"
-              style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 10, color: 'var(--s, #45d6ff)', letterSpacing: 2, marginBottom: 10 }}
+              style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: 'var(--s, #45d6ff)', letterSpacing: 2, marginBottom: 9 }}
             >
               ▚ PILOT WORKSHOPS · INSERT COIN ▚
             </div>
@@ -148,11 +148,10 @@ export default function CharacterSelect({
               className="font-pixel"
               style={{
                 fontFamily: "'Press Start 2P', monospace",
-                fontSize: 'clamp(18px, 4vw, 28px)',
-                fontWeight: 900,
+                fontSize: 'clamp(13px, 3vw, 22px)',
                 color: 'var(--gold, #ffd23f)',
-                textShadow: '0 0 20px rgba(255,210,63,.5), 4px 4px 0 rgba(0,0,0,.5)',
-                lineHeight: 1.3,
+                textShadow: '0 0 16px rgba(255,210,63,.45), 3px 3px 0 rgba(0,0,0,.4)',
+                lineHeight: 1.4,
                 letterSpacing: 1,
               }}
             >
@@ -165,21 +164,18 @@ export default function CharacterSelect({
             title="Show / hide customization options"
             className="font-pixel"
             style={{
-              fontSize: 11,
-              fontWeight: 700,
+              fontSize: 12,
               color: 'var(--mu, #a493c9)',
-              background: 'rgba(0,0,0,.4)',
+              background: 'rgba(0,0,0,.3)',
               border: '2px solid var(--ln, #3d2668)',
-              borderRadius: 6,
+              borderRadius: 5,
               padding: '12px 16px',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flex: 'none',
-              letterSpacing: 1,
-              transition: 'all 0.15s ease',
             }}
           >
-            {selectMin ? '◆ SHOW OPTIONS' : '◇ HIDE CUSTOMIZATION'}
+            {selectMin ? '▶ SHOW OPTIONS' : '▼ HIDE CUSTOMIZATION'}
           </button>
         </div>
         {!selectMin && (
@@ -406,8 +402,9 @@ export default function CharacterSelect({
           </div>
 
           {/* Options Grid */}
-          {!selectMin && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+          
+            {!selectMin && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(188px, 1fr))', gap: 11 }}>
             
             {/* Signal Aura */}
             <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px' }}>

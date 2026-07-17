@@ -26,7 +26,7 @@ import type {
   WorkshopEngagement,
 } from '@/types/workshops'
 
-type JourneyTab = 'journey' | 'portfolio' | 'showcase'
+type JourneyTab = 'journey' | 'portfolio' | 'showcase' | 'studentshowcase'
 type JourneyScreen = 'select' | 'map' | 'scene'
 type Role = 'student' | 'admin'
 
@@ -361,6 +361,19 @@ export default function JourneyClient({
                 engagements={engagements}
                 cohortId={cohortId}
                 onBookmark={(key, title, source) => handleAddEngagement('bookmark', title, source)}
+                onlyContributors={true}
+              />
+            </div>
+          )}
+
+          {role === 'student' && tab === 'studentshowcase' && (
+            <div style={{ padding: 'clamp(20px, 3vw, 40px) clamp(24px, 3.5vw, 50px)' }}>
+              <Showcase
+                showcaseItems={showcaseItems}
+                engagements={engagements}
+                cohortId={cohortId}
+                onBookmark={(key, title, source) => handleAddEngagement('bookmark', title, source)}
+                onlyStudents={true}
               />
             </div>
           )}

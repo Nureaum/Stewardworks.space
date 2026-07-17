@@ -6,13 +6,14 @@ import ModernTheme from './components/ModernTheme';
 import ArcadeTheme from './components/ArcadeTheme';
 import { useUser } from '@clerk/nextjs';
 import { PATHWAYS as INITIAL_PATHWAYS } from '@/data/workforce-content';
-import { fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, fetchWorkforceJobs, fetchExternalBoards, submitSuggestion, getArcadeAvatar, saveArcadeAvatar, fetchAllWorkforceEntries, fetchAllQuizzes, fetchAllSummits, fetchUserPicks, saveUserPick } from '@/app/admin/workforce-pathways/actions';
+import { fetchWorkforceInitialData, fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, fetchWorkforceJobs, fetchExternalBoards, submitSuggestion, getArcadeAvatar, saveArcadeAvatar, fetchAllWorkforceEntries, fetchAllQuizzes, fetchAllSummits, fetchUserPicks, saveUserPick } from '@/app/admin/workforce-pathways/actions';
 import { toggleBookmark as toggleDbBookmark, fetchUserBookmarks } from '@/app/actions/bookmarks';
 import { QUIZZES, SUMMITS } from '@/data/workforce-content';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function WorkforcePathwaysPage() {
+function WorkforcePathwaysContent() {
   const searchParams = useSearchParams();
   const nodeParam = searchParams.get('node');
   const jobsParam = searchParams.get('jobs');
@@ -146,42 +147,38 @@ export default function WorkforcePathwaysPage() {
   const onSgNote = (e: any) => setSgNote(e.target.value);
   const popShelf = 'Industry & Work';
   useEffect(() => {
-    fetchWorkforceStructure().then(({ pathways, stops }) => {
-       const newCatalog = INITIAL_PATHWAYS.map(p => {
-          const dbP = pathways.find((x: any) => x.id === p.id);
-          return {
-             ...p,
-             intro: dbP ? dbP.intro : p.intro,
-             stops: p.stops.map(s => {
-                const dbS = stops.find((x: any) => x.id === s.id);
-                return {
-                   ...s,
-                   blurb: dbS ? dbS.blurb : s.blurb,
-                }
-             })
-          };
-       });
-       setCatalog(newCatalog);
+    fetchWorkforceInitialData().then((data) => {
+      const { structure, counts: resCounts, jobs: resJobs, boards, entries, quizzes, summits } = data;
+      
+      const newCatalog = INITIAL_PATHWAYS.map(p => {
+        const dbP = structure.pathways.find((x: any) => x.id === p.id);
+        return {
+           ...p,
+           intro: dbP ? dbP.intro : p.intro,
+           stops: p.stops.map(s => {
+              const dbS = structure.stops.find((x: any) => x.id === s.id);
+              return {
+                 ...s,
+                 blurb: dbS ? dbS.blurb : s.blurb,
+              }
+           })
+        };
+      });
+      setCatalog(newCatalog);
+      
+      setCounts({
+          noteCount: resCounts.creatorCount + resCounts.enviroCount,
+          waypointCount: INITIAL_PATHWAYS[0].stops.length + INITIAL_PATHWAYS[1].stops.length,
+          jobsCount: resCounts.jobsCount,
+          stopCounts: resCounts.stopCounts
+      });
+      
+      setJobs(resJobs || []);
+      setExternalBoards(boards || []);
+      setAllEntries(entries || []);
+      setDbQuizzes(quizzes || []);
+      setDbSummits(summits || []);
     });
-    fetchWorkforceCounts().then(res => {
-       setCounts({
-           noteCount: res.creatorCount + res.enviroCount,
-           waypointCount: INITIAL_PATHWAYS[0].stops.length + INITIAL_PATHWAYS[1].stops.length,
-           jobsCount: res.jobsCount,
-           stopCounts: res.stopCounts
-       });
-    });
-    fetchWorkforceJobs().then(res => {
-       setJobs(res || []);
-    });
-    fetchExternalBoards().then(res => {
-       setExternalBoards(res || []);
-    });
-    fetchAllWorkforceEntries().then(res => {
-       setAllEntries(res || []);
-    });
-    fetchAllQuizzes().then(res => setDbQuizzes(res || []));
-    fetchAllSummits().then(res => setDbSummits(res || []));
   }, []);
 
   useEffect(() => {
@@ -945,4 +942,16 @@ export default function WorkforcePathwaysPage() {
   }
 
   return theme === 'arcade' ? <ArcadeTheme {...allProps} initialScreen={initialScreen} /> : <ModernTheme {...allProps} initialScreen={initialScreen} />;
+}
+
+export default function WorkforcePathwaysPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: '#1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontFamily: "'Press Start 2P', monospace", color: '#ffdd2e', animation: 'ar-bob 1s infinite steps(2)' }}>LOADING...</div>
+      </div>
+    }>
+      <WorkforcePathwaysContent />
+    </Suspense>
+  );
 }

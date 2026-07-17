@@ -120,7 +120,20 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
         }
       }
       
-      toast.success(`Deliverable submitted successfully!`, { position: 'bottom-center' });
+      toast('successfully submitted -- pending approval', {
+        position: 'bottom-center',
+        style: {
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: '9px',
+          color: '#12081e',
+          background: '#ffd23f',
+          padding: '12px 20px',
+          borderRadius: '20px',
+          boxShadow: '0 0 18px rgba(255,210,63,.5)',
+          border: 'none',
+        },
+        duration: 3000
+      });
       
       setSubmissionUrl('');
       setFileToUpload(null);
