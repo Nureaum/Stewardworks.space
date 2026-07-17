@@ -12,7 +12,14 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
   const frameStyle = showShell
     ? { position: "relative" as any, zIndex: 1, width: "min(1300px,100%)", background: "linear-gradient(158deg,#f4ecda,#e7d9bc)", borderRadius: "26px", padding: "14px 14px 16px", boxShadow: "0 30px 70px -24px rgba(70,48,14,.55),inset 0 0 0 1px rgba(255,255,255,.55),inset 0 0 0 2px rgba(150,120,70,.22)" }
     : { position: "relative" as any, zIndex: 1, width: "min(1240px,100%)" };
-  const [arcadeScreen, setArcadeScreen] = React.useState<'main' | 'quests' | 'library' | 'shelf' | 'summit'>('main');
+  const [arcadeScreen, setArcadeScreen] = React.useState<'main' | 'quests' | 'library' | 'shelf' | 'summit'>(props.initialScreen || 'main');
+  
+  React.useEffect(() => {
+    if (props.initialScreen) {
+      setArcadeScreen(props.initialScreen);
+    }
+  }, [props.initialScreen]);
+
   const [mapMode, setMapMode] = React.useState<'map' | 'list'>('map');
 
   const showMapToggle = showPathway && arcadeScreen === 'main';

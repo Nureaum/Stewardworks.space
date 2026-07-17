@@ -136,11 +136,23 @@ export async function getSystemBulletins() {
       onboarding_body: '',
       onboarding_cta_label: '',
       onboarding_cta_url: '',
-      onboarding_image_url: ''
+      onboarding_image_url: '',
+      about_content: '',
+      about_content_html: '',
+      contact_details: '',
+      contact_email: '',
+      contact_phone: '',
+      contact_address: ''
     };
   }
   
-  return data;
+  // Normalize - handle both old (contact_details) and new (contact_email) schemas
+  return {
+    ...data,
+    // Ensure backward compatibility - use whichever field exists
+    contact_email: data.contact_email || data.contact_details || '',
+    contact_details: data.contact_details || data.contact_email || '',
+  };
 }
 
 export async function updateProjectBulletin(text: string) {
@@ -156,6 +168,49 @@ export async function updateProjectBulletin(text: string) {
   
   revalidatePath('/admin/announcements');
   revalidatePath('/hub');
+}
+
+export async function updateAboutPage(content: string, contact: string) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase
+    .from('system_bulletins')
+    .upsert({ id: 1, about_content: content, contact_details: contact, updated_at: new Date().toISOString() });
+
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/info');
+}
+
+export async function updateAboutPageRich(data: {
+  aboutContentHtml: string;
+  contactEmail: string;
+  contactPhone: string;
+  contactAddress: string;
+}) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase
+    .from('system_bulletins')
+    .upsert({ 
+      id: 1, 
+      about_content_html: data.aboutContentHtml,
+      contact_email: data.contactEmail,
+      contact_phone: data.contactPhone,
+      contact_address: data.contactAddress,
+      updated_at: new Date().toISOString() 
+    });
+
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/admin/about');
+  revalidatePath('/admin/announcements');
+  revalidatePath('/info');
 }
 
 export async function updateOnboardingBulletin(data: {
@@ -209,7 +264,7 @@ export async function getBulletinEvents() {
   return data;
 }
 
-export async function createBulletinUpdate(data: { tag: string; title: string; body: string; detail: string; cta_label: string }) {
+export async function createBulletinUpdate(data: { tag: string; title: string; body: string; detail: string; cta_label: string; link_url?: string; image_url?: string | null }) {
   const supabase = createServerSupabaseClient();
   const { userId } = await auth();
   if (!userId) throw new Error('Unauthorized');
@@ -257,7 +312,7 @@ export async function deleteBulletinEvent(id: string) {
   revalidatePath('/onboarding/bulletin');
 }
 
-export async function updateBulletinUpdate(id: string, data: { tag: string; title: string; body: string; detail: string; cta_label: string }) {
+export async function updateBulletinUpdate(id: string, data: { tag: string; title: string; body: string; detail: string; cta_label: string; link_url?: string; image_url?: string | null }) {
   const supabase = createServerSupabaseClient();
   const { userId } = await auth();
   if (!userId) throw new Error('Unauthorized');

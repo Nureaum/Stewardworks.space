@@ -13,8 +13,9 @@ interface JourneyDayListProps {
   onSceneView: () => void
   progressRows: WorkshopProgress[]
   cohortId: string
-  onBookmark?: (key: string, title: string, source: string) => void
+  onBookmark?: (key: string, title: string, source: string, url?: string) => void
   bookmarkedTitles?: string[]
+  defaultTopicId?: string | null
 }
 
 function secColor(a: string) {
@@ -29,7 +30,8 @@ export default function JourneyDayList({
   progressRows,
   cohortId,
   onBookmark,
-  bookmarkedTitles = []
+  bookmarkedTitles = [],
+  defaultTopicId = null
 }: JourneyDayListProps) {
   // Get all entries flat
   const allEntries = day.sections?.flatMap(s => s.entries?.map(e => ({
@@ -39,7 +41,13 @@ export default function JourneyDayList({
     hour: s.title
   }))) || []
 
-  const [activeEntry, setActiveEntry] = useState<any>(allEntries[0] || null)
+  const [activeEntry, setActiveEntry] = useState<any>(() => {
+    if (defaultTopicId) {
+      const match = allEntries.find(e => e.id === defaultTopicId)
+      if (match) return match
+    }
+    return allEntries[0] || null
+  })
 
   const accent = character?.accent_color || '#45d6ff'
   const dayIconUri = buildIconUri(MAP_ICONS.tent, accent) // Simplified icon
@@ -111,7 +119,7 @@ export default function JourneyDayList({
                             const isBookmarked = bookmarkedTitles.includes(it.title)
                             return (
                               <button
-                                onClick={() => onBookmark(`${day.id}-${it.id}`, it.title, `Day ${day.day_number}: ${sec.title}`)}
+                                onClick={() => onBookmark(`${day.id}-${it.id}`, it.title, `Day ${day.day_number}: ${sec.title}`, `/hub/pilot-workshops/${cohortId}/journey?day=${day.day_number}&topic=${it.id}`)}
                                 title={isBookmarked ? "Already bookmarked" : "Bookmark this lesson"}
                                 className="font-pixel"
                                 style={{

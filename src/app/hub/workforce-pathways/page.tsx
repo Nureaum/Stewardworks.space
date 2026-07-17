@@ -10,8 +10,13 @@ import { fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, f
 import { toggleBookmark as toggleDbBookmark, fetchUserBookmarks } from '@/app/actions/bookmarks';
 import { QUIZZES, SUMMITS } from '@/data/workforce-content';
 import toast from 'react-hot-toast';
+import { useSearchParams } from 'next/navigation';
 
 export default function WorkforcePathwaysPage() {
+  const searchParams = useSearchParams();
+  const nodeParam = searchParams.get('node');
+  const jobsParam = searchParams.get('jobs');
+
   const { user, isLoaded } = useUser();
   const [isAdminUser, setIsAdminUser] = useState(false);
 
@@ -41,12 +46,28 @@ export default function WorkforcePathwaysPage() {
   const [sgDone, setSgDone] = useState(false);
   const [claimedRuns, setClaimedRuns] = useState<Record<string, boolean>>({});
 
+  const [initialScreen, setInitialScreen] = useState<'main' | 'quests' | 'library'>('main');
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem('awf_claimed_runs');
       if (saved) setClaimedRuns(JSON.parse(saved));
     } catch(e) {}
+    
+    // Deep linking for bookmarks via useSearchParams (done declaratively instead)
   }, []);
+
+  useEffect(() => {
+    if (nodeParam) {
+      setRole('steward');
+      setLibNode(nodeParam);
+      setInitialScreen('library');
+    }
+    if (jobsParam === 'true') {
+      setInitialScreen('quests');
+      setRole('steward');
+    }
+  }, [nodeParam, jobsParam]);
 
   const claimRun = (pwId: string) => {
     const next = { ...claimedRuns, [pwId]: true };
@@ -72,6 +93,7 @@ export default function WorkforcePathwaysPage() {
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
   const [jobBookmarks, setJobBookmarks] = useState<Record<string, boolean>>({});
   const [isSubmittingJobBookmark, setIsSubmittingJobBookmark] = useState<string | null>(null);
+  const [isSubmittingBookmark, setIsSubmittingBookmark] = useState<string | null>(null);
   const [initialAvatar, setInitialAvatar] = useState<any>(null);
 
   const [dbQuizzes, setDbQuizzes] = useState<any[]>([]);
@@ -427,6 +449,9 @@ export default function WorkforcePathwaysPage() {
   
   const toggleBookmark = async (rec: any) => {
     const url = rec.url;
+    if (isSubmittingBookmark === url) return;
+    setIsSubmittingBookmark(url);
+    
     const isBookmarked = !!bookmarks[url];
     
     // Optimistic update - use URL as key
@@ -442,7 +467,8 @@ export default function WorkforcePathwaysPage() {
         url,  // Use URL as itemId since that's what's stored in database
         'workforce', 
         rec.label || rec.title || `Workforce Resource`,
-        url
+        url,
+        rec.nodeId
       );
       
       // Refetch bookmarks to sync state with database
@@ -466,6 +492,8 @@ export default function WorkforcePathwaysPage() {
         else delete next[url];
         return next;
       });
+    } finally {
+      setIsSubmittingBookmark(null);
     }
   };
 
@@ -524,11 +552,12 @@ export default function WorkforcePathwaysPage() {
     }
   };
 
-  const bmBtnStyle = (on: boolean) => ({
-    all: 'unset', cursor: 'pointer', boxSizing: 'border-box', flex: '0 0 auto', width: '34px', height: '34px',
+  const bmBtnStyle = (on: boolean, isSubmitting: boolean = false) => ({
+    all: 'unset', cursor: isSubmitting ? 'wait' : 'pointer', boxSizing: 'border-box', flex: '0 0 auto', width: '34px', height: '34px',
     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', border: '3px solid #1c1526',
-    boxShadow: '2px 2px 0 rgba(18,12,26,.4)', borderRadius: '7px',
-    background: on ? '#ffdd2e' : '#1d4490', color: on ? '#10285e' : '#8f88ad'
+    boxShadow: isSubmitting ? 'none' : '2px 2px 0 rgba(18,12,26,.4)', borderRadius: '7px',
+    background: on ? '#ffdd2e' : '#1d4490', color: on ? '#10285e' : '#8f88ad',
+    opacity: isSubmitting ? 0.7 : 1, transform: isSubmitting ? 'translate(2px, 2px)' : 'none', transition: 'all 0.15s ease'
   } as React.CSSProperties);
 
   const rowStyleFor = (accent: string) => ({
@@ -545,13 +574,15 @@ export default function WorkforcePathwaysPage() {
         (e.sources || []).forEach((x: any, i: number) => {
           const recId = e.id + "_" + i;
           const url = x[1];
-          const isSaved = !!bookmarks[url];  // Check by URL, not recId
+          const isSaved = !!bookmarks[url];
+          const isSubmitting = isSubmittingBookmark === url;
           const rec = {
-            id: recId,
+            id: "db_" + e.id,
             label: x[0], url: url, domain: domainOf(url),
             about: e.subtitle || "", source: e.title, type: e.type || "Resource",
             pathway: p.id, stopName: sp.name, accent: pAccent,
-            saved: isSaved, bmIcon: isSaved ? "★" : "☆", bmStyle: bmBtnStyle(isSaved), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
+            nodeId: sp.slug || sp.id,
+            saved: isSaved, bmIcon: isSaved ? "★" : "☆", bmStyle: bmBtnStyle(isSaved, isSubmitting), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
           };
           links.push({ ...rec, onToggle: () => toggleBookmark(rec) });
         });
@@ -560,13 +591,15 @@ export default function WorkforcePathwaysPage() {
         (e.src || []).forEach((x: any, i: number) => {
           const recId = "cat_" + e.id + "_" + i;
           const url = x[1];
-          const isSaved = !!bookmarks[url];  // Check by URL, not recId
+          const isSaved = !!bookmarks[url];
+          const isSubmitting = isSubmittingBookmark === url;
           const rec = {
-            id: recId,
+            id: "cat_" + e.id,
             label: x[0], url: url, domain: domainOf(url),
             about: e.s || "", source: e.t || "", type: e.type || "Resource",
             pathway: p.id, stopName: sp.name, accent: pAccent,
-            saved: isSaved, bmIcon: isSaved ? "★" : "☆", bmStyle: bmBtnStyle(isSaved), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
+            nodeId: sp.slug || sp.id,
+            saved: isSaved, bmIcon: isSaved ? "★" : "☆", bmStyle: bmBtnStyle(isSaved, isSubmitting), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
           };
           links.push({ ...rec, onToggle: () => toggleBookmark(rec) });
         });
@@ -608,12 +641,13 @@ export default function WorkforcePathwaysPage() {
           const recId = e.id + "_" + i;
           const url = x[1];
           if (bookmarks[url]) {  // Check by URL, not recId
+            const isSubmitting = isSubmittingBookmark === url;
             const rec = {
               id: recId,
               label: x[0], url: url, domain: domainOf(url),
               about: e.subtitle || "", source: e.title, type: e.type || "Resource",
               pathway: p.id, stopName: sp.name, accent: pAccent,
-              saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
+              saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true, isSubmitting), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
             };
             shelfItems.push({ ...rec, onToggle: () => toggleBookmark(rec) });
           }
@@ -624,12 +658,13 @@ export default function WorkforcePathwaysPage() {
           const recId = "cat_" + e.id + "_" + i;
           const url = x[1];
           if (bookmarks[url]) {  // Check by URL, not recId
+            const isSubmitting = isSubmittingBookmark === url;
             const rec = {
               id: recId,
               label: x[0], url: url, domain: domainOf(url),
               about: e.s || "", source: e.t || "", type: e.type || "Resource",
               pathway: p.id, stopName: sp.name, accent: pAccent,
-              saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
+              saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true, isSubmitting), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
             };
             shelfItems.push({ ...rec, onToggle: () => toggleBookmark(rec) });
           }
@@ -909,5 +944,5 @@ export default function WorkforcePathwaysPage() {
     );
   }
 
-  return theme === 'arcade' ? <ArcadeTheme {...allProps} /> : <ModernTheme {...allProps} />;
+  return theme === 'arcade' ? <ArcadeTheme {...allProps} initialScreen={initialScreen} /> : <ModernTheme {...allProps} initialScreen={initialScreen} />;
 }

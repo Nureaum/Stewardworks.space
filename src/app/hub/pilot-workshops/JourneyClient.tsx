@@ -75,9 +75,26 @@ export default function JourneyClient({
   const [toast, setToast] = useState<string | null>(null)
   const [engagements, setEngagements] = useState<WorkshopEngagement[]>(initialEngagements)
   const [victoryVisible, setVictoryVisible] = useState(false)
+  const [defaultTopicId, setDefaultTopicId] = useState<string | null>(null)
 
   // Hydrate visited state from localStorage and merge with database progress
   React.useEffect(() => {
+    // Handle deep linking from URL
+    let hasDeepLink = false
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      const dayParam = searchParams.get('day')
+      const topicParam = searchParams.get('topic')
+      if (dayParam) {
+        setScreen('day')
+        setActiveDay(parseInt(dayParam, 10))
+        if (topicParam) {
+          setDefaultTopicId(topicParam)
+        }
+        hasDeepLink = true
+      }
+    }
+
     // Build initial visited state from localStorage
     let localVisited: Record<string, boolean> = {}
     try {
@@ -85,8 +102,10 @@ export default function JourneyClient({
       if (raw) {
         const j = JSON.parse(raw)
         if (j.visited) localVisited = j.visited
-        if (j.screen && initialCharacter) setScreen(j.screen)
-        if (j.activeDay) setActiveDay(j.activeDay)
+        if (!hasDeepLink) {
+          if (j.screen && initialCharacter) setScreen(j.screen)
+          if (j.activeDay) setActiveDay(j.activeDay)
+        }
       }
     } catch(e) {
       console.error('Error loading from localStorage:', e)
@@ -189,7 +208,11 @@ export default function JourneyClient({
     }
   }, [showToast])
 
-  const handleBookmark = useCallback(async (key: string, title: string, source: string) => {
+  const submittingRef = React.useRef<Set<string>>(new Set());
+
+  const handleBookmark = useCallback(async (key: string, title: string, source: string, url?: string) => {
+    if (submittingRef.current.has(title)) return;
+    
     const existingBookmark = engagements.find(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
     if (existingBookmark) {
       if (existingBookmark.status === 'pending') {
@@ -201,7 +224,13 @@ export default function JourneyClient({
       }
       return
     }
-    await handleAddEngagement('bookmark', title, source)
+    
+    submittingRef.current.add(title);
+    try {
+      await handleAddEngagement('bookmark', title, source, url)
+    } finally {
+      submittingRef.current.delete(title);
+    }
   }, [engagements, showToast, handleAddEngagement])
 
   return (
@@ -396,6 +425,7 @@ export default function JourneyClient({
                   cohortId={cohortId}
                   onBookmark={handleBookmark}
                   bookmarkedTitles={engagements.filter(e => e.kind === 'bookmark' && e.status !== 'rejected').map(e => e.title)}
+                  defaultTopicId={defaultTopicId}
                 />
               ) : (
                 <TreasureMap

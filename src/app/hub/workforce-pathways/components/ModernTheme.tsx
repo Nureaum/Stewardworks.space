@@ -27,7 +27,14 @@ export default function ModernTheme(props: any) {
     shelfItems = []
   } = props;
 
-  const [modernScreen, setModernScreen] = React.useState('main');
+  const [modernScreen, setModernScreen] = React.useState(props.initialScreen || 'main');
+  
+  React.useEffect(() => {
+    if (props.initialScreen) {
+      setModernScreen(props.initialScreen);
+    }
+  }, [props.initialScreen]);
+
   const onOpenLibrary = () => setModernScreen('library');
   const onOpenShelf = () => setModernScreen('shelf');
   const onBackLibrary = () => setModernScreen('main');

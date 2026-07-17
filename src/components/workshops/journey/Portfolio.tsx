@@ -1208,14 +1208,15 @@ export default function Portfolio({
           <span style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>{chiaPct}% complete</span>
         </div>
 
-        {chiaPct >= 100 ? (
+        {/* Certificate eligibility based on deliverables only (75% = all 3 deliverables approved) */}
+        {delivPct >= 75 ? (
           <div style={{ padding: 20, background: 'rgba(116,240,160,.1)', border: '2px solid var(--ok,#74f0a0)', borderRadius: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg,#2E5534,#4a8a5a)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📜</div>
               <div>
                 <div style={{ fontWeight: 700, color: 'var(--ok,#74f0a0)', fontSize: 17 }}>Congratulations!</div>
                 <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>
-                  You&apos;ve completed {cohortName} and earned your certificate.
+                  You&apos;ve completed all 3 deliverables in {cohortName} and earned your certificate.
                 </div>
               </div>
             </div>
@@ -1243,9 +1244,9 @@ export default function Portfolio({
             <div style={{ fontSize: 32, marginBottom: 12 }}>🎯</div>
             <div style={{ fontWeight: 600, color: 'var(--tx,#efe6ff)', marginBottom: 8 }}>Certificate Locked</div>
             <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', lineHeight: 1.5 }}>
-              Reach 100% chia progress to unlock your certificate.
+              Complete all 3 deliverables to unlock your certificate.
               <br />
-              <span style={{ fontSize: 12, opacity: 0.8 }}>Current progress: {chiaPct}%</span>
+              <span style={{ fontSize: 12, opacity: 0.8 }}>Deliverables: {delivPct}% / 75%</span>
             </div>
           </div>
         )}

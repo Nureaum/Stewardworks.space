@@ -159,7 +159,9 @@ export default async function MyProfilePage() {
               chiaProgress: totalProgress,
               deliverableProgress: delivPct,
               engagementProgress: globalEngPct,
-              isEligibleForCertificate: totalProgress >= 100,
+              // Certificate eligibility based on deliverables only (75% = all 3 deliverables approved)
+              // Engagement (25%) does NOT affect certificate eligibility
+              isEligibleForCertificate: delivPct >= 75,
               workshopDays: cohortDaysData || [],
               progressRows: cohortProgressRows,
             });

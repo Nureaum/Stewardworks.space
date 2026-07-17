@@ -15,7 +15,8 @@ import {
   createBulletinEvent,
   deleteBulletinEvent,
   updateBulletinUpdate,
-  updateBulletinEvent
+  updateBulletinEvent,
+  updateAboutPage
 } from '@/app/actions/bulletins';
 import { Pin, Globe, Trash2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -43,6 +44,8 @@ export default function AdminAnnouncementsPage() {
   const [upBody, setUpBody] = useState('');
   const [upDetail, setUpDetail] = useState('');
   const [upCta, setUpCta] = useState('');
+  const [upLink, setUpLink] = useState('');
+  const [upImage, setUpImage] = useState('');
   const [isSavingUp, setIsSavingUp] = useState(false);
   const [updateToDelete, setUpdateToDelete] = useState<string | null>(null);
   const [isDeletingUp, setIsDeletingUp] = useState(false);
@@ -60,6 +63,11 @@ export default function AdminAnnouncementsPage() {
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [isDeletingEv, setIsDeletingEv] = useState(false);
 
+  // About Page State
+  const [aboutText, setAboutText] = useState('');
+  const [contactText, setContactText] = useState('');
+  const [isSavingAbout, setIsSavingAbout] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -70,7 +78,11 @@ export default function AdminAnnouncementsPage() {
       setAnnouncements(anns);
       
       const sys = await getSystemBulletins();
-      if (sys) setBulletinText(sys.project_bulletin_text || '');
+      if (sys) {
+        setBulletinText(sys.project_bulletin_text || '');
+        setAboutText(sys.about_content || '');
+        setContactText(sys.contact_details || '');
+      }
 
       const [ups, evs] = await Promise.all([
         getBulletinUpdates(),
@@ -157,6 +169,18 @@ export default function AdminAnnouncementsPage() {
     }
   }
 
+  async function handleSaveAbout() {
+    setIsSavingAbout(true);
+    try {
+      await updateAboutPage(aboutText, contactText);
+      toast.success("About page updated!");
+    } catch (error: any) {
+      toast.error("Failed to update about page.");
+    } finally {
+      setIsSavingAbout(false);
+    }
+  }
+
   function handleEditUpdate(u: any) {
     setEditingUpdateId(u.id);
     setUpTag(u.tag);
@@ -164,12 +188,14 @@ export default function AdminAnnouncementsPage() {
     setUpBody(u.body);
     setUpDetail(u.detail || '');
     setUpCta(u.cta_label || '');
+    setUpLink(u.link_url || '');
+    setUpImage(u.image_url || '');
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   }
 
   function handleCancelEditUpdate() {
     setEditingUpdateId(null);
-    setUpTag(''); setUpTitle(''); setUpBody(''); setUpDetail(''); setUpCta('');
+    setUpTag(''); setUpTitle(''); setUpBody(''); setUpDetail(''); setUpCta(''); setUpLink(''); setUpImage('');
   }
 
   async function handleSaveUpdate() {
@@ -179,7 +205,7 @@ export default function AdminAnnouncementsPage() {
     }
     setIsSavingUp(true);
     try {
-      const data = { tag: upTag, title: upTitle, body: upBody, detail: upDetail, cta_label: upCta };
+      const data = { tag: upTag, title: upTitle, body: upBody, detail: upDetail, cta_label: upCta, link_url: upLink, image_url: upImage || null };
       if (editingUpdateId) {
         await updateBulletinUpdate(editingUpdateId, data);
         toast.success("Update saved!");
@@ -287,9 +313,14 @@ export default function AdminAnnouncementsPage() {
             <h1 className="m-0 text-[30px] font-[800] tracking-[0.01em]">HUB ANNOUNCEMENTS</h1>
             <p className="m-0 mt-[6px] font-mono text-[11px] tracking-[0.2em] text-[#9c8d76]">THE WALL PHONE · MESSAGES TO HUB MEMBERS</p>
           </div>
-          <div className="flex items-center gap-[8px] bg-white border border-[#785a32]/[0.16] rounded-full px-4 py-2 shadow-[0_3px_10px_rgba(120,90,50,0.08)]">
-            <span className="w-2 h-2 rounded-full bg-[#2c8a4a] shadow-[0_0_0_3px_rgba(44,138,74,0.18)] animate-pulse"></span>
-            <span className="font-bold text-[12.5px] text-[#3a6b46] tracking-[0.08em]">LIVE ON HUB</span>
+          <div className="flex items-center gap-4">
+            <a href="/admin/about" className="font-bold text-[13px] text-white bg-steward-green px-4 py-2 rounded-full shadow-md hover:bg-[#2c8a4a] transition-colors">
+              Edit Learn More / Contact Us
+            </a>
+            <div className="flex items-center gap-[8px] bg-white border border-[#785a32]/[0.16] rounded-full px-4 py-2 shadow-[0_3px_10px_rgba(120,90,50,0.08)]">
+              <span className="w-2 h-2 rounded-full bg-[#2c8a4a] shadow-[0_0_0_3px_rgba(44,138,74,0.18)] animate-pulse"></span>
+              <span className="font-bold text-[12.5px] text-[#3a6b46] tracking-[0.08em]">LIVE ON HUB</span>
+            </div>
           </div>
         </div>
 
@@ -505,6 +536,55 @@ export default function AdminAnnouncementsPage() {
                   <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">FULL DETAILS (Popup)</label>
                   <textarea value={upDetail} onChange={(e) => setUpDetail(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm min-h-[60px] outline-none" />
                 </div>
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">URL LINK (Optional)</label>
+                  <input value={upLink} onChange={(e) => setUpLink(e.target.value)} placeholder="https://" className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
+                </div>
+                <div className="mb-3">
+                  <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">IMAGE UPLOAD (Optional)</label>
+                  <div 
+                    className={`w-full h-[120px] rounded-lg border-2 border-dashed border-[#785a32]/20 bg-white flex items-center justify-center text-[#9c8d76] font-bold text-xs relative overflow-hidden group cursor-pointer ${isSavingUp ? 'opacity-50 pointer-events-none' : ''}`}
+                    style={{ backgroundImage: upImage ? `url(${upImage})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}
+                  >
+                    {!upImage && !isSavingUp && <span>Drop update image</span>}
+                    {isSavingUp && <span className="animate-pulse">Uploading...</span>}
+                    <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-[2px]">
+                      <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setIsSavingUp(true);
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          try {
+                            const res = await fetch('/api/admin/upload-media', { method: 'POST', body: formData });
+                            if (res.ok) {
+                              const data = await res.json();
+                              setUpImage(data.publicUrl);
+                            } else {
+                              toast.error('Failed to upload image');
+                            }
+                          } catch (err) {
+                            toast.error('Network error during upload');
+                          } finally {
+                            setIsSavingUp(false);
+                          }
+                        }
+                      }} disabled={isSavingUp} />
+                      <div className="bg-white text-steward-dark px-3 py-1 rounded-md font-black text-[9px] uppercase tracking-widest shadow-lg">
+                        {upImage ? 'Replace Image' : 'Upload Image'}
+                      </div>
+                    </label>
+                  </div>
+                  {upImage && (
+                    <button 
+                      onClick={() => setUpImage('')}
+                      className="mt-2 text-[9px] font-black text-red-500 uppercase tracking-widest hover:text-red-700 disabled:opacity-50"
+                      disabled={isSavingUp}
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                </div>
                 
                 <div className="flex gap-2">
                   <button 
@@ -677,6 +757,7 @@ export default function AdminAnnouncementsPage() {
 
           </div>
         </div>
+
 
       </main>
 

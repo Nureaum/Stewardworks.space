@@ -64,7 +64,9 @@ export default function ClientProfile({
   // Notes & Prompts State
   const [notes, setNotes] = useState<any[]>([]);
   const [prompts, setPrompts] = useState<any[]>([]);
+  const [workshopBookmarks, setWorkshopBookmarks] = useState<any[]>([]);
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [noteType, setNoteType] = useState<'note' | 'prompt'>('note');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [activeCohortId, setActiveCohortId] = useState<string | null>(initialCohortId);
@@ -83,7 +85,7 @@ export default function ClientProfile({
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([]);
   const [loadingWorkforcePicks, setLoadingWorkforcePicks] = useState(false);
   
-  // Certificate State - based on chia progress (100% = eligible)
+  // Certificate State - based on deliverables only (75% = eligible)
   // Use local state to allow client-side refresh (same API as Hub page uses)
   const [actualChiaProgress, setActualChiaProgress] = useState(chiaProgress);
   const [showCertPreview, setShowCertPreview] = useState(false);
@@ -99,7 +101,7 @@ export default function ClientProfile({
   });
   
   // Multi-cohort certificate support
-  // Filter cohorts that are eligible (100% progress)
+  // Filter cohorts that are eligible (75% deliverables = all 3 approved)
   const eligibleCohorts = allCohortProgress.filter(c => c.isEligibleForCertificate);
   const [selectedCertCohortId, setSelectedCertCohortId] = useState<string | null>(
     eligibleCohorts.length > 0 ? eligibleCohorts[0].cohortId : null
@@ -128,7 +130,7 @@ export default function ClientProfile({
     workshopDaysFromProps: workshopDays?.length,
   });
   
-  // Certificate eligibility: at least one cohort has 100% progress
+  // Certificate eligibility: at least one cohort has 75% deliverables
   const certificateEligible = eligibleCohorts.length > 0;
   
   // For display purposes, show the highest progress among all cohorts
@@ -253,6 +255,20 @@ export default function ClientProfile({
               created_at: e.created_at
             }));
           setPrompts(promptEngagements);
+
+          // Filter and set workshop bookmarks
+          const bookmarkEngagements = engagements
+            .filter((e: any) => e.kind === 'bookmark' && !['library', 'workforce', 'environmental'].includes(e.source))
+            .map((e: any) => ({
+              id: e.id,
+              title: e.title,
+              url: e.url,
+              source: e.source || 'Workshops',
+              status: e.status || 'pending',
+              reviewNote: e.review_note || null,
+              created_at: e.created_at
+            }));
+          setWorkshopBookmarks(bookmarkEngagements);
           
           // Use NEW multi-cohort API structure for progress calculation
           // The API already calculates totalProgress correctly (deliverables + engagement)
@@ -339,6 +355,7 @@ export default function ClientProfile({
             id: b.id || b.item_id,
             title: b.title || 'Workforce Resource',
             url: b.item_id,
+            nodeId: b.content || null,
             source: isJob ? 'Quest Board' : 'Workforce Pathways',
             bookmarkStatus: b.status || 'approved',
             reviewNote: b.review_note || null,
@@ -363,7 +380,7 @@ export default function ClientProfile({
         const envItems = envBookmarks.map((b: any) => ({
           id: b.id || b.item_id,
           title: b.title?.replace(/^Field Note:\s*/, '') || 'Field Note',
-          url: b.item_id,
+          url: b.item_id?.split('/').pop() || b.item_id,
           source: 'Environmental Literacy',
           bookmarkStatus: b.status || 'approved',
           reviewNote: b.review_note || null
@@ -399,7 +416,7 @@ export default function ClientProfile({
     if (!cohortIdForCert) return;
     
     try {
-      // Fetch certificate settings if eligible (any cohort has 100%)
+      // Fetch certificate settings if eligible (any cohort has 75% deliverables)
       if (certificateEligible) {
         try {
           const certResponse = await fetch(`/api/workshops/${cohortIdForCert}/certificate-settings`);
@@ -576,7 +593,7 @@ export default function ClientProfile({
     
     setIsSaving(true);
     try {
-      await addEngagement(activeCohortId, 'note', noteTitle.trim(), 'Profile', '', noteContent.trim());
+      await addEngagement(activeCohortId, noteType, noteTitle.trim(), 'Profile', '', noteContent.trim());
       
       // Reset form
       setNoteTitle('');
@@ -586,16 +603,16 @@ export default function ClientProfile({
       // Reload profile to get updated notes
       await loadProfile();
       
-      setToast('📝 Note saved · pending admin approval');
+      setToast(`📝 ${noteType === 'prompt' ? 'Prompt' : 'Note'} saved · pending admin approval`);
     } catch (error: any) {
-      console.error('Failed to add note:', error);
-      setToast('✗ Failed to save note. Please try again');
+      console.error(`Failed to add ${noteType}:`, error);
+      setToast(`✗ Failed to save ${noteType}. Please try again`);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Certificate download handler - based on chia progress (100% = eligible)
+  // Certificate download handler - based on deliverables only (75% = eligible)
   const handleDownloadCertificate = async () => {
     if (!certificateEligible || !profile) return;
     
@@ -1050,215 +1067,246 @@ export default function ClientProfile({
           </div>
         </div>
 
-        {/* BOOKMARKS */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px' }}>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#8a5a2e' }}>BOOKMARKS</span>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{bookmarkedResources.length}</span>
-          <span style={{ fontSize: '12px', color: '#8a6a4a' }}>saved from across the hub</span>
-        </div>
-        
-        {isFetchingResources ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading your shelf...</div>
-        ) : bookmarkedResources.length === 0 ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#8a6a4a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px', marginBottom: '30px' }}>
-            No bookmarks yet. Save resources from the <Link href="/hub/library" style={{ color: '#417C98', textDecoration: 'underline' }}>Library</Link>!
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px', marginBottom: '30px' }}>
-            {bookmarkedResources.map(b => (
-              <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#417C98', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>BOOKMARK</span>
-                  {b.bookmarkStatus === 'pending' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
-                  )}
-                  {b.bookmarkStatus === 'approved' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>
-                  )}
-                  {b.bookmarkStatus === 'rejected' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, cursor: 'pointer' }} onClick={() => window.open(`/hub/library/${b.id}`, '_blank')}>{b.title}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                  <span style={{ fontSize: '12px', color: '#7a5a3a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{domain(b.external_url || b.url)}</span>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    {b.reviewNote && (
-                      <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#A27532' : '#FDF3E0', border: '1.5px solid #A27532', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#A27532', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                        {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                      </button>
-                    )}
-                    <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#417C98', cursor: 'pointer' }} onClick={() => window.open(`/hub/library/${b.id}`, '_blank')}>Open →</span>
-                  </div>
-                </div>
-                {expandedNoteId === b.id && b.reviewNote && (
-                  <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(162,117,50,.08)', border: '1px solid rgba(162,117,50,.2)', borderRadius: '8px' }}>
-                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '5px' }}>ADMIN NOTE</div>
-                    <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#3a2412' }}>{b.reviewNote}</div>
-                  </div>
-                )}
+        {/* ======================= */}
+        {/* SAVED RESOURCES SECTION */}
+        {/* ======================= */}
+        <div style={{ background: '#F5ECE3', border: '1.5px solid rgba(138,90,46,.15)', borderRadius: '16px', padding: '24px', marginBottom: '40px' }}>
+          
+          {/* HEADER & LEGEND */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.15em', color: '#3a2412', margin: '0 0 6px 0', fontWeight: 700 }}>SAVED RESOURCES</h2>
+              <p style={{ fontSize: '13px', color: '#7a5a3a', margin: 0 }}>All your bookmarks collected from across the StewardWorks hub.</p>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', background: 'rgba(255,255,255,0.5)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(138,90,46,.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#417C98' }}></span>
+                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>LIBRARY</span>
               </div>
-            ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#A27532' }}></span>
+                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>WORKSHOPS</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#2E5534' }}></span>
+                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>WORKFORCE</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#ff6a2e' }}></span>
+                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>JOBS</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#4B8B9B' }}></span>
+                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>ENVIRONMENTAL</span>
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* WORKFORCE PATHWAYS BOOKMARKS */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', marginTop: '20px' }}>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#8a5a2e' }}>WORKFORCE PATHWAYS</span>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{bookmarkedWorkforce.length}</span>
-          <span style={{ fontSize: '12px', color: '#8a6a4a' }}>saved from the vault</span>
-        </div>
-        
-        {isFetchingResources ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading your vault...</div>
-        ) : bookmarkedWorkforce.length === 0 ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#8a6a4a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px', marginBottom: '30px' }}>
-            No workforce entries saved yet. Visit <Link href="/hub/workforce-pathways" style={{ color: '#417C98', textDecoration: 'underline' }}>Workforce Pathways</Link>!
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px', marginBottom: '30px' }}>
-            {bookmarkedWorkforce.map(b => (
-              <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#2E5534', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>VAULT</span>
-                  {b.bookmarkStatus === 'pending' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
-                  )}
-                  {b.bookmarkStatus === 'approved' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>
-                  )}
-                  {b.bookmarkStatus === 'rejected' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, cursor: 'pointer' }} onClick={() => window.open(`/hub/workforce-pathways`, '_blank')}>{b.title}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                  <span style={{ fontSize: '12px', color: '#7a5a3a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{domain(b.url)} {b.source ? `- ${b.source}` : ''}</span>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    {b.reviewNote && (
-                      <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#2E5534' : '#F0F8F4', border: '1.5px solid #2E5534', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#2E5534', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                        {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                      </button>
-                    )}
-                    <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#2E5534', cursor: 'pointer' }} onClick={() => window.open(`/hub/workforce-pathways`, '_blank')}>View →</span>
+          {isFetchingResources ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading your shelf...</div>
+          ) : (bookmarkedResources.length === 0 && workshopBookmarks.length === 0 && bookmarkedWorkforce.length === 0 && bookmarkedJobs.length === 0 && bookmarkedEnvironmental.length === 0) ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: '#8a6a4a', background: 'rgba(255,255,255,0.4)', border: '1.5px dashed rgba(138,90,46,.15)', borderRadius: '13px' }}>
+              No saved resources yet. Explore the hub and bookmark content to build your personal repository!
+            </div>
+          ) : (
+            <>
+              {/* 1. LIBRARY */}
+              {bookmarkedResources.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#417C98', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    STEWARD LIBRARY <span style={{ background: 'rgba(65,124,152,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedResources.length}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                    {bookmarkedResources.map(b => (
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => window.open(`/hub/library/${b.id}`, '_blank')}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#417C98', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>LIBRARY</span>
+                          {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
+                          {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
+                          {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3, cursor: 'pointer' }}>{b.title}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
+                          <span style={{ fontSize: '12px', color: '#5a8a9a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{domain(b.external_url || b.url)}</span>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {b.reviewNote && (
+                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#417C98' : '#DDEAF0', border: '1.5px solid #417C98', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#417C98', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
+                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
+                              </button>
+                            )}
+                            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#417C98' }}>Open →</span>
+                          </div>
+                        </div>
+                        {expandedNoteId === b.id && b.reviewNote && (
+                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(65,124,152,.08)', border: '1px solid rgba(65,124,152,.2)', borderRadius: '8px' }}>
+                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#417C98', marginBottom: '5px' }}>ADMIN NOTE</div>
+                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#2a4a5a' }}>{b.reviewNote}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-                {expandedNoteId === b.id && b.reviewNote && (
-                  <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(162,117,50,.08)', border: '1px solid rgba(162,117,50,.2)', borderRadius: '8px' }}>
-                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '5px' }}>ADMIN NOTE</div>
-                    <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#3a2412' }}>{b.reviewNote}</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+              )}
 
-        {/* JOBS QUEST */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', marginTop: '20px' }}>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#8a5a2e' }}>JOBS QUEST</span>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{bookmarkedJobs.length}</span>
-          <span style={{ fontSize: '12px', color: '#8a6a4a' }}>saved from the quest board</span>
-        </div>
-        
-        {isFetchingResources ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading your job quests...</div>
-        ) : bookmarkedJobs.length === 0 ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#8a6a4a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px', marginBottom: '30px' }}>
-            No job quests saved yet. Visit <Link href="/hub/workforce-pathways" style={{ color: '#417C98', textDecoration: 'underline' }}>Workforce Pathways</Link> and bookmark jobs from the Quest Board!
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: '12px', marginBottom: '30px' }}>
-            {bookmarkedJobs.map(b => (
-              <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff6a2e', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>JOB</span>
-                  {b.bookmarkStatus === 'pending' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
-                  )}
-                  {b.bookmarkStatus === 'approved' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>
-                  )}
-                  {b.bookmarkStatus === 'rejected' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3 }}>{b.title.replace(/^Job:\s*/, '')}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                  <span style={{ fontSize: '12px', color: '#7a5a3a' }}>{b.source}</span>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    {b.reviewNote && (
-                      <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#ff6a2e' : '#FFF0E6', border: '1.5px solid #ff6a2e', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#ff6a2e', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                        {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                      </button>
-                    )}
-                    {b.url && (
-                      <a href={b.url} target="_blank" rel="noopener" style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#ff6a2e', textDecoration: 'none' }}>Apply →</a>
-                    )}
+              {/* 2. WORKSHOPS */}
+              {workshopBookmarks.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#A27532', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    WORKSHOPS <span style={{ background: 'rgba(162,117,50,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{workshopBookmarks.length}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                    {workshopBookmarks.map(b => (
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => b.url && window.open(b.url, '_blank')}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#A27532', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>WORKSHOP</span>
+                          {b.status === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
+                          {b.status === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
+                          {b.status === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, marginBottom: '8px' }}>{b.title}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
+                          <span style={{ fontSize: '11px', color: '#A27532' }}>🔖 {b.source}</span>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {b.reviewNote && (
+                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#A27532' : '#F6ECD9', border: '1.5px solid #A27532', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#A27532', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
+                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {expandedNoteId === b.id && b.reviewNote && (
+                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(162,117,50,.08)', border: '1px solid rgba(162,117,50,.2)', borderRadius: '8px' }}>
+                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#A27532', marginBottom: '5px' }}>ADMIN NOTE</div>
+                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#4a3a2a' }}>{b.reviewNote}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-                {expandedNoteId === b.id && b.reviewNote && (
-                  <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(255,106,46,.08)', border: '1px solid rgba(255,106,46,.2)', borderRadius: '8px' }}>
-                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '5px' }}>ADMIN NOTE</div>
-                    <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#3a2412' }}>{b.reviewNote}</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+              )}
 
-        {/* ENVIRONMENTAL LITERACY */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', marginTop: '20px' }}>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#417C98' }}>FIELD NOTES</span>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#6a9ab5' }}>{bookmarkedEnvironmental.length}</span>
-          <span style={{ fontSize: '12px', color: '#5a8a9a' }}>saved from Environmental Literacy</span>
+              {/* 3. WORKFORCE PATHWAYS */}
+              {bookmarkedWorkforce.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#2E5534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    WORKFORCE PATHWAYS <span style={{ background: 'rgba(46,85,52,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedWorkforce.length}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                    {bookmarkedWorkforce.map(b => (
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => window.open(b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, '_blank')}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#2E5534', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>VAULT</span>
+                          {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
+                          {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
+                          {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#1a2a1a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
+                          <span style={{ fontSize: '12px', color: '#3a5a4a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{domain(b.url)} {b.source ? `- ${b.source}` : ''}</span>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {b.reviewNote && (
+                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#2E5534' : '#DDF0E1', border: '1.5px solid #2E5534', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#2E5534', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
+                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
+                              </button>
+                            )}
+                            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#2E5534' }}>View →</span>
+                          </div>
+                        </div>
+                        {expandedNoteId === b.id && b.reviewNote && (
+                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(46,85,52,.08)', border: '1px solid rgba(46,85,52,.2)', borderRadius: '8px' }}>
+                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#2E5534', marginBottom: '5px' }}>ADMIN NOTE</div>
+                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#1a2a1a' }}>{b.reviewNote}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 4. JOBS QUEST */}
+              {bookmarkedJobs.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#ff6a2e', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    JOBS QUEST <span style={{ background: 'rgba(255,106,46,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedJobs.length}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                    {bookmarkedJobs.map(b => (
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FFF0E6', border: '1.5px solid rgba(255,106,46,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => window.open('/hub/workforce-pathways?jobs=true#wf-jobs', '_blank')}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff6a2e', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>JOB</span>
+                          {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
+                          {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
+                          {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#4a2a1a', fontSize: '15px', lineHeight: 1.3 }}>{b.title.replace(/^Job:\s*/, '')}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
+                          <span style={{ fontSize: '12px', color: '#8a4a2a' }}>{b.source}</span>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {b.reviewNote && (
+                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#ff6a2e' : '#FFE0CC', border: '1.5px solid #ff6a2e', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#ff6a2e', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
+                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
+                              </button>
+                            )}
+                            {b.url && <button onClick={(e) => { e.stopPropagation(); window.open(b.url, '_blank'); }} style={{ all: 'unset', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#ff6a2e', textDecoration: 'none' }}>Apply →</button>}
+                          </div>
+                        </div>
+                        {expandedNoteId === b.id && b.reviewNote && (
+                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(255,106,46,.08)', border: '1px solid rgba(255,106,46,.2)', borderRadius: '8px' }}>
+                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#ff6a2e', marginBottom: '5px' }}>ADMIN NOTE</div>
+                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#4a2a1a' }}>{b.reviewNote}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 5. FIELD NOTES */}
+              {bookmarkedEnvironmental.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#4B8B9B', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    ENVIRONMENTAL BOOKMARKS <span style={{ background: 'rgba(75,139,155,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedEnvironmental.length}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                    {bookmarkedEnvironmental.map(b => (
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF3F5', border: '1.5px solid rgba(75,139,155,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => window.open(`/hub/environmental-literacy?entry=${b.url}`, '_blank')}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#4B8B9B', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>ENVIRONMENTAL</span>
+                          {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
+                          {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
+                          {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#1a3a4a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
+                          <span style={{ fontSize: '12px', color: '#3a6a7a' }}>{b.source}</span>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {b.reviewNote && (
+                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#4B8B9B' : '#D6E9EE', border: '1.5px solid #4B8B9B', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#4B8B9B', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
+                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
+                              </button>
+                            )}
+                            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#4B8B9B', cursor: 'pointer' }}>Open →</span>
+                          </div>
+                        </div>
+                        {expandedNoteId === b.id && b.reviewNote && (
+                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(75,139,155,.08)', border: '1px solid rgba(75,139,155,.2)', borderRadius: '8px' }}>
+                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#4B8B9B', marginBottom: '5px' }}>ADMIN NOTE</div>
+                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#1a3a4a' }}>{b.reviewNote}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
-        
-        {isFetchingResources ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#5a8a9a' }}>Loading your field notes...</div>
-        ) : bookmarkedEnvironmental.length === 0 ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#5a8a9a', background: '#E8F4F8', border: '1.5px dashed rgba(65,124,152,.2)', borderRadius: '13px', marginBottom: '30px' }}>
-            No field notes saved yet. Explore the <Link href="/hub/environmental-literacy" style={{ color: '#417C98', textDecoration: 'underline' }}>Environmental Literacy</Link> field desk and bookmark field notes!
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: '12px', marginBottom: '30px' }}>
-            {bookmarkedEnvironmental.map(b => (
-              <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#E8F4F8', border: '1.5px solid rgba(65,124,152,.15)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#417C98', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>FIELD NOTE</span>
-                  {b.bookmarkStatus === 'pending' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
-                  )}
-                  {b.bookmarkStatus === 'approved' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>
-                  )}
-                  {b.bookmarkStatus === 'rejected' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                  <span style={{ fontSize: '12px', color: '#5a8a9a' }}>{b.source}</span>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    {b.reviewNote && (
-                      <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#417C98' : '#d0e8f0', border: '1.5px solid #417C98', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#417C98', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                        {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                      </button>
-                    )}
-                    <Link href="/hub/environmental-literacy" style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#417C98', textDecoration: 'none' }}>Open →</Link>
-                  </div>
-                </div>
-                {expandedNoteId === b.id && b.reviewNote && (
-                  <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(65,124,152,.08)', border: '1px solid rgba(65,124,152,.2)', borderRadius: '8px' }}>
-                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#417C98', marginBottom: '5px' }}>ADMIN NOTE</div>
-                    <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#2a4a5a' }}>{b.reviewNote}</div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* GENERATIONS */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px' }}>
@@ -1575,8 +1623,8 @@ export default function ClientProfile({
           <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#2E5534' }}>CERTIFICATE</span>
           <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#4a8a5a' }}>
             {allCohortProgress.length > 0 
-              ? `${highestProgress}% complete` 
-              : `${actualChiaProgress}% complete`
+              ? `Deliverables: ${Math.max(...allCohortProgress.map(c => c.deliverableProgress))}% / 75%` 
+              : `Deliverables: 0% / 75%`
             }
           </span>
         </div>
@@ -1696,22 +1744,15 @@ export default function ClientProfile({
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎯</div>
             <div style={{ fontWeight: 600, color: '#3a2412', marginBottom: '8px' }}>Certificate Locked</div>
             <div style={{ fontSize: '14px', lineHeight: 1.5 }}>
-              Reach 100% chia progress in <Link href="/hub/pilot-workshops" style={{ color: '#6B4A2A', textDecoration: 'underline' }}>Pilot Workshops</Link> to unlock your certificate.
+              Complete all 3 deliverables (75%) in <Link href="/hub/pilot-workshops" style={{ color: '#6B4A2A', textDecoration: 'underline' }}>Pilot Workshops</Link> to unlock your certificate.
               <br />
-              {allCohortProgress.length > 0 ? (
-                <span style={{ fontSize: '12px', color: '#9a7a5a' }}>
-                  {allCohortProgress.length === 1 
-                    ? `${allCohortProgress[0].cohortName}: ${allCohortProgress[0].chiaProgress}%`
-                    : `Highest progress: ${highestProgress}%`
-                  }
-                </span>
-              ) : (
-                <span style={{ fontSize: '12px', color: '#9a7a5a' }}>Current progress: {actualChiaProgress}%</span>
-              )}
+              <span style={{ fontSize: '11px', color: '#9a7a5a', fontStyle: 'italic' }}>
+                (Engagement activities don't affect certificate eligibility)
+              </span>
             </div>
             
-            {/* Show progress per cohort if multiple */}
-            {allCohortProgress.length > 1 && (
+            {/* Show deliverable progress per cohort */}
+            {allCohortProgress.length > 0 && (
               <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
                 {allCohortProgress.map((cohort) => (
                   <div 
@@ -1733,13 +1774,13 @@ export default function ClientProfile({
                       overflow: 'hidden',
                     }}>
                       <div style={{ 
-                        width: `${cohort.chiaProgress}%`, 
+                        width: `${(cohort.deliverableProgress / 75) * 100}%`, 
                         height: '100%', 
-                        background: cohort.chiaProgress >= 100 ? '#4a8a5a' : '#c9a24a',
+                        background: cohort.deliverableProgress >= 75 ? '#4a8a5a' : '#c9a24a',
                         borderRadius: '4px',
                       }} />
                     </div>
-                    <span>{cohort.chiaProgress}%</span>
+                    <span>{cohort.deliverableProgress}% / 75%</span>
                   </div>
                 ))}
               </div>
@@ -1870,31 +1911,45 @@ export default function ClientProfile({
           <div style={{ background: '#FEFAE0', borderRadius: '16px', maxWidth: '600px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ padding: '24px 28px', borderBottom: '2px solid rgba(33,40,46,.12)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.1em', color: '#3a2412', margin: 0 }}>ADD NEW NOTE</h2>
+                <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.1em', color: '#3a2412', margin: 0 }}>{noteType === 'prompt' ? 'ADD NEW PROMPT' : 'ADD NEW NOTE'}</h2>
                 <button onClick={() => setIsAddingNote(false)} style={{ background: 'none', border: 'none', color: '#7a5a3a', fontSize: '24px', cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
               </div>
-              <p style={{ fontSize: '13px', color: '#7a5a3a', marginTop: '8px', marginBottom: 0 }}>Your note will be submitted for admin approval before appearing in your profile.</p>
+              <p style={{ fontSize: '13px', color: '#7a5a3a', marginTop: '8px', marginBottom: 0 }}>Your {noteType} will be submitted for admin approval before appearing in your profile.</p>
             </div>
             
             <div style={{ padding: '24px 28px' }}>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                <button 
+                  onClick={() => setNoteType('note')}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: noteType === 'note' ? '2px solid #3f5460' : '2px solid rgba(33,40,46,.15)', background: noteType === 'note' ? 'rgba(63,84,96,.1)' : '#fff', color: '#3a2412', fontWeight: noteType === 'note' ? 700 : 400, cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '13px' }}
+                >
+                  📝 NOTE
+                </button>
+                <button 
+                  onClick={() => setNoteType('prompt')}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: noteType === 'prompt' ? '2px solid #DB9B2F' : '2px solid rgba(33,40,46,.15)', background: noteType === 'prompt' ? 'rgba(219,155,47,.1)' : '#fff', color: '#3a2412', fontWeight: noteType === 'prompt' ? 700 : 400, cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '13px' }}
+                >
+                  ⌘ PROMPT
+                </button>
+              </div>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>NOTE TITLE *</label>
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>{noteType === 'prompt' ? 'PROMPT TITLE *' : 'NOTE TITLE *'}</label>
                 <input 
                   type="text"
                   value={noteTitle}
                   onChange={(e) => setNoteTitle(e.target.value)}
-                  placeholder="Enter a title for your note..."
+                  placeholder={`Enter a title for your ${noteType}...`}
                   style={{ width: '100%', padding: '12px 14px', background: '#fff', border: '2px solid rgba(33,40,46,.15)', borderRadius: '8px', fontSize: '15px', color: '#3a2412', outline: 'none' }}
                   autoFocus
                 />
               </div>
               
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>NOTE CONTENT *</label>
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>{noteType === 'prompt' ? 'PROMPT CONTENT *' : 'NOTE CONTENT *'}</label>
                 <textarea 
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
-                  placeholder="Write your note, reflection, or observation..."
+                  placeholder={`Write your ${noteType}...`}
                   style={{ width: '100%', padding: '12px 14px', background: '#fff', border: '2px solid rgba(33,40,46,.15)', borderRadius: '8px', fontSize: '14px', color: '#3a2412', outline: 'none', minHeight: '120px', fontFamily: 'inherit', lineHeight: 1.5, resize: 'vertical' }}
                 />
               </div>
@@ -1911,7 +1966,7 @@ export default function ClientProfile({
                   disabled={isSaving || !noteTitle.trim() || !noteContent.trim()}
                   style={{ background: isSaving || !noteTitle.trim() || !noteContent.trim() ? '#ccb89a' : '#3f5460', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, color: '#FEFAE0', cursor: isSaving || !noteTitle.trim() || !noteContent.trim() ? 'not-allowed' : 'pointer' }}
                 >
-                  {isSaving ? 'Saving...' : 'Save Note'}
+                  {isSaving ? 'Saving...' : `Save ${noteType === 'prompt' ? 'Prompt' : 'Note'}`}
                 </button>
               </div>
             </div>

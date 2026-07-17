@@ -87,6 +87,22 @@ export default function EnvironmentalLiteracyPage() {
       });
       setCatalog(groupedCatalog);
       setLoading(false);
+      
+      // Handle deep linking from profile bookmarks
+      if (typeof window !== 'undefined') {
+        const searchParams = new URLSearchParams(window.location.search);
+        const entryParam = searchParams.get('entry');
+        if (entryParam) {
+          for (const cat of groupedCatalog) {
+            if (cat.entries.find((e: any) => e.id === entryParam)) {
+              setOpen(true);
+              setCatId(cat.id);
+              setEntryId(entryParam);
+              break;
+            }
+          }
+        }
+      }
     }
     fetchData();
   }, []);

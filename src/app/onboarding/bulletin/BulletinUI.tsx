@@ -11,6 +11,8 @@ type BulletinUpdate = {
   body: string;
   detail: string;
   cta_label: string;
+  link_url?: string;
+  image_url?: string;
   created_at: string;
 };
 
@@ -109,6 +111,7 @@ export default function BulletinUI({ updates, events }: { updates: BulletinUpdat
                       <span style={{ position: 'absolute', top: '-9px', left: '24px', width: '70px', height: '22px', borderRadius: '3px', background: 'linear-gradient(150deg, rgba(184,92,62,.42), rgba(184,92,62,.24))', border: '1px solid rgba(184,92,62,.18)', transform: 'rotate(-4deg)' }}></span>
                       <span style={{ display: 'inline-block', fontFamily: "'Space Mono', monospace", fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: '#B85C3E', background: '#F7E7DF', borderRadius: '999px', padding: '5px 11px', marginBottom: '12px' }}>{u.tag}</span>
                       <h3 style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: '19px', lineHeight: 1.2, margin: '0 0 8px', color: '#2E2416' }}>{u.title}</h3>
+                      {u.image_url && <img src={u.image_url} alt={u.title} style={{ width: '100%', height: 'auto', borderRadius: '8px', marginBottom: '14px', objectFit: 'cover' }} />}
                       <p style={{ margin: '0 0 14px', fontSize: '14px', lineHeight: 1.55, color: '#6E5E46' }}>{u.body}</p>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                         <button onClick={() => setSelectedUpdate(u)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: '13.5px', color: '#B85C3E' }}>{u.cta_label || 'Learn more'} &rarr;</button>
@@ -171,10 +174,15 @@ export default function BulletinUI({ updates, events }: { updates: BulletinUpdat
               <button onClick={() => setSelectedUpdate(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#F3E7CD', border: '1px solid #E7D6B7', color: '#8A7A63', width: '34px', height: '34px', borderRadius: '50%', cursor: 'pointer', fontSize: '17px', lineHeight: 1 }}>&times;</button>
               <span style={{ display: 'inline-block', fontFamily: "'Space Mono', monospace", fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: '#B85C3E', background: '#F7E7DF', borderRadius: '999px', padding: '5px 11px', marginBottom: '14px' }}>{selectedUpdate.tag}</span>
               <h3 style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: '26px', lineHeight: 1.15, margin: '0 0 8px', color: '#2E2416' }}>{selectedUpdate.title}</h3>
+              {selectedUpdate.image_url && <img src={selectedUpdate.image_url} alt={selectedUpdate.title} style={{ width: '100%', height: 'auto', borderRadius: '12px', marginBottom: '18px', objectFit: 'cover' }} />}
               <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', letterSpacing: '.06em', textTransform: 'uppercase', color: '#A99A7C', marginBottom: '18px' }}>Posted {formatDate(selectedUpdate.created_at)}</div>
               <p style={{ margin: '0 0 16px', fontSize: '15px', lineHeight: 1.62, color: '#5E4E36' }}>{selectedUpdate.body}</p>
               <p style={{ margin: '0 0 22px', fontSize: '14.5px', lineHeight: 1.62, color: '#6E5E46' }}>{selectedUpdate.detail}</p>
-              <a href="#" onClick={(e) => e.preventDefault()} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#B85C3E', color: '#fff', fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: '14px', padding: '11px 22px', borderRadius: '11px', boxShadow: '0 10px 22px -12px rgba(184,92,62,.8)' }}>{selectedUpdate.cta_label || 'Learn more'} &rarr;</a>
+              {selectedUpdate.link_url && (
+                <a href={selectedUpdate.link_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#B85C3E', color: '#fff', fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: '14px', padding: '11px 22px', borderRadius: '11px', boxShadow: '0 10px 22px -12px rgba(184,92,62,.8)' }}>
+                  {selectedUpdate.cta_label || 'Learn more'} &rarr;
+                </a>
+              )}
             </div>
           </div>
         )}

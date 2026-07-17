@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/utils/supabase/server';
 import { auth } from '@clerk/nextjs/server';
 
-export async function toggleBookmark(itemId: string, itemType: string, resourceTitle?: string, resourceUrl?: string) {
+export async function toggleBookmark(itemId: string, itemType: string, resourceTitle?: string, resourceUrl?: string, nodeId?: string) {
   const { userId } = await auth();
   if (!userId) throw new Error('Unauthorized');
   const supabase = createServerSupabaseClient();
@@ -63,7 +63,7 @@ export async function toggleBookmark(itemId: string, itemType: string, resourceT
           cohort_id: activeCohort.id,
           kind: 'bookmark',
           title: resourceTitle || `${itemType === 'workforce' ? 'Workforce' : itemType === 'environmental' ? 'Environmental' : 'Library'} Resource ${itemId}`,
-          content: resourceTitle || `${itemType === 'workforce' ? 'Workforce' : itemType === 'environmental' ? 'Environmental' : 'Library'} Resource ${itemId}`,
+          content: nodeId || '',
           url: resourceUrl || itemId,
           source: itemType,
           status: 'pending'
@@ -144,7 +144,8 @@ export async function fetchUserBookmarks(itemType?: string) {
       user_id: userId,
       status: eng.status,
       review_note: eng.review_note,
-      title: eng.title
+      title: eng.title,
+      content: eng.content
     }));
   }
   
