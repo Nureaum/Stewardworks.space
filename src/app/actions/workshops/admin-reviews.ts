@@ -107,6 +107,23 @@ export async function getSubmissionsForReview(
       console.error('Get submissions detail error:', submissionsError)
     }
 
+    // Get banked principles for these progress rows
+    const progressRowIds = progressRows.map(p => p.id)
+    const { data: bankedPrinciples, error: principlesError } = await supabase
+      .from('workshop_progress_principles')
+      .select('progress_id, principle_id')
+      .in('progress_id', progressRowIds)
+
+    if (principlesError) {
+      console.error('Get banked principles error:', principlesError)
+    }
+
+    // Create a map of progress_id -> principle_id
+    const principlesByProgress = (bankedPrinciples || []).reduce((acc, bp) => {
+      acc[bp.progress_id] = bp.principle_id
+      return acc
+    }, {} as Record<string, string>)
+
     // Group submissions by day+profile and get latest
     const latestSubmissions = (submissions || []).reduce((acc, sub) => {
       const key = `${sub.workshop_day_id}|${sub.profile_id}`
@@ -116,13 +133,17 @@ export async function getSubmissionsForReview(
       return acc
     }, {} as Record<string, any>)
 
-    console.log('Returning from getSubmissionsForReview. Found progress rows:', progressRows.length);
+    console.log('[getSubmissionsForReview] Found progress rows:', progressRows.length, 'banked principles:', bankedPrinciples?.length || 0);
+    console.log('[getSubmissionsForReview] principlesByProgress:', principlesByProgress);
     // Combine progress data with submissions
     return progressRows.map(progress => {
       const key = `${progress.workshop_day_id}|${progress.profile_id}`
       const submission = latestSubmissions[key]
       const day = progress.workshop_days as any
       const participant = progress.profiles as any
+      const principleId = principlesByProgress[progress.id] || null
+      
+      console.log('[getSubmissionsForReview] Progress:', progress.id, 'principleId:', principleId);
 
       return {
         id: submission?.id || '',
@@ -139,6 +160,7 @@ export async function getSubmissionsForReview(
         deliverable_status: progress.deliverable_status,
         review_note: progress.review_note,
         progress_id: progress.id,
+        principle_id: principleId,
       }
     })
   } catch (error) {
@@ -313,50 +335,64 @@ export async function reviewDeliverable(
 
     // Check if we should unlock next day
     let nextDayUnlocked = false
+    let bankedPrinciple: any = undefined
     const day = progress.workshop_days as any
 
-    if (status === 'approved' && day.day_number < 3) {
-      // Find next day
-      const { data: nextDay } = await supabase
-        .from('workshop_days')
-        .select('id')
-        .eq('cohort_id', day.cohort_id)
-        .eq('day_number', day.day_number + 1)
+    if (status === 'approved') {
+      // Get the banked principle for this progress
+      const { data: principle } = await supabase
+        .from('workshop_progress_principles')
+        .select('*')
+        .eq('progress_id', progressId)
         .single()
+      
+      if (principle) {
+        bankedPrinciple = principle
+      }
 
-      if (nextDay) {
-        // Check if progress row exists for next day
-        const { data: nextProgress } = await supabase
-          .from('workshop_progress')
-          .select('id, unlocked_at')
-          .eq('workshop_day_id', nextDay.id)
-          .eq('profile_id', progress.profile_id)
+      if (day.day_number < 3) {
+        // Find next day
+        const { data: nextDay } = await supabase
+          .from('workshop_days')
+          .select('id')
+          .eq('cohort_id', day.cohort_id)
+          .eq('day_number', day.day_number + 1)
           .single()
 
-        // Create or update progress row to unlock next day
-        if (!nextProgress) {
-          const { error: insertError } = await supabase
+        if (nextDay) {
+          // Check if progress row exists for next day
+          const { data: nextProgress } = await supabase
             .from('workshop_progress')
-            .insert({
-              workshop_day_id: nextDay.id,
-              profile_id: progress.profile_id,
-              unlocked_at: new Date().toISOString(),
-              deliverable_status: 'not_submitted',
-            })
+            .select('id, unlocked_at')
+            .eq('workshop_day_id', nextDay.id)
+            .eq('profile_id', progress.profile_id)
+            .single()
 
-          if (!insertError) {
-            nextDayUnlocked = true
-          }
-        } else if (!nextProgress.unlocked_at) {
-          const { error: unlockError } = await supabase
-            .from('workshop_progress')
-            .update({
-              unlocked_at: new Date().toISOString(),
-            })
-            .eq('id', nextProgress.id)
+          // Create or update progress row to unlock next day
+          if (!nextProgress) {
+            const { error: insertError } = await supabase
+              .from('workshop_progress')
+              .insert({
+                workshop_day_id: nextDay.id,
+                profile_id: progress.profile_id,
+                unlocked_at: new Date().toISOString(),
+                deliverable_status: 'not_submitted',
+              })
 
-          if (!unlockError) {
-            nextDayUnlocked = true
+            if (!insertError) {
+              nextDayUnlocked = true
+            }
+          } else if (!nextProgress.unlocked_at) {
+            const { error: unlockError } = await supabase
+              .from('workshop_progress')
+              .update({
+                unlocked_at: new Date().toISOString(),
+              })
+              .eq('id', nextProgress.id)
+
+            if (!unlockError) {
+              nextDayUnlocked = true
+            }
           }
         }
       }
@@ -364,12 +400,14 @@ export async function reviewDeliverable(
 
     // Revalidate relevant pages
     revalidatePath(`/hub/pilot-workshops/${day.cohort_id}`)
+    revalidatePath(`/hub/pilot-workshops/${day.cohort_id}/journey`)
     revalidatePath(`/admin/pilot-workshops/${day.cohort_id}/reviews`)
 
     return {
       success: true,
       message: status === 'approved' ? 'Deliverable approved' : 'Deliverable rejected',
       nextDayUnlocked,
+      bankedPrinciple,
     }
   } catch (error) {
     if (error instanceof Error) {

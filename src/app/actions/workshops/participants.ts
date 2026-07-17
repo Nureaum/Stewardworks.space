@@ -507,16 +507,25 @@ export async function submitDeliverable(
       return { success: false, message: 'Failed to update progress status.' } as any
     } else if (progressUpdate && submissionData.principle_id) {
       // Save banked principle
-      const { error: principleError } = await supabase
+      console.log('[submitDeliverable] Saving principle:', {
+        progress_id: progressUpdate.id,
+        principle_id: submissionData.principle_id
+      })
+      const { data: insertedPrinciple, error: principleError } = await supabase
         .from('workshop_progress_principles')
         .insert({
           progress_id: progressUpdate.id,
           principle_id: submissionData.principle_id
         })
+        .select()
         
       if (principleError) {
-        console.error('Failed to save banked principle:', principleError)
+        console.error('[submitDeliverable] Failed to save banked principle:', principleError)
+      } else {
+        console.log('[submitDeliverable] Principle saved successfully:', insertedPrinciple)
       }
+    } else {
+      console.log('[submitDeliverable] No principle to save. progressUpdate:', progressUpdate?.id, 'principle_id:', submissionData.principle_id)
     }
 
     // Get cohort_id for revalidation

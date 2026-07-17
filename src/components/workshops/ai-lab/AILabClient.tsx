@@ -142,7 +142,7 @@ export default function AILabClient({
                     {[
                       { id: 'lab', label: '⚙ LAB', col: '#4dffa0' },
                       { id: 'portfolio', label: '▦ MY PORTFOLIO', col: '#45d6ff' },
-                      { id: 'showcase', label: '★ SHOWCASE', col: '#ff5fd2' }
+                      { id: 'showcase', label: '★ STUDENT SHOWCASE', col: '#ff5fd2' }
                     ].map(tab => (
                       <button
                         key={tab.id}

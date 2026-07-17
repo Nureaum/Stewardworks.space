@@ -59,17 +59,17 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
   }
 
   const mappedPrinciples = principles && principles.length > 0 
-    ? principles.map((p: any) => p.title || p.name || p) 
+    ? principles
     : [
-        'Active Production over Passive Consumption',
-        'Bilingual Grounding',
-        'Reclaiming Intention',
-        'Friction is a Sanctuary',
-        'Material Footprints',
-        'Valuing Process over Output',
-        'Honoring Land Caretakers',
-        'Sovereign Compute Architecture',
-        'Making Gaps Visible',
+        { id: 'p1', name: 'Active Production over Passive Consumption' },
+        { id: 'p2', name: 'Bilingual Grounding' },
+        { id: 'p3', name: 'Reclaiming Intention' },
+        { id: 'p4', name: 'Friction is a Sanctuary' },
+        { id: 'p5', name: 'Material Footprints' },
+        { id: 'p6', name: 'Valuing Process over Output' },
+        { id: 'p7', name: 'Honoring Land Caretakers' },
+        { id: 'p8', name: 'Sovereign Compute Architecture' },
+        { id: 'p9', name: 'Making Gaps Visible' },
       ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,27 +109,29 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
       }
       
       if (dayId) {
+        console.log('[SubmissionTracker] Submitting deliverable with principle_id:', selectedPrinciple);
         const result = await submitDeliverable(dayId, {
           submission_text: finalUrl,
           principle_id: selectedPrinciple,
           showcase_requested: false
         });
+        console.log('[SubmissionTracker] Submit result:', result);
         
         if (!result.success && result.message) {
           throw new Error(result.message);
         }
       }
       
-      toast('successfully submitted -- pending approval', {
+      toast('▲ Deliverable banked · pending teacher approval', {
         position: 'bottom-center',
         style: {
           fontFamily: "'Press Start 2P', monospace",
           fontSize: '9px',
           color: '#12081e',
-          background: '#ffd23f',
+          background: '#4dffa0',
           padding: '12px 20px',
-          borderRadius: '20px',
-          boxShadow: '0 0 18px rgba(255,210,63,.5)',
+          borderRadius: '6px',
+          boxShadow: '0 0 18px rgba(77,255,160,.5)',
           border: 'none',
         },
         duration: 3000
@@ -372,11 +374,13 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {mappedPrinciples.map((p: any, i) => {
-                    const isSelected = selectedPrinciple === p;
+                    const principleId = p.id || p;
+                    const principleName = p.name || p.title || p;
+                    const isSelected = selectedPrinciple === principleId;
                     return (
                       <button
-                        key={i}
-                        onClick={() => setSelectedPrinciple(p)}
+                        key={principleId || i}
+                        onClick={() => setSelectedPrinciple(principleId)}
                         style={{
                           background: isSelected ? 'rgba(77,255,160,.15)' : 'rgba(0,0,0,.3)',
                           border: `1px solid ${isSelected ? 'var(--ng,#4dffa0)' : 'var(--ln,#28432f)'}`,
@@ -392,7 +396,7 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
                           transition: 'all 0.2s'
                         }}
                       >
-                        <span style={{ color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--mu,#77b78d)', fontSize: 10 }}>◈</span> {p}
+                        <span style={{ color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--mu,#77b78d)', fontSize: 10 }}>◈</span> {principleName}
                       </button>
                     )
                   })}

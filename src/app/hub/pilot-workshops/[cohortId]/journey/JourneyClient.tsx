@@ -56,7 +56,7 @@ export default function JourneyClient({
   days,
   progressRows,
   principles,
-  bankedPrinciples,
+  bankedPrinciples: initialBankedPrinciples,
   initialEngagements,
   submissions = [],
   showcaseItems,
@@ -76,6 +76,7 @@ export default function JourneyClient({
 
   const [engagements, setEngagements] = useState<WorkshopEngagement[]>(initialEngagements)
   const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null)
+  const [bankedPrinciples, setBankedPrinciples] = useState(initialBankedPrinciples)
 
   // Compute days complete
   const daysComplete = progressRows.filter(
@@ -386,6 +387,9 @@ export default function JourneyClient({
               days={days}
               principles={principles}
               onReturnToGame={() => setRole('student')}
+              onPrincipleBanked={(principle) => {
+                setBankedPrinciples(prev => [...prev, principle])
+              }}
             />
           )}
         </div>

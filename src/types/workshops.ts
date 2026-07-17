@@ -171,6 +171,7 @@ export interface SubmissionWithMetadata extends WorkshopDeliverableSubmission {
   participant_email: string;
   deliverable_status: 'not_submitted' | 'submitted' | 'approved' | 'rejected';
   review_note?: string | null;
+  principle_id?: string | null;
 }
 
 /**
@@ -230,6 +231,7 @@ export interface ReviewDeliverableResult {
   success: boolean;
   message: string;
   nextDayUnlocked?: boolean;
+  bankedPrinciple?: WorkshopProgressPrinciple;
 }
 
 /**

@@ -38,6 +38,7 @@ interface AdminConsoleProps {
   principles: WorkshopPrinciple[]
   onReturnToGame: () => void
   cameFromAdminPanel?: boolean
+  onPrincipleBanked?: (principle: any) => void
 }
 
 // ─── Inline style helpers ──────────────────────────────────
@@ -73,6 +74,7 @@ export default function AdminConsole({
   principles,
   onReturnToGame,
   cameFromAdminPanel,
+  onPrincipleBanked,
 }: AdminConsoleProps) {
   // Extract thumbnail once
   const rawDesc = cohort?.description || ''
@@ -174,7 +176,11 @@ export default function AdminConsole({
       if (isEngagement) {
         await reviewEngagement(progressId, status, note)
       } else {
-        await reviewDeliverable(progressId, status, note)
+        const result = await reviewDeliverable(progressId, status, note)
+        // If approved and we have a banked principle, notify parent
+        if (status === 'approved' && result.bankedPrinciple && onPrincipleBanked) {
+          onPrincipleBanked(result.bankedPrinciple)
+        }
       }
       setPendingSubmissions(prev => prev.filter(p => (p.progress_id || p.id) !== progressId))
       setReviewNotes(prev => {
@@ -1954,13 +1960,22 @@ export default function AdminConsole({
                             const isShowcaseRequested = rawText.includes('[SHOWCASE_REQUESTED]');
                             let cleanText = rawText.replace('[SHOWCASE_REQUESTED]', '').trim();
                             
-                            let principleMatch = cleanText.match(/Selected Principle ID: ([a-zA-Z0-9-]+)/);
+                            // Get principle from sub.principle_id (fetched from database)
                             let principleName = '';
-                            if (principleMatch) {
-                              const pId = principleMatch[1];
-                              const found = principlesList?.find(p => p.id === pId);
-                              principleName = found ? found.name : `Principle ${pId.slice(0,4)}`;
-                              cleanText = cleanText.replace(principleMatch[0], '').trim();
+                            if (sub.principle_id) {
+                              const found = principlesList?.find(p => p.id === sub.principle_id);
+                              principleName = found ? found.name : `Principle ${sub.principle_id.slice(0,4)}`;
+                            }
+                            
+                            // Also check old format in submission_text for backward compatibility
+                            if (!principleName) {
+                              let principleMatch = cleanText.match(/Selected Principle ID: ([a-zA-Z0-9-]+)/);
+                              if (principleMatch) {
+                                const pId = principleMatch[1];
+                                const found = principlesList?.find(p => p.id === pId);
+                                principleName = found ? found.name : `Principle ${pId.slice(0,4)}`;
+                                cleanText = cleanText.replace(principleMatch[0], '').trim();
+                              }
                             }
 
                             return (

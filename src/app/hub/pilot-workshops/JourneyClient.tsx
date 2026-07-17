@@ -57,7 +57,7 @@ export default function JourneyClient({
   days,
   progressRows,
   principles,
-  bankedPrinciples,
+  bankedPrinciples: initialBankedPrinciples,
   initialEngagements,
   submissions = [],
   showcaseItems,
@@ -76,6 +76,7 @@ export default function JourneyClient({
   const [engagements, setEngagements] = useState<WorkshopEngagement[]>(initialEngagements)
   const [victoryVisible, setVictoryVisible] = useState(false)
   const [defaultTopicId, setDefaultTopicId] = useState<string | null>(null)
+  const [bankedPrinciples, setBankedPrinciples] = useState(initialBankedPrinciples)
 
   // Hydrate visited state from localStorage and merge with database progress
   React.useEffect(() => {
@@ -492,8 +493,22 @@ export default function JourneyClient({
               <Showcase
                 showcaseItems={showcaseItems}
                 engagements={engagements}
+                cohortId={cohortId}
                 onBookmark={handleBookmark}
                 onlyContributors={true}
+              />
+            </div>
+          )}
+
+          {/* STUDENT SHOWCASE tab */}
+          {role === 'student' && tab === 'studentshowcase' && (
+            <div style={{ padding: 'clamp(20px, 3vw, 40px) clamp(24px, 3.5vw, 50px)' }}>
+              <Showcase
+                showcaseItems={showcaseItems}
+                engagements={engagements}
+                cohortId={cohortId}
+                onBookmark={handleBookmark}
+                onlyStudents={true}
               />
             </div>
           )}
@@ -508,6 +523,9 @@ export default function JourneyClient({
               principles={principles}
               cameFromAdminPanel={initialRole === 'admin'}
               onReturnToGame={() => setRole('student')}
+              onPrincipleBanked={(principle) => {
+                setBankedPrinciples(prev => [...prev, principle])
+              }}
             />
           )}
 
