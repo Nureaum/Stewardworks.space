@@ -468,6 +468,8 @@ export async function submitDeliverable(
       .insert({
         workshop_day_id: dayId,
         profile_id: profile.id,
+        title: submissionData.title || null,
+        description: submissionData.description || null,
         submission_text: finalSubmissionText || null,
         file_storage_path: file_storage_path,
         external_video_url: submissionData.external_video_url || null,

@@ -157,12 +157,38 @@ export default function DeliverableReviewCard({
             Submission
           </div>
 
+          {/* Title */}
+          {(submission as any).title && (
+            <div className="bg-steward-green/10 rounded-xl p-4 border border-steward-green/30">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-steward-green" />
+                <span className="text-sm font-bold text-gray-700">Title</span>
+              </div>
+              <div className="text-base font-bold text-steward-dark">
+                {(submission as any).title}
+              </div>
+            </div>
+          )}
+
+          {/* Description */}
+          {(submission as any).description && (
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-bold text-gray-700">Description</span>
+              </div>
+              <div className="text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">
+                {(submission as any).description}
+              </div>
+            </div>
+          )}
+
           {/* Text Submission */}
           {submission.submission_text && (
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="w-4 h-4 text-gray-600" />
-                <span className="text-sm font-bold text-gray-700">Text Submission</span>
+                <span className="text-sm font-bold text-gray-700">Link / Content</span>
               </div>
               <div className="max-h-48 sm:max-h-64 lg:max-h-96 overflow-y-auto text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">
                 {submission.submission_text}
@@ -240,34 +266,68 @@ export default function DeliverableReviewCard({
             </div>
           )}
 
-          {/* Video URL Submission */}
+          {/* Video/Image URL Submission */}
           {submission.external_video_url && (
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <div className="flex items-center gap-2 mb-3">
-                <Video className="w-4 h-4 text-gray-600" />
-                <span className="text-sm font-bold text-gray-700">Video Submission</span>
-              </div>
-              {/* Check if it's a YouTube URL and embed if possible */}
-              {submission.external_video_url.includes('youtube.com') || 
-               submission.external_video_url.includes('youtu.be') ? (
-                <div className="aspect-video rounded-lg overflow-hidden bg-black">
-                  <iframe
-                    src={getYouTubeEmbedUrl(submission.external_video_url)}
-                    className="w-full h-full"
-                    allowFullScreen
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  />
-                </div>
+              {/* Check if it's an image URL */}
+              {isImageUrl(submission.external_video_url) ? (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-bold text-gray-700">Image Submission</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="rounded-lg overflow-hidden border border-gray-200 bg-white">
+                      <img
+                        src={submission.external_video_url}
+                        alt="Submitted image"
+                        className="w-full h-auto max-h-96 object-contain"
+                      />
+                    </div>
+                    <a
+                      href={submission.external_video_url}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-steward-dark text-steward-dark rounded-xl hover:bg-steward-dark hover:text-white transition-colors text-sm font-bold"
+                    >
+                      <Download className="w-4 h-4" />
+                      View Full Size
+                    </a>
+                  </div>
+                </>
+              ) : submission.external_video_url.includes('youtube.com') || 
+                 submission.external_video_url.includes('youtu.be') ? (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Video className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-bold text-gray-700">Video Submission</span>
+                  </div>
+                  <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                    <iframe
+                      src={getYouTubeEmbedUrl(submission.external_video_url)}
+                      className="w-full h-full"
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                  </div>
+                </>
               ) : (
-                <a
-                  href={submission.external_video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-steward-dark text-steward-dark rounded-xl hover:bg-steward-dark hover:text-white transition-colors text-sm font-bold break-all"
-                >
-                  <LinkIcon className="w-4 h-4 flex-shrink-0" />
-                  {submission.external_video_url}
-                </a>
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <LinkIcon className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-bold text-gray-700">Link Submission</span>
+                  </div>
+                  <a
+                    href={submission.external_video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-steward-dark text-steward-dark rounded-xl hover:bg-steward-dark hover:text-white transition-colors text-sm font-bold break-all"
+                  >
+                    <LinkIcon className="w-4 h-4 flex-shrink-0" />
+                    {submission.external_video_url}
+                  </a>
+                </>
               )}
             </div>
           )}
@@ -371,4 +431,22 @@ function getYouTubeEmbedUrl(url: string): string {
   
   // Fallback
   return url
+}
+
+// Helper function to check if URL is an image
+function isImageUrl(url: string): boolean {
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp']
+  const lowerUrl = url.toLowerCase()
+  
+  // Check if URL ends with an image extension
+  if (imageExtensions.some(ext => lowerUrl.includes(ext))) {
+    return true
+  }
+  
+  // Check for common image hosting patterns (Supabase storage, etc.)
+  if (lowerUrl.includes('supabase') && lowerUrl.includes('/storage/')) {
+    return true
+  }
+  
+  return false
 }

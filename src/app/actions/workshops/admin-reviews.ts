@@ -161,6 +161,8 @@ export async function getSubmissionsForReview(
         review_note: progress.review_note,
         progress_id: progress.id,
         principle_id: principleId,
+        title: submission?.title || null,
+        description: submission?.description || null,
       }
     })
   } catch (error) {

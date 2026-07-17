@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
-import type { WorkshopDayEntry, SceneConfig, WorkshopPrinciple, WorkshopProgress } from '@/types/workshops'
+import React, { useState, useRef } from 'react'
+import type { WorkshopDayEntry, SceneConfig, WorkshopPrinciple, WorkshopProgress, WorkshopDeliverableSubmission } from '@/types/workshops'
 import { submitDeliverable } from '@/app/actions/workshops/participants'
 import { getEntryMedia } from '@/app/actions/workshops/entry-media'
+import { uploadCreationImage } from '@/app/actions/workshops/engagement'
 
 interface ArtifactReaderProps {
   entry: WorkshopDayEntry & { sectionTitle: string; sectionKey: string; hour: string }
@@ -15,6 +16,7 @@ interface ArtifactReaderProps {
   principles?: WorkshopPrinciple[]
   bankedPrincipleIds?: string[]
   progressRows?: WorkshopProgress[]
+  submissions?: WorkshopDeliverableSubmission[]
   onDeliverableSubmitted?: (msg: string, shouldOpenVictory?: boolean) => void
   onClose?: () => void
   inline?: boolean
@@ -42,7 +44,7 @@ function relicUri(type: string, accent: string): string {
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='72' height='60' viewBox='0 0 72 60' shape-rendering='crispEdges'>${relic}</svg>`)}`
 }
 
-export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], progressRows = [], onDeliverableSubmitted, onClose, inline }: ArtifactReaderProps) {
+export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], progressRows = [], submissions = [], onDeliverableSubmitted, onClose, inline }: ArtifactReaderProps) {
   const readerAccent = secColor(entry.sectionKey)
   const iconSrc = relicUri(entry.entry_type, accent)
   const actLabel = scene?.label || `ACT ${dayNumber}`
@@ -54,6 +56,8 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
   const isDeliverable = entry.entry_type === 'deliverable'
 
   const [url, setUrl] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
   const [selectedPrinciple, setSelectedPrinciple] = useState<string>('')
   const [showcaseRequested, setShowcaseRequested] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -61,6 +65,21 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
   const [isLoadingMedia, setIsLoadingMedia] = useState(true)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [showFeaturedPopup, setShowFeaturedPopup] = useState(false)
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, GIF, etc.)')
+      return
+    }
+    setFileToUpload(file)
+    setUrl(URL.createObjectURL(file))
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   React.useEffect(() => {
     setIsLoadingMedia(true)
@@ -73,17 +92,32 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
   const isSubmitted = dayProgress?.deliverable_status === 'submitted' || dayProgress?.deliverable_status === 'approved'
 
   const handleSubmit = async () => {
-    if (!url.trim() || !dayId || isSubmitting || isSubmitted) return
+    if ((!url.trim() && !fileToUpload) || !dayId || isSubmitting) return
+    if (!title.trim()) {
+      alert('Please enter a title for your deliverable')
+      return
+    }
     // Allow submission without principle if no unbanked principles remain
     const unbankedCount = principles.filter(p => !bankedPrincipleIds.includes(p.id)).length
-    if (unbankedCount > 0 && !selectedPrinciple) return
+    if (unbankedCount > 0 && !selectedPrinciple) {
+      alert('Please select a principle for your deliverable')
+      return
+    }
 
     setIsSubmitting(true)
     try {
-      const pText = selectedPrinciple ? `Selected Principle ID: ${selectedPrinciple}` : 'No principle selected'
+      // Handle file upload if present
+      let finalUrl = url.trim()
+      if (fileToUpload) {
+        const formData = new FormData()
+        formData.append('file', fileToUpload)
+        finalUrl = await uploadCreationImage(formData)
+      }
+      
       const result = await submitDeliverable(dayId, { 
-        external_video_url: url.trim(), 
-        submission_text: pText,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        external_video_url: finalUrl, 
         principle_id: selectedPrinciple || undefined,
         showcase_requested: showcaseRequested
       })
@@ -312,33 +346,243 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   </div>
                 </a>
 
-                {/* Submission console */}
-                <div style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 6, padding: 15, background: 'rgba(0,0,0,.22)' }}>
-                  <div className="font-pixel" style={{ fontSize: 9, color: 'var(--tx,#efe6ff)', marginBottom: 13 }}>
-                    ▚ SUBMISSION CONSOLE
-                  </div>
-                  <label style={{ fontSize: 15, color: 'var(--mu,#a493c9)', display: 'block', marginBottom: 7 }}>
-                    {entry.submit_label || 'Paste your deliverable link'}
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://…"
-                    value={isSubmitted ? 'Submitted' : url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    disabled={isSubmitted || isSubmitting}
-                    style={{
-                      width: '100%', boxSizing: 'border-box',
-                      background: 'rgba(0,0,0,.4)',
-                      border: '2px solid var(--ln,#3d2668)',
-                      borderRadius: 4, color: 'var(--tx,#efe6ff)',
-                      fontSize: 18, padding: '10px 12px', marginBottom: 12,
-                      opacity: isSubmitted ? 0.6 : 1
-                    }}
-                  />
-                  {!isSubmitted && (
-                    <>
-                      <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 9 }}>
-                        Assign <span style={{ color: 'var(--gold,#ffd23f)' }}>at least one fresh Steward Principle</span>:
+                {/* Submission console - shows different views based on submission status */}
+                {(() => {
+                  // Find the latest submission for this day
+                  const daySubmission = submissions.find(s => s.workshop_day_id === dayId)
+                  const submittedUrl = daySubmission?.external_video_url || daySubmission?.submission_text || ''
+                  const cleanSubmittedUrl = submittedUrl.replace('[SHOWCASE_REQUESTED]', '').replace(/Selected Principle ID:.*$/, '').trim()
+                  
+                  // Get the principle that was banked with this submission
+                  const submittedPrincipleId = bankedPrincipleIds.find(pid => {
+                    // The bankedPrincipleIds includes principles for this day
+                    return principles.some(p => p.id === pid)
+                  })
+                  const submittedPrinciple = submittedPrincipleId ? principles.find(p => p.id === submittedPrincipleId) : null
+                  
+                  if (isSubmitted && !isEditMode) {
+                    // Show the completed/banked view
+                    const statusColor = dayProgress?.deliverable_status === 'approved' ? 'var(--ok,#74f0a0)' : 'var(--gold,#ffd23f)'
+                    const statusLabel = dayProgress?.deliverable_status === 'approved' ? '✓ DELIVERABLE APPROVED' : '◷ PENDING TEACHER APPROVAL'
+                    const borderColor = dayProgress?.deliverable_status === 'approved' ? 'var(--ok,#74f0a0)' : 'var(--gold,#ffd23f)'
+                    
+                    return (
+                      <div style={{ border: `2px solid ${borderColor}`, borderRadius: 6, padding: 16, background: dayProgress?.deliverable_status === 'approved' ? 'rgba(116,240,160,.06)' : 'rgba(255,210,63,.06)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                          <span className="font-pixel" style={{ fontSize: 11, color: statusColor }}>{statusLabel}</span>
+                          {dayProgress?.deliverable_status === 'approved' && (
+                            <span style={{ fontSize: 14, color: 'var(--mu,#a493c9)' }}>Synced to Steward Library</span>
+                          )}
+                        </div>
+                        
+                        {/* Show submitted title */}
+                        {daySubmission?.title && (
+                          <div className="font-pixel" style={{ fontSize: 12, color: 'var(--tx,#efe6ff)', marginBottom: 8 }}>
+                            {daySubmission.title}
+                          </div>
+                        )}
+                        
+                        {/* Show submitted description */}
+                        {daySubmission?.description && (
+                          <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 10, lineHeight: 1.4 }}>
+                            {daySubmission.description}
+                          </div>
+                        )}
+                        
+                        {/* Show submitted URL/content */}
+                        {cleanSubmittedUrl && (
+                          <div style={{ fontSize: 16, color: 'var(--tx,#efe6ff)', marginBottom: 10, wordBreak: 'break-all' }}>
+                            🔗 <a href={cleanSubmittedUrl.startsWith('http') ? cleanSubmittedUrl : `https://${cleanSubmittedUrl}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--s,#45d6ff)', textDecoration: 'underline' }}>
+                              {cleanSubmittedUrl}
+                            </a>
+                          </div>
+                        )}
+                        
+                        {/* Show banked principle */}
+                        {submittedPrinciple && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '10px 0' }}>
+                            <span style={{ fontSize: 14, color: 'var(--ok,#74f0a0)', border: '1px solid var(--ok,#74f0a0)', borderRadius: 20, padding: '2px 10px' }}>
+                              ◈ {submittedPrinciple.name}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Review Note Display */}
+                        {dayProgress?.review_note && (
+                          <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 6, background: 'rgba(255,210,63,.12)', borderLeft: '4px solid var(--gold,#ffd23f)' }}>
+                            <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', marginBottom: 6 }}>
+                              ▤ TEACHER NOTE:
+                            </div>
+                            <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>
+                              {dayProgress.review_note}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                          {/* Edit/Resubmit button - only show if not approved */}
+                          {dayProgress?.deliverable_status !== 'approved' && (
+                            <button 
+                              onClick={() => {
+                                setIsEditMode(true)
+                                setTitle(daySubmission?.title || '')
+                                setDescription(daySubmission?.description || '')
+                                setUrl(cleanSubmittedUrl)
+                              }}
+                              className="font-pixel" 
+                              style={{ fontSize: 9, color: 'var(--p,#ff5fd2)', background: 'none', border: '2px solid var(--p,#ff5fd2)', borderRadius: 4, padding: '9px 12px', cursor: 'pointer' }}
+                            >
+                              ✎ EDIT & RESUBMIT
+                            </button>
+                          )}
+                          {cohortId && (
+                            <a href={`/hub/pilot-workshops/${cohortId}?tab=portfolio`} style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: 'var(--s,#45d6ff)', textDecoration: 'none', border: '2px solid var(--s,#45d6ff)', borderRadius: 4, padding: '9px 12px' }}>
+                              VIEW IN PORTFOLIO ↗
+                            </a>
+                          )}
+                          {onClose && (
+                            <button onClick={onClose} className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', background: 'none', border: '2px solid var(--gold,#ffd23f)', borderRadius: 4, padding: '9px 12px', cursor: 'pointer' }}>
+                              ◂ BACK
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  // Show the submission form (not yet submitted or in edit mode)
+                  return (
+                    <div style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 6, padding: 15, background: 'rgba(0,0,0,.22)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 13 }}>
+                        <div className="font-pixel" style={{ fontSize: 9, color: 'var(--tx,#efe6ff)' }}>
+                          {isEditMode ? '✎ EDIT SUBMISSION' : '▚ SUBMISSION CONSOLE'}
+                        </div>
+                        {isEditMode && (
+                          <button 
+                            onClick={() => {
+                              setIsEditMode(false)
+                              setTitle('')
+                              setDescription('')
+                              setUrl('')
+                              setFileToUpload(null)
+                            }}
+                            className="font-pixel"
+                            style={{ fontSize: 8, color: 'var(--mu,#a493c9)', background: 'none', border: '1px solid var(--ln,#3d2668)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer' }}
+                          >
+                            CANCEL
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Title Input */}
+                      <label className="font-pixel" style={{ fontSize: 8, color: 'var(--ok,#74f0a0)', display: 'block', marginBottom: 7 }}>
+                        1 · TITLE YOUR DELIVERABLE
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter a title for your deliverable..."
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        disabled={isSubmitting}
+                        style={{
+                          width: '100%', boxSizing: 'border-box',
+                          background: 'rgba(0,0,0,.4)',
+                          border: '2px solid var(--ln,#3d2668)',
+                          borderRadius: 4, color: 'var(--tx,#efe6ff)',
+                          fontSize: 16, padding: '10px 12px', marginBottom: 12,
+                        }}
+                      />
+                      
+                      {/* Description Input */}
+                      <label className="font-pixel" style={{ fontSize: 8, color: 'var(--s,#45d6ff)', display: 'block', marginBottom: 7 }}>
+                        2 · DESCRIPTION (OPTIONAL)
+                      </label>
+                      <textarea
+                        placeholder="Describe your deliverable, what you created, and what principle it applies..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        disabled={isSubmitting}
+                        rows={3}
+                        style={{
+                          width: '100%', boxSizing: 'border-box',
+                          background: 'rgba(0,0,0,.4)',
+                          border: '2px solid var(--ln,#3d2668)',
+                          borderRadius: 4, color: 'var(--tx,#efe6ff)',
+                          fontSize: 15, padding: '10px 12px', marginBottom: 12,
+                          resize: 'vertical',
+                        }}
+                      />
+                      
+                      {/* URL/Upload Input */}
+                      <label className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', display: 'block', marginBottom: 7 }}>
+                        3 · {entry.submit_label || 'YOUR DELIVERABLE LINK OR FILE'}
+                      </label>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                        {url.startsWith('blob:') ? (
+                          <div style={{
+                            flex: 1,
+                            background: 'rgba(0,0,0,.4)',
+                            border: '2px solid var(--ln,#3d2668)',
+                            borderRadius: 4,
+                            padding: 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12
+                          }}>
+                            <img 
+                              src={url} 
+                              alt="Upload preview" 
+                              style={{ height: 32, width: 32, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--mu,#a493c9)' }} 
+                            />
+                            <div style={{ flex: 1, color: 'var(--tx,#efe6ff)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {fileToUpload?.name || 'Uploaded Image'}
+                            </div>
+                            <button
+                              onClick={() => { setUrl(''); setFileToUpload(null); }}
+                              style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', padding: 4 }}
+                              title="Remove image"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <input
+                            type="url"
+                            placeholder="https://…"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            disabled={isSubmitting}
+                            style={{
+                              flex: 1, boxSizing: 'border-box',
+                              background: 'rgba(0,0,0,.4)',
+                              border: '2px solid var(--ln,#3d2668)',
+                              borderRadius: 4, color: 'var(--tx,#efe6ff)',
+                              fontSize: 16, padding: '10px 12px',
+                            }}
+                          />
+                        )}
+                        <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handleFileChange} />
+                        <button 
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isSubmitting}
+                          className="font-pixel" 
+                          style={{
+                            fontSize: 8,
+                            background: 'transparent',
+                            border: '2px solid var(--s,#45d6ff)',
+                            color: 'var(--s,#45d6ff)',
+                            borderRadius: 4,
+                            padding: '0 14px',
+                            cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          ↑ UPLOAD
+                        </button>
+                      </div>
+                      
+                      <div className="font-pixel" style={{ fontSize: 8, color: 'var(--p,#ff5fd2)', marginBottom: 9 }}>
+                        4 · Assign <span style={{ color: 'var(--gold,#ffd23f)' }}>at least one fresh Steward Principle</span>:
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
                         {principles.filter(p => !bankedPrincipleIds.includes(p.id)).map(p => (
@@ -365,71 +609,58 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                           </span>
                         )}
                       </div>
-                    </>
-                  )}
-                  
-                  {/* Showcase Request Checkbox */}
-                  {!isSubmitted && (
-                    <div 
-                      onClick={() => setShowcaseRequested(!showcaseRequested)}
-                      style={{ 
-                        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                        padding: '12px 14px', borderRadius: 8, marginTop: 12, marginBottom: 12,
-                        background: showcaseRequested ? 'rgba(255,95,210,.08)' : 'rgba(0,0,0,.2)',
-                        border: `2px solid ${showcaseRequested ? 'var(--pk,#ff5fd2)' : 'var(--ln,#28432f)'}`
-                      }}
-                    >
-                      <div style={{
-                        width: 20, height: 20, borderRadius: 4, flex: 'none',
-                        border: `2px solid ${showcaseRequested ? 'var(--pk,#ff5fd2)' : 'var(--mu,#77b78d)'}`,
-                        background: showcaseRequested ? 'var(--pk,#ff5fd2)' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#000', fontSize: 13, lineHeight: 1
-                      }}>
-                        {showcaseRequested && '✓'}
-                      </div>
-                      <div style={{ color: 'var(--tx,#d6ffe0)', fontSize: 15, lineHeight: 1.3 }}>
-                        Submit to the curated <b>Student Showcase</b>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {(() => {
-                    const unbankedCount = principles.filter(p => !bankedPrincipleIds.includes(p.id)).length
-                    const canSubmit = url.trim() && (unbankedCount === 0 || selectedPrinciple)
-                    const isDisabled = isSubmitted || isSubmitting || !canSubmit
-                    
-                    return (
-                      <button 
-                        onClick={handleSubmit}
-                        disabled={isDisabled}
-                        className="font-pixel" 
-                        style={{
-                          fontSize: 10, color: 'var(--bg,#12081e)',
-                          background: 'var(--gold,#ffd23f)',
-                          border: 'none', borderRadius: 6,
-                          padding: '12px 18px', cursor: isDisabled ? 'not-allowed' : 'pointer',
-                          boxShadow: '0 4px 0 #b8912a',
-                          opacity: isDisabled ? 0.5 : 1,
+                      
+                      {/* Showcase Request Checkbox */}
+                      <div 
+                        onClick={() => setShowcaseRequested(!showcaseRequested)}
+                        style={{ 
+                          display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                          padding: '12px 14px', borderRadius: 8, marginTop: 12, marginBottom: 12,
+                          background: showcaseRequested ? 'rgba(255,95,210,.08)' : 'rgba(0,0,0,.2)',
+                          border: `2px solid ${showcaseRequested ? 'var(--pk,#ff5fd2)' : 'var(--ln,#28432f)'}`
                         }}
                       >
-                        {isSubmitting ? 'SUBMITTING...' : isSubmitted ? (dayProgress?.deliverable_status === 'approved' ? '⬢ APPROVED' : '⬢ PENDING APPROVAL') : '⬢ SUBMIT DELIVERABLE'}
-                      </button>
-                    )
-                  })()}
-
-                  {/* Review Note Display */}
-                  {dayProgress?.review_note && (
-                    <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 6, background: 'rgba(255,210,63,.12)', borderLeft: '4px solid var(--gold,#ffd23f)' }}>
-                      <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', marginBottom: 6 }}>
-                        ▤ TEACHER NOTE:
+                        <div style={{
+                          width: 20, height: 20, borderRadius: 4, flex: 'none',
+                          border: `2px solid ${showcaseRequested ? 'var(--pk,#ff5fd2)' : 'var(--mu,#77b78d)'}`,
+                          background: showcaseRequested ? 'var(--pk,#ff5fd2)' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#000', fontSize: 13, lineHeight: 1
+                        }}>
+                          {showcaseRequested && '✓'}
+                        </div>
+                        <div style={{ color: 'var(--tx,#d6ffe0)', fontSize: 15, lineHeight: 1.3 }}>
+                          Submit to the curated <b>Student Showcase</b>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>
-                        {dayProgress.review_note}
-                      </div>
+                      
+                      {(() => {
+                        const unbankedCount = principles.filter(p => !bankedPrincipleIds.includes(p.id)).length
+                        const hasContent = (url.trim() || fileToUpload) && title.trim()
+                        const canSubmit = hasContent && (unbankedCount === 0 || selectedPrinciple)
+                        const isDisabled = isSubmitting || !canSubmit
+                        
+                        return (
+                          <button 
+                            onClick={handleSubmit}
+                            disabled={isDisabled}
+                            className="font-pixel" 
+                            style={{
+                              fontSize: 10, color: 'var(--bg,#12081e)',
+                              background: 'var(--gold,#ffd23f)',
+                              border: 'none', borderRadius: 6,
+                              padding: '12px 18px', cursor: isDisabled ? 'not-allowed' : 'pointer',
+                              boxShadow: '0 4px 0 #b8912a',
+                              opacity: isDisabled ? 0.5 : 1,
+                            }}
+                          >
+                            {isSubmitting ? 'SUBMITTING...' : '⬢ SUBMIT DELIVERABLE'}
+                          </button>
+                        )
+                      })()}
                     </div>
-                  )}
-                </div>
+                  )
+                })()}
 
                 {/* Applied + Lab descriptions */}
                 {entry.applied && (

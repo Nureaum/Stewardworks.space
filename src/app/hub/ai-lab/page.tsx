@@ -59,8 +59,12 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
   let daysComplete = 0;
   let approvedDays = 0;
   let days = [];
-    let principles = [];
+  let principles = [];
   let userCharacter = null;
+  let dashboard: any[] = [];
+  let submissions: any[] = [];
+  let bankedPrinciples: any[] = [];
+  
   if (activeCohort) {
     const { data: charData } = await supabase
         .from('workshop_characters')
@@ -70,7 +74,7 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
         .maybeSingle();
       if (charData) userCharacter = charData;
     try {
-      const dashboard = await getWorkshopDashboard(activeCohort.id);
+      dashboard = await getWorkshopDashboard(activeCohort.id);
       daysComplete = dashboard.filter(
         d => d.progress && (d.progress.deliverable_status === 'submitted' || d.progress.deliverable_status === 'approved')
       ).length;
@@ -81,6 +85,31 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
 
       days = await getWorkshopDays(activeCohort.id);
       principles = await getPrinciples(activeCohort.id);
+      
+      // Fetch submissions for this user in this cohort
+      const dayIds = days.map((d: any) => d.id);
+      if (dayIds.length > 0) {
+        const { data: subData } = await supabase
+          .from('workshop_deliverable_submissions')
+          .select('*')
+          .in('workshop_day_id', dayIds)
+          .eq('profile_id', profile.id)
+          .order('submitted_at', { ascending: false });
+        if (subData) submissions = subData;
+      }
+      
+      // Fetch banked principles for submitted or approved progress
+      // This prevents users from selecting the same principle while waiting for approval
+      const submittedOrApprovedProgressIds = dashboard
+        .filter(d => d.progress && (d.progress.deliverable_status === 'submitted' || d.progress.deliverable_status === 'approved'))
+        .map(d => d.progress.id);
+      if (submittedOrApprovedProgressIds.length > 0) {
+        const { data: bpData } = await supabase
+          .from('workshop_progress_principles')
+          .select('*')
+          .in('progress_id', submittedOrApprovedProgressIds);
+        if (bpData) bankedPrinciples = bpData;
+      }
     } catch (e) {
       console.error('Failed to get workshop dashboard for ai-lab:', e);
     }
@@ -118,6 +147,9 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
     showcaseItems={showcaseItems}
     initialEngagements={initialEngagements}
     userCharacter={userCharacter}
+    dashboard={dashboard}
+    submissions={submissions}
+    bankedPrinciples={bankedPrinciples}
   />;
 }
 

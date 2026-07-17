@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { uploadCreationImage } from '@/app/actions/workshops/engagement';
@@ -37,14 +37,71 @@ function buildChiaUri(stage: number, accent: string = '#4dffa0') {
   return "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='20' viewBox='0 0 16 20' shape-rendering='crispEdges'>${body}</svg>`);
 }
 
-export default function SubmissionTracker({ day, dayId, daysComplete = 0, days = [], principles = [], approvedDays = 0, initialEngagements = [] }: { day: number, dayId?: string, daysComplete?: number, days?: any[], principles?: any[], approvedDays?: number, initialEngagements?: any[] }) {
+interface DaySubmission {
+  id?: string;
+  title?: string | null;
+  description?: string | null;
+  submission_text?: string | null;
+  external_video_url?: string | null;
+  file_storage_path?: string | null;
+}
+
+interface DayProgress {
+  deliverable_status?: 'not_submitted' | 'submitted' | 'approved' | 'rejected';
+  review_note?: string | null;
+}
+
+export default function SubmissionTracker({ 
+  day, 
+  dayId, 
+  daysComplete = 0, 
+  days = [], 
+  principles = [], 
+  approvedDays = 0, 
+  initialEngagements = [],
+  currentDaySubmission,
+  currentDayProgress,
+  bankedPrincipleIds = []
+}: { 
+  day: number, 
+  dayId?: string, 
+  daysComplete?: number, 
+  days?: any[], 
+  principles?: any[], 
+  approvedDays?: number, 
+  initialEngagements?: any[],
+  currentDaySubmission?: DaySubmission | null,
+  currentDayProgress?: DayProgress | null,
+  bankedPrincipleIds?: string[]
+}) {
   const [minimized, setMinimized] = useState(false);
   const [selectedPrinciple, setSelectedPrinciple] = useState('');
   const [submissionUrl, setSubmissionUrl] = useState('');
+  const [submissionTitle, setSubmissionTitle] = useState('');
+  const [submissionDescription, setSubmissionDescription] = useState('');
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [localSubmission, setLocalSubmission] = useState<DaySubmission | null>(currentDaySubmission || null);
+  const [localProgress, setLocalProgress] = useState<DayProgress | null>(currentDayProgress || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Check if already submitted
+  const isAlreadySubmitted = localProgress?.deliverable_status === 'submitted' || localProgress?.deliverable_status === 'approved';
+  const isApproved = localProgress?.deliverable_status === 'approved';
+
+  // Sync props to local state when they change
+  useEffect(() => {
+    setLocalSubmission(currentDaySubmission || null);
+    setLocalProgress(currentDayProgress || null);
+  }, [currentDaySubmission, currentDayProgress]);
+
+  // Get the submitted URL from local submission
+  const getSubmittedUrl = () => {
+    if (!localSubmission) return '';
+    return localSubmission.external_video_url || localSubmission.submission_text || '';
+  };
 
   if (!days || days.length === 0) {
     return (
@@ -72,6 +129,9 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
         { id: 'p9', name: 'Making Gaps Visible' },
       ];
 
+  // Filter out already banked principles
+  const availablePrinciples = mappedPrinciples.filter((p: any) => !bankedPrincipleIds.includes(p.id));
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -89,13 +149,46 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
     }
   };
 
+  const handleEditClick = () => {
+    // Pre-fill form with existing submission data
+    if (localSubmission) {
+      setSubmissionTitle(localSubmission.title || '');
+      setSubmissionDescription(localSubmission.description || '');
+      setSubmissionUrl(getSubmittedUrl());
+    }
+    setIsEditMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setSubmissionTitle('');
+    setSubmissionDescription('');
+    setSubmissionUrl('');
+    setFileToUpload(null);
+    setSelectedPrinciple('');
+  };
+
+  // Helper to check if URL is an image
+  const isImageUrl = (url: string) => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+    const lowerUrl = url.toLowerCase();
+    if (imageExtensions.some(ext => lowerUrl.includes(ext))) return true;
+    if (lowerUrl.includes('supabase') && lowerUrl.includes('/storage/')) return true;
+    return false;
+  };
+
   const handleSubmitDeliverable = async () => {
-    if (!selectedPrinciple) {
+    // Allow submission without principle if no unbanked principles remain
+    if (availablePrinciples.length > 0 && !selectedPrinciple) {
       toast.error('Please select a principle first.', { position: 'bottom-center' });
       return;
     }
     if (!submissionUrl && !fileToUpload) {
       toast.error('Please provide your deliverable link or upload an image.', { position: 'bottom-center' });
+      return;
+    }
+    if (!submissionTitle.trim()) {
+      toast.error('Please enter a title for your deliverable.', { position: 'bottom-center' });
       return;
     }
     
@@ -111,6 +204,8 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
       if (dayId) {
         console.log('[SubmissionTracker] Submitting deliverable with principle_id:', selectedPrinciple);
         const result = await submitDeliverable(dayId, {
+          title: submissionTitle.trim(),
+          description: submissionDescription.trim() || undefined,
           submission_text: finalUrl,
           principle_id: selectedPrinciple,
           showcase_requested: false
@@ -120,6 +215,18 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
         if (!result.success && result.message) {
           throw new Error(result.message);
         }
+        
+        // Update local state immediately to show banked state
+        setLocalSubmission({
+          title: submissionTitle.trim(),
+          description: submissionDescription.trim() || null,
+          submission_text: finalUrl,
+          external_video_url: finalUrl,
+        });
+        setLocalProgress({
+          deliverable_status: 'submitted',
+          review_note: null,
+        });
       }
       
       toast('▲ Deliverable banked · pending teacher approval', {
@@ -137,9 +244,13 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
         duration: 3000
       });
       
+      // Reset form and exit edit mode
       setSubmissionUrl('');
+      setSubmissionTitle('');
+      setSubmissionDescription('');
       setFileToUpload(null);
       setSelectedPrinciple('');
+      setIsEditMode(false);
       router.refresh();
     } catch (e) {
       console.error(e);
@@ -298,46 +409,115 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
                 ◈ VALIDATE &amp; BANK DAY {day}
               </div>
 
-              {/* URL Input */}
-              <div>
-                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--ng,#4dffa0)', marginBottom: 8, letterSpacing: 1 }}>
-                  1 · YOUR DELIVERABLE
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {submissionUrl.startsWith('blob:') ? (
-                    <div style={{
-                      flex: 1,
-                      background: 'rgba(0,0,0,.4)',
-                      border: '2px solid var(--ln,#28432f)',
-                      borderRadius: 6,
-                      padding: 6,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12
-                    }}>
-                      <img 
-                        src={submissionUrl} 
-                        alt="Upload preview" 
-                        style={{ height: 32, width: 32, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--mu,#77b78d)' }} 
-                      />
-                      <div style={{ flex: 1, color: 'var(--tx,#d6ffe0)', fontSize: 15, fontFamily: "'VT323', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {fileToUpload?.name || 'Uploaded Image'}
+              {/* Show submitted view if already submitted and not in edit mode */}
+              {isAlreadySubmitted && !isEditMode ? (
+                /* Submitted View */
+                <div style={{ 
+                  border: `2px solid ${isApproved ? 'var(--ng,#4dffa0)' : 'var(--sy,#ffd23f)'}`, 
+                  borderRadius: 8, 
+                  padding: 16, 
+                  background: isApproved ? 'rgba(77,255,160,.08)' : 'rgba(255,210,63,.08)' 
+                }}>
+                  {/* Status Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <span className="font-pixel" style={{ fontSize: 10, color: isApproved ? 'var(--ng,#4dffa0)' : 'var(--sy,#ffd23f)' }}>
+                      {isApproved ? '✓ APPROVED' : '◷ PENDING APPROVAL'}
+                    </span>
+                    {isApproved && (
+                      <span style={{ fontSize: 14, color: 'var(--mu,#77b78d)', fontFamily: "'VT323', monospace" }}>
+                        Synced to Steward Library
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Submitted Title */}
+                  {localSubmission?.title && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>TITLE</div>
+                      <div style={{ fontSize: 18, color: 'var(--tx,#d6ffe0)', fontFamily: "'VT323', monospace", fontWeight: 'bold' }}>
+                        {localSubmission.title}
                       </div>
-                      <button
-                        onClick={() => { setSubmissionUrl(''); setFileToUpload(null); }}
-                        style={{ background: 'none', border: 'none', color: 'var(--mu,#77b78d)', cursor: 'pointer', padding: 4 }}
-                        title="Remove image"
-                      >
-                        ✕
+                    </div>
+                  )}
+
+                  {/* Submitted Description */}
+                  {localSubmission?.description && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>DESCRIPTION</div>
+                      <div style={{ fontSize: 15, color: 'var(--mu,#77b78d)', fontFamily: "'VT323', monospace", lineHeight: 1.4 }}>
+                        {localSubmission.description}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Submitted URL/Image */}
+                  {getSubmittedUrl() && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>DELIVERABLE</div>
+                      {isImageUrl(getSubmittedUrl()) ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ border: '1px solid var(--ln,#28432f)', borderRadius: 6, overflow: 'hidden', maxWidth: 300 }}>
+                            <img src={getSubmittedUrl()} alt="Submitted deliverable" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                          </div>
+                          <a href={getSubmittedUrl()} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 14, color: 'var(--cy,#45d6ff)', fontFamily: "'VT323', monospace" }}>
+                            🔗 View Full Size
+                          </a>
+                        </div>
+                      ) : (
+                        <a href={getSubmittedUrl().startsWith('http') ? getSubmittedUrl() : `https://${getSubmittedUrl()}`} 
+                          target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 16, color: 'var(--cy,#45d6ff)', fontFamily: "'VT323', monospace", wordBreak: 'break-all' }}>
+                          🔗 {getSubmittedUrl()}
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Review Note (if any) */}
+                  {localProgress?.review_note && (
+                    <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 6, background: 'rgba(255,210,63,.12)', borderLeft: '4px solid var(--sy,#ffd23f)' }}>
+                      <div className="font-pixel" style={{ fontSize: 8, color: 'var(--sy,#ffd23f)', marginBottom: 6 }}>▤ TEACHER NOTE:</div>
+                      <div style={{ fontSize: 15, color: 'var(--tx,#d6ffe0)', fontFamily: "'VT323', monospace", lineHeight: 1.4 }}>
+                        {localProgress.review_note}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Edit Button - only show if not approved */}
+                  {!isApproved && (
+                    <div style={{ marginTop: 16 }}>
+                      <button onClick={handleEditClick} className="font-pixel"
+                        style={{ fontSize: 9, color: 'var(--pk,#ff5fd2)', background: 'transparent', border: '2px solid var(--pk,#ff5fd2)', borderRadius: 6, padding: '10px 16px', cursor: 'pointer' }}>
+                        ✎ EDIT DELIVERABLE
                       </button>
                     </div>
-                  ) : (
+                  )}
+                </div>
+              ) : (
+                /* Submission Form */
+                <>
+                  {isEditMode && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="font-pixel" style={{ fontSize: 9, color: 'var(--pk,#ff5fd2)' }}>✎ EDITING SUBMISSION</div>
+                      <button onClick={handleCancelEdit} className="font-pixel"
+                        style={{ fontSize: 8, color: 'var(--mu,#77b78d)', background: 'transparent', border: '1px solid var(--ln,#28432f)', borderRadius: 4, padding: '6px 10px', cursor: 'pointer' }}>
+                        CANCEL
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Title Input */}
+                  <div>
+                    <div className="font-pixel" style={{ fontSize: 8, color: 'var(--ng,#4dffa0)', marginBottom: 8, letterSpacing: 1 }}>
+                      1 · TITLE YOUR DELIVERABLE
+                    </div>
                     <input
-                      value={submissionUrl}
-                      onChange={(e) => setSubmissionUrl(e.target.value)}
-                      placeholder="Paste your story asset link (video, audio, image, or doc)"
+                      value={submissionTitle}
+                      onChange={(e) => setSubmissionTitle(e.target.value)}
+                      placeholder="Enter a title for your deliverable..."
                       style={{
-                        flex: 1,
+                        width: '100%',
                         background: 'rgba(0,0,0,.4)',
                         border: '2px solid var(--ln,#28432f)',
                         borderRadius: 6,
@@ -345,87 +525,154 @@ export default function SubmissionTracker({ day, dayId, daysComplete = 0, days =
                         fontSize: 16,
                         padding: '10px 14px',
                         fontFamily: "'VT323', monospace",
+                        boxSizing: 'border-box',
                       }}
                     />
-                  )}
-                  <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handleFileChange} />
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="font-pixel" 
-                    style={{
-                      fontSize: 8,
-                      background: 'transparent',
-                      border: '2px solid var(--cy,#45d6ff)',
-                      color: 'var(--cy,#45d6ff)',
-                      borderRadius: 6,
-                      padding: '0 16px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ↑ UPLOAD
-                  </button>
-                </div>
-              </div>
+                  </div>
 
-              {/* Principle Selection */}
-              <div>
-                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--pk,#ff5fd2)', marginBottom: 12, letterSpacing: 1 }}>
-                  2 · ASSIGN ONE UNREPEATED STEWARD PRINCIPLE
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {mappedPrinciples.map((p: any, i) => {
-                    const principleId = p.id || p;
-                    const principleName = p.name || p.title || p;
-                    const isSelected = selectedPrinciple === principleId;
-                    return (
-                      <button
-                        key={principleId || i}
-                        onClick={() => setSelectedPrinciple(principleId)}
-                        style={{
-                          background: isSelected ? 'rgba(77,255,160,.15)' : 'rgba(0,0,0,.3)',
-                          border: `1px solid ${isSelected ? 'var(--ng,#4dffa0)' : 'var(--ln,#28432f)'}`,
-                          borderRadius: 20,
-                          padding: '6px 12px',
-                          color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--tx,#d6ffe0)',
-                          fontFamily: "'VT323', monospace",
-                          fontSize: 15,
-                          cursor: 'pointer',
+                  {/* Description Input */}
+                  <div>
+                    <div className="font-pixel" style={{ fontSize: 8, color: 'var(--cy,#45d6ff)', marginBottom: 8, letterSpacing: 1 }}>
+                      2 · DESCRIPTION (OPTIONAL)
+                    </div>
+                    <textarea
+                      value={submissionDescription}
+                      onChange={(e) => setSubmissionDescription(e.target.value)}
+                      placeholder="Describe your deliverable, what you created, and what principle it applies..."
+                      rows={3}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(0,0,0,.4)',
+                        border: '2px solid var(--ln,#28432f)',
+                        borderRadius: 6,
+                        color: 'var(--tx,#d6ffe0)',
+                        fontSize: 15,
+                        padding: '10px 14px',
+                        fontFamily: "'VT323', monospace",
+                        boxSizing: 'border-box',
+                        resize: 'vertical',
+                      }}
+                    />
+                  </div>
+
+                  {/* URL Input */}
+                  <div>
+                    <div className="font-pixel" style={{ fontSize: 8, color: 'var(--sy,#ffd23f)', marginBottom: 8, letterSpacing: 1 }}>
+                      3 · YOUR DELIVERABLE LINK OR FILE
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {submissionUrl.startsWith('blob:') ? (
+                        <div style={{
+                          flex: 1,
+                          background: 'rgba(0,0,0,.4)',
+                          border: '2px solid var(--ln,#28432f)',
+                          borderRadius: 6,
+                          padding: 6,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 6,
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <span style={{ color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--mu,#77b78d)', fontSize: 10 }}>◈</span> {principleName}
+                          gap: 12
+                        }}>
+                          <img src={submissionUrl} alt="Upload preview" 
+                            style={{ height: 32, width: 32, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--mu,#77b78d)' }} />
+                          <div style={{ flex: 1, color: 'var(--tx,#d6ffe0)', fontSize: 15, fontFamily: "'VT323', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {fileToUpload?.name || 'Uploaded Image'}
+                          </div>
+                          <button onClick={() => { setSubmissionUrl(''); setFileToUpload(null); }}
+                            style={{ background: 'none', border: 'none', color: 'var(--mu,#77b78d)', cursor: 'pointer', padding: 4 }} title="Remove image">
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <input
+                          value={submissionUrl}
+                          onChange={(e) => setSubmissionUrl(e.target.value)}
+                          placeholder="Paste your story asset link (video, audio, image, or doc)"
+                          style={{
+                            flex: 1,
+                            background: 'rgba(0,0,0,.4)',
+                            border: '2px solid var(--ln,#28432f)',
+                            borderRadius: 6,
+                            color: 'var(--tx,#d6ffe0)',
+                            fontSize: 16,
+                            padding: '10px 14px',
+                            fontFamily: "'VT323', monospace",
+                          }}
+                        />
+                      )}
+                      <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handleFileChange} />
+                      <button onClick={() => fileInputRef.current?.click()} className="font-pixel" 
+                        style={{ fontSize: 8, background: 'transparent', border: '2px solid var(--cy,#45d6ff)', color: 'var(--cy,#45d6ff)', borderRadius: 6, padding: '0 16px', cursor: 'pointer' }}>
+                        ↑ UPLOAD
                       </button>
-                    )
-                  })}
-                </div>
-              </div>
+                    </div>
+                  </div>
 
-              {/* Submit Row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 4 }}>
-                <button
-                  onClick={handleSubmitDeliverable}
-                  disabled={isSubmitting}
-                  className="font-pixel"
-                  style={{
-                    fontSize: 9,
-                    color: 'var(--bg,#0e1512)',
-                    background: 'var(--sy,#ffd23f)',
-                    border: '2px solid var(--sy,#ffd23f)',
-                    borderRadius: 6,
-                    padding: '12px 18px',
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: isSubmitting ? 0.7 : 1,
-                  }}
-                >
-                  {isSubmitting ? '▲ BANKING...' : '▲ BANK DELIVERABLE'}
-                </button>
-                <div style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: 'var(--mu,#77b78d)' }}>
-                  Banking submits your deliverable link + principle to your teacher's console.
-                </div>
-              </div>
+                  {/* Principle Selection */}
+                  <div>
+                    <div className="font-pixel" style={{ fontSize: 8, color: 'var(--pk,#ff5fd2)', marginBottom: 12, letterSpacing: 1 }}>
+                      4 · ASSIGN ONE UNREPEATED STEWARD PRINCIPLE
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {availablePrinciples.map((p: any, i) => {
+                        const principleId = p.id || p;
+                        const principleName = p.name || p.title || p;
+                        const isSelected = selectedPrinciple === principleId;
+                        return (
+                          <button
+                            key={principleId || i}
+                            onClick={() => setSelectedPrinciple(principleId)}
+                            style={{
+                              background: isSelected ? 'rgba(77,255,160,.15)' : 'rgba(0,0,0,.3)',
+                              border: `1px solid ${isSelected ? 'var(--ng,#4dffa0)' : 'var(--ln,#28432f)'}`,
+                              borderRadius: 20,
+                              padding: '6px 12px',
+                              color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--tx,#d6ffe0)',
+                              fontFamily: "'VT323', monospace",
+                              fontSize: 15,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <span style={{ color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--mu,#77b78d)', fontSize: 10 }}>◈</span> {principleName}
+                          </button>
+                        )
+                      })}
+                      {availablePrinciples.length === 0 && (
+                        <span className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#77b78d)', fontStyle: 'italic' }}>
+                          No unbanked principles left!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Submit Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 4 }}>
+                    <button
+                      onClick={handleSubmitDeliverable}
+                      disabled={isSubmitting}
+                      className="font-pixel"
+                      style={{
+                        fontSize: 9,
+                        color: 'var(--bg,#0e1512)',
+                        background: 'var(--sy,#ffd23f)',
+                        border: '2px solid var(--sy,#ffd23f)',
+                        borderRadius: 6,
+                        padding: '12px 18px',
+                        cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                        opacity: isSubmitting ? 0.7 : 1,
+                      }}
+                    >
+                      {isSubmitting ? '▲ BANKING...' : '▲ BANK DELIVERABLE'}
+                    </button>
+                    <div style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: 'var(--mu,#77b78d)' }}>
+                      Banking submits your deliverable link + principle to your teacher's console.
+                    </div>
+                  </div>
+                </>
+              )}
 
             </div>
           </div>

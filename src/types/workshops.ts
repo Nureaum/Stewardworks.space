@@ -108,6 +108,8 @@ export interface WorkshopDeliverableSubmission {
   id: string;
   workshop_day_id: string;
   profile_id: string;
+  title: string | null;
+  description: string | null;
   submission_text: string | null;
   file_storage_path: string | null;
   external_video_url: string | null;
@@ -153,6 +155,8 @@ export interface CohortWithUserRegistration extends CohortWithRegistrationCount 
  * Used by DeliverableSubmissionForm component
  */
 export interface SubmissionData {
+  title?: string;
+  description?: string;
   submission_text?: string;
   file?: File;
   external_video_url?: string;
@@ -172,6 +176,7 @@ export interface SubmissionWithMetadata extends WorkshopDeliverableSubmission {
   deliverable_status: 'not_submitted' | 'submitted' | 'approved' | 'rejected';
   review_note?: string | null;
   principle_id?: string | null;
+  progress_id?: string;
 }
 
 /**

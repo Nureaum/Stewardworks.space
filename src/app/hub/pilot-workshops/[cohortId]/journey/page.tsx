@@ -94,13 +94,16 @@ export default async function JourneyPage({ params, searchParams }: Props) {
     .eq('cohort_id', cohortId)
     .order('sort_order')
 
-  // Get banked principles
-  const approvedProgressIds = (progressRows || []).filter(p => p.deliverable_status === 'approved').map(p => p.id)
-  const { data: bankedPrinciples } = approvedProgressIds.length > 0
+  // Get banked principles - include both submitted and approved progress
+  // This prevents users from selecting the same principle while waiting for approval
+  const submittedOrApprovedProgressIds = (progressRows || [])
+    .filter(p => p.deliverable_status === 'submitted' || p.deliverable_status === 'approved')
+    .map(p => p.id)
+  const { data: bankedPrinciples } = submittedOrApprovedProgressIds.length > 0
     ? await supabase
         .from('workshop_progress_principles')
         .select('*')
-        .in('progress_id', approvedProgressIds)
+        .in('progress_id', submittedOrApprovedProgressIds)
     : { data: [] }
 
   // Get user's deliverable submissions

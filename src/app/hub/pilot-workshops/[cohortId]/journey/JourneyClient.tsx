@@ -329,6 +329,7 @@ export default function JourneyClient({
                   principles={principles}
                   bankedPrincipleIds={bankedPrinciples.map(p => p.principle_id)}
                   progressRows={progressRows}
+                  submissions={submissions}
                   onDeliverableSubmitted={(msg) => setToast(msg)}
                   onOpenList={() => setToast('Day list not yet implemented')}
                 />

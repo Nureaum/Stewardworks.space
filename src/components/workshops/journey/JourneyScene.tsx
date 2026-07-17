@@ -16,6 +16,7 @@ interface JourneySceneProps {
   principles: WorkshopPrinciple[]
   bankedPrincipleIds: string[]
   progressRows: WorkshopProgress[]
+  submissions?: any[]
   onDeliverableSubmitted: (msg: string, shouldOpenVictory?: boolean) => void
   onOpenList: () => void
 }
@@ -161,7 +162,7 @@ const ARTIFACT_SPACING = 500
 
 function artifactX(i: number) { return ARTIFACT_X_START + i * ARTIFACT_SPACING }
 
-export default function JourneyScene({ character, day, visited, setVisited, onBack, cohortId, principles, bankedPrincipleIds, progressRows, onDeliverableSubmitted, onOpenList }: JourneySceneProps) {
+export default function JourneyScene({ character, day, visited, setVisited, onBack, cohortId, principles, bankedPrincipleIds, progressRows, submissions = [], onDeliverableSubmitted, onOpenList }: JourneySceneProps) {
   // ALWAYS use hardcoded scene config matching the original reference exactly
   // (ignoring any database scene_config values which may have old/incorrect colors)
   const sc: any = DEFAULT_SCENES[day.day_number] || DEFAULT_SCENES[1]
@@ -761,6 +762,7 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
           principles={principles}
           bankedPrincipleIds={bankedPrincipleIds}
           progressRows={progressRows}
+          submissions={submissions}
           onDeliverableSubmitted={onDeliverableSubmitted}
         />
       )}

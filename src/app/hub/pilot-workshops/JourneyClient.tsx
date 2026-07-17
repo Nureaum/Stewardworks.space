@@ -414,6 +414,7 @@ export default function JourneyClient({
                   principles={principles}
                   bankedPrincipleIds={bankedPrinciples.map(p => p.principle_id)}
                   progressRows={progressRows}
+                  submissions={submissions}
                   onDeliverableSubmitted={(msg, shouldOpenVictory) => {
                     showToast(msg)
                     if (shouldOpenVictory) {

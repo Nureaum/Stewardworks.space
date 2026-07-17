@@ -26,7 +26,10 @@ export default function AILabClient({
   userRole = 'participant',
   showcaseItems = [],
   initialEngagements = [],
-    userCharacter = null,
+  userCharacter = null,
+  dashboard = [],
+  submissions = [],
+  bankedPrinciples = [],
 }: {
   initialRole?: 'student' | 'admin';
   edenEmbedUrl?: string;
@@ -39,7 +42,10 @@ export default function AILabClient({
   userRole?: string;
   showcaseItems?: any[];
   initialEngagements?: any[];
-    userCharacter?: any;
+  userCharacter?: any;
+  dashboard?: any[];
+  submissions?: any[];
+  bankedPrinciples?: any[];
 }) {
   const router = useRouter();
   // Default to admin role if user is admin or super_admin
@@ -231,7 +237,25 @@ export default function AILabClient({
                     <SaveCreationPanel onSave={handleSaveCreation} />
 
                     {/* Submission Tracker */}
-                    <SubmissionTracker day={day} dayId={days?.find(d => d.day_number === day)?.id || initialCurriculum[day]?.id} daysComplete={daysComplete} approvedDays={approvedDays} days={days} principles={principles} initialEngagements={initialEngagements} />
+                    <SubmissionTracker 
+                      day={day} 
+                      dayId={days?.find(d => d.day_number === day)?.id || initialCurriculum[day]?.id} 
+                      daysComplete={daysComplete} 
+                      approvedDays={approvedDays} 
+                      days={days} 
+                      principles={principles} 
+                      initialEngagements={initialEngagements}
+                      currentDaySubmission={(() => {
+                        const currentDay = days?.find(d => d.day_number === day);
+                        if (!currentDay) return null;
+                        return submissions?.find((s: any) => s.workshop_day_id === currentDay.id) || null;
+                      })()}
+                      currentDayProgress={(() => {
+                        const currentDayDash = dashboard?.find((d: any) => d.day?.day_number === day);
+                        return currentDayDash?.progress || null;
+                      })()}
+                      bankedPrincipleIds={bankedPrinciples.map((bp: any) => bp.principle_id)}
+                    />
                   </div>
                 )}
                 {studentView === 'showcase' && (
