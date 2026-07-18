@@ -336,11 +336,33 @@ return (<>
   @keyframes ar-stamp{0%{transform:rotate(-14deg) scale(2.4);opacity:0}60%{transform:rotate(-14deg) scale(.9);opacity:1}100%{transform:rotate(-14deg) scale(1);opacity:1}}
   @keyframes ar-shine{0%,100%{opacity:.35}50%{opacity:1}}
   @media print{
-    body{background:#fff !important}
-    body *{visibility:hidden !important}
-    .run-card,.run-card *{visibility:visible !important}
-    .run-card{position:absolute !important;left:0;top:0;width:820px !important;boxShadow:none !important;animation:none !important}
-    .run-card .no-print{display:none !important}
+    @page { margin: 10mm; }
+    html, body {
+      background: #fff !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body * { 
+      visibility: hidden !important; 
+      animation: none !important;
+      transition: none !important;
+    }
+    .run-card, .run-card * { 
+      visibility: visible !important; 
+    }
+    .run-card {
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      margin: 0 !important;
+      padding: 20px !important;
+      box-sizing: border-box !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+    .run-card .no-print { display: none !important; }
   }
   .arc-scroll::-webkit-scrollbar{width:14px;height:14px}
   .arc-scroll::-webkit-scrollbar-thumb{background:#4a4468;border:3px solid #1b1730}

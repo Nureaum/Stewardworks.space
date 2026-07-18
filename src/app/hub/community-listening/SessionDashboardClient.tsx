@@ -112,10 +112,13 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
                       <p style={{ fontFamily: 'var(--font-newsreader)', fontSize: 18, lineHeight: 1.55, color: '#4a3728', margin: '6px 0 0', textWrap: 'pretty' }}>{q.quote}</p>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 }}>
                         <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, color: '#8a6f4d' }}>&mdash; {q.profile}</div>
-                        {q.has_audio && (
+                        {q.has_audio && !q.audio_url && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: session.accent || '#c98a3d', color: '#fff', padding: '5px 12px', borderRadius: 20, fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, letterSpacing: '.05em' }}>&#9654; AUDIO CLIP</div>
                         )}
                       </div>
+                      {q.audio_url && (
+                        <audio controls src={q.audio_url} style={{ width: '100%', marginTop: 14, height: 36, borderRadius: 8 }} />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -231,7 +234,10 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
                   {quotes.map((q: any, i: number) => (
                     <div key={i} style={{ borderLeft: `3px solid ${session.accent || '#c98a3d'}`, paddingLeft: 14 }}>
                       <p style={{ fontFamily: 'var(--font-newsreader)', fontSize: 15, lineHeight: 1.5, color: '#4a3728', margin: 0 }}>&ldquo;{q.quote}&rdquo;</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}><span style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, color: '#8a6f4d' }}>&mdash; {q.profile}</span>{q.has_audio && <span style={{ background: session.accent || '#c98a3d', color: '#fff', padding: '2px 8px', borderRadius: 12, fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 9 }}>&#9654; AUDIO</span>}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}><span style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, color: '#8a6f4d' }}>&mdash; {q.profile}</span>{q.has_audio && !q.audio_url && <span style={{ background: session.accent || '#c98a3d', color: '#fff', padding: '2px 8px', borderRadius: 12, fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 9 }}>&#9654; AUDIO</span>}</div>
+                      {q.audio_url && (
+                        <audio controls src={q.audio_url} style={{ width: '100%', marginTop: 8, height: 32, borderRadius: 6 }} />
+                      )}
                     </div>
                   ))}
                 </div>

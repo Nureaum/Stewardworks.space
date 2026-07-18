@@ -46,7 +46,8 @@ export async function saveSessionAction(data: any) {
         session_id: sessionId,
         quote: q.quote || q.text, // Handle frontend key
         profile: q.profile,
-        has_audio: q.has_audio
+        has_audio: q.has_audio || !!q.audio_url,
+        audio_url: q.audio_url || null
       }));
       await supabase.from('session_quotes').insert(newQuotes);
     }

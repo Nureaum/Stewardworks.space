@@ -244,13 +244,47 @@ export default function AdminConsoleClient({ sessions, submissions = [], areas =
                         <textarea value={q.quote || q.text || ''} onChange={(e) => { const newQuotes = [...editDraft.quotes]; newQuotes[i].quote = e.target.value; setEditDraft({...editDraft, quotes: newQuotes}); }} placeholder="Quote text" style={{ width: '100%', minHeight: 56, resize: 'vertical', border: '1px solid #e2d2b4', borderRadius: 9, padding: '9px 11px', fontFamily: 'var(--font-newsreader)', fontSize: 14.5, color: '#4a3728', background: '#fffdf8' }}></textarea>
                         <div style={{ display: 'flex', gap: 8, marginTop: 9, alignItems: 'center' }}>
                           <input value={q.profile || ''} onChange={(e) => { const newQuotes = [...editDraft.quotes]; newQuotes[i].profile = e.target.value; setEditDraft({...editDraft, quotes: newQuotes}); }} placeholder="Profile (e.g. Woman, early 30s)" style={{ flex: 1, border: '1px solid #e2d2b4', borderRadius: 9, padding: '8px 11px', fontSize: 13, color: '#4a3728', background: '#fffdf8' }} />
-                          <div onClick={() => { const newQuotes = [...editDraft.quotes]; newQuotes[i].has_audio = !newQuotes[i].has_audio; setEditDraft({...editDraft, quotes: newQuotes}); }} style={{ cursor: 'pointer', background: q.has_audio ? '#3f9e8f' : '#e2d2b4', color: q.has_audio ? '#fff' : '#6b573f', padding: '8px 13px', borderRadius: 9, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{q.has_audio ? 'Audio attached' : 'No audio'}</div>
+                          {q.audio_url ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ background: '#3f9e8f', color: '#fff', padding: '8px 13px', borderRadius: 9, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>Audio attached</div>
+                              <div onClick={() => { const newQuotes = [...editDraft.quotes]; newQuotes[i].audio_url = null; newQuotes[i].has_audio = false; setEditDraft({...editDraft, quotes: newQuotes}); }} style={{ cursor: 'pointer', background: '#e0b6b6', color: '#c05a5a', padding: '8px 10px', borderRadius: 9, fontSize: 11, fontWeight: 700 }} title="Remove audio">×</div>
+                            </div>
+                          ) : (
+                            <label style={{ cursor: 'pointer', background: '#e2d2b4', color: '#6b573f', padding: '8px 13px', borderRadius: 9, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <span>🎙 Upload audio</span>
+                              <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                try {
+                                  const res = await fetch('/api/admin/upload-media', { method: 'POST', body: formData });
+                                  const data = await res.json();
+                                  if (data.publicUrl) {
+                                    const newQuotes = [...editDraft.quotes];
+                                    newQuotes[i].audio_url = data.publicUrl;
+                                    newQuotes[i].has_audio = true;
+                                    setEditDraft({...editDraft, quotes: newQuotes});
+                                    toast.success('Audio uploaded');
+                                  } else {
+                                    toast.error(data.error || 'Upload failed');
+                                  }
+                                } catch (err) {
+                                  toast.error('Audio upload failed');
+                                }
+                                e.target.value = '';
+                              }} />
+                            </label>
+                          )}
                           <div onClick={() => { const newQuotes = editDraft.quotes.filter((_: any, idx: number) => idx !== i); setEditDraft({...editDraft, quotes: newQuotes}); }} style={{ cursor: 'pointer', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e0b6b6', color: '#c05a5a', borderRadius: 9, fontWeight: 700 }}>×</div>
                         </div>
+                        {q.audio_url && (
+                          <audio controls src={q.audio_url} style={{ width: '100%', marginTop: 10, height: 36, borderRadius: 8 }} />
+                        )}
                       </div>
                     ))}
                   </div>
-                  <div onClick={() => setEditDraft({...editDraft, quotes: [...(editDraft.quotes || []), { quote: '', profile: '', has_audio: false }]})} style={{ cursor: 'pointer', marginTop: 10, fontSize: 13, fontWeight: 600, color: '#c98a3d' }}>+ Add quote</div>
+                  <div onClick={() => setEditDraft({...editDraft, quotes: [...(editDraft.quotes || []), { quote: '', profile: '', has_audio: false, audio_url: null }]})} style={{ cursor: 'pointer', marginTop: 10, fontSize: 13, fontWeight: 600, color: '#c98a3d' }}>+ Add quote</div>
                 </div>
 
                 {/* Suggestions / Integrations */}

@@ -1521,11 +1521,40 @@ export default function CozyHubRoom({
               </div>
             )}
 
-            {/* Keyframe for avatar float animation */}
+            {/* Keyframe for avatar float animation and print styles */}
             <style>{`
               @keyframes sw-float {
                 0%, 100% { transform: translateY(0); }
                 50% { transform: translateY(-6px); }
+              }
+              @media print {
+                @page { margin: 10mm; }
+                html, body {
+                  background: #fff !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+                body * { 
+                  visibility: hidden !important; 
+                  animation: none !important;
+                  transition: none !important;
+                }
+                .run-card, .run-card * { 
+                  visibility: visible !important; 
+                }
+                .run-card {
+                  position: fixed !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  width: 100vw !important;
+                  max-width: 100vw !important;
+                  margin: 0 !important;
+                  padding: 20px !important;
+                  box-sizing: border-box !important;
+                  box-shadow: none !important;
+                  transform: none !important;
+                }
+                .run-card .no-print { display: none !important; }
               }
             `}</style>
           </>
