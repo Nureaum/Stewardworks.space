@@ -3,6 +3,9 @@
 /.pnp
 .pnp.js
 
+# secrets / utility scripts with hardcoded keys
+cleanup.ts
+
 # testing
 /coverage
 

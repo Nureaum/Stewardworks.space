@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   const eventType = evt.type
 
   if (eventType === 'user.created' || eventType === 'user.updated') {
-    const { id: clerkUserId, email_addresses, first_name, last_name, public_metadata } = evt.data
+    const { id: clerkUserId, email_addresses, first_name, last_name, public_metadata, unsafe_metadata } = evt.data
     const email = email_addresses[0]?.email_address
     const fullName = [first_name, last_name].filter(Boolean).join(' ') || ''
 
@@ -72,6 +72,17 @@ export async function POST(req: Request) {
       full_name: fullName,
       updated_at: new Date().toISOString(),
     };
+
+    // Save terms acceptance data if present in unsafeMetadata
+    if (eventType === 'user.created' && unsafe_metadata) {
+      const termsAccepted = (unsafe_metadata as any)?.terms_accepted;
+      const termsAcceptedAt = (unsafe_metadata as any)?.terms_accepted_at;
+      const termsSignature = (unsafe_metadata as any)?.terms_signature;
+      if (termsAccepted) {
+        upsertPayload.terms_accepted_at = termsAcceptedAt || new Date().toISOString();
+        upsertPayload.terms_signature = termsSignature || '';
+      }
+    }
 
     // If they were invited as a guest, explicitly set the role
     // Only do this on user.created so we don't accidentally overwrite an admin role

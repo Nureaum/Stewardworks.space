@@ -439,7 +439,7 @@ export function EnvironmentalScene({
           <g className="el-tip" transform="translate(250 152)">
             <rect x="-128" y="-50" width="256" height="50" rx="11" fill="#241f17" opacity=".95"/>
             <path d="M-9 0 L9 0 L0 12 Z" fill="#241f17" opacity=".95"/>
-            <text x="0" y="-29" textAnchor="middle" fontFamily="'Baloo 2',cursive" fontSize="15" fontWeight="700" fill="#fff">Santa Rosa Escarpment</text>
+            <text x="0" y="-29" textAnchor="middle" fontFamily="'Baloo 2',cursive" fontSize="15" fontWeight="700" fill="#fff">San Jacinto Mountain Range</text>
             <text x="0" y="-12" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="9.5" letterSpacing="1" fill="#8FBECE">BIOREGION · GEOLOGY ›</text>
           </g>
         </g>

@@ -152,10 +152,122 @@ export default function WorkforcePathwaysAdminPage() {
 
         <div style={{ display: 'flex', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
           
-          <aside className="awf-scroll" style={{ flex: '0 0 252px', background: '#1b1730', borderRight: '4px solid #1c1526', padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+          <aside className="awf-scroll" style={{ flex: '0 0 252px', background: '#1b1730', borderRight: '4px solid #1c1526', padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto' }}>
             <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '7px', color: '#6f6a88', letterSpacing: '.5px', padding: '0 4px 8px' }}>◆ CONSOLE</div>
             
-            {navItems.map((n) => {
+            {/* Overview - standalone on top */}
+            {navItems.filter(n => n.id === 'overview').map((n) => {
+              const isActive = activeTab === n.id;
+              return (
+                <button 
+                  key={n.id} 
+                  type="button" 
+                  onClick={() => setActiveTab(n.id as Tab)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '7px',
+                    background: isActive ? '#ffdd2e' : '#163a82', 
+                    border: '3px solid #1c1526', 
+                    borderRadius: '7px', cursor: 'pointer',
+                    boxShadow: isActive ? 'none' : '3px 3px 0 rgba(18,12,26,.4)',
+                    transform: isActive ? 'translate(3px, 3px)' : 'none'
+                  }}
+                >
+                  <span style={{ width: '26px', height: '26px', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', background: '#10285e', color: isActive ? '#ffdd2e' : '#8f88ad', border: '2px solid #1c1526' }}>
+                    {n.mark}
+                  </span>
+                  <span style={{ flex: 1, textAlign: 'left', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', lineHeight: 1.5, color: isActive ? '#10285e' : 'var(--paper)' }}>
+                    {n.label}
+                  </span>
+                  {n.badge !== undefined && (
+                     <span style={{ 
+                       flex: '0 0 auto', minWidth: '22px', textAlign: 'center', padding: '4px 6px', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '7px',
+                       background: n.badgeMuted ? '#10285e' : '#ff2e8f', 
+                       color: n.badgeMuted ? (isActive ? '#ffdd2e' : '#8f88ad') : '#fff'
+                     }}>
+                       {n.badge}
+                     </span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Journey section */}
+            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: '#6f6a88', letterSpacing: '.5px', padding: '12px 4px 4px', borderTop: '2px solid #2a2440', marginTop: '6px' }}>▸ JOURNEY</div>
+            {navItems.filter(n => ['published', 'quizzes', 'finale'].includes(n.id)).map((n) => {
+              const isActive = activeTab === n.id;
+              return (
+                <button 
+                  key={n.id} 
+                  type="button" 
+                  onClick={() => setActiveTab(n.id as Tab)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '7px',
+                    background: isActive ? '#ffdd2e' : '#163a82', 
+                    border: '3px solid #1c1526', 
+                    borderRadius: '7px', cursor: 'pointer',
+                    boxShadow: isActive ? 'none' : '3px 3px 0 rgba(18,12,26,.4)',
+                    transform: isActive ? 'translate(3px, 3px)' : 'none'
+                  }}
+                >
+                  <span style={{ width: '26px', height: '26px', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', background: '#10285e', color: isActive ? '#ffdd2e' : '#8f88ad', border: '2px solid #1c1526' }}>
+                    {n.mark}
+                  </span>
+                  <span style={{ flex: 1, textAlign: 'left', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', lineHeight: 1.5, color: isActive ? '#10285e' : 'var(--paper)' }}>
+                    {n.label}
+                  </span>
+                  {n.badge !== undefined && (
+                     <span style={{ 
+                       flex: '0 0 auto', minWidth: '22px', textAlign: 'center', padding: '4px 6px', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '7px',
+                       background: n.badgeMuted ? '#10285e' : '#ff2e8f', 
+                       color: n.badgeMuted ? (isActive ? '#ffdd2e' : '#8f88ad') : '#fff'
+                     }}>
+                       {n.badge}
+                     </span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Job Board section */}
+            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: '#6f6a88', letterSpacing: '.5px', padding: '12px 4px 4px', borderTop: '2px solid #2a2440', marginTop: '6px' }}>▸ JOB BOARD</div>
+            {navItems.filter(n => ['board', 'external'].includes(n.id)).map((n) => {
+              const isActive = activeTab === n.id;
+              return (
+                <button 
+                  key={n.id} 
+                  type="button" 
+                  onClick={() => setActiveTab(n.id as Tab)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '7px',
+                    background: isActive ? '#ffdd2e' : '#163a82', 
+                    border: '3px solid #1c1526', 
+                    borderRadius: '7px', cursor: 'pointer',
+                    boxShadow: isActive ? 'none' : '3px 3px 0 rgba(18,12,26,.4)',
+                    transform: isActive ? 'translate(3px, 3px)' : 'none'
+                  }}
+                >
+                  <span style={{ width: '26px', height: '26px', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', background: '#10285e', color: isActive ? '#ffdd2e' : '#8f88ad', border: '2px solid #1c1526' }}>
+                    {n.mark}
+                  </span>
+                  <span style={{ flex: 1, textAlign: 'left', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', lineHeight: 1.5, color: isActive ? '#10285e' : 'var(--paper)' }}>
+                    {n.label}
+                  </span>
+                  {n.badge !== undefined && (
+                     <span style={{ 
+                       flex: '0 0 auto', minWidth: '22px', textAlign: 'center', padding: '4px 6px', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '7px',
+                       background: n.badgeMuted ? '#10285e' : '#ff2e8f', 
+                       color: n.badgeMuted ? (isActive ? '#ffdd2e' : '#8f88ad') : '#fff'
+                     }}>
+                       {n.badge}
+                     </span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Sources section */}
+            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: '#6f6a88', letterSpacing: '.5px', padding: '12px 4px 4px', borderTop: '2px solid #2a2440', marginTop: '6px' }}>▸ SOURCES</div>
+            {navItems.filter(n => ['suggestions', 'sources'].includes(n.id)).map((n) => {
               const isActive = activeTab === n.id;
               return (
                 <button 

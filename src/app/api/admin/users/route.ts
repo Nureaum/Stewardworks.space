@@ -137,6 +137,113 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const { authorized, error, status, supabase, adminId, role: adminRole } = await verifyAdminAccess()
+    if (!authorized || !supabase || !adminId) {
+      return NextResponse.json({ error }, { status })
+    }
+
+    if (adminRole !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden: Requires super_admin role' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { userId } = body // userId is the clerk_user_id of the target user
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+    }
+
+    // 1. Get the target user's profile
+    const { data: targetProfile, error: targetError } = await supabase
+      .from('profiles')
+      .select('id, role, clerk_user_id, email')
+      .eq('clerk_user_id', userId)
+      .single()
+
+    if (targetError || !targetProfile) {
+      return NextResponse.json({ error: 'Target user not found' }, { status: 404 })
+    }
+
+    // 2. Prevent deleting a super_admin
+    if (targetProfile.role === 'super_admin') {
+      return NextResponse.json({ error: 'Cannot delete a super_admin user. Demote them first.' }, { status: 400 })
+    }
+
+    // 3. Prevent self-deletion
+    if (targetProfile.id === adminId) {
+      return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
+    }
+
+    // 4. Delete the user from Clerk
+    try {
+      const client = await clerkClient()
+      await client.users.deleteUser(userId)
+    } catch (clerkErr: any) {
+      console.error('Failed to delete user from Clerk. userId:', userId, 'Error:', JSON.stringify(clerkErr, null, 2))
+      
+      // Check if it's a "not found" error — user already deleted or never existed in Clerk
+      const isNotFound = 
+        clerkErr?.status === 404 || 
+        clerkErr?.clerkError && clerkErr?.errors?.some((e: any) => e.code === 'resource_not_found') ||
+        clerkErr?.message?.includes('not found')
+      
+      if (isNotFound) {
+        console.log('User not found in Clerk (already deleted or never synced). Proceeding with DB cleanup.')
+      } else {
+        const clerkMessage = clerkErr?.errors?.[0]?.longMessage || clerkErr?.errors?.[0]?.message || clerkErr?.message || 'Unknown Clerk error'
+        return NextResponse.json({ error: `Failed to delete from auth: ${clerkMessage}` }, { status: 500 })
+      }
+    }
+
+    // 5. Clean up all FK references before deleting the profile
+    const profileId = targetProfile.id
+
+    // Nullify created_by/updated_by references (preserve content, remove author link)
+    await supabase.from('content_items').update({ created_by: null }).eq('created_by', profileId)
+    await supabase.from('content_items').update({ updated_by: null }).eq('updated_by', profileId)
+    await supabase.from('job_profiles').update({ created_by: null }).eq('created_by', profileId)
+    await supabase.from('job_profiles').update({ updated_by: null }).eq('updated_by', profileId)
+    await supabase.from('ai_labs').update({ created_by: null }).eq('created_by', profileId)
+    await supabase.from('cohorts').update({ created_by: null }).eq('created_by', profileId)
+    await supabase.from('cohorts').update({ updated_by: null }).eq('updated_by', profileId)
+    await supabase.from('workshop_days').update({ created_by: null }).eq('created_by', profileId)
+    await supabase.from('workshop_days').update({ updated_by: null }).eq('updated_by', profileId)
+    await supabase.from('announcements').update({ created_by: null }).eq('created_by', profileId)
+    await supabase.from('profiles').update({ role_updated_by: null }).eq('role_updated_by', profileId)
+
+    // Delete user-specific records
+    await supabase.from('workshop_submissions').delete().eq('profile_id', profileId)
+    await supabase.from('workshop_progress').delete().eq('profile_id', profileId)
+    await supabase.from('workshop_engagement').delete().eq('profile_id', profileId)
+    await supabase.from('workshop_registrations').delete().eq('profile_id', profileId)
+    await supabase.from('workshop_characters').delete().eq('profile_id', profileId)
+    await supabase.from('role_change_log').delete().eq('target_profile_id', profileId)
+    await supabase.from('role_change_log').delete().eq('changed_by', profileId)
+    await supabase.from('notifications').delete().eq('profile_id', profileId)
+    await supabase.from('helpdesk_answers').delete().eq('author_id', profileId)
+    await supabase.from('helpdesk_questions').delete().eq('author_id', profileId)
+    await supabase.from('community_suggestions').delete().eq('profile_id', profileId)
+
+    // 6. Delete the user's profile from Supabase
+    const { error: deleteError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('clerk_user_id', userId)
+
+    if (deleteError) {
+      console.error('Failed to delete profile from Supabase:', deleteError)
+      return NextResponse.json({ error: `User removed from auth but failed to remove from database: ${deleteError.message}` }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, message: 'User deleted successfully' })
+  } catch (err: any) {
+    console.error('DELETE /api/admin/users error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { authorized, error, status, supabase, role: adminRole } = await verifyAdminAccess()

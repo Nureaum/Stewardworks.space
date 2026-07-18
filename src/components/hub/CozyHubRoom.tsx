@@ -88,6 +88,15 @@ export default function CozyHubRoom({
   const [lampIndex, setLampIndex] = useState(0);
 
   const _timer = useRef<NodeJS.Timeout | null>(null);
+  const _stopToneRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (_stopToneRef.current) {
+        _stopToneRef.current();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Always use initialChiaProgress from the API (supports multi-cohort switching)
@@ -100,7 +109,6 @@ export default function CozyHubRoom({
     }, 300);
     try { const t = localStorage.getItem('sw_timeofday') as 'day'|'dusk'|'night'; if (t) setTimeOfDay(t); } catch (e) {}
     try { const ex = localStorage.getItem('sw_exit'); if (ex) setExitStyle(ex); } catch (e) {}
-    return () => clearTimeout(timer);
     
     const handleResize = () => { const s = Math.min(window.innerWidth / 1300, window.innerHeight / 700); setScale(s); };
     handleResize();
@@ -321,7 +329,14 @@ export default function CozyHubRoom({
       });
     }, 1000);
   }
-  const pauseMed = () => { if (_timer.current) clearInterval(_timer.current); setMedRunning(false); }
+  const pauseMed = () => { 
+    if (_timer.current) clearInterval(_timer.current); 
+    setMedRunning(false); 
+    setMedTone(false);
+    if (_stopToneRef.current) {
+      _stopToneRef.current();
+    }
+  }
   const medReset = () => { pauseMed(); setMedLeft(medTotal); }
   
   const med1 = () => setMed(60);
@@ -332,7 +347,34 @@ export default function CozyHubRoom({
   const medTheme1 = () => setMedTheme(1);
   const medTheme2 = () => setMedTheme(2);
   const medTheme3 = () => setMedTheme(3);
-  const medToneToggle = () => setMedTone(!medTone); // simplified audio
+  const medToneToggle = () => {
+    if (medTone) {
+      if (_stopToneRef.current) _stopToneRef.current();
+      setMedTone(false);
+      return;
+    }
+    
+    try {
+      // @ts-ignore
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new Ctx();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 174; g.gain.value = 0; o.connect(g); g.connect(ctx.destination); o.start();
+      g.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 1.5);
+      
+      _stopToneRef.current = () => {
+        try {
+          g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+          setTimeout(() => { o.stop(); ctx.close(); }, 500);
+        } catch (e) {}
+        _stopToneRef.current = null;
+      };
+      
+      setMedTone(true);
+    } catch (e) {
+      console.error("Audio API not supported or error", e);
+    }
+  };
 
   const s = { timeOfDay, progress, exitStyle, screen, bridgeId, medRunning, medTone, lampIndex, medLeft, medTheme };
 

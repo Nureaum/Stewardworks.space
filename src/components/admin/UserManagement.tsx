@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Shield, User as UserIcon, AlertCircle, Loader2, Plus, X, Eye, EyeOff, Mail } from 'lucide-react';
+import { Search, Shield, User as UserIcon, AlertCircle, Loader2, Plus, X, Eye, EyeOff, Mail, Trash2 } from 'lucide-react';
 import { useAdminLoading } from '@/context/AdminLoadingContext';
 
 interface Profile {
@@ -39,6 +39,9 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
   const [inviteEmail, setInviteEmail] = useState('');
   const [isInviting, setIsInviting] = useState(false);
   const [inviteError, setInviteError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     console.log("UserManagement mounted, fetching users...");
@@ -118,6 +121,33 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
       setInviteError(err.message);
     } finally {
       setIsInviting(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget || deleteConfirmText !== 'DELETE') return;
+    
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: deleteTarget.clerk_user_id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete user');
+      }
+
+      // Remove user from local state
+      setUsers(users.filter(u => u.clerk_user_id !== deleteTarget.clerk_user_id));
+      setDeleteTarget(null);
+      setDeleteConfirmText('');
+    } catch (err: any) {
+      alert(`Error deleting user: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -283,20 +313,31 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
                     {u.phone || 'N/A'}
                   </td>
                   <td className="px-[28px] py-[18px] whitespace-nowrap text-right">
-                    {canEditRole ? (
-                      <button
-                        onClick={() => handleRoleChange(u.clerk_user_id, currentRole, u.email)}
-                        disabled={isUpdating}
-                        className={`font-mono text-[10px] uppercase tracking-[0.12em] px-[16px] py-[8px] rounded-[8px] border transition-all ${isAdmin ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-[#7a5a1e] border-[#efd9a8] hover:bg-[#fbf5e6]'} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto`}
-                      >
-                        {isUpdating && <Loader2 size={12} className="animate-spin" />}
-                        {isAdmin ? 'Revoke Admin' : 'Make Admin'}
-                      </button>
-                    ) : (
-                       <span className="font-mono text-[10px] tracking-[0.12em] text-[#a89a82] uppercase">
-                         {isUserMainAdmin ? 'Protected' : 'No Access'}
-                       </span>
-                    )}
+                    <div className="flex items-center gap-2 justify-end">
+                      {canEditRole ? (
+                        <>
+                          <button
+                            onClick={() => handleRoleChange(u.clerk_user_id, currentRole, u.email)}
+                            disabled={isUpdating}
+                            className={`font-mono text-[10px] uppercase tracking-[0.12em] px-[16px] py-[8px] rounded-[8px] border transition-all ${isAdmin ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-[#7a5a1e] border-[#efd9a8] hover:bg-[#fbf5e6]'} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+                          >
+                            {isUpdating && <Loader2 size={12} className="animate-spin" />}
+                            {isAdmin ? 'Revoke Admin' : 'Make Admin'}
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(u)}
+                            className="font-mono text-[10px] uppercase tracking-[0.12em] px-[10px] py-[8px] rounded-[8px] border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-700 transition-all flex items-center gap-1"
+                            title="Delete user"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </>
+                      ) : (
+                         <span className="font-mono text-[10px] tracking-[0.12em] text-[#a89a82] uppercase">
+                           {isUserMainAdmin ? 'Protected' : 'No Access'}
+                         </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -459,6 +500,68 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
                 {isInviting ? 'Sending Invite...' : 'Send Invitation'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-[#171009]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#fbf5e6] rounded-[22px] p-[34px] max-w-md w-full relative shadow-[0_14px_34px_rgba(120,90,50,0.2)] border border-red-200">
+            <button
+              onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); }}
+              className="absolute right-6 top-6 text-[#a89a82] hover:text-[#241c12] transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-[42px] h-[42px] bg-red-100 rounded-[11px] flex items-center justify-center">
+                <Trash2 size={20} className="text-red-600" />
+              </div>
+              <h3 className="text-[22px] font-[800] text-[#241c12] uppercase tracking-normal">Delete User</h3>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-[14px] p-4 mb-6">
+              <p className="text-[13px] text-red-700 font-bold mb-1">⚠️ This action is permanent and cannot be undone.</p>
+              <p className="text-[12px] text-red-600">The user will be removed from both the authentication system (Clerk) and the database. All their data will be lost.</p>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-[13px] text-[#241c12] font-bold mb-1">You are about to delete:</p>
+              <div className="bg-white rounded-[11px] p-3 border border-[#785a32]/10">
+                <p className="text-[14px] font-bold text-[#241c12]">{deleteTarget.full_name || `${deleteTarget.first_name} ${deleteTarget.last_name}`.trim() || 'Unknown'}</p>
+                <p className="text-[12px] text-[#8a7c66]">{deleteTarget.email}</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em] mb-[6px]">Type DELETE to confirm</label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full bg-white border border-red-200 rounded-[14px] p-[11px_16px] focus:outline-none focus:ring-1 focus:ring-red-300 text-[14.5px] text-[#241c12] placeholder-[#a89a82] transition-all"
+                placeholder="Type DELETE"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); }}
+                className="flex-1 bg-white text-[#241c12] py-[14px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[12px] hover:bg-[#f5f5f5] transition-colors border border-[#785a32]/20"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={isDeleting || deleteConfirmText !== 'DELETE'}
+                className="flex-1 bg-red-600 text-white py-[14px] rounded-[14px] font-black uppercase tracking-[0.12em] text-[12px] hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-[0_6px_16px_rgba(220,38,38,0.3)]"
+              >
+                {isDeleting && <Loader2 size={16} className="animate-spin" />}
+                {isDeleting ? 'Deleting...' : 'Delete User'}
+              </button>
+            </div>
           </div>
         </div>
       )}
