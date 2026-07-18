@@ -118,7 +118,7 @@ export default function TreasureMap({
   useEffect(() => { setMounted(true) }, [])
 
   const clampedDays = Math.max(0, Math.min(3, daysComplete))
-  const allDone = clampedDays >= 3
+  const allDone = (approvedDays || 0) >= 3
   const targetNode = NODES[mapTarget ?? (allDone ? 4 : clampedDays + 1)]
   const trailPct = mounted ? targetNode.pct : 0
 

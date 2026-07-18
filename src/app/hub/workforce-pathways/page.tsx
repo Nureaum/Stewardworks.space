@@ -17,6 +17,7 @@ function WorkforcePathwaysContent() {
   const searchParams = useSearchParams();
   const nodeParam = searchParams.get('node');
   const jobsParam = searchParams.get('jobs');
+  const pathParam = searchParams.get('path');
 
   const { user, isLoaded } = useUser();
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -69,6 +70,12 @@ function WorkforcePathwaysContent() {
       setRole('steward');
     }
   }, [nodeParam, jobsParam]);
+
+  useEffect(() => {
+    if (pathParam) {
+      setPathway(pathParam);
+    }
+  }, [pathParam]);
 
   const claimRun = (pwId: string) => {
     const next = { ...claimedRuns, [pwId]: true };

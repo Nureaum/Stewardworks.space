@@ -160,6 +160,19 @@ export default function JourneyClient({
     p => p.deliverable_status === 'approved'
   ).length
 
+  // Auto-show victory screen ONE TIME when 75% (3 approved) is first reached
+  React.useEffect(() => {
+    if (approvedDaysCount >= 3 && character) {
+      const key = `stewardworks.victory.seen.${cohortId}`
+      try {
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, '1')
+          setVictoryVisible(true)
+        }
+      } catch (e) {}
+    }
+  }, [approvedDaysCount, character, cohortId])
+
   const activeDayObj = days.find(d => d.day_number === activeDay)
 
   const showToast = useCallback((msg: string) => setToast(msg), [])
@@ -384,12 +397,22 @@ export default function JourneyClient({
               {victoryVisible && character ? (
                 <VictoryScreen
                   character={character}
-                  daysComplete={daysComplete}
+                  daysComplete={approvedDaysCount}
                   principlesCount={bankedPrinciples.length}
                   bankedPrinciples={bankedPrinciples}
                   days={days}
                   progressRows={progressRows}
                   cohortId={cohortId}
+                  submissions={submissions}
+                  engagementPct={Math.min(
+                    engagements.filter(e => e.status === 'approved').reduce((acc, e) => {
+                      if (e.kind === 'bookmark' || e.kind === 'note') return acc + 1;
+                      if (e.kind === 'generation') return acc + 2;
+                      if (e.kind === 'prompt') return acc + 3;
+                      return acc;
+                    }, 0),
+                    25
+                  )}
                   onBack={() => setVictoryVisible(false)}
                   onViewPortfolio={() => {
                     setVictoryVisible(false)

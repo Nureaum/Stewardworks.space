@@ -656,3 +656,95 @@ export async function reviewEngagement(engagementId: string, status: 'approved' 
     throw new Error('An unexpected error occurred while reviewing engagement')
   }
 }
+
+
+/**
+ * Gets all participants in a cohort with their actual chia progress
+ * Returns each participant's approved deliverables count and engagement percentage
+ */
+export async function getParticipantsProgress(cohortId: string) {
+  try {
+    const { userId } = await auth()
+    if (!userId) throw new Error('Authentication required')
+
+    const supabase = createServerSupabaseClient()
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('clerk_user_id', userId)
+      .single()
+    
+    if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
+      throw new Error('Admin access required')
+    }
+
+    // Get all registrations for this cohort
+    const { data: registrations } = await supabase
+      .from('workshop_registrations')
+      .select(`
+        profile_id,
+        profiles!workshop_registrations_profile_id_fkey(id, full_name, email)
+      `)
+      .eq('cohort_id', cohortId)
+      .eq('status', 'registered')
+
+    if (!registrations) return []
+
+    // Get all progress rows for this cohort's days
+    const { data: days } = await supabase
+      .from('workshop_days')
+      .select('id')
+      .eq('cohort_id', cohortId)
+
+    const dayIds = (days || []).map(d => d.id)
+    if (dayIds.length === 0) return []
+
+    const { data: progressRows } = await supabase
+      .from('workshop_progress')
+      .select('profile_id, deliverable_status')
+      .in('workshop_day_id', dayIds)
+
+    // Get all engagement for participants in this cohort
+    const profileIds = registrations.map(r => r.profile_id)
+    const { data: engagements } = await supabase
+      .from('workshop_engagement')
+      .select('profile_id, kind, status')
+      .in('profile_id', profileIds)
+      .eq('status', 'approved')
+
+    // Build participant progress map
+    return registrations.map(reg => {
+      const pid = reg.profile_id
+      const participant = reg.profiles as any
+      const name = participant?.full_name || participant?.email || 'Unknown'
+      
+      // Count approved deliverables
+      const approvedDelivs = (progressRows || []).filter(
+        p => p.profile_id === pid && p.deliverable_status === 'approved'
+      ).length
+      const delivPct = Math.min(approvedDelivs * 25, 75)
+      
+      // Count approved engagement points
+      const engPoints = (engagements || []).filter(e => e.profile_id === pid).reduce((acc, e) => {
+        if (e.kind === 'bookmark' || e.kind === 'note') return acc + 1
+        if (e.kind === 'generation') return acc + 2
+        if (e.kind === 'prompt') return acc + 3
+        return acc + 1
+      }, 0)
+      const engPct = Math.min(engPoints, 25)
+      
+      return {
+        profileId: pid,
+        name,
+        approvedDelivs,
+        delivPct,
+        engPct,
+        totalPct: delivPct + engPct,
+      }
+    })
+  } catch (error) {
+    console.error('getParticipantsProgress error:', error)
+    return []
+  }
+}

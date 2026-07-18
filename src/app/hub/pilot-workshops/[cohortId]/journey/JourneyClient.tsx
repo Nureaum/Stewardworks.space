@@ -80,10 +80,28 @@ export default function JourneyClient({
   const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null)
   const [bankedPrinciples, setBankedPrinciples] = useState(initialBankedPrinciples)
 
-  // Compute days complete
+  // Compute days complete (only approved deliverables count for victory/chia)
   const daysComplete = progressRows.filter(
+    (p) => p.deliverable_status === 'approved'
+  ).length
+
+  // Days submitted or approved (for unlocking map nodes)
+  const daysSubmitted = progressRows.filter(
     (p) => p.deliverable_status === 'submitted' || p.deliverable_status === 'approved'
   ).length
+
+  // Auto-show victory screen ONE TIME when 75% (3 approved) is first reached
+  React.useEffect(() => {
+    if (daysComplete >= 3 && character) {
+      const key = `stewardworks.victory.seen.${cohortId}`
+      try {
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, '1')
+          setVictoryVisible(true)
+        }
+      } catch (e) {}
+    }
+  }, [daysComplete, character, cohortId])
 
   // Handlers
   const handleAddEngagement = async (kind: string, title: string, source: string, url?: string) => {
@@ -274,6 +292,16 @@ export default function JourneyClient({
                   days={days}
                   progressRows={progressRows}
                   cohortId={cohortId}
+                  submissions={submissions}
+                  engagementPct={Math.min(
+                    engagements.filter(e => e.status === 'approved').reduce((acc, e) => {
+                      if (e.kind === 'bookmark' || e.kind === 'note') return acc + 1;
+                      if (e.kind === 'generation') return acc + 2;
+                      if (e.kind === 'prompt') return acc + 3;
+                      return acc;
+                    }, 0),
+                    25
+                  )}
                   onBack={() => setVictoryVisible(false)}
                   onViewPortfolio={() => {
                     setVictoryVisible(false)
@@ -295,8 +323,8 @@ export default function JourneyClient({
                 <TreasureMap
                   days={days}
                   character={character}
-                  daysComplete={daysComplete}
-                  approvedDays={progressRows.filter(p => p.deliverable_status === 'approved').length}
+                  daysComplete={daysSubmitted}
+                  approvedDays={daysComplete}
                   engagementPct={Math.min(
                     engagements.filter(e => e.status === 'approved').reduce((acc, e) => {
                       if (e.kind === 'bookmark' || e.kind === 'note') return acc + 1;

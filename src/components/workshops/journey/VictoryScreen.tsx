@@ -14,6 +14,8 @@ interface VictoryScreenProps {
   days: WorkshopDay[];
   progressRows: WorkshopProgress[];
   cohortId: string;
+  engagementPct?: number;
+  submissions?: any[];
   onBack: () => void;
   onViewPortfolio: () => void;
 }
@@ -26,6 +28,8 @@ export default function VictoryScreen({
   days,
   progressRows,
   cohortId,
+  engagementPct = 0,
+  submissions = [],
   onBack,
   onViewPortfolio,
 }: VictoryScreenProps) {
@@ -86,20 +90,32 @@ export default function VictoryScreen({
     setConfetti(pieces);
   }, []);
   
-  // Chia growth calculation (100% from deliverables)
-  const chiaDelivPct = Math.round((daysComplete / 3) * 100);
-  const chiaEngPct = 0; // Engagement shown separately
-  const chiaPct = chiaDelivPct;
+  // Chia growth calculation (75% deliverables + 25% engagement = 100% total)
+  const chiaDelivPct = Math.min(daysComplete * 25, 75);
+  const chiaEngPct = Math.min(engagementPct, 25);
+  const chiaPct = chiaDelivPct + chiaEngPct;
 
   const chiaStageLabel = 
-    chiaPct >= 100 ? 'Lush mane' :
-    chiaPct >= 66 ? 'Leafy crown' :
-    chiaPct >= 33 ? 'Sprouting' : 'Seedling';
+    chiaPct >= 100 ? 'Full bloom' :
+    chiaPct >= 75 ? 'Lush mane' :
+    chiaPct >= 50 ? 'Leafy crown' :
+    chiaPct >= 25 ? 'Sprouting' : 'Seedling';
 
+  const castTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
   const handleCastSkill = () => {
-    setSkillCasting(true);
-    setCastCount(c => c + 1);
-    setTimeout(() => setSkillCasting(false), 2000);
+    // Clear any existing timeout
+    if (castTimeoutRef.current) {
+      clearTimeout(castTimeoutRef.current);
+    }
+    // Reset to false first to force re-mount of animation elements
+    setSkillCasting(false);
+    // Use requestAnimationFrame to ensure React flushes the false state before setting true
+    requestAnimationFrame(() => {
+      setCastCount(c => c + 1);
+      setSkillCasting(true);
+      castTimeoutRef.current = setTimeout(() => setSkillCasting(false), 2500);
+    });
   };
 
   const handleDownloadCertificate = async () => {
@@ -123,10 +139,11 @@ export default function VictoryScreen({
 
       // Prepare deliverables data
       const deliverables = days.slice(0, 3).map((day, idx) => {
-        const progress = progressRows.find(p => p.workshop_day_id === day.id);
+        const submission = submissions.find((s: any) => s.workshop_day_id === day.id);
+        const userTitle = submission?.title || (day as any).deliverable_title || day.title || `DAY ${day.day_number} DELIVERABLE`;
         return {
-          title: (day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`,
-          url: (progress as any)?.deliverable_url || ''
+          title: userTitle.toUpperCase(),
+          url: ''
         };
       });
 
@@ -154,16 +171,29 @@ export default function VictoryScreen({
         throw new Error('Failed to generate PDF');
       }
 
-      // Download the PDF
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('text/html')) {
+        // Fallback: open HTML certificate in new window for printing
+        const html = await response.text();
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(html);
+          printWindow.document.close();
+          setTimeout(() => printWindow.print(), 500);
+        }
+      } else {
+        // Download the PDF
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
     } catch (error) {
       console.error('Error downloading certificate:', error);
       alert('Failed to download certificate. Please try again.');
@@ -326,12 +356,29 @@ return (
           zIndex: 2, 
           width: 'min(440px,88%)', 
           height: 196, 
-          margin: '20px auto 0',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center'
+          margin: '20px auto 0'
         }}>
-          {/* Character sprite */}
+          {/* Continuous skill FX - background effects (rings, beams, sparks) - rendered FIRST per reference HTML */}
+          {skill.fx && skill.fx.map((fx: any, i: number) => (
+            <div key={`skillfx-${i}`} style={fx.style} />
+          ))}
+          
+          {/* Continuous skill glyphs - floating symbols (music notes, shapes) - rendered SECOND per reference HTML */}
+          {skill.glyphs && skill.glyphs.map((g: any, i: number) => (
+            <div key={`skillglyph-${i}`} style={g.style}>{g.ch}</div>
+          ))}
+          
+          {/* Cast skill effect - one-shot burst animation when button clicked - rendered THIRD per reference HTML */}
+          {skillCasting && buildCastFx(character.character_key, castCount)}
+          
+          {/* Treasure Box */}
+          <img src={goalUri} alt="" width="54" height="54" style={{
+            position: 'absolute', right: '5%', bottom: 6,
+            imageRendering: 'pixelated', filter: 'drop-shadow(0 0 10px var(--gold,#ffd23f))',
+            opacity: 0.92, zIndex: 1
+          }} />
+          
+          {/* Character sprite - z-index:3 renders ON TOP of all effects per reference HTML */}
           <div style={{ 
             position: 'absolute', 
             left: '50%', 
@@ -339,30 +386,20 @@ return (
             transform: 'translateX(-50%)', 
             zIndex: 3
           }}>
-            <div style={{ position: 'relative' }}>
-              {/* The character image itself */}
-              <PixelSprite
-                characterKey={character.character_key}
-                accent={accent}
-                opts={{
-                  gear: (character as any).gear || 'none',
-                  outfit: (character as any).outfit || 'plain'
-                }}
-                size={108}
-                style={{
-                  imageRendering: 'pixelated',
-                  filter: `drop-shadow(0 0 14px ${skill.tone}) drop-shadow(0 4px 2px rgba(0,0,0,.55))`,
-                  animation: skillCasting ? skill.heroStyle?.animation : 'none'
-                }}
-              />
-              {/* Treasure Box / cast fx instead of Chia Plant */}
-              <img src={goalUri} alt="" width="54" height="54" style={{
-                position: 'absolute', right: '5%', bottom: 6,
-                imageRendering: 'pixelated', filter: 'drop-shadow(0 0 10px var(--gold,#ffd23f))',
-                opacity: 0.92, zIndex: 1
-              }} />
-              {skillCasting && buildCastFx(character.character_key, castCount)}
-            </div>
+            <PixelSprite
+              characterKey={character.character_key}
+              accent={accent}
+              opts={{
+                gear: (character as any).gear || 'none',
+                outfit: (character as any).outfit || 'plain'
+              }}
+              size={108}
+              style={{
+                imageRendering: 'pixelated',
+                filter: `drop-shadow(0 0 14px ${skill.tone}) drop-shadow(0 4px 2px rgba(0,0,0,.55))`,
+                animation: skillCasting ? skill.heroStyle?.animation : 'none'
+              }}
+            />
           </div>
         </div>
 
@@ -598,50 +635,35 @@ return (
         </div>
 
         {/* Portfolio actions */}
-        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', padding: '0 18px 16px' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '0 18px 16px', justifyContent: 'center' }}>
           <button 
             onClick={onViewPortfolio}
             className="font-pixel"
             style={{ 
-              fontSize: 14, 
+              fontSize: 16, 
+              fontWeight: 'bold',
               color: 'var(--bg,#12081e)', 
               background: 'var(--ok,#74f0a0)', 
               border: 'none', 
               borderRadius: 6, 
-              padding: '16px 24px', 
+              padding: '18px 28px', 
               cursor: 'pointer', 
               boxShadow: '0 4px 0 #2b9c64' 
             }}
           >
             ❀ VIEW FULL PORTFOLIO
           </button>
-          <a 
-            href="https://www.stewardworks.space" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="font-pixel"
-            style={{ 
-              fontSize: 14, 
-              color: 'var(--s,#45d6ff)', 
-              textDecoration: 'none', 
-              border: '2px solid var(--s,#45d6ff)', 
-              borderRadius: 6, 
-              padding: '16px 24px',
-              display: 'inline-block'
-            }}
-          >
-            ◇ WORKFORCE ROADMAP ↗
-          </a>
           <button 
             onClick={() => setShowCertPreview(true)}
             className="font-pixel"
             style={{ 
-              fontSize: 14, 
+              fontSize: 16, 
+              fontWeight: 'bold',
               color: 'var(--gold,#ffd23f)', 
               background: 'transparent', 
               border: '2px solid var(--gold,#ffd23f)', 
               borderRadius: 6, 
-              padding: '16px 24px', 
+              padding: '18px 28px', 
               cursor: 'pointer', 
               transition: 'all 0.2s'
             }}
@@ -653,22 +675,56 @@ return (
             disabled={isDownloadingPDF}
             className="font-pixel"
             style={{ 
-              fontSize: 14, 
+              fontSize: 16, 
+              fontWeight: 'bold',
               color: 'var(--bg,#12081e)', 
               background: isDownloadingPDF ? '#9c7a28' : 'var(--gold,#ffd23f)', 
               border: 'none', 
               borderRadius: 6, 
-              padding: '16px 24px', 
+              padding: '18px 28px', 
               cursor: isDownloadingPDF ? 'wait' : 'pointer', 
               boxShadow: '0 4px 0 #c99020',
               opacity: isDownloadingPDF ? 0.7 : 1,
-              transition: 'all 0.2s',
-              fontWeight: 'bold'
+              transition: 'all 0.2s'
             }}
           >
             {isDownloadingPDF ? '⏳ GENERATING...' : '⛊ DOWNLOAD CERTIFICATE'}
           </button>
         </div>
+      </div>
+
+      {/* Workforce Pathways Map - embedded */}
+      <div style={{ 
+        position: 'relative', 
+        zIndex: 1, 
+        marginTop: 26, 
+        border: '2px solid var(--s,#45d6ff)', 
+        borderRadius: 14, 
+        overflow: 'hidden',
+        background: 'var(--bg,#12081e)',
+        width: 'calc(100% + 40px)',
+        marginLeft: -20,
+        marginRight: -20,
+        textAlign: 'left'
+      }}>
+        <div style={{ padding: '10px 18px', borderBottom: '2px solid var(--ln,#3d2668)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="font-pixel" style={{ fontSize: 'clamp(10px,1.8vw,13px)', color: 'var(--s,#45d6ff)', letterSpacing: 1 }}>
+            ◇ WORKFORCE ADVENTURE
+          </div>
+          <a href="/hub/workforce-pathways" target="_blank" rel="noopener noreferrer" className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)', textDecoration: 'none', border: '1px solid var(--ln,#3d2668)', borderRadius: 4, padding: '4px 8px' }}>
+            OPEN FULL ↗
+          </a>
+        </div>
+        <iframe 
+          src="/hub/workforce-pathways?path=creator" 
+          style={{ 
+            width: '100%', 
+            height: 650, 
+            border: 'none',
+            display: 'block'
+          }}
+          title="Workforce Pathways Map"
+        />
       </div>
 
       {/* Back button */}
@@ -727,13 +783,13 @@ return (
               <div style={{ borderTop: '2px solid #dcc890', borderBottom: '2px solid #dcc890', margin: '26px auto', padding: '18px 0', maxWidth: 580, textAlign: 'left' }}>
                 <div className="font-pixel" style={{ fontSize: 8, color: '#a07d2c', letterSpacing: 2, textAlign: 'center', marginBottom: 15 }}>◆ DELIVERABLES OF RECORD ◆</div>
                 {days.slice(0, 3).map((day, idx) => {
-                  const progress = progressRows.find(p => p.workshop_day_id === day.id);
+                  const submission = submissions.find((s: any) => s.workshop_day_id === day.id);
+                  const userTitle = submission?.title || (day as any).deliverable_title || `DAY ${day.day_number} DELIVERABLE`;
                   return (
                     <div key={day.id} style={{ display: 'flex', gap: 14, alignItems: 'baseline', marginBottom: 11 }}>
-                      <div style={{ flex: 'none', fontWeight: 700, color: '#8a6a2a', minWidth: 52 }}>D{idx + 1}</div>
+                      <div className="font-pixel" style={{ flex: 'none', fontSize: 10, fontWeight: 700, color: '#8a6a2a', minWidth: 60 }}>DAY {String(idx + 1).padStart(2, '0')}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 16, color: '#241a08', fontWeight: 700 }}>{(day as any).deliverable_title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`}</div>
-                        {(progress as any)?.deliverable_url && <div style={{ fontSize: 13, color: '#6a542c', wordBreak: 'break-all', fontFamily: "'Courier New',monospace" }}>{(progress as any).deliverable_url}</div>}
+                        <div style={{ fontSize: 16, color: '#241a08', fontWeight: 700 }}>{userTitle.toUpperCase()}</div>
                       </div>
                     </div>
                   );
@@ -780,76 +836,16 @@ return (
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes winpop {
-          0% { transform: scale(0.95); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes nodepulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        @keyframes skillCast {
-          0%, 100% { transform: translateX(-50%) scale(1); }
-          50% { transform: translateX(-50%) scale(1.2); filter: brightness(1.5); }
-        }
-        @keyframes skillGlow {
-          0% {
-            transform: translateX(-50%) scale(0.5);
-            opacity: 0;
-          }
-          50% {
-            opacity: 0.8;
-          }
-          100% {
-            transform: translateX(-50%) scale(2);
-            opacity: 0;
-          }
-        }
-        @keyframes chiaBob {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes confettiFall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(120vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-        @keyframes sparkle {
-          0%, 100% {
-            opacity: 0.3;
-            transform: scale(0.8);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.2);
-          }
-        }
-        @keyframes floatUp {
-          0% {
-            transform: translateY(0) translateX(0);
-            opacity: 0;
-          }
-          10% {
-            opacity: 0.7;
-          }
-          90% {
-            opacity: 0.7;
-          }
-          100% {
-            transform: translateY(-100px) translateX(20px);
-            opacity: 0;
-          }
-        }
-      `}</style>
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes winpop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+        @keyframes nodepulse{0%,100%{box-shadow:0 0 0 0 var(--p,#ff5fd2),0 0 18px var(--p,#ff5fd2)}50%{box-shadow:0 0 0 6px rgba(255,95,210,.18),0 0 30px var(--p,#ff5fd2)}}
+        @keyframes confettiFall{0%{transform:translateY(-10px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(560px) rotate(220deg);opacity:0}}
+        @keyframes sparkle{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+        @keyframes floatUp{0%{transform:translateY(0);opacity:0}10%{opacity:.7}90%{opacity:.7}100%{transform:translateY(-100px) translateX(20px);opacity:0}}
         @keyframes confetti{0%{transform:translateY(-10px) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(560px) rotate(220deg);opacity:0}}
         @keyframes rise{0%{transform:translateY(0);opacity:0}16%{opacity:.9}100%{transform:translateY(-96px);opacity:0}}
+        @keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+        @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
         @keyframes skRing{0%{transform:scale(.2);opacity:.85}70%{opacity:.22}100%{transform:scale(2.6);opacity:0}}
         @keyframes skNote{0%{transform:translateY(0) rotate(-8deg);opacity:0}20%{opacity:1}100%{transform:translateY(-84px) rotate(14deg);opacity:0}}
         @keyframes skSpin{to{transform:rotate(360deg)}}
@@ -878,9 +874,7 @@ return (
         @keyframes cSpinFade{0%{transform:rotate(0) scale(.4);opacity:0}25%{opacity:1}100%{transform:rotate(320deg) scale(1.7);opacity:0}}
         @keyframes cArcL{0%{transform:translate(0,0) scale(.6);opacity:0}18%{opacity:1}50%{transform:translate(66px,-96px)}100%{transform:translate(150px,14px) scale(.4);opacity:0}}
         @keyframes cRay{0%{transform:rotate(var(--ang)) translateY(0) scaleY(.2);opacity:0}30%{opacity:1}100%{transform:rotate(var(--ang)) translateY(-46px) scaleY(1.4);opacity:0}}
-        @keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
-        @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-      `}</style>
+      `}} />
     </div>
   );
 }

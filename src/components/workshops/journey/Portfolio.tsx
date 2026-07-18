@@ -1205,7 +1205,7 @@ export default function Portfolio({
           <div className="font-pixel" style={{ fontSize: 11, color: 'var(--ok,#74f0a0)' }}>
             ◈ CERTIFICATE
           </div>
-          <span style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>{chiaPct}% complete</span>
+          <span style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>{delivPct >= 75 ? '100% complete' : `${Math.round((delivPct / 75) * 100)}% complete`}</span>
         </div>
 
         {/* Certificate eligibility based on deliverables only (75% = all 3 deliverables approved) */}
@@ -1290,13 +1290,13 @@ export default function Portfolio({
               <div style={{ borderTop: '2px solid #dcc890', borderBottom: '2px solid #dcc890', margin: '26px auto', padding: '18px 0', maxWidth: 580, textAlign: 'left' }}>
                 <div className="font-pixel" style={{ fontSize: 8, color: '#a07d2c', letterSpacing: 2, textAlign: 'center', marginBottom: 15 }}>◆ DELIVERABLES OF RECORD ◆</div>
                 {days.slice(0, 3).map((day, idx) => {
-                  const progress = progressRows.find(p => p.workshop_day_id === day.id)
+                  const submission = submissions.find((s: any) => s.workshop_day_id === day.id)
+                  const userTitle = submission?.title || (day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`
                   return (
                     <div key={day.id} style={{ display: 'flex', gap: 14, alignItems: 'baseline', marginBottom: 11 }}>
-                      <div style={{ flex: 'none', fontWeight: 700, color: '#8a6a2a', minWidth: 52 }}>D{idx + 1}</div>
+                      <div className="font-pixel" style={{ flex: 'none', fontSize: 10, fontWeight: 700, color: '#8a6a2a', minWidth: 60 }}>DAY {String(idx + 1).padStart(2, '0')}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 16, color: '#241a08', fontWeight: 700 }}>{(day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`}</div>
-                        {(progress as any)?.deliverable_url && <div style={{ fontSize: 13, color: '#6a542c', wordBreak: 'break-all', fontFamily: "'Courier New',monospace" }}>{(progress as any).deliverable_url}</div>}
+                        <div style={{ fontSize: 16, color: '#241a08', fontWeight: 700 }}>{userTitle.toUpperCase()}</div>
                       </div>
                     </div>
                   )
@@ -1351,7 +1351,7 @@ export default function Portfolio({
 
   // Certificate download handler
   async function handleDownloadCertificate() {
-    if (chiaPct < 100) return
+    if (delivPct < 75) return
     
     setIsDownloadingPDF(true)
     try {
@@ -1377,10 +1377,11 @@ export default function Portfolio({
 
       // Build deliverables data
       const deliverables = days.slice(0, 3).map((day, idx) => {
-        const progress = progressRows.find(p => p.workshop_day_id === day.id)
+        const submission = submissions.find((s: any) => s.workshop_day_id === day.id)
+        const userTitle = submission?.title || (day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`
         return {
-          title: (day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`,
-          url: (progress as any)?.deliverable_url || ''
+          title: userTitle.toUpperCase(),
+          url: ''
         }
       })
 
@@ -1411,16 +1412,29 @@ export default function Portfolio({
         throw new Error('Failed to generate PDF')
       }
 
-      // Download the PDF
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `certificate-${cohortName.replace(/\s+/g, '-')}-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const contentType = response.headers.get('content-type') || ''
+      
+      if (contentType.includes('text/html')) {
+        // Fallback: open HTML certificate in new window for printing
+        const html = await response.text()
+        const printWindow = window.open('', '_blank')
+        if (printWindow) {
+          printWindow.document.write(html)
+          printWindow.document.close()
+          setTimeout(() => printWindow.print(), 500)
+        }
+      } else {
+        // Download the PDF
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `certificate-${cohortName.replace(/\s+/g, '-')}-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
     } catch (error) {
       console.error('Error downloading certificate:', error)
       alert('Failed to download certificate. Please try again.')

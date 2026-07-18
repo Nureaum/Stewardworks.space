@@ -13,7 +13,8 @@ import {
   getSubmissionsForReview,
   reviewDeliverable,
   getPendingEngagements,
-  reviewEngagement
+  reviewEngagement,
+  getParticipantsProgress
 } from '@/app/actions/workshops/admin-reviews'
 import { PixelSprite } from '@/components/workshops/journey'
 import { updateWorkshopDay, createWorkshopDay } from '@/app/actions/workshops/workshop-days'
@@ -28,7 +29,8 @@ import ConfirmDialog from './ConfirmDialog'
 import RetroToast from './RetroToast'
 
 // ─── Types ─────────────────────────────────────────────────
-type AdminSection = 'cohort' | 'curriculum' | 'principles' | 'contributors' | 'approvals' | 'certificate'
+type AdminSection = 'cohort' | 'curriculum' | 'principles' | 'contributors' | 'approvals' | 'certificate' | 'ailabs'
+type SidebarGroup = 'cohort-editing' | 'approvals' | 'contributors' | 'ailabs'
 
 interface AdminConsoleProps {
   cohortId: string
@@ -63,6 +65,23 @@ const textareaStyle: React.CSSProperties = {
   resize: 'vertical' as const,
   lineHeight: 1.4,
   fontFamily: 'inherit',
+}
+
+// ─── Chia sprite helper ────────────────────────────────────
+function chiaStageFor(pct: number): number {
+  if (pct >= 100) return 5; if (pct >= 75) return 4; if (pct >= 50) return 3; if (pct >= 25) return 2; if (pct > 0) return 1; return 0;
+}
+function chiaUri(pct: number): string {
+  const stage = chiaStageFor(pct);
+  const gL='#d9b34d',gM='#c19a33',gD='#9c7a28',eye='#3a2c14',bD='#1c150f',bM='#33281b',gr='#5fa83c',gr2='#8fd85f',fp='#ff5fd2',fy='#ffd23f',fv='#b06bff';
+  type R=[number,number,number,number,string];
+  const base:R[]=[[2,18,12,2,bD],[3,18,10,1,bM],[6,11,4,1,gL],[5,12,6,1,gM],[5,13,6,1,gM],[4,14,8,1,gM],[4,15,8,1,gD],[3,16,10,1,gM],[3,17,10,1,gD],[5,16,6,1,gL],[7,10,2,1,gM],[6,5,4,1,gL],[5,6,6,1,gL],[5,7,6,1,gM],[5,8,6,1,gM],[6,9,4,1,gD],[6,7,1,1,eye],[9,7,1,1,eye]];
+  const defs:Record<number,R[]>={1:[[6,3,1,2,gr],[8,3,1,2,gr],[7,2,1,3,gr],[7,2,1,1,gr2]],2:[[5,2,1,3,gr],[7,1,1,4,gr],[9,2,1,3,gr],[8,2,1,3,gr],[7,1,1,1,gr2],[5,2,1,1,gr2],[9,2,1,1,gr2]],3:[[5,1,1,4,gr],[6,2,1,3,gr],[7,0,1,5,gr],[8,1,1,4,gr],[9,2,1,3,gr],[10,3,1,2,gr],[7,0,1,1,gr2],[5,1,1,1,gr2],[9,2,1,1,gr2]],4:[[4,3,1,2,gr],[5,1,1,4,gr],[6,0,1,5,gr],[7,0,1,5,gr],[8,1,1,4,gr],[9,0,1,5,gr],[10,2,1,3,gr],[6,0,1,1,gr2],[9,0,1,1,gr2],[7,0,1,1,gr2]]};
+  let rects=[...base];
+  if(stage>=1&&stage<5&&defs[stage])rects=rects.concat(defs[stage]);
+  if(stage>=5){rects=rects.concat([[5,2,1,3,gr],[6,1,1,3,gr],[9,1,1,3,gr],[10,2,1,3,gr],[7,2,1,2,gr],[8,2,1,2,gr],[4,0,2,2,fp],[7,0,2,2,fy],[10,0,2,2,fv]] as R[]);}
+  const body=rects.map(a=>`<rect x='${a[0]}' y='${a[1]}' width='${a[2]}' height='${a[3]}' fill='${a[4]}'/>`).join('');
+  return 'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='20' viewBox='0 0 16 20' shape-rendering='crispEdges'><rect width='16' height='20' fill='transparent'/>${body}</svg>`);
 }
 
 // ─── Component ─────────────────────────────────────────────
@@ -126,7 +145,7 @@ export default function AdminConsole({
   const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([])
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false)
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
-
+  const [participantsProgress, setParticipantsProgress] = useState<any[]>([])
   // Toast and confirm dialog state
   const [toast, setToast] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -138,16 +157,18 @@ export default function AdminConsole({
     const loadApprovals = async () => {
       setIsLoadingApprovals(true)
       try {
-        const [subs, engs] = await Promise.all([
+        const [subs, engs, progress] = await Promise.all([
           getSubmissionsForReview(cohortId, 'submitted'),
-          getPendingEngagements(cohortId)
+          getPendingEngagements(cohortId),
+          getParticipantsProgress(cohortId)
         ])
         
-        // Merge and sort them chronologically (newest first, like AI Labs admin)
+        // Merge and sort them chronologically (newest first)
         const allPending = [...subs, ...engs].sort(
           (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
         )
         setPendingSubmissions(allPending)
+        setParticipantsProgress(progress)
       } catch (e) {
         console.error('Failed to load approvals', e)
       } finally {
@@ -647,8 +668,11 @@ export default function AdminConsole({
   const selEntry = allEntries.find((e: any) => e.id === selectedEntry) || allEntries[0] || null
 
   // ─── Sidebar nav button ──────────────────────────────────
+  const cohortEditingSections: AdminSection[] = ['cohort', 'curriculum', 'principles', 'certificate']
+  const isCohortEditing = cohortEditingSections.includes(section)
+  
   const NavBtn = ({ id, icon, label, count }: { id: AdminSection; icon: string; label: string; count?: number }) => {
-    const active = section === id
+    const active = id === 'cohort' ? isCohortEditing : section === id
     const col = 'var(--gold,#ffd23f)'
     return (
       <button
@@ -661,10 +685,10 @@ export default function AdminConsole({
           width: '100%',
           boxSizing: 'border-box',
           fontFamily: "'Press Start 2P', monospace",
-          fontSize: '8px',
+          fontSize: '9px',
           lineHeight: '1.6',
           cursor: 'pointer',
-          padding: '12px 11px',
+          padding: '13px 12px',
           borderRadius: '8px',
           border: `2px solid ${active ? col : '#3d2668'}`,
           background: active ? col : 'rgba(0,0,0,.25)',
@@ -799,17 +823,10 @@ export default function AdminConsole({
             • CONSOLE
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <NavBtn id="cohort" icon="◈" label="Cohort Settings" />
-            <NavBtn 
-              id="curriculum" 
-              icon="◈" 
-              label="Curriculum" 
-              count={daysData?.reduce((acc, day) => acc + (day.sections?.reduce((sAcc, sec) => sAcc + (sec.entries?.length || 0), 0) || 0), 0) || 0} 
-            />
-            <NavBtn id="principles" icon="◉" label="Principles" count={principlesList?.length || 0} />
-            <NavBtn id="contributors" icon="❀" label="Contributors" count={showcaseList?.length || 0} />
+            <NavBtn id="cohort" icon="◈" label="Cohort Editing" />
             <NavBtn id="approvals" icon="☑" label="Approvals" count={pendingSubmissions?.length || 0} />
-            <NavBtn id="certificate" icon="⎙" label="Certificate" />
+            <NavBtn id="contributors" icon="❀" label="Contributors" count={showcaseList?.length || 0} />
+            <NavBtn id="ailabs" icon="⚡" label="AI Labs" />
           </div>
           <div style={{ borderTop: '2px solid var(--ln,#3d2668)', margin: '14px 2px 0', paddingTop: 14 }}>
             <ReturnBtn wide />
@@ -818,6 +835,40 @@ export default function AdminConsole({
 
         {/* ─── Main content area ─── */}
         <div style={{ flex: '3 1 520px', minWidth: 0 }}>
+
+          {/* Sub-tabs for Cohort Editing group */}
+          {isCohortEditing && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18, padding: '0 2px' }}>
+              {([
+                { id: 'cohort' as AdminSection, label: 'Cohort Settings' },
+                { id: 'curriculum' as AdminSection, label: 'Curriculum' },
+                { id: 'principles' as AdminSection, label: 'Principles' },
+                { id: 'certificate' as AdminSection, label: 'Certificate' },
+              ]).map(tab => {
+                const active = section === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSection(tab.id)}
+                    style={{
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: '9px',
+                      fontWeight: 'bold',
+                      padding: '12px 16px',
+                      border: `2px solid ${active ? 'var(--gold,#ffd23f)' : 'var(--ln,#3d2668)'}`,
+                      borderRadius: 8,
+                      background: active ? 'var(--gold,#ffd23f)' : 'rgba(0,0,0,.25)',
+                      color: active ? '#12081e' : 'var(--tx,#efe6ff)',
+                      cursor: 'pointer',
+                      boxShadow: active ? '0 0 14px var(--gold,#ffd23f)' : 'none',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* ═══════════════ COHORT SETTINGS ═══════════════ */}
           {section === 'cohort' && (
@@ -1797,47 +1848,47 @@ export default function AdminConsole({
               {/* Header */}
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 12, justifyContent: 'space-between' }}>
                 <div style={{ minWidth: 0 }}>
-                  <div className="font-pixel" style={{ fontSize: 9, color: 'var(--tx,#e4e0ee)', letterSpacing: 1 }}>
+                  <div className="font-pixel" style={{ fontSize: 13, color: 'var(--tx,#e4e0ee)', letterSpacing: 1 }}>
                     ☑ APPROVALS
                   </div>
-                  <div style={{ fontFamily: "'VT323', monospace", fontSize: 16, color: 'var(--mu,#9990ab)', marginTop: 8, maxWidth: 560, lineHeight: 1.45 }}>
+                  <div style={{ fontFamily: "'VT323', monospace", fontSize: 18, color: 'var(--mu,#9990ab)', marginTop: 8, maxWidth: 560, lineHeight: 1.45 }}>
                     Grow each learner's Chia Guardian. <span style={{ color: '#c9a85f' }}>Deliverables</span> add 25% (max 75%); <span style={{ color: '#86b89a' }}>engagement</span> adds 1–3% (max 25%). Read the queue as a <strong>log</strong> or by <strong>steward</strong>.
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 9, flex: 'none' }}>
                   <span style={{
                     fontFamily: "'VT323'",
-                    fontSize: 16,
+                    fontSize: 18,
                     letterSpacing: '.5px',
                     color: '#141019',
                     background: 'var(--gold,#c9a85f)',
                     borderRadius: 20,
-                    padding: '2px 12px',
+                    padding: '4px 14px',
                   }}>{pendingSubmissions.length} PENDING</span>
-                  <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 9, padding: 3, background: '#181324' }}>
+                  <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 7, padding: 3, background: '#181324' }}>
                     <button
                       onClick={() => setApprovalView('log')}
-                      className="font-pixel"
                       style={{
-                        fontSize: 8,
-                        padding: '7px 12px',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: '8px',
+                        padding: '8px 12px',
                         border: 'none',
-                        borderRadius: 6,
-                        background: approvalView === 'log' ? 'var(--ln,#3a3352)' : 'transparent',
-                        color: approvalView === 'log' ? 'var(--tx,#e4e0ee)' : 'var(--mu,#9990ab)',
+                        borderRadius: 5,
+                        background: approvalView === 'log' ? 'var(--gold,#ffd23f)' : 'transparent',
+                        color: approvalView === 'log' ? '#12081e' : 'var(--tx,#e4e0ee)',
                         cursor: 'pointer',
                       }}
                     >▤ LOG</button>
                     <button
                       onClick={() => setApprovalView('steward')}
-                      className="font-pixel"
                       style={{
-                        fontSize: 8,
-                        padding: '7px 12px',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: '8px',
+                        padding: '8px 12px',
                         border: 'none',
-                        borderRadius: 6,
-                        background: approvalView === 'steward' ? 'var(--ln,#3a3352)' : 'transparent',
-                        color: approvalView === 'steward' ? 'var(--tx,#e4e0ee)' : 'var(--mu,#9990ab)',
+                        borderRadius: 5,
+                        background: approvalView === 'steward' ? 'var(--gold,#ffd23f)' : 'transparent',
+                        color: approvalView === 'steward' ? '#12081e' : 'var(--tx,#e4e0ee)',
                         cursor: 'pointer',
                       }}
                     >◱ BY STEWARD</button>
@@ -1867,9 +1918,9 @@ export default function AdminConsole({
                       onClick={() => setApprovalFilter(f.id)}
                       style={{
                         fontFamily: "'VT323', monospace",
-                        fontSize: 16,
+                        fontSize: 18,
                         letterSpacing: '.5px',
-                        padding: '4px 12px',
+                        padding: '6px 14px',
                         border: `1px solid ${active ? f.color : 'var(--ln,#3a3352)'}`,
                         borderRadius: 20,
                         background: active ? 'rgba(255,255,255,.05)' : 'transparent',
@@ -1899,8 +1950,19 @@ export default function AdminConsole({
                   All caught up — nothing matches this filter. When students submit deliverables or engagement items, they will appear here for your review.
                 </div>
               ) : (
+                <>
+                {/* LOG VIEW */}
+                {approvalView === 'log' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {pendingSubmissions.filter(sub => {
+                    if (approvalFilter === 'deliverables') return !!sub.workshop_day_id
+                    if (approvalFilter === 'engagement') return !sub.workshop_day_id
+                    return true
+                  }).length === 0 ? (
+                    <div style={{ border: '2px dashed var(--ln,#3a3352)', borderRadius: 8, padding: 16, textAlign: 'center', fontSize: 16, color: 'var(--mu,#9990ab)' }}>
+                      All caught up — nothing matches this filter.
+                    </div>
+                  ) : pendingSubmissions.filter(sub => {
                     if (approvalFilter === 'deliverables') return !!sub.workshop_day_id
                     if (approvalFilter === 'engagement') return !sub.workshop_day_id
                     return true
@@ -1934,11 +1996,11 @@ export default function AdminConsole({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 0 }}>
                             <div className="font-pixel" style={{
-                              fontSize: 7,
+                              fontSize: 9,
                               color: tagColor,
                               border: `1px solid ${tagColor}`,
                               borderRadius: 20,
-                              padding: '4px 9px',
+                              padding: '5px 10px',
                               letterSpacing: 1,
                               flex: 'none',
                               marginTop: 4
@@ -1946,10 +2008,10 @@ export default function AdminConsole({
                               {tagLabel}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                              <div style={{ fontFamily: "'VT323', monospace", fontSize: 18, color: 'var(--tx,#e4e0ee)', letterSpacing: 0.5, lineHeight: 1.1 }}>
+                              <div style={{ fontFamily: "'VT323', monospace", fontSize: 20, color: 'var(--tx,#e4e0ee)', letterSpacing: 0.5, lineHeight: 1.1 }}>
                                 {title}
                               </div>
-                              <div style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: 'var(--mu,#9990ab)', lineHeight: 1.1 }}>
+                              <div style={{ fontFamily: "'VT323', monospace", fontSize: 16, color: 'var(--mu,#9990ab)', lineHeight: 1.1 }}>
                                 {subtitle}
                               </div>
                             </div>
@@ -1983,11 +2045,11 @@ export default function AdminConsole({
                                 {/* Badges */}
                                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                   <div className="font-pixel" style={{
-                                    fontSize: 7,
+                                    fontSize: 9,
                                     color: '#c9a85f',
                                     border: '1px solid #c9a85f',
                                     borderRadius: 20,
-                                    padding: '4px 9px',
+                                    padding: '5px 10px',
                                     letterSpacing: 1,
                                     marginTop: 4
                                   }}>
@@ -1996,8 +2058,8 @@ export default function AdminConsole({
                                   
                                   {principleName && (
                                     <div className="font-pixel" style={{
-                                      fontSize: 7, color: 'var(--ok,#74f0a0)', border: '1px solid var(--ok,#74f0a0)',
-                                      borderRadius: 20, padding: '4px 9px', letterSpacing: 1, marginTop: 4
+                                      fontSize: 9, color: 'var(--ok,#74f0a0)', border: '1px solid var(--ok,#74f0a0)',
+                                      borderRadius: 20, padding: '5px 10px', letterSpacing: 1, marginTop: 4
                                     }}>
                                       ◈ {principleName.toUpperCase()}
                                     </div>
@@ -2005,8 +2067,8 @@ export default function AdminConsole({
                                   
                                   {isShowcaseRequested && (
                                     <div className="font-pixel" style={{
-                                      fontSize: 7, color: '#101613', border: 'none',
-                                      borderRadius: 20, padding: '4px 9px', letterSpacing: 1, marginTop: 4,
+                                      fontSize: 9, color: '#101613', border: 'none',
+                                      borderRadius: 20, padding: '5px 10px', letterSpacing: 1, marginTop: 4,
                                       background: 'var(--pk,#ff5fd2)',
                                       display: 'flex', alignItems: 'center', gap: 4
                                     }}>
@@ -2121,7 +2183,179 @@ export default function AdminConsole({
                     )
                   })}
                 </div>
+                )}
+
+                {/* BY STEWARD VIEW */}
+                {approvalView === 'steward' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {(() => {
+                    // Group submissions by student
+                    const grouped: Record<string, any[]> = {}
+                    pendingSubmissions.filter(sub => {
+                      if (approvalFilter === 'deliverables') return !!sub.workshop_day_id
+                      if (approvalFilter === 'engagement') return !sub.workshop_day_id
+                      return true
+                    }).forEach(sub => {
+                      const name = sub.participant_name || 'Unknown Student'
+                      if (!grouped[name]) grouped[name] = []
+                      grouped[name].push(sub)
+                    })
+                    
+                    const stewards = Object.entries(grouped)
+                    if (stewards.length === 0) {
+                      return (
+                        <div style={{ border: '2px dashed var(--ln,#3a3352)', borderRadius: 8, padding: 16, textAlign: 'center', fontSize: 16, color: 'var(--mu,#9990ab)' }}>
+                          All caught up — nothing matches this filter.
+                        </div>
+                      )
+                    }
+                    
+                    return stewards.map(([name, items]) => {
+                      const pendD = items.filter(s => !!s.workshop_day_id)
+                      const pendE = items.filter(s => !s.workshop_day_id)
+                      // Get actual student progress from fetched data
+                      const profileId = items[0]?.profile_id
+                      const studentProgress = participantsProgress.find(p => p.profileId === profileId)
+                      const delivPct = studentProgress?.delivPct ?? 0
+                      const engPct = studentProgress?.engPct ?? 0
+                      const totalPct = studentProgress?.totalPct ?? 0
+                      const approvedDelivs = studentProgress?.approvedDelivs ?? 0
+                      const stageLabel = totalPct >= 100 ? 'Full bloom ✿' : totalPct >= 75 ? 'Lush mane' : totalPct >= 50 ? 'Filling in' : totalPct >= 25 ? 'Sprouting' : 'Seedling'
+                      
+                      return (
+                        <div key={name} style={{ border: '1px solid var(--ln,#3a3352)', borderRadius: 10, background: '#181324', padding: '16px 18px' }}>
+                          {/* Steward header row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                            <img src={chiaUri(totalPct)} alt="" width={40} height={50} style={{ imageRendering: 'pixelated', flex: 'none', filter: 'drop-shadow(0 2px 0 rgba(0,0,0,.35))' }} />
+                            <div style={{ flex: 1, minWidth: 150 }}>
+                              <div className="font-pixel" style={{ fontSize: 12, color: 'var(--tx,#e4e0ee)', marginBottom: 7 }}>{name}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                                {[1, 2, 3].map(d => {
+                                  const isApproved = d <= approvedDelivs
+                                  const hasPending = pendD.some(s => s.day_number === d)
+                                  return (
+                                    <span key={d} className="font-pixel" style={{ fontSize: 9, padding: '3px 6px', borderRadius: 3, color: isApproved ? '#12081e' : hasPending ? '#12081e' : 'var(--mu,#9990ab)', background: isApproved ? 'var(--ok,#86b89a)' : hasPending ? 'var(--gold,#c9a85f)' : 'transparent', border: (isApproved || hasPending) ? 'none' : '1px solid var(--ln,#3a3352)' }}>D{d}</span>
+                                  )
+                                })}
+                                <span style={{ fontSize: 14, color: 'var(--mu,#9990ab)' }}>{stageLabel} · {totalPct}%</span>
+                              </div>
+                            </div>
+                            <span style={{ fontFamily: "'VT323'", fontSize: 17, color: '#c9a85f', border: '1px solid #c9a85f', borderRadius: 20, padding: '4px 12px' }}>
+                              {items.length} pending
+                            </span>
+                          </div>
+
+                          {/* Progress bar - shows ACTUAL student progress */}
+                          <div style={{ height: 14, background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln,#3a3352)', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
+                            <div style={{ float: 'left', height: '100%', width: `${delivPct}%`, background: 'var(--gold,#c9a85f)' }} />
+                            <div style={{ float: 'left', height: '100%', width: `${engPct}%`, background: 'var(--ok,#86b89a)' }} />
+                          </div>
+                          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 14, marginBottom: 14 }}>
+                            <span style={{ color: 'var(--gold,#c9a85f)' }}>■ Deliverables {delivPct}%</span>
+                            <span style={{ color: 'var(--ok,#86b89a)' }}>■ Engagement {engPct}%</span>
+                          </div>
+
+                          {/* Two column grid: Deliverables + Engagement */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+                            {/* Deliverables column */}
+                            <div style={{ border: '2px solid var(--gold,#c9a85f)', borderRadius: 8, padding: 12, background: 'rgba(201,168,95,.05)' }}>
+                              <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#c9a85f)', marginBottom: 10 }}>⛃ DELIVERABLES · +25% EACH</div>
+                              {pendD.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                                  {pendD.map(d => {
+                                    const reviewId = d.progress_id || d.id
+                                    const dateStr = d.submitted_at ? new Date(d.submitted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
+                                    return (
+                                      <div key={reviewId} style={{ border: '1px solid var(--ln,#3a3352)', borderRadius: 6, padding: 10, background: 'rgba(0,0,0,.25)' }}>
+                                        <div style={{ fontSize: 17, color: 'var(--tx,#e4e0ee)', lineHeight: 1.25, marginBottom: 3 }}>{d.title || d.day_title || `Day ${d.day_number}`}</div>
+                                        <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', marginBottom: 9 }}>Day {d.day_number} deliverable · {dateStr}</div>
+                                        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                                          <button onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], false)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: '#141019', background: 'var(--ok,#86b89a)', border: 'none', borderRadius: 5, padding: '6px 12px', cursor: 'pointer' }}>✓ APPROVE +25%</button>
+                                          <button onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId], false)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: 'var(--mu,#9990ab)', background: 'none', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, padding: '5px 11px', cursor: 'pointer' }}>↩ RETURN</button>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 15, color: 'var(--mu,#9990ab)' }}>No deliverables awaiting review.</div>
+                              )}
+                            </div>
+
+                            {/* Engagement column */}
+                            <div style={{ border: '2px solid var(--ok,#86b89a)', borderRadius: 8, padding: 12, background: 'rgba(134,184,154,.05)' }}>
+                              <div className="font-pixel" style={{ fontSize: 9, color: 'var(--ok,#86b89a)', marginBottom: 10 }}>✦ ENGAGEMENT · +1–3%</div>
+                              {pendE.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                                  {pendE.map(e => {
+                                    const reviewId = e.id
+                                    const dateStr = e.submitted_at ? new Date(e.submitted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
+                                    return (
+                                      <div key={reviewId} style={{ border: '1px solid var(--ln,#3a3352)', borderRadius: 6, padding: 10, background: 'rgba(0,0,0,.25)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                          <span className="font-pixel" style={{ fontSize: 8, color: '#86b89a', border: '1px solid #86b89a', borderRadius: 3, padding: '2px 6px' }}>{(e.kind || 'note').toUpperCase()}</span>
+                                          <span style={{ fontSize: 17, color: 'var(--tx,#e4e0ee)', lineHeight: 1.2, flex: 1, minWidth: 0 }}>{e.title || 'Engagement'}</span>
+                                        </div>
+                                        <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', marginBottom: 9 }}>{e.source || 'Engagement'} · {dateStr}</div>
+                                        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                                          <button onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: '#141019', background: 'var(--ok,#86b89a)', border: 'none', borderRadius: 5, padding: '6px 12px', cursor: 'pointer' }}>✓ APPROVE</button>
+                                          <button onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: 'var(--mu,#9990ab)', background: 'none', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, padding: '5px 11px', cursor: 'pointer' }}>↩ RETURN</button>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 15, color: 'var(--mu,#9990ab)' }}>No engagement awaiting review.</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+                )}
+                </>
               )}
+            </div>
+          )}
+
+          {/* ═══════════════ AI LABS ═══════════════ */}
+          {section === 'ailabs' && (
+            <div style={{
+              border: '2px solid var(--ln,#3a3352)',
+              borderRadius: 12,
+              background: '#201a30',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              alignItems: 'center',
+              textAlign: 'center',
+            }}>
+              <div className="font-pixel" style={{ fontSize: 13, color: 'var(--s,#45d6ff)', letterSpacing: 1 }}>
+                ⚡ AI LABS
+              </div>
+              <div style={{ fontSize: 17, color: 'var(--mu,#9990ab)', lineHeight: 1.5, maxWidth: 500 }}>
+                Manage AI Lab platforms, workbench tools, and student creation settings.
+              </div>
+              <a
+                href="/hub/ai-lab"
+                className="font-pixel"
+                style={{
+                  fontSize: 11,
+                  color: 'var(--bg,#12081e)',
+                  background: 'var(--s,#45d6ff)',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '14px 24px',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                ⚡ OPEN AI LABS
+              </a>
             </div>
           )}
 

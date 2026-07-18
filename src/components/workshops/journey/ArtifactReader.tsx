@@ -166,7 +166,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
       
       // After this submission, we'll have one more complete
       const willBeComplete = currentlyComplete + 1
-      const shouldOpenVictory = willBeComplete >= 3
+      const shouldOpenVictory = false // Victory only shows after admin approves all 3
       
       // Immediately update local banked principles so subsequent day forms exclude this principle
       if (selectedPrinciple) {
