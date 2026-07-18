@@ -35,23 +35,23 @@ function buildClientCertHTML(opts: any) {
   </div>` : ''}
   <div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:space-between;align-items:flex-end;max-width:580px;margin:30px auto 0">
     <div style="flex:1;min-width:160px;text-align:center">
-      <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1">${certFacilitator || 'Marisol Vega'}</div>
-      <div style="border-top:2px solid #3a2c14;margin-top:5px;padding-top:6px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">${certFacTitle || 'Program Director'} · ${certOrg || 'StewardWorks'}</div>
+      <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1.3;padding-bottom:8px">${certFacilitator || 'Marisol Vega'}</div>
+      <div style="border-top:2px solid #3a2c14;padding-top:8px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">${certFacTitle || 'Program Director'} · ${certOrg || 'StewardWorks'}</div>
     </div>
     <div style="flex:none;text-align:center">
-      <div style="width:88px;height:88px;border-radius:50%;background:radial-gradient(circle at 38% 30%,#f6dd8c 0%,#e6bd54 46%,#c69528 78%,#9c7015 100%);border:3px solid #8a6a2a;margin:0 auto;display:flex;align-items:center;justify-content:center">
-        <span style="font-size:24px">⚝</span>
+      <div style="width:88px;height:88px;border-radius:50%;background:radial-gradient(circle at 38% 30%,#f6dd8c 0%,#e6bd54 46%,#c69528 78%,#9c7015 100%);border:3px solid #8a6a2a;margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.35)">
+        <img src="/images/cert/steward-seal.png" alt="Seal" style="width:75%;height:75%;object-fit:contain" crossorigin="anonymous"/>
       </div>
       <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:6px;color:#8a6a2a;margin-top:7px;letter-spacing:2px">OFFICIAL SEAL</div>
     </div>
     <div style="flex:1;min-width:160px;text-align:center">
-      <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1">${playerName || 'Student'}</div>
-      <div style="border-top:2px solid #3a2c14;margin-top:5px;padding-top:6px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">THE STEWARD</div>
+      <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1.3;padding-bottom:8px">${playerName || 'Student'}</div>
+      <div style="border-top:2px solid #3a2c14;padding-top:8px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">THE STEWARD</div>
     </div>
   </div>
   <div style="max-width:300px;margin:24px auto 0;text-align:center">
-    <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1">${certSponsor || 'Authorized Signatory'}</div>
-    <div style="border-top:2px solid #3a2c14;margin-top:5px;padding-top:6px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">FISCAL SPONSOR · ${certSponsorOrg || 'SDSU Research Foundation'}</div>
+    <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1.3;padding-bottom:8px">${certSponsor || 'Authorized Signatory'}</div>
+    <div style="border-top:2px solid #3a2c14;padding-top:8px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">FISCAL SPONSOR · ${certSponsorOrg || 'SDSU Research Foundation'}</div>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;max-width:580px;margin:26px auto 0;font-size:11px;color:#8a6a2a;letter-spacing:1px;font-family:'Courier New',monospace">
     <div>ISSUED ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
