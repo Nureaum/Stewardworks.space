@@ -666,10 +666,9 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
             <button onClick={() => setActiveView('principles')} style={navButtonStyle(activeView === 'principles')}>
               <span>◉ PRINCIPLES</span>
             </button>
-            {/* Platforms tab hidden until workshop_platforms table is created in database */}
-            {/* <button onClick={() => setActiveView('platforms')} style={navButtonStyle(activeView === 'platforms')}>
+            <button onClick={() => setActiveView('platforms')} style={navButtonStyle(activeView === 'platforms')}>
               <span>❖ PLATFORMS</span>
-            </button> */}
+            </button>
             <button onClick={() => setActiveView('approvals')} style={navButtonStyle(activeView === 'approvals')}>
               <span>✓ APPROVALS</span>
             </button>

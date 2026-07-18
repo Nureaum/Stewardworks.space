@@ -3,12 +3,12 @@ import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 
 export const metadata = {
-  title: 'AI Labs Admin - Workbench',
+  title: 'User Progress - Admin',
 }
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminAILabsPage() {
+export default async function AdminUserProgressPage() {
   const { userId } = await auth()
   if (!userId) redirect('/login')
 
@@ -23,8 +23,7 @@ export default async function AdminAILabsPage() {
     redirect('/admin')
   }
 
-  // Redirect to the workshop admin panel where AI Labs platforms are managed
-  // Find the latest active cohort to redirect to its journey admin
+  // Find the latest active cohort and redirect to its journey admin with progress section
   const { data: latestCohort } = await supabase
     .from('cohorts')
     .select('id')
@@ -34,9 +33,8 @@ export default async function AdminAILabsPage() {
     .single()
 
   if (latestCohort) {
-    redirect(`/hub/pilot-workshops/${latestCohort.id}/journey?mode=admin`)
+    redirect(`/hub/pilot-workshops/${latestCohort.id}/journey?mode=admin&section=progress`)
   } else {
     redirect('/hub/pilot-workshops')
   }
 }
-

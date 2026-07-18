@@ -119,6 +119,7 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
 
   let showcaseItems = [];
   let initialEngagements = [];
+  let platforms = [];
 
   if (activeCohort) {
     const { data: sData } = await supabase
@@ -135,6 +136,14 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
       .select('*')
       .eq('profile_id', profile.id);
     if (eData) initialEngagements = eData;
+
+    // Get platforms for the sandbox tabs
+    const { data: pData } = await supabase
+      .from('workshop_platforms')
+      .select('*')
+      .eq('cohort_id', activeCohort.id)
+      .order('sort_order', { ascending: true });
+    if (pData) platforms = pData;
   }
   return <AILabClient 
     initialCurriculum={curriculum || {}} 
@@ -150,6 +159,7 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
     dashboard={dashboard}
     submissions={submissions}
     bankedPrinciples={bankedPrinciples}
+    platforms={platforms}
   />;
 }
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Lock, ChevronLeft, Image as ImageIcon, Users, BookOpen, Layers, Map, MessageSquare, Beaker, ChevronDown, Megaphone } from 'lucide-react';
+import { Lock, ChevronLeft, Image as ImageIcon, Users, BookOpen, Layers, Map, MessageSquare, Beaker, ChevronDown, Megaphone, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { AdminLoadingProvider } from '@/context/AdminLoadingContext';
@@ -118,6 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Workforce Pathways', href: '/admin/workforce-pathways', icon: Map, exact: false },
     { label: 'Pilot Workshops', href: '/admin/pilot-workshops', icon: Layers, exact: false },
     { label: 'AI Labs', href: '/admin/ai-labs', icon: Beaker, exact: false },
+    { label: 'User Progress', href: '/admin/user-progress', icon: BarChart3, exact: false },
   ];
 
   const isProgramsActive = programItems.some(item => 

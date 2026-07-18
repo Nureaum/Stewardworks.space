@@ -49,6 +49,7 @@ interface JourneyClientProps {
   profileId: string
   initialTab?: JourneyTab
   initialRole?: Role
+  initialSection?: string
 }
 
 export default function JourneyClient({
@@ -68,6 +69,7 @@ export default function JourneyClient({
   profileId,
   initialTab = 'journey',
   initialRole = 'student',
+  initialSection,
 }: JourneyClientProps) {
   const [tab, setTab] = useState<JourneyTab>(initialTab)
   const [screen, setScreen] = useState<JourneyScreen>(initialCharacter ? 'map' : 'select')
@@ -565,6 +567,7 @@ export default function JourneyClient({
               days={days}
               principles={principles}
               cameFromAdminPanel={initialRole === 'admin'}
+              initialSection={initialSection}
               onReturnToGame={() => setRole('student')}
               onPrincipleBanked={(principle) => {
                 setBankedPrinciples(prev => [...prev, principle])

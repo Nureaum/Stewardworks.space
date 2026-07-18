@@ -14,23 +14,25 @@ import {
   reviewDeliverable,
   getPendingEngagements,
   reviewEngagement,
-  getParticipantsProgress
+  getParticipantsProgress,
+  getCohortCharacters
 } from '@/app/actions/workshops/admin-reviews'
 import { PixelSprite } from '@/components/workshops/journey'
 import { updateWorkshopDay, createWorkshopDay } from '@/app/actions/workshops/workshop-days'
-import { updateCohort, uploadCohortThumbnail } from '@/app/actions/workshops/cohorts'
+import { updateCohort, uploadCohortThumbnail, getCohorts } from '@/app/actions/workshops/cohorts'
 import { createSection, updateSection, deleteSection } from '@/app/actions/workshops/sections'
 import { createEntry, updateEntry, deleteEntry } from '@/app/actions/workshops/entries'
 import RichEditor from './RichEditor'
 import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia } from '@/app/actions/workshops/entry-media'
 import { createPrinciple, updatePrinciple, deletePrinciple } from '@/app/actions/workshops/principles'
 import { addShowcaseItem, updateShowcaseItem, deleteShowcaseItem, getShowcaseItems, seedShowcaseItems } from '@/app/actions/workshops/showcase'
+import { getPlatforms, createPlatform, deletePlatform } from '@/app/actions/workshops/admin'
 import ConfirmDialog from './ConfirmDialog'
 import RetroToast from './RetroToast'
 
 // ─── Types ─────────────────────────────────────────────────
-type AdminSection = 'cohort' | 'curriculum' | 'principles' | 'contributors' | 'approvals' | 'certificate' | 'ailabs'
-type SidebarGroup = 'cohort-editing' | 'approvals' | 'contributors' | 'ailabs'
+type AdminSection = 'cohort' | 'curriculum' | 'principles' | 'contributors' | 'approvals' | 'certificate' | 'ailabs' | 'progress'
+type SidebarGroup = 'cohort-editing' | 'approvals' | 'contributors' | 'ailabs' | 'progress'
 
 interface AdminConsoleProps {
   cohortId: string
@@ -40,6 +42,7 @@ interface AdminConsoleProps {
   principles: WorkshopPrinciple[]
   onReturnToGame: () => void
   cameFromAdminPanel?: boolean
+  initialSection?: string
   onPrincipleBanked?: (principle: any) => void
 }
 
@@ -93,6 +96,7 @@ export default function AdminConsole({
   principles,
   onReturnToGame,
   cameFromAdminPanel,
+  initialSection: initialSectionProp,
   onPrincipleBanked,
 }: AdminConsoleProps) {
   // Extract thumbnail once
@@ -106,7 +110,7 @@ export default function AdminConsole({
   }
 
   const router = useRouter()
-  const [section, setSection] = useState<AdminSection>('cohort')
+  const [section, setSection] = useState<AdminSection>((initialSectionProp as AdminSection) || 'cohort')
   const [cohortThumb, setCohortThumb] = useState(initialThumb)
   const descRef = useRef<HTMLTextAreaElement>(null)
   const [activeDayIdx, setActiveDayIdx] = useState(0)
@@ -146,6 +150,23 @@ export default function AdminConsole({
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false)
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
   const [participantsProgress, setParticipantsProgress] = useState<any[]>([])
+  // Platforms state
+  const [platformsData, setPlatformsData] = useState<{ id: string; name: string; url: string; is_default: boolean }[]>([])
+  const [newPlatformName, setNewPlatformName] = useState('')
+  const [newPlatformUrl, setNewPlatformUrl] = useState('')
+  const [isLoadingPlatforms, setIsLoadingPlatforms] = useState(false)
+
+  // User Progress state
+  const [userCharacters, setUserCharacters] = useState<Record<string, any>>({})
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false)
+  const [progressSearch, setProgressSearch] = useState('')
+  const [progressPage, setProgressPage] = useState(1)
+  const PROGRESS_PER_PAGE = 10
+  const [allCohorts, setAllCohorts] = useState<any[]>([])
+  const [selectedCohortId, setSelectedCohortId] = useState(cohortId)
+  const [progressData, setProgressData] = useState<any[]>([])
+  const [isLoadingCohortProgress, setIsLoadingCohortProgress] = useState(false)
+
   // Toast and confirm dialog state
   const [toast, setToast] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -191,6 +212,68 @@ export default function AdminConsole({
     }
     loadShowcase()
   }, [cohortId])
+
+  // Load platforms when AI Labs section is active
+  React.useEffect(() => {
+    if (section === 'ailabs') {
+      const loadPlatforms = async () => {
+        setIsLoadingPlatforms(true)
+        try {
+          const data = await getPlatforms(cohortId)
+          setPlatformsData(data || [])
+        } catch (e) {
+          console.error('Failed to load platforms', e)
+          setPlatformsData([])
+        } finally {
+          setIsLoadingPlatforms(false)
+        }
+      }
+      loadPlatforms()
+    }
+  }, [cohortId, section])
+
+  // Load characters when User Progress section is active
+  React.useEffect(() => {
+    if (section === 'progress') {
+      // Load all cohorts for the dropdown
+      const loadCohorts = async () => {
+        try {
+          const cohorts = await getCohorts()
+          setAllCohorts(cohorts || [])
+        } catch (e) {
+          console.error('Failed to load cohorts', e)
+        }
+      }
+      loadCohorts()
+    }
+  }, [section])
+
+  // Load progress data when selected cohort changes
+  React.useEffect(() => {
+    if (section === 'progress' && selectedCohortId) {
+      setIsLoadingProgress(true)
+      setIsLoadingCohortProgress(true)
+      const loadProgressData = async () => {
+        try {
+          const [progress, chars] = await Promise.all([
+            getParticipantsProgress(selectedCohortId),
+            getCohortCharacters(selectedCohortId)
+          ])
+          setProgressData(progress || [])
+          const charMap: Record<string, any> = {}
+          ;(chars || []).forEach((c: any) => { charMap[c.profile_id] = c })
+          setUserCharacters(charMap)
+        } catch (e) {
+          console.error('Failed to load progress data', e)
+          setProgressData([])
+        } finally {
+          setIsLoadingProgress(false)
+          setIsLoadingCohortProgress(false)
+        }
+      }
+      loadProgressData()
+    }
+  }, [selectedCohortId, section])
 
   const handleReview = async (progressId: string, status: 'approved' | 'rejected', note?: string, isEngagement?: boolean) => {
     try {
@@ -825,6 +908,7 @@ export default function AdminConsole({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <NavBtn id="cohort" icon="◈" label="Cohort Editing" />
             <NavBtn id="approvals" icon="☑" label="Approvals" count={pendingSubmissions?.length || 0} />
+            <NavBtn id="progress" icon="▣" label="User Progress" count={participantsProgress?.length || 0} />
             <NavBtn id="contributors" icon="❀" label="Contributors" count={showcaseList?.length || 0} />
             <NavBtn id="ailabs" icon="⚡" label="AI Labs" />
           </div>
@@ -2321,42 +2405,377 @@ export default function AdminConsole({
             </div>
           )}
 
+          {/* ═══════════════ USER PROGRESS ═══════════════ */}
+          {section === 'progress' && (
+            <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, justifyContent: 'space-between', margin: '0 2px 10px' }}>
+                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>▣ USER PROGRESS</div>
+                <div style={{ fontSize: 13, color: 'var(--mu,#9990ab)' }}>{progressData.length} stewards enrolled</div>
+              </div>
+              <div style={{ border: '2px solid var(--ln,#3a3352)', borderRadius: 9, background: '#201a30', padding: '14px 15px' }}>
+                <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', lineHeight: 1.4, marginBottom: 14, maxWidth: 720 }}>
+                  Each steward's journey at a glance — deliverables approved, engagement earned, and their chia companion's growth stage.
+                </div>
+
+                {/* Cohort Selector */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 14, padding: '10px 12px', border: '1px solid var(--ln,#3a3352)', borderRadius: 7, background: 'rgba(0,0,0,.2)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--mu,#9990ab)', whiteSpace: 'nowrap' }}>Cohort:</span>
+                  <select
+                    value={selectedCohortId}
+                    onChange={(e) => { setSelectedCohortId(e.target.value); setProgressPage(1); setProgressSearch(''); }}
+                    style={{
+                      flex: 1,
+                      minWidth: 180,
+                      background: 'rgba(0,0,0,.4)',
+                      border: '2px solid var(--ln,#3a3352)',
+                      borderRadius: 5,
+                      color: 'var(--tx,#e4e0ee)',
+                      fontSize: 14,
+                      padding: '8px 10px',
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {allCohorts.length === 0 && (
+                      <option value={selectedCohortId}>{cohortName || 'Current Cohort'}</option>
+                    )}
+                    {allCohorts.map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.status === 'open' ? '(Active)' : c.status === 'completed' ? '(Completed)' : `(${c.status})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Search bar */}
+                <div style={{ marginBottom: 14 }}>
+                  <input
+                    type="text"
+                    value={progressSearch}
+                    onChange={(e) => { setProgressSearch(e.target.value); setProgressPage(1); }}
+                    placeholder="Search by name or email…"
+                    style={{ width: '100%', background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln,#3a3352)', borderRadius: 6, color: 'var(--tx,#e4e0ee)', fontSize: 15, padding: '10px 13px', outline: 'none' }}
+                  />
+                </div>
+
+                {isLoadingProgress || isLoadingCohortProgress ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: 'var(--mu,#9990ab)', fontSize: 14 }}>
+                    Loading progress...
+                  </div>
+                ) : progressData.length === 0 ? (
+                  <div style={{ border: '2px dashed var(--ln,#3a3352)', borderRadius: 8, padding: 16, textAlign: 'center', fontSize: 15, color: 'var(--mu,#9990ab)' }}>
+                    No participants registered yet.
+                  </div>
+                ) : (() => {
+                  const filtered = progressData.filter((s: any) => {
+                    if (!progressSearch.trim()) return true
+                    const q = progressSearch.toLowerCase()
+                    return s.name?.toLowerCase().includes(q)
+                  })
+                  const totalPages = Math.ceil(filtered.length / PROGRESS_PER_PAGE)
+                  const paginated = filtered.slice((progressPage - 1) * PROGRESS_PER_PAGE, progressPage * PROGRESS_PER_PAGE)
+
+                  return (
+                    <>
+                      {filtered.length === 0 ? (
+                        <div style={{ border: '2px dashed var(--ln,#3a3352)', borderRadius: 8, padding: 16, textAlign: 'center', fontSize: 15, color: 'var(--mu,#9990ab)' }}>
+                          No users match "{progressSearch}"
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {paginated.map((student: any) => {
+                            const char = userCharacters[student.profileId]
+                            const chiaStage = student.totalPct >= 75 ? 3 : student.totalPct >= 50 ? 2 : student.totalPct >= 25 ? 1 : 0
+                            const stageLabels = ['Seed', 'Sprout', 'Bloom', 'Flourish']
+                            const chiaLevel = Math.min(chiaStage + 1, 3)
+
+                            return (
+                              <div
+                                key={student.profileId}
+                                style={{
+                                  border: '2px solid var(--ln,#3a3352)',
+                                  borderRadius: 10,
+                                  background: 'rgba(0,0,0,.22)',
+                                  padding: '18px 20px',
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  gap: 16,
+                                  alignItems: 'center',
+                                }}
+                              >
+                                {/* Avatar / Chia */}
+                                <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                  {char ? (
+                                    <PixelSprite
+                                      characterKey={char.character_key || 'nayeli'}
+                                      accent={char.accent_color || '#c98bad'}
+                                      opts={{
+                                        tint: char.tint,
+                                        hair: char.hair,
+                                        hairColor: char.hair_color,
+                                        facial: char.facial,
+                                        outfit: char.outfit,
+                                        headgear: char.headgear,
+                                        gear: char.loadout,
+                                      }}
+                                      size={42}
+                                    />
+                                  ) : (
+                                    <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--ln,#3a3352)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <span style={{ fontSize: 18 }}>🌱</span>
+                                    </div>
+                                  )}
+                                  <div className="font-pixel" style={{ fontSize: 6, color: 'var(--gold,#ffd23f)', textAlign: 'center' }}>
+                                    {stageLabels[chiaStage]}
+                                  </div>
+                                </div>
+
+                                {/* Name + progress */}
+                                <div style={{ flex: 1, minWidth: 180 }}>
+                                  <div style={{ fontSize: 16, color: 'var(--tx,#e4e0ee)', fontWeight: 600, marginBottom: 8 }}>
+                                    {student.name}
+                                    {char?.player_name && <span style={{ fontSize: 13, color: 'var(--mu,#9990ab)', marginLeft: 8 }}>"{char.player_name}"</span>}
+                                  </div>
+
+                                  {/* Overall progress bar */}
+                                  <div style={{ marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                      <span style={{ fontSize: 12, color: 'var(--mu,#9990ab)' }}>Overall Progress</span>
+                                      <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)' }}>{student.totalPct}%</span>
+                                    </div>
+                                    <div style={{ height: 8, background: 'rgba(0,0,0,.4)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--ln,#3a3352)' }}>
+                                      <div style={{ height: '100%', width: `${student.totalPct}%`, background: 'linear-gradient(90deg, #4dffa0, #ffd23f)', borderRadius: 4, transition: 'width 0.3s ease' }}></div>
+                                    </div>
+                                  </div>
+
+                                  {/* Breakdown bars */}
+                                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                                    <div style={{ flex: 1, minWidth: 120 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                                        <span style={{ fontSize: 11, color: '#ff5fd2' }}>Deliverables</span>
+                                        <span style={{ fontSize: 11, color: 'var(--mu,#9990ab)' }}>{student.approvedDelivs}/3</span>
+                                      </div>
+                                      <div style={{ height: 5, background: 'rgba(0,0,0,.4)', borderRadius: 3, overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', width: `${(student.delivPct / 75) * 100}%`, background: '#ff5fd2', borderRadius: 3 }}></div>
+                                      </div>
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 120 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                                        <span style={{ fontSize: 11, color: '#45d6ff' }}>Engagement</span>
+                                        <span style={{ fontSize: 11, color: 'var(--mu,#9990ab)' }}>{student.engPct}/25</span>
+                                      </div>
+                                      <div style={{ height: 5, background: 'rgba(0,0,0,.4)', borderRadius: 3, overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', width: `${(student.engPct / 25) * 100}%`, background: '#45d6ff', borderRadius: 3 }}></div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Chia stage badge */}
+                                <div style={{ flex: 'none', textAlign: 'center' }}>
+                                  <div style={{
+                                    width: 50, height: 50,
+                                    borderRadius: '50%',
+                                    border: `2px solid ${chiaStage >= 3 ? '#ffd23f' : chiaStage >= 2 ? '#4dffa0' : chiaStage >= 1 ? '#45d6ff' : 'var(--ln,#3a3352)'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: `${chiaStage >= 3 ? 'rgba(255,210,63,.1)' : chiaStage >= 2 ? 'rgba(77,255,160,.08)' : 'rgba(0,0,0,.3)'}`,
+                                  }}>
+                                    <span style={{ fontSize: 22 }}>
+                                      {chiaStage === 0 ? '🌰' : chiaStage === 1 ? '🌱' : chiaStage === 2 ? '🌿' : '🌳'}
+                                    </span>
+                                  </div>
+                                  <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#9990ab)', marginTop: 5 }}>
+                                    LVL {chiaLevel}
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {/* Pagination */}
+                      {totalPages > 1 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, paddingTop: 14, borderTop: '1px dashed var(--ln,#3a3352)' }}>
+                          <button
+                            onClick={() => setProgressPage(Math.max(1, progressPage - 1))}
+                            disabled={progressPage <= 1}
+                            style={{
+                              fontFamily: "'Press Start 2P', monospace",
+                              fontSize: 9,
+                              padding: '8px 12px',
+                              border: '2px solid var(--ln,#3a3352)',
+                              borderRadius: 5,
+                              background: progressPage <= 1 ? 'transparent' : 'rgba(255,255,255,.05)',
+                              color: progressPage <= 1 ? 'var(--ln,#3a3352)' : 'var(--tx,#e4e0ee)',
+                              cursor: progressPage <= 1 ? 'default' : 'pointer',
+                            }}
+                          >
+                            ◄
+                          </button>
+                          <span style={{ fontSize: 14, color: 'var(--mu,#9990ab)' }}>
+                            Page <span style={{ color: 'var(--tx,#e4e0ee)' }}>{progressPage}</span> of {totalPages}
+                          </span>
+                          <button
+                            onClick={() => setProgressPage(Math.min(totalPages, progressPage + 1))}
+                            disabled={progressPage >= totalPages}
+                            style={{
+                              fontFamily: "'Press Start 2P', monospace",
+                              fontSize: 9,
+                              padding: '8px 12px',
+                              border: '2px solid var(--ln,#3a3352)',
+                              borderRadius: 5,
+                              background: progressPage >= totalPages ? 'transparent' : 'rgba(255,255,255,.05)',
+                              color: progressPage >= totalPages ? 'var(--ln,#3a3352)' : 'var(--tx,#e4e0ee)',
+                              cursor: progressPage >= totalPages ? 'default' : 'pointer',
+                            }}
+                          >
+                            ►
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
+            </>
+          )}
+
           {/* ═══════════════ AI LABS ═══════════════ */}
           {section === 'ailabs' && (
-            <div style={{
-              border: '2px solid var(--ln,#3a3352)',
-              borderRadius: 12,
-              background: '#201a30',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-              alignItems: 'center',
-              textAlign: 'center',
-            }}>
-              <div className="font-pixel" style={{ fontSize: 13, color: 'var(--s,#45d6ff)', letterSpacing: 1 }}>
-                ⚡ AI LABS
+            <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, justifyContent: 'space-between', margin: '0 2px 10px' }}>
+                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>◱ EMBEDDED PLATFORMS</div>
+                <div style={{ fontSize: 13, color: 'var(--mu,#9990ab)' }}>Students switch between these in the Lab sandbox</div>
               </div>
-              <div style={{ fontSize: 17, color: 'var(--mu,#9990ab)', lineHeight: 1.5, maxWidth: 500 }}>
-                Manage AI Lab platforms, workbench tools, and student creation settings.
+              <div style={{ border: '2px solid var(--ln,#3a3352)', borderRadius: 9, background: '#201a30', padding: '14px 15px' }}>
+                <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', lineHeight: 1.4, marginBottom: 12, maxWidth: 720 }}>
+                  Eden.art ships as the default sandbox. Add any AI tool as an extra tab students can switch to. Choose how each one opens: <span style={{ color: 'var(--tx,#e4e0ee)', fontWeight: 600 }}>Launch</span> opens it in a new tab (works everywhere, needed for sign-in tools like Eden, Claude & Google AI Studio) — <span style={{ color: 'var(--tx,#e4e0ee)', fontWeight: 600 }}>Embed</span> shows it inline (only for tools that allow framing, e.g. Figma view links, YouTube, videos, docs).
+                </div>
+
+                {isLoadingPlatforms ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: 'var(--mu,#9990ab)', fontSize: 14 }}>
+                    Loading platforms...
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    {platformsData.map((platform) => (
+                      <div
+                        key={platform.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 11,
+                          border: '2px solid var(--ln,#3a3352)',
+                          borderRadius: 8,
+                          background: 'rgba(0,0,0,.22)',
+                          padding: '11px 13px',
+                        }}
+                      >
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--p,#c98bad)', flex: 'none' }}></span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 17, color: 'var(--tx,#e4e0ee)', lineHeight: 1.25 }}>{platform.name}</div>
+                          <div style={{ fontSize: 13, color: 'var(--mu,#9990ab)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {(() => { try { return new URL(platform.url).hostname } catch { return platform.url } })()}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 'none' }}>
+                          <a
+                            href={platform.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-pixel"
+                            style={{ fontSize: 7, color: '#0e1512', background: '#4dffa0', border: 'none', borderRadius: 5, padding: '8px 10px', textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            LAUNCH
+                          </a>
+                          <a
+                            href={platform.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-pixel"
+                            style={{ fontSize: 7, color: 'var(--tx,#e4e0ee)', background: 'transparent', border: '1px solid var(--ln,#3a3352)', borderRadius: 5, padding: '8px 10px', textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            EMBED
+                          </a>
+                          {!platform.is_default && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await deletePlatform(platform.id)
+                                  setPlatformsData(platformsData.filter(p => p.id !== platform.id))
+                                  setToast('Platform removed')
+                                } catch (e) {
+                                  console.error(e)
+                                  setToast('Failed to remove platform')
+                                }
+                              }}
+                              className="font-pixel"
+                              style={{ fontSize: 7, color: '#e06a5a', background: 'none', border: '2px solid #7a3a34', borderRadius: 5, padding: '8px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {platformsData.length === 0 && (
+                      <div style={{ border: '2px dashed var(--ln,#3a3352)', borderRadius: 8, padding: 16, textAlign: 'center', fontSize: 15, color: 'var(--mu,#9990ab)' }}>
+                        No platforms configured yet. Add Eden.art or another tool below.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ borderTop: '1px dashed var(--ln,#3a3352)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  <div className="font-pixel" style={{ fontSize: 7, color: 'var(--s,#45d6ff)' }}>＋ ADD A PLATFORM</div>
+                  <input
+                    type="text"
+                    value={newPlatformName}
+                    onChange={(e) => setNewPlatformName(e.target.value)}
+                    placeholder="Platform name — e.g. Google AI Studio…"
+                    style={{ width: '100%', background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, color: 'var(--tx,#e4e0ee)', fontSize: 16, padding: '10px 11px' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      value={newPlatformUrl}
+                      onChange={(e) => setNewPlatformUrl(e.target.value)}
+                      placeholder="URL — e.g. https://aistudio.google.com/"
+                      style={{ flex: 1, minWidth: 220, background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, color: 'var(--tx,#e4e0ee)', fontSize: 15, padding: '9px 11px' }}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!newPlatformName || !newPlatformUrl) {
+                          setToast('Please enter both platform name and URL')
+                          return
+                        }
+                        let url = newPlatformUrl.trim()
+                        if (!/^https?:\/\//i.test(url)) {
+                          url = 'https://' + url
+                        }
+                        try {
+                          const newPlatform = await createPlatform(cohortId, { name: newPlatformName, url })
+                          setPlatformsData([...platformsData, newPlatform])
+                          setNewPlatformName('')
+                          setNewPlatformUrl('')
+                          setToast('Platform added')
+                        } catch (e) {
+                          console.error(e)
+                          setToast('Failed to add platform')
+                        }
+                      }}
+                      style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, color: '#0e1512', background: '#4dffa0', border: 'none', borderRadius: 5, padding: '12px 18px', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: 1 }}
+                    >
+                      ＋ ADD
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--mu,#9990ab)', lineHeight: 1.4 }}>
+                    Tip: most AI tools (Eden, Claude, ChatGPT, Google AI Studio) require sign-in and block framing — keep those on <span style={{ color: 'var(--tx,#e4e0ee)' }}>Launch</span>. Use <span style={{ color: 'var(--tx,#e4e0ee)' }}>Embed</span> only for view-only links (Figma prototype/embed URLs, YouTube, published docs).
+                  </div>
+                </div>
               </div>
-              <a
-                href="/hub/ai-lab"
-                className="font-pixel"
-                style={{
-                  fontSize: 11,
-                  color: 'var(--bg,#12081e)',
-                  background: 'var(--s,#45d6ff)',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '14px 24px',
-                  textDecoration: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                ⚡ OPEN AI LABS
-              </a>
-            </div>
+            </>
           )}
 
         </div>

@@ -5,7 +5,7 @@ import JourneyClient from '../../JourneyClient'
 
 interface Props {
   params: { cohortId: string }
-  searchParams?: { tab?: string, mode?: string }
+  searchParams?: { tab?: string, mode?: string, section?: string }
 }
 
 export default async function JourneyPage({ params, searchParams }: Props) {
@@ -170,6 +170,7 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       profileId={profile.id}
       initialTab={(searchParams?.tab as any) || 'journey'}
       initialRole={(searchParams?.mode as any) || 'student'}
+      initialSection={searchParams?.section}
     />
   )
 }

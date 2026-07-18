@@ -1,10 +1,13 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
 import { getShowcaseItems } from '@/app/actions/workshops/showcase';
+import { fetchUserPicks } from '@/app/admin/workforce-pathways/actions';
+import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
 import type { CohortProgress } from '@/app/api/workshops/progress/route';
 import CohortSwitcher from '@/components/hub/CohortSwitcher';
 
@@ -34,6 +37,7 @@ export default function CozyHubRoom({
   onCohortChange
 }: CozyHubRoomProps) {
   const router = useRouter();
+  const { user } = useUser();
   
   const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements' | 'showcase'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);
@@ -48,6 +52,15 @@ export default function CozyHubRoom({
   const [loadingBookmarks, setLoadingBookmarks] = useState(false);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   
+  // Certificate state
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [showCertPreview, setShowCertPreview] = useState(false);
+  
+  // Workforce Pathway state
+  const [workforcePicks, setWorkforcePicks] = useState<any[]>([]);
+  const [loadingWorkforcePicks, setLoadingWorkforcePicks] = useState(false);
+  const [expandedPathwayCard, setExpandedPathwayCard] = useState<string | null>(null);
+  
   // Showcase Data for guests
   const [showcaseItems, setShowcaseItems] = useState<any[]>([]);
   const [showcaseLoading, setShowcaseLoading] = useState(false);
@@ -57,6 +70,7 @@ export default function CozyHubRoom({
   
   // State from DCLogic
   const [progress, setProgress] = useState(initialChiaProgress);
+  const [isProgressTransitioning, setIsProgressTransitioning] = useState(false);
   const [timeOfDay, setTimeOfDay] = useState<'day' | 'dusk' | 'night'>('day');
   const [exitStyle, setExitStyle] = useState('neon');
 
@@ -77,9 +91,14 @@ export default function CozyHubRoom({
     // Always use initialChiaProgress from the API (supports multi-cohort switching)
     // This value comes from the Progress API's totalProgress calculation
     // Validates: Requirements 4.3 - Update Chia Guardian when cohort selection changes
-    setProgress(initialChiaProgress);
+    setIsProgressTransitioning(true);
+    const timer = setTimeout(() => {
+      setProgress(initialChiaProgress);
+      setIsProgressTransitioning(false);
+    }, 300);
     try { const t = localStorage.getItem('sw_timeofday') as 'day'|'dusk'|'night'; if (t) setTimeOfDay(t); } catch (e) {}
     try { const ex = localStorage.getItem('sw_exit'); if (ex) setExitStyle(ex); } catch (e) {}
+    return () => clearTimeout(timer);
     
     const handleResize = () => { const s = Math.min(window.innerWidth / 1300, window.innerHeight / 700); setScale(s); };
     handleResize();
@@ -184,6 +203,20 @@ export default function CozyHubRoom({
       clearInterval(lampTimer);
     };
   }, [initialChiaProgress]);
+
+  // Load workforce pathway picks when progress screen opens
+  useEffect(() => {
+    if (screen === 'progress' && workforcePicks.length === 0 && user?.id) {
+      setLoadingWorkforcePicks(true);
+      fetchUserPicks(user.id).then((picks) => {
+        setWorkforcePicks(picks || []);
+      }).catch((err) => {
+        console.error('Failed to load workforce picks:', err);
+      }).finally(() => {
+        setLoadingWorkforcePicks(false);
+      });
+    }
+  }, [screen, user?.id]);
 
   const persist = (k: string, v: string) => { try { localStorage.setItem(k, String(v)); } catch (e) {} }
   // Progress is now read-only from workshop data, so we don't allow manual changes
@@ -727,14 +760,96 @@ export default function CozyHubRoom({
         <div style={{"position":"absolute","left":"11px","top":"24px","width":"7px","height":"4px","borderRadius":"50%","background":"rgba(86,62,18,.45)"}}></div>
         <div style={{"position":"absolute","right":"11px","top":"24px","width":"7px","height":"4px","borderRadius":"50%","background":"rgba(86,62,18,.45)"}}></div>
       </div>
-      {/*  chia sprouts (hair) grow with progress  */}
-      <div style={chiaStyle}>
-        <div style={{"width":"4px","height":"60%","background":"linear-gradient(180deg,#9bc04a,#5f7d1f)","borderRadius":"3px","transform":"rotate(-16deg)","transformOrigin":"bottom"}}></div>
-        <div style={{"width":"4px","height":"84%","background":"linear-gradient(180deg,#a6cb55,#6B8E23)","borderRadius":"3px","transform":"rotate(-7deg)","transformOrigin":"bottom"}}></div>
-        <div style={{"width":"4px","height":"100%","background":"linear-gradient(180deg,#b4d65f,#74992a)","borderRadius":"3px","transformOrigin":"bottom"}}></div>
-        <div style={{"width":"4px","height":"86%","background":"linear-gradient(180deg,#a6cb55,#6B8E23)","borderRadius":"3px","transform":"rotate(7deg)","transformOrigin":"bottom"}}></div>
-        <div style={{"width":"4px","height":"62%","background":"linear-gradient(180deg,#9bc04a,#5f7d1f)","borderRadius":"3px","transform":"rotate(16deg)","transformOrigin":"bottom"}}></div>
-      </div>
+      {/*  chia sprouts (hair) grow with progress — uses same buildChia logic  */}
+      {(() => {
+        const p = Math.max(0, Math.min(100, progress));
+        const s = 0.9; // scale for desk (smaller)
+        const g = 0.4 + 0.6 * (p / 100);
+        const leafPhase = Math.max(0, (p - 25) / 75);
+        const budPhase = Math.max(0, Math.min(1, (p - 50) / 25));
+        const bloomPhase = Math.max(0, Math.min(1, (p - 75) / 25));
+        const stemW = Math.max(2.2, 3.1 * s);
+        const gap = (3 + leafPhase * 3 + bloomPhase * 2.5) * s;
+        const defs = [
+          { base: 42, rot: -18, lit: '#9bc04a', dark: '#5f7d1f', bloomAt: 92, flower: ['#ffc0dd', '#ef77aa'] },
+          { base: 60, rot: -8, lit: '#a6cb55', dark: '#6B8E23', bloomAt: 82, flower: ['#ffd98f', '#efa63a'] },
+          { base: 78, rot: 0, lit: '#b4d65f', dark: '#74992a', center: true, bloomAt: 75, flower: ['#ffb3d2', '#ef5f9c'] },
+          { base: 58, rot: 8, lit: '#a6cb55', dark: '#6B8E23', bloomAt: 82, flower: ['#d3b3ff', '#9b6fe0'] },
+          { base: 40, rot: 18, lit: '#9bc04a', dark: '#5f7d1f', bloomAt: 92, flower: ['#ffcaa0', '#ef8f5a'] },
+        ];
+        return (
+          <div style={{"position":"absolute","left":"50%","bottom":"168px","transform":"translateX(-50%)","display":"flex","alignItems":"flex-end","justifyContent":"center","gap": gap + 'px',"transition":"gap .5s ease","overflow":"visible","pointerEvents":"none"}}>
+            {defs.map((d, i) => {
+              const stemH = Math.max(6, d.base * g * s);
+              const sb = Math.max(0, Math.min(1, (p - d.bloomAt) / (100 - d.bloomAt)));
+              const hasFlower = p >= d.bloomAt;
+              const hasBud = !hasFlower && p >= 50;
+              const fl = (9 + 15 * Math.max(0.14, sb)) * s;
+              return (
+                <div key={i} style={{
+                  "position": "relative",
+                  "width": stemW + 'px',
+                  "height": stemH + 'px',
+                  "borderRadius": stemW + 'px',
+                  "background": `linear-gradient(180deg,${d.lit},${d.dark})`,
+                  "transform": `rotate(${d.rot}deg)`,
+                  "transformOrigin": "bottom center",
+                  "transition": "height .5s ease",
+                }}>
+                  {/* Leaves */}
+                  {p >= 25 && (() => {
+                    const out = d.center ? 1 : (i < 2 ? -1 : 1);
+                    const lsize = (5 + leafPhase * 8) * s * (d.center ? 0.82 : 1);
+                    let n = 1;
+                    if (p >= 42) n = 2;
+                    if (p >= 62 && !d.center) n = 3;
+                    const leaves = [];
+                    for (let k = 0; k < n; k++) {
+                      const side = (k % 2 === 0) ? out : -out;
+                      const leafSize = lsize * (1 - k * 0.13);
+                      const top = stemH * (0.26 + k * 0.17);
+                      leaves.push(
+                        <div key={'lf' + k} style={{
+                          "position": "absolute",
+                          "top": top + 'px',
+                          ...(side < 0 ? {"right": "50%"} : {"left": "50%"}),
+                          "width": leafSize + 'px',
+                          "height": (leafSize * 0.58) + 'px',
+                          "background": `linear-gradient(${side < 0 ? 130 : 230}deg,${d.lit},${d.dark})`,
+                          "borderRadius": side < 0 ? '92% 8% 58% 42%' : '8% 92% 42% 58%',
+                          "transform": `rotate(${side < 0 ? 36 : -36}deg)`,
+                          "transformOrigin": side < 0 ? 'right bottom' : 'left bottom',
+                          "boxShadow": 'inset 0 0 3px rgba(255,255,255,.3)',
+                        }} />
+                      );
+                    }
+                    return leaves;
+                  })()}
+                  {/* Flower */}
+                  {hasFlower && (
+                    <div style={{
+                      "position": "absolute", "left": "50%",
+                      "top": (-fl * 0.72) + 'px',
+                      "width": fl + 'px', "height": fl + 'px',
+                      "transform": "translateX(-50%)",
+                    }}>
+                      <div style={{"position":"absolute","left":"50%","top":"50%","width":(fl*(1.8+bloomPhase*0.9))+'px',"height":(fl*(1.8+bloomPhase*0.9))+'px',"borderRadius":"50%","background":`radial-gradient(circle,rgba(255,200,120,${0.4+bloomPhase*0.35}),rgba(255,170,90,0) 66%)`,"transform":"translate(-50%,-50%)","pointerEvents":"none"}} />
+                      {[0,51,102,153,204,255,306].map(a => (
+                        <div key={a} style={{"position":"absolute","left":"50%","top":"50%","width":(fl*0.5)+'px',"height":(fl*0.32)+'px',"borderRadius":"50%","background":`linear-gradient(180deg,${d.flower[0]},${d.flower[1]})`,"transform":`translate(-50%,-50%) rotate(${a}deg) translateY(-${fl*0.3}px)`,"boxShadow":`0 0 ${4+bloomPhase*5}px rgba(255,150,190,${0.4+bloomPhase*0.4})`}} />
+                      ))}
+                      <div style={{"position":"absolute","left":"50%","top":"50%","width":(fl*0.42)+'px',"height":(fl*0.42)+'px',"transform":"translate(-50%,-50%)","borderRadius":"50%","background":"radial-gradient(circle at 40% 35%,#ffe98a,#f0a733)","boxShadow":`0 0 ${6+bloomPhase*6}px rgba(255,214,96,${0.7+bloomPhase*0.3})`}} />
+                    </div>
+                  )}
+                  {/* Bud */}
+                  {hasBud && (
+                    <div style={{"position":"absolute","left":"50%","top":(-((4+budPhase*5)*s)*0.6)+'px',"width":((4+budPhase*5)*s)+'px',"height":((4+budPhase*5)*s*1.3)+'px',"transform":"translateX(-50%)","borderRadius":"50% 50% 35% 35%","background": d.center ? 'linear-gradient(180deg,#f3b8cf,#c98caa)' : 'linear-gradient(180deg,#c3d86a,#8faa3a)'}} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
     )}
 
@@ -969,14 +1084,14 @@ export default function CozyHubRoom({
   {/*  =================== PROGRESS & GENERATIONS ===================  */}
   { isProgress && (
 <>
-  <div data-screen-label="Progress & Generations" style={{"position":"fixed","inset":"0","zIndex":"100","overflowY":"auto","background":"linear-gradient(180deg,#f6ddc4,#e8c2a0)","animation":"sw-fade .3s ease","fontFamily":"'Exo',sans-serif"}}>
+  <div data-screen-label="Progress & Milestones" style={{"position":"fixed","inset":"0","zIndex":"100","overflowY":"auto","background":"linear-gradient(180deg,#f6ddc4,#e8c2a0)","animation":"sw-fade .3s ease","fontFamily":"'Exo',sans-serif"}}>
     <div style={{"maxWidth":"920px","margin":"0 auto","padding":"30px 26px 60px"}}>
       <button style={{"background":"#21282E","border":"none","borderRadius":"10px","padding":"9px 15px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".06em","color":"#FEFAE0","marginBottom":"24px"}} onClick={goHub}>← Back to desk</button>
 
-      <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".3em","color":"#8a5a2e"}}>PROGRESS &amp; GENERATIONS</div>
-      <div style={{"display":"flex","justifyContent":"space-between","alignItems":"center","flexWrap":"wrap","gap":"12px","marginBottom":"24px"}}>
-        <h1 style={{"margin":"4px 0 0","fontSize":"34px","fontWeight":"700","color":"#3a2412"}}>Your chia is growing.</h1>
-        {/* Cohort Switcher - Validates: Requirements 4.1, 4.3 */}
+      <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".3em","color":"#8a5a2e"}}>PROGRESS &amp; MILESTONES</div>
+      <div style={{"display":"flex","justifyContent":"space-between","alignItems":"center","flexWrap":"wrap","gap":"12px","marginBottom":"6px"}}>
+        <h1 style={{"margin":"4px 0 0","fontSize":"34px","fontWeight":"700","color":"#3a2412"}}>Grow your chia.</h1>
+        {/* Cohort Switcher */}
         {cohortProgress && cohortProgress.length > 1 && selectedCohortId && onCohortChange && (
           <CohortSwitcher
             cohorts={cohortProgress}
@@ -986,9 +1101,10 @@ export default function CozyHubRoom({
           />
         )}
       </div>
+      <p style={{"margin":"0 0 24px","fontSize":"14px","lineHeight":"1.6","color":"#6b4a2a","maxWidth":"620px"}}>Your chia grows two ways: an admin approves each of your three portfolio deliverables (25% each), and you earn small rewards for using the hub (capped at 25%). Students can't grow it directly — progress is earned.</p>
 
       {/*  progress meter + chia  */}
-      <div style={{"display":"flex","gap":"24px","flexWrap":"wrap","alignItems":"stretch","marginBottom":"30px"}}>
+      <div style={{"display":"flex","gap":"24px","flexWrap":"wrap","alignItems":"stretch","marginBottom":"30px","opacity": isProgressTransitioning ? "0.5" : "1","transition":"opacity 0.3s ease"}}>
         <div style={{"flex":"1","minWidth":"280px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.12)","borderRadius":"16px","padding":"22px","boxShadow":"0 12px 26px rgba(0,0,0,.08)"}}>
           <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"14px"}}>
             <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".18em","color":"#8a5a2e"}}>OVERALL PROGRESS</span>
@@ -997,71 +1113,364 @@ export default function CozyHubRoom({
           <div style={{"height":"18px","background":"rgba(33,40,46,.08)","borderRadius":"10px","overflow":"hidden","marginBottom":"18px"}}>
             <div style={progressBarStyle}></div>
           </div>
+          {/* Deliverables + Engagement breakdown */}
+          <div style={{"display":"flex","gap":"10px","marginBottom":"12px"}}>
+            <div style={{"flex":"1","background":"rgba(46,85,52,.1)","borderRadius":"11px","padding":"12px 14px"}}>
+              <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".12em","color":"#2E5534"}}>DELIVERABLES</div>
+              <div style={{"fontSize":"22px","fontWeight":"700","color":"#2E5534","marginTop":"3px"}}>{Math.min(progress - (globalEngagement || 0), 75)}% <span style={{"fontSize":"12px","fontWeight":"400","color":"#6b8a6f"}}>/ 75%</span></div>
+            </div>
+            <div style={{"flex":"1","background":"rgba(65,124,152,.1)","borderRadius":"11px","padding":"12px 14px"}}>
+              <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".12em","color":"#356074"}}>ENGAGEMENT</div>
+              <div style={{"fontSize":"22px","fontWeight":"700","color":"#356074","marginTop":"3px"}}>{globalEngagement || 0}% <span style={{"fontSize":"12px","fontWeight":"400","color":"#6a8a9a"}}>/ 25%</span></div>
+            </div>
+          </div>
           <div style={{"fontSize":"12px","color":"#7a5a3a","lineHeight":"1.5"}}>
-            Your progress grows as you complete pilot workshop deliverables and engage with the platform. Each approved deliverable adds 25% to your growth.
+            This meter is shared with the chia statue on your desk — its sprouts grow taller as your total climbs.
           </div>
         </div>
-        {/*  mirrored chia visual  */}
+        {/*  golden chia statue visual  */}
         <div style={{"width":"200px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.12)","borderRadius":"16px","padding":"18px","boxShadow":"0 12px 26px rgba(0,0,0,.08)","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"flex-end"}}>
-          <div style={chiaBigStyle}>
-            <div style={{"width":"6px","height":"60%","background":"linear-gradient(180deg,#9bc04a,#5f7d1f)","borderRadius":"4px","transform":"rotate(-14deg)","transformOrigin":"bottom"}}></div>
-            <div style={{"width":"6px","height":"88%","background":"linear-gradient(180deg,#a6cb55,#6B8E23)","borderRadius":"4px","transform":"rotate(-5deg)","transformOrigin":"bottom"}}></div>
-            <div style={{"width":"6px","height":"100%","background":"linear-gradient(180deg,#b4d65f,#74992a)","borderRadius":"4px"}}></div>
-            <div style={{"width":"6px","height":"84%","background":"linear-gradient(180deg,#a6cb55,#6B8E23)","borderRadius":"4px","transform":"rotate(7deg)","transformOrigin":"bottom"}}></div>
-            <div style={{"width":"6px","height":"62%","background":"linear-gradient(180deg,#9bc04a,#5f7d1f)","borderRadius":"4px","transform":"rotate(15deg)","transformOrigin":"bottom"}}></div>
+          <div style={{"position":"relative","width":"150px","height":"250px"}}>
+            {/* Shadow */}
+            <div style={{"position":"absolute","left":"50%","bottom":"0","transform":"translateX(-50%)","width":"120px","height":"16px","background":"radial-gradient(ellipse,rgba(0,0,0,.22),transparent 70%)","filter":"blur(3px)"}}></div>
+            {/* Plinth base */}
+            <div style={{"position":"absolute","left":"50%","bottom":"6px","transform":"translateX(-50%)","width":"104px","height":"22px","background":"linear-gradient(180deg,#4a3f33,#33291f)","borderRadius":"4px","boxShadow":"0 8px 13px rgba(0,0,0,.28),inset 0 3px 0 rgba(255,230,190,.18)"}}></div>
+            {/* Plinth upper */}
+            <div style={{"position":"absolute","left":"50%","bottom":"26px","transform":"translateX(-50%)","width":"82px","height":"20px","background":"linear-gradient(180deg,#5a4a3a,#3f3326)","borderRadius":"3px","boxShadow":"inset 0 2px 0 rgba(255,230,190,.22)"}}></div>
+            {/* Award nameplate */}
+            <div style={{"position":"absolute","left":"50%","bottom":"31px","transform":"translateX(-50%)","width":"56px","height":"11px","background":"linear-gradient(180deg,#ecce7c,#bd9637)","borderRadius":"2px","boxShadow":"0 1px 2px rgba(0,0,0,.3)"}}></div>
+            {/* Shoulders / bust */}
+            <div style={{"position":"absolute","left":"50%","bottom":"44px","transform":"translateX(-50%)","width":"104px","height":"70px","background":"linear-gradient(160deg,#d8b969,#9c7a2c)","borderRadius":"44px 44px 10px 10px","clipPath":"polygon(33% 0,67% 0,100% 100%,0 100%)","boxShadow":"inset -7px -5px 13px rgba(86,62,18,.5),inset 6px 5px 9px rgba(255,242,205,.28)"}}></div>
+            {/* Neck */}
+            <div style={{"position":"absolute","left":"50%","bottom":"96px","transform":"translateX(-50%)","width":"26px","height":"28px","background":"linear-gradient(180deg,#c9a24b,#9c7a2c)","boxShadow":"inset -3px 0 5px rgba(86,62,18,.4)"}}></div>
+            {/* Head */}
+            <div style={{"position":"absolute","left":"50%","bottom":"116px","transform":"translateX(-50%)","width":"56px","height":"66px","borderRadius":"48% 48% 44% 44%","background":"linear-gradient(160deg,#dcc079,#a8842f)","boxShadow":"inset -5px -6px 13px rgba(86,62,18,.5),inset 5px 5px 9px rgba(255,242,205,.4)"}}>
+              {/* Nose */}
+              <div style={{"position":"absolute","left":"50%","top":"29px","width":"5px","height":"14px","transform":"translateX(-50%)","background":"linear-gradient(180deg,#bb9540,#8f6e26)","borderRadius":"3px"}}></div>
+              {/* Eyes */}
+              <div style={{"position":"absolute","left":"13px","top":"27px","width":"8px","height":"4px","borderRadius":"50%","background":"rgba(86,62,18,.45)"}}></div>
+              <div style={{"position":"absolute","right":"13px","top":"27px","width":"8px","height":"4px","borderRadius":"50%","background":"rgba(86,62,18,.45)"}}></div>
+            </div>
+            {/* Chia sprouts with leaves and flowers (matches reference buildChia logic) */}
+            {(() => {
+              const p = Math.max(0, Math.min(100, progress));
+              const s = 1.1; // scale factor for big display
+              const g = 0.4 + 0.6 * (p / 100);
+              const leafPhase = Math.max(0, (p - 25) / 75);
+              const budPhase = Math.max(0, Math.min(1, (p - 50) / 25));
+              const bloomPhase = Math.max(0, Math.min(1, (p - 75) / 25));
+              const stemW = Math.max(2.2, 3.1 * s);
+              const gap = (3 + leafPhase * 3 + bloomPhase * 2.5) * s;
+              const defs = [
+                { base: 42, rot: -18, lit: '#9bc04a', dark: '#5f7d1f', bloomAt: 92, flower: ['#ffc0dd', '#ef77aa'] },
+                { base: 60, rot: -8, lit: '#a6cb55', dark: '#6B8E23', bloomAt: 82, flower: ['#ffd98f', '#efa63a'] },
+                { base: 78, rot: 0, lit: '#b4d65f', dark: '#74992a', center: true, bloomAt: 75, flower: ['#ffb3d2', '#ef5f9c'] },
+                { base: 58, rot: 8, lit: '#a6cb55', dark: '#6B8E23', bloomAt: 82, flower: ['#d3b3ff', '#9b6fe0'] },
+                { base: 40, rot: 18, lit: '#9bc04a', dark: '#5f7d1f', bloomAt: 92, flower: ['#ffcaa0', '#ef8f5a'] },
+              ];
+
+              return (
+                <div style={{"position":"absolute","left":"50%","bottom":"176px","transform":"translateX(-50%)","display":"flex","alignItems":"flex-end","justifyContent":"center","gap": gap + 'px',"transition":"gap .5s ease","overflow":"visible","pointerEvents":"none"}}>
+                  {defs.map((d, i) => {
+                    const stemH = Math.max(6, d.base * g * s);
+                    const sb = Math.max(0, Math.min(1, (p - d.bloomAt) / (100 - d.bloomAt)));
+                    const hasFlower = p >= d.bloomAt;
+                    const hasBud = !hasFlower && p >= 50;
+                    const fl = (9 + 15 * Math.max(0.14, sb)) * s;
+
+                    return (
+                      <div key={i} style={{
+                        "position": "relative",
+                        "width": stemW + 'px',
+                        "height": stemH + 'px',
+                        "borderRadius": stemW + 'px',
+                        "background": `linear-gradient(180deg,${d.lit},${d.dark})`,
+                        "transform": `rotate(${d.rot}deg)`,
+                        "transformOrigin": "bottom center",
+                        "transition": "height .5s ease",
+                      }}>
+                        {/* Leaves */}
+                        {p >= 25 && (() => {
+                          const out = d.center ? 1 : (i < 2 ? -1 : 1);
+                          const lsize = (5 + leafPhase * 8) * s * (d.center ? 0.82 : 1);
+                          let n = 1;
+                          if (p >= 42) n = 2;
+                          if (p >= 62 && !d.center) n = 3;
+                          const leaves = [];
+                          for (let k = 0; k < n; k++) {
+                            const side = (k % 2 === 0) ? out : -out;
+                            const leafSize = lsize * (1 - k * 0.13);
+                            const top = stemH * (0.26 + k * 0.17);
+                            leaves.push(
+                              <div key={'lf' + k} style={{
+                                "position": "absolute",
+                                "top": top + 'px',
+                                ...(side < 0 ? {"right": "50%"} : {"left": "50%"}),
+                                "width": leafSize + 'px',
+                                "height": (leafSize * 0.58) + 'px',
+                                "background": `linear-gradient(${side < 0 ? 130 : 230}deg,${d.lit},${d.dark})`,
+                                "borderRadius": side < 0 ? '92% 8% 58% 42%' : '8% 92% 42% 58%',
+                                "transform": `rotate(${side < 0 ? 36 : -36}deg)`,
+                                "transformOrigin": side < 0 ? 'right bottom' : 'left bottom',
+                                "boxShadow": 'inset 0 0 3px rgba(255,255,255,.3)',
+                              }} />
+                            );
+                          }
+                          return leaves;
+                        })()}
+                        {/* Flower */}
+                        {hasFlower && (
+                          <div style={{
+                            "position": "absolute",
+                            "left": "50%",
+                            "top": (-fl * 0.72) + 'px',
+                            "width": fl + 'px',
+                            "height": fl + 'px',
+                            "transform": "translateX(-50%)",
+                          }}>
+                            {/* Glow */}
+                            <div style={{
+                              "position": "absolute", "left": "50%", "top": "50%",
+                              "width": (fl * (1.8 + bloomPhase * 0.9)) + 'px',
+                              "height": (fl * (1.8 + bloomPhase * 0.9)) + 'px',
+                              "borderRadius": "50%",
+                              "background": `radial-gradient(circle,rgba(255,200,120,${0.4 + bloomPhase * 0.35}),rgba(255,170,90,0) 66%)`,
+                              "transform": "translate(-50%,-50%)",
+                              "pointerEvents": "none",
+                            }} />
+                            {/* Petals */}
+                            {[0, 51, 102, 153, 204, 255, 306].map(a => (
+                              <div key={a} style={{
+                                "position": "absolute", "left": "50%", "top": "50%",
+                                "width": (fl * 0.5) + 'px',
+                                "height": (fl * 0.32) + 'px',
+                                "borderRadius": "50%",
+                                "background": `linear-gradient(180deg,${d.flower[0]},${d.flower[1]})`,
+                                "transform": `translate(-50%,-50%) rotate(${a}deg) translateY(-${fl * 0.3}px)`,
+                                "boxShadow": `0 0 ${4 + bloomPhase * 5}px rgba(255,150,190,${0.4 + bloomPhase * 0.4})`,
+                              }} />
+                            ))}
+                            {/* Core */}
+                            <div style={{
+                              "position": "absolute", "left": "50%", "top": "50%",
+                              "width": (fl * 0.42) + 'px',
+                              "height": (fl * 0.42) + 'px',
+                              "transform": "translate(-50%,-50%)",
+                              "borderRadius": "50%",
+                              "background": "radial-gradient(circle at 40% 35%,#ffe98a,#f0a733)",
+                              "boxShadow": `0 0 ${6 + bloomPhase * 6}px rgba(255,214,96,${0.7 + bloomPhase * 0.3})`,
+                            }} />
+                          </div>
+                        )}
+                        {/* Bud (pre-flower stage) */}
+                        {hasBud && (
+                          <div style={{
+                            "position": "absolute",
+                            "left": "50%",
+                            "top": (-((4 + budPhase * 5) * s) * 0.6) + 'px',
+                            "width": ((4 + budPhase * 5) * s) + 'px',
+                            "height": ((4 + budPhase * 5) * s * 1.3) + 'px',
+                            "transform": "translateX(-50%)",
+                            "borderRadius": "50% 50% 35% 35%",
+                            "background": d.center ? 'linear-gradient(180deg,#f3b8cf,#c98caa)' : 'linear-gradient(180deg,#c3d86a,#8faa3a)',
+                          }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
-          <div style={{"width":"64px","height":"60px","borderRadius":"50% 50% 46% 46%","background":"linear-gradient(160deg,#c3b4d4,#9384ad)"}}></div>
-          <div style={{"width":"80px","height":"18px","borderRadius":"5px","background":"linear-gradient(180deg,#3f7488,#2c5566)","marginTop":"-2px"}}></div>
         </div>
       </div>
 
-      {/*  saved / generated  */}
-      <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".2em","color":"#8a5a2e","marginBottom":"12px"}}>SAVED &amp; GENERATED — your library of bookmarks and creations</div>
-      
-      {loadingBookmarks ? (
-        <div style={{"padding":"40px","textAlign":"center","color":"#8a5a2e"}}>
-          <div style={{"width":"32px","height":"32px","border":"3px solid rgba(138,90,46,.2)","borderTopColor":"#8a5a2e","borderRadius":"50%","margin":"0 auto 12px","animation":"spin 1s linear infinite"}}></div>
-          Loading your library...
-        </div>
-      ) : bookmarksAndEngagements.length === 0 ? (
-        <div style={{"padding":"40px","textAlign":"center","color":"#8a5a2e","background":"rgba(254,250,224,.3)","borderRadius":"16px","border":"2px dashed rgba(138,90,46,.3)"}}>
-          <div style={{"fontSize":"15px","fontWeight":"600","marginBottom":"8px"}}>No items yet</div>
-          <div style={{"fontSize":"13px"}}>Visit the Library or AI Lab to save bookmarks and create content!</div>
-        </div>
-      ) : (
-        <div style={{"display":"grid","gridTemplateColumns":"repeat(auto-fill,minmax(200px,1fr))","gap":"14px"}}>
-          {bookmarksAndEngagements.map((item: any) => {
-            const kindColors: Record<string, {bg: string, label: string}> = {
-              bookmark: { bg: '#417C98', label: 'BOOKMARK' },
-              generation: { bg: '#2E5534', label: 'GENERATION' },
-              note: { bg: '#A27532', label: 'NOTE' },
-              prompt: { bg: '#DB9B2F', label: 'PROMPT' }
-            };
-            const kindConfig = kindColors[item.kind] || kindColors.bookmark;
-            
-            return (
-              <div key={item.id} style={{"background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.1)","borderRadius":"13px","padding":"16px","boxShadow":"0 8px 18px rgba(0,0,0,.06)","transition":"transform .2s ease, box-shadow .2s ease"}} className="hover:-translate-y-1 hover:shadow-xl">
-                <span style={{"display":"inline-block","fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".14em","background":kindConfig.bg,"color":"#fff","padding":"3px 8px","borderRadius":"20px","marginBottom":"10px"}}>{kindConfig.label}</span>
-                <div style={{"fontWeight":"700","color":"#3a2412","fontSize":"15px","lineHeight":"1.3","wordBreak":"break-word","cursor":"pointer"}} onClick={() => { if (item.url) window.open(item.url, '_blank'); }}>{item.title}</div>
-                <div style={{"display":"flex","justifyContent":"space-between","alignItems":"center","marginTop":"5px","gap":"6px","flexWrap":"wrap"}}>
-                  <div style={{"fontSize":"12px","color":"#7a5a3a","flex":"1","minWidth":"100px"}}>Saved from {item.source}</div>
-                  {item.review_note && (
-                    <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === item.id ? null : item.id); }} style={{"background": expandedNoteId === item.id ? '#A27532' : '#FDF3E0',"border":"1.5px solid #A27532","fontFamily":"'DM Mono',monospace","fontSize":"10px","fontWeight":"700","color": expandedNoteId === item.id ? '#fff' : '#A27532',"cursor":"pointer","padding":"5px 10px","borderRadius":"6px","letterSpacing":".06em"}}>
-                      {expandedNoteId === item.id ? '✕ NOTE' : '📝 NOTE'}
-                    </button>
-                  )}
-                </div>
-                {expandedNoteId === item.id && item.review_note && (
-                  <div style={{"marginTop":"10px","padding":"10px","background":"rgba(162,117,50,.08)","border":"1px solid rgba(162,117,50,.2)","borderRadius":"8px"}}>
-                    <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".1em","color":"#8a5a2e","marginBottom":"5px"}}>ADMIN NOTE</div>
-                    <div style={{"fontSize":"12px","lineHeight":"1.4","color":"#3a2412"}}>{item.review_note}</div>
+      {/* CERTIFICATE SECTION - based on selected cohort only */}
+      {cohortProgress && cohortProgress.length > 0 && selectedCohortId && (() => {
+        const selectedCohort = cohortProgress.find(c => c.cohortId === selectedCohortId);
+        if (!selectedCohort) return null;
+        const isCertEligible = selectedCohort.deliverables.percentage >= 75;
+
+        return (
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', marginTop: '20px' }}>
+              <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#2E5534' }}>CERTIFICATE</span>
+              <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#4a8a5a' }}>
+                Deliverables: {selectedCohort.deliverables.percentage}% / 75%
+              </span>
+            </div>
+
+            {isCertEligible ? (
+              <div style={{ padding: '24px', background: 'linear-gradient(135deg,rgba(46,85,52,.08),rgba(116,240,160,.06))', border: '2px solid rgba(46,85,52,.2)', borderRadius: '16px', marginBottom: '30px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg,#2E5534,#4a8a5a)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>📜</div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#2E5534', fontSize: '17px' }}>Congratulations!</div>
+                    <div style={{ fontSize: '13px', color: '#4a6a4a' }}>
+                      You've completed {selectedCohort.cohortName} and earned your certificate.
+                    </div>
                   </div>
-                )}
+                </div>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => router.push('/hub/my-profile')}
+                    style={{ background: '#FEFAE0', color: '#2E5534', border: '2px solid #2E5534', borderRadius: '10px', padding: '11px 20px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px', letterSpacing: '.06em', fontWeight: 700 }}
+                  >
+                    ◆ VIEW & DOWNLOAD CERTIFICATE
+                  </button>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ) : (
+              <div style={{ padding: '30px', textAlign: 'center', color: '#7a5a3a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px', marginBottom: '30px' }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎯</div>
+                <div style={{ fontWeight: 600, color: '#3a2412', marginBottom: '8px' }}>Certificate Locked</div>
+                <div style={{ fontSize: '14px', lineHeight: 1.5 }}>
+                  Complete all 3 deliverables (75%) in Pilot Workshops to unlock your certificate.
+                  <br />
+                  <span style={{ fontSize: '11px', color: '#9a7a5a', fontStyle: 'italic' }}>
+                    (Engagement activities don't affect certificate eligibility)
+                  </span>
+                </div>
+
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#7a5a3a' }}>
+                    <span style={{ fontWeight: 600 }}>{selectedCohort.cohortName}:</span>
+                    <div style={{ width: '100px', height: '8px', background: 'rgba(0,0,0,.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ width: `${(selectedCohort.deliverables.percentage / 75) * 100}%`, height: '100%', background: '#c9a24a', borderRadius: '4px' }} />
+                    </div>
+                    <span>{selectedCohort.deliverables.percentage}% / 75%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
+
+      {/* WORKFORCE PATHWAY PROGRESS */}
+      {(() => {
+        const getAnswerLabel = (pick: any, pathwayId: string, stopId: string) => {
+          if (pick.custom_answer) return pick.custom_answer;
+          if (pick.option_id) {
+            const quizData = (QUIZZES as any)[pathwayId]?.[stopId];
+            if (quizData?.options) {
+              const option = quizData.options.find((o: any) => o.id === pick.option_id);
+              return option?.label || pick.option_id;
+            }
+          }
+          return 'No answer';
+        };
+
+        return (
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', marginTop: '30px' }}>
+              <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#6B4A2A' }}>WORKFORCE PATHWAYS</span>
+              <span style={{ fontSize: '12px', color: '#8a6a4a' }}>Your journey progress</span>
+            </div>
+
+            {loadingWorkforcePicks ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading your pathway progress...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '30px' }}>
+                {PATHWAYS.map((pathway: any) => {
+                  const pathwayPicks = workforcePicks.filter((p: any) => p.pathway_id === pathway.id);
+                  const totalStops = pathway.stops?.length || 6;
+                  const completedStops = pathwayPicks.length;
+                  const isComplete = completedStops >= 5;
+                  const pathwayColor = pathway.id === 'creator' ? '#ff6a2e' : '#43e97b';
+
+                  return (
+                    <div key={pathway.id} style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.12)', borderRadius: '16px', padding: '20px 22px', boxShadow: '0 8px 18px rgba(0,0,0,.06)' }}>
+                      {/* Pathway header */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                        <div style={{ width: '10px', height: '40px', borderRadius: '5px', background: pathwayColor }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.14em', color: pathwayColor, fontWeight: 700 }}>{pathway.name.toUpperCase()}</div>
+                          <div style={{ fontSize: '13px', color: '#7a5a3a', marginTop: '2px' }}>
+                            {isComplete ? 'Run complete — pathway card earned!' : `${completedStops} of ${totalStops} stops completed`}
+                          </div>
+                        </div>
+                        {isComplete && (
+                          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '10px', background: pathwayColor, color: '#fff', padding: '4px 10px', borderRadius: '20px', fontWeight: 700 }}>✓ COMPLETE</span>
+                        )}
+                      </div>
+
+                      {/* Progress bar */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                        <div style={{ flex: 1, height: '8px', background: 'rgba(0,0,0,.08)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${(completedStops / totalStops) * 100}%`, height: '100%', background: pathwayColor, borderRadius: '4px', transition: 'width .3s ease' }} />
+                        </div>
+                        <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#6B4A2A', fontWeight: 700 }}>{completedStops}/{totalStops}</span>
+                      </div>
+
+                      {/* Action buttons */}
+                      {!isComplete ? (
+                        <button onClick={() => router.push('/hub/workforce-pathways')} style={{ background: pathwayColor, color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.06em', fontWeight: 700 }}>
+                          CONTINUE →
+                        </button>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                          <button onClick={() => window.print()} style={{ background: pathwayColor, color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.06em', fontWeight: 700 }}>
+                            🖨 SAVE / PRINT CARD
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Pathway Card (always shown when complete) */}
+                      {isComplete && (
+                        <div id={`pathway-card-${pathway.id}`} style={{ marginTop: '18px', border: `3px solid ${pathwayColor}`, borderRadius: '12px', overflow: 'hidden', boxShadow: '0 12px 30px rgba(0,0,0,.12)' }}>
+                          {/* Card Header */}
+                          <div style={{ background: pathwayColor, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                              <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', fontWeight: 700, color: '#fff', letterSpacing: '.5px' }}>
+                                {pathway.id === 'creator' ? 'THE STORYTELLER' : 'THE STEWARD'}
+                              </div>
+                              <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', color: 'rgba(255,255,255,.8)', marginTop: '4px', letterSpacing: '.1em' }}>
+                                {pathway.name.toUpperCase()} · PATHWAY CARD
+                              </div>
+                            </div>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"DM Mono", monospace', fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+                              {completedStops}
+                            </div>
+                          </div>
+
+                          {/* Card Body - Picks */}
+                          <div style={{ background: '#fff', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {pathway.stops.map((stop: any) => {
+                              const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id);
+                              const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—';
+                              return (
+                                <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: pick ? 'rgba(0,0,0,.02)' : 'rgba(0,0,0,.04)', borderRadius: '8px', border: '1px solid rgba(0,0,0,.06)' }}>
+                                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: pick ? pathwayColor : '#ccc', flex: 'none' }} />
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#8a6a4a', marginBottom: '3px' }}>{stop.name}</div>
+                                    <div style={{ fontSize: '15px', fontWeight: 600, color: '#3a2412' }}>{answerLabel}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Card Footer */}
+                          <div style={{ background: '#3a2412', padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.7)', lineHeight: 1.4 }}>
+                              Bring this card to AJCC El Centro or your MESA advisor.
+                            </div>
+                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '8px', color: 'rgba(255,255,255,.5)', letterSpacing: '.1em' }}>
+                              STEWARD OS · {pathway.name.toUpperCase()} TRAIL
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        );
+      })()}
+
     </div>
   </div>
   </>

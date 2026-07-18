@@ -10,7 +10,6 @@ import CurriculumBrowser from './CurriculumBrowser';
 import GenerationSandbox from './GenerationSandbox';
 import SubmissionTracker from './SubmissionTracker';
 import SaveCreationPanel from './SaveCreationPanel';
-import AILabsAdminConsole from './AILabsAdminConsole';
 import Showcase from '../journey/Showcase';
 import { WorkshopDayEntry, WorkshopDay } from '@/types/workshops';
 
@@ -30,6 +29,7 @@ export default function AILabClient({
   dashboard = [],
   submissions = [],
   bankedPrinciples = [],
+  platforms = [],
 }: {
   initialRole?: 'student' | 'admin';
   edenEmbedUrl?: string;
@@ -46,15 +46,14 @@ export default function AILabClient({
   dashboard?: any[];
   submissions?: any[];
   bankedPrinciples?: any[];
+  platforms?: { id: string; name: string; url: string; is_default: boolean }[];
 }) {
   const router = useRouter();
-  // Default to admin role if user is admin or super_admin
-  const defaultRole = (userRole === 'admin' || userRole === 'super_admin') ? 'admin' : 'student';
-  const [role, setRole] = useState<'student' | 'admin'>(defaultRole);
   const [studentView, setStudentView] = useState<'lab' | 'portfolio' | 'showcase'>('lab');
   const [day, setDay] = useState(1);
   const [activeEntry, setActiveEntry] = useState<string | null>(null);
   const [curriculumVisible, setCurriculumVisible] = useState(true);
+  const [sandboxVisible, setSandboxVisible] = useState(true);
 
   // Temporary mock data for UI buildout
   const profilePct = 40;
@@ -94,27 +93,33 @@ export default function AILabClient({
             {(userRole === 'admin' || userRole === 'super_admin') && (
               <div style={{ display: 'flex', border: '2px solid #b9ac86', borderRadius: 6, overflow: 'hidden' }}>
               <button
-                onClick={() => setRole('student')}
+                onClick={() => {/* already on student view */}}
                 className="font-pixel"
-                style={{ fontSize: 8, padding: '8px 11px', border: 'none', cursor: 'pointer', background: role === 'student' ? '#173026' : 'transparent', color: role === 'student' ? '#4dffa0' : '#8a9a7f' }}
+                style={{ fontSize: 8, padding: '8px 11px', border: 'none', cursor: 'pointer', background: '#173026', color: '#4dffa0' }}
               >
                 ▸ STUDENT
               </button>
               <button
-                onClick={() => setRole('admin')}
+                onClick={() => {
+                  if (cohortId) {
+                    router.push(`/hub/pilot-workshops/${cohortId}/journey?mode=admin`);
+                  } else {
+                    router.push('/hub/pilot-workshops');
+                  }
+                }}
                 className="font-pixel"
-                style={{ fontSize: 8, padding: '8px 11px', border: 'none', cursor: 'pointer', background: role === 'admin' ? '#173026' : 'transparent', color: role === 'admin' ? '#4dffa0' : '#8a9a7f' }}
+                style={{ fontSize: 8, padding: '8px 11px', border: 'none', cursor: 'pointer', background: 'transparent', color: '#8a9a7f' }}
               >
                 ⚙ ADMIN
               </button>
             </div>
             )}
             <button
-              onClick={() => router.push(role === 'admin' ? '/admin' : '/hub')}
+              onClick={() => router.push('/hub')}
               className="font-pixel"
               style={{ fontSize: 8, color: '#6f7e5e', textDecoration: 'none', border: '2px solid #b9ac86', borderRadius: 5, padding: '6px 8px', whiteSpace: 'nowrap', background: 'transparent', cursor: 'pointer' }}
             >
-              {role === 'admin' ? '◄ BACK TO ADMIN' : '◄ HUB'}
+              ◄ HUB
             </button>
             <div style={{ display: 'flex', gap: 7 }}>
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e06a5a' }}></span>
@@ -133,9 +138,7 @@ export default function AILabClient({
           <div style={{ position: 'relative', zIndex: 5, padding: 'clamp(12px,2.4vw,22px)' }}>
             <div style={{ maxWidth: 1160, margin: '0 auto' }}>
 
-            {role === 'student' ? (
-              <>
-                {/* student sub-nav */}
+            {/* student sub-nav */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <button 
                     onClick={() => router.push(cohortId ? `/hub/pilot-workshops/${cohortId}/journey` : '/hub/pilot-workshops')}
@@ -196,6 +199,14 @@ export default function AILabClient({
                       <div className="font-pixel" style={{ fontSize: 9, color: '#ffd23f', lineHeight: 1.5, minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {initialCurriculum[day]?.title || `DAY 0${day}`}
                       </div>
+                      <button 
+                        onClick={() => setSandboxVisible(!sandboxVisible)}
+                        title="Show or hide the generation sandbox"
+                        className="font-pixel"
+                        style={{ fontSize: 9, color: '#ff5fd2', background: 'rgba(255,95,210,.08)', border: '2px solid #ff5fd2', borderRadius: 6, padding: '11px 13px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px rgba(255,95,210,.18)' }}
+                      >
+                        {sandboxVisible ? '◧ HIDE SANDBOX' : '◱ SHOW SANDBOX'}
+                      </button>
                     </div>
 
                     {/* SPLIT : curriculum (collapsible) + Eden sandbox */}
@@ -230,7 +241,9 @@ export default function AILabClient({
                           }}
                         />
                       )}
-                      <GenerationSandbox edenEmbedUrl={edenEmbedUrl} />
+                      {sandboxVisible && (
+                        <GenerationSandbox edenEmbedUrl={edenEmbedUrl} platforms={platforms} />
+                      )}
                     </div>
 
                     {/* Save a Creation Panel */}
@@ -287,10 +300,6 @@ export default function AILabClient({
                     }}
                   />
                 )}
-              </>
-            ) : (
-              <AILabsAdminConsole cohortId={cohortId} />
-            )}
             
             </div>
           </div>

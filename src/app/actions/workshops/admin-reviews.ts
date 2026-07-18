@@ -748,3 +748,36 @@ export async function getParticipantsProgress(cohortId: string) {
     return []
   }
 }
+
+/**
+ * Get all characters for a cohort (admin only)
+ * Returns a map of profileId -> character data
+ */
+export async function getCohortCharacters(cohortId: string) {
+  try {
+    const { userId } = await auth()
+    if (!userId) throw new Error('Authentication required')
+
+    const supabase = createServerSupabaseClient()
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('clerk_user_id', userId)
+      .single()
+
+    if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
+      throw new Error('Admin access required')
+    }
+
+    const { data: characters } = await supabase
+      .from('workshop_characters')
+      .select('*')
+      .eq('cohort_id', cohortId)
+
+    return characters || []
+  } catch (error) {
+    console.error('getCohortCharacters error:', error)
+    return []
+  }
+}

@@ -357,37 +357,70 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                         <span style={{ fontSize: 40, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
                       )}
                     </div>
-                    <div style={{ padding: '11px 12px' }}>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                        <span className="font-pixel" style={{ 
-                          fontSize: 7, 
-                          padding: '3px 7px', 
-                          borderRadius: 4, 
-                          background: '#ff5fd2', 
-                          color: '#0e1512',
-                          letterSpacing: '.5px'
-                        }}>
-                          {item.kind === 'generation' ? '✦ AI GEN' : '◎ MEDIA'}
-                        </span>
-                        <span className="font-pixel" style={{ 
-                          fontSize: 7, 
-                          padding: '3px 7px', 
-                          borderRadius: 4, 
-                          background: 'rgba(77,255,160,.15)', 
-                          color: '#4dffa0',
-                          border: '1px solid rgba(77,255,160,.3)'
-                        }}>
-                          {item.source || 'EDEN'}
-                        </span>
+                    <div style={{ padding: '11px 12px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      {/* Left: content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                          <span className="font-pixel" style={{ 
+                            fontSize: 7, 
+                            padding: '3px 7px', 
+                            borderRadius: 4, 
+                            background: '#ff5fd2', 
+                            color: '#0e1512',
+                            letterSpacing: '.5px'
+                          }}>
+                            {item.kind === 'generation' ? '✦ AI GEN' : '◎ MEDIA'}
+                          </span>
+                          <span className="font-pixel" style={{ 
+                            fontSize: 7, 
+                            padding: '3px 7px', 
+                            borderRadius: 4, 
+                            background: 'rgba(77,255,160,.15)', 
+                            color: '#4dffa0',
+                            border: '1px solid rgba(77,255,160,.3)'
+                          }}>
+                            {item.source || 'EDEN'}
+                          </span>
+                        </div>
+                        
+                        <div style={{ fontSize: 16, color: 'var(--tx,#d6ffe0)', lineHeight: 1.2, marginBottom: 5 }}>
+                          {item.title}
+                        </div>
+                        
+                        <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', marginTop: 5 }}>
+                          by {item.profiles?.full_name || 'Student'}
+                        </div>
                       </div>
-                      
-                      <div style={{ fontSize: 16, color: 'var(--tx,#d6ffe0)', lineHeight: 1.2, marginBottom: 5 }}>
-                        {item.title}
-                      </div>
-                      
-                      <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', marginTop: 5 }}>
-                        by {item.profiles?.full_name || 'Student'}
-                      </div>
+
+                      {/* Right: bookmark star */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onBookmark) {
+                            onBookmark('student-' + item.id, item.title, item.source || 'Student Showcase', item.url || undefined);
+                          }
+                        }}
+                        title={isItemBookmarked ? 'Already bookmarked' : 'Bookmark this creation'}
+                        style={{
+                          flex: 'none',
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          border: `2px solid ${isItemBookmarked ? '#ffd23f' : 'var(--ln,#28432f)'}`,
+                          background: isItemBookmarked ? 'rgba(255,210,63,.2)' : 'transparent',
+                          color: isItemBookmarked ? '#ffd23f' : 'var(--mu,#77b78d)',
+                          cursor: 'pointer',
+                          fontSize: 14,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                          boxShadow: isItemBookmarked ? '0 0 8px rgba(255,210,63,.3)' : 'none',
+                          marginTop: 2,
+                        }}
+                      >
+                        {isItemBookmarked ? '★' : '☆'}
+                      </button>
                     </div>
                   </div>
                 );
