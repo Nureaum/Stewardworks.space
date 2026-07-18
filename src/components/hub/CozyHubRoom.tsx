@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
 import { getShowcaseItems } from '@/app/actions/workshops/showcase';
-import { fetchUserPicks } from '@/app/admin/workforce-pathways/actions';
+import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions';
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
+import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero';
 import type { CohortProgress } from '@/app/api/workshops/progress/route';
 import CohortSwitcher from '@/components/hub/CohortSwitcher';
 
@@ -60,6 +61,7 @@ export default function CozyHubRoom({
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([]);
   const [loadingWorkforcePicks, setLoadingWorkforcePicks] = useState(false);
   const [expandedPathwayCard, setExpandedPathwayCard] = useState<string | null>(null);
+  const [arcadeAvatar, setArcadeAvatar] = useState<any>(null);
   
   // Showcase Data for guests
   const [showcaseItems, setShowcaseItems] = useState<any[]>([]);
@@ -204,7 +206,7 @@ export default function CozyHubRoom({
     };
   }, [initialChiaProgress]);
 
-  // Load workforce pathway picks when progress screen opens
+  // Load workforce pathway picks and arcade avatar when progress screen opens
   useEffect(() => {
     if (screen === 'progress' && workforcePicks.length === 0 && user?.id) {
       setLoadingWorkforcePicks(true);
@@ -215,6 +217,25 @@ export default function CozyHubRoom({
       }).finally(() => {
         setLoadingWorkforcePicks(false);
       });
+      // Also fetch arcade avatar for pathway card display
+      if (!arcadeAvatar) {
+        getArcadeAvatar(user.id).then((data) => {
+          if (data) {
+            setArcadeAvatar({
+              form: data.form || 'enby',
+              skin: data.skin || '#e8b07a',
+              outfit: data.outfit || '#ff2e8f',
+              hairStyle: data.hair_style || 'auto',
+              hairColor: data.hair_color || '#3a2a1a',
+              hatColor: data.hat_color || '#10285e',
+              hatType: data.hat_type || 'cap',
+              gear: data.gear || 'creator'
+            });
+          }
+        }).catch((err) => {
+          console.error('Failed to load arcade avatar:', err);
+        });
+      }
     }
   }, [screen, user?.id]);
 
@@ -1361,6 +1382,8 @@ export default function CozyHubRoom({
           return 'No answer';
         };
 
+        const STEP_COLORS = ['#ff2e8f', '#ff6a2e', '#ffdd2e', '#12f0c0', '#45d4ff', '#d24dff'];
+
         return (
           <>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '12px', marginTop: '30px' }}>
@@ -1378,6 +1401,16 @@ export default function CozyHubRoom({
                   const completedStops = pathwayPicks.length;
                   const isComplete = completedStops >= 5;
                   const pathwayColor = pathway.id === 'creator' ? '#ff6a2e' : '#43e97b';
+                  const isExpanded = expandedPathwayCard === pathway.id;
+                  const pwAccent = pathway.id === 'creator' ? '#ff7e40' : '#43e97b';
+                  const klassName = pathway.id === 'creator' ? 'THE STORYTELLER' : 'THE STEWARD';
+
+                  const charIsHuman = arcadeAvatar && (arcadeAvatar.form === 'fem' || arcadeAvatar.form === 'masc' || arcadeAvatar.form === 'enby');
+                  const charSummary = arcadeAvatar
+                    ? (charIsHuman
+                      ? `${(arcadeAvatar.form || '').toUpperCase()} · ${(arcadeAvatar.hatType || '').toUpperCase()} · ${(arcadeAvatar.gear || '').toUpperCase()}`
+                      : `${(arcadeAvatar.form || '').toUpperCase()} · NO HAT · ${(arcadeAvatar.gear || '').toUpperCase()}`)
+                    : 'ENBY · CAP · CREATOR';
 
                   return (
                     <div key={pathway.id} style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.12)', borderRadius: '16px', padding: '20px 22px', boxShadow: '0 8px 18px rgba(0,0,0,.06)' }}>
@@ -1413,52 +1446,72 @@ export default function CozyHubRoom({
                           <button onClick={() => window.print()} style={{ background: pathwayColor, color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.06em', fontWeight: 700 }}>
                             🖨 SAVE / PRINT CARD
                           </button>
+                          <button onClick={() => setExpandedPathwayCard(isExpanded ? null : pathway.id)} style={{ background: '#21282E', color: '#FDDD9A', border: 'none', borderRadius: '8px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.06em', fontWeight: 700, transition: 'all .2s ease' }}>
+                            {isExpanded ? '✕ HIDE CARD' : '🎮 VIEW PATHWAY CARD'}
+                          </button>
                         </div>
                       )}
 
-                      {/* Pathway Card (always shown when complete) */}
-                      {isComplete && (
-                        <div id={`pathway-card-${pathway.id}`} style={{ marginTop: '18px', border: `3px solid ${pathwayColor}`, borderRadius: '12px', overflow: 'hidden', boxShadow: '0 12px 30px rgba(0,0,0,.12)' }}>
+                      {/* Arcade-style Pathway Card (shown on button click when complete) */}
+                      {isComplete && isExpanded && (
+                        <div id={`pathway-card-${pathway.id}`} className="run-card" style={{ position: 'relative', marginTop: '18px', maxWidth: '770px', background: '#f2f6ff', border: '5px solid #1c1526', boxShadow: '8px 8px 0 rgba(18,12,26,.42)', borderRadius: '12px', overflow: 'hidden', animation: 'sw-fade .3s ease' }}>
+                          {/* RUN COMPLETE stamp */}
+                          <div style={{ position: 'absolute', top: '78px', right: '16px', zIndex: 3, padding: '8px 13px', background: '#ff2e8f', color: '#fff', border: '4px solid #1c1526', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '11px', letterSpacing: '.5px', transform: 'rotate(-14deg)', boxShadow: '3px 3px 0 rgba(18,12,26,.4)' }}>RUN COMPLETE</div>
+
                           {/* Card Header */}
-                          <div style={{ background: pathwayColor, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                              <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', fontWeight: 700, color: '#fff', letterSpacing: '.5px' }}>
-                                {pathway.id === 'creator' ? 'THE STORYTELLER' : 'THE STEWARD'}
-                              </div>
-                              <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', color: 'rgba(255,255,255,.8)', marginTop: '4px', letterSpacing: '.1em' }}>
-                                {pathway.name.toUpperCase()} · PATHWAY CARD
-                              </div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '15px 18px', background: pwAccent, borderBottom: '5px solid #1c1526' }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '15px', color: '#10285e', textShadow: '2px 2px 0 rgba(255,255,255,.35)', lineHeight: 1.4 }}>{klassName}</div>
+                              <div style={{ fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '7px', color: '#10285e', opacity: .72, marginTop: '8px', lineHeight: 1.6 }}>{pathway.name.toUpperCase()} · PATHWAY CARD</div>
                             </div>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"DM Mono", monospace', fontSize: '14px', fontWeight: 700, color: '#fff' }}>
-                              {completedStops}
-                            </div>
+                            <span style={{ width: '46px', height: '46px', flex: '0 0 auto', background: '#10285e', color: pwAccent, border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '15px' }}>{completedStops}</span>
                           </div>
 
-                          {/* Card Body - Picks */}
-                          <div style={{ background: '#fff', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {pathway.stops.map((stop: any) => {
-                              const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id);
-                              const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—';
-                              return (
-                                <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: pick ? 'rgba(0,0,0,.02)' : 'rgba(0,0,0,.04)', borderRadius: '8px', border: '1px solid rgba(0,0,0,.06)' }}>
-                                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: pick ? pathwayColor : '#ccc', flex: 'none' }} />
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#8a6a4a', marginBottom: '3px' }}>{stop.name}</div>
-                                    <div style={{ fontSize: '15px', fontWeight: 600, color: '#3a2412' }}>{answerLabel}</div>
+                          {/* Card Body - Avatar + Picks Grid */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '196px minmax(0,1fr)', gap: '16px', padding: '20px 18px' }}>
+                            {/* Left: Avatar */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '14px 10px 12px', background: 'linear-gradient(#163a90,#2a55a8)', border: '4px solid #1c1526', boxShadow: 'inset 0 0 0 3px #3a68b8' }}>
+                              <div style={{ flex: 1 }} />
+                              <div style={{ animation: 'sw-float 2s ease-in-out infinite' }}>
+                                <PixelHero
+                                  form={arcadeAvatar?.form || 'enby'}
+                                  skin={arcadeAvatar?.skin || '#e8b07a'}
+                                  outfit={arcadeAvatar?.outfit || '#ff2e8f'}
+                                  hairStyle={arcadeAvatar?.hairStyle || 'auto'}
+                                  hairColor={arcadeAvatar?.hairColor || '#3a2a1a'}
+                                  hatColor={arcadeAvatar?.hatColor || '#10285e'}
+                                  hatType={arcadeAvatar?.hatType || 'cap'}
+                                  gear={arcadeAvatar?.gear || 'creator'}
+                                  style={{ width: '150px', height: '196px', display: 'block' }}
+                                />
+                              </div>
+                              <div style={{ width: '140px', height: '10px', marginTop: '4px', background: 'repeating-linear-gradient(90deg,#c98a3e 0 8px,#a86f2c 8px 16px)', border: '3px solid #1c1526' }} />
+                              <div style={{ marginTop: '12px', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '7px', color: '#a9c8ff', textAlign: 'center', lineHeight: 1.9 }}>{charSummary}</div>
+                            </div>
+
+                            {/* Right: Answer rows */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
+                              {pathway.stops.map((stop: any, idx: number) => {
+                                const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id);
+                                const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—';
+                                const dotColor = STEP_COLORS[idx % STEP_COLORS.length];
+                                return (
+                                  <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '9px 11px', background: '#fff', border: '3px solid #1c1526', borderRadius: '7px' }}>
+                                    <span style={{ width: '22px', height: '22px', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dotColor, color: '#1c1526', border: '2px solid #1c1526', borderRadius: '4px', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '8px', fontWeight: 700 }}>{pick ? '✦' : '·'}</span>
+                                    <span style={{ flex: 1, minWidth: 0 }}>
+                                      <span style={{ display: 'block', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '7px', color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{stop.name}</span>
+                                      <span style={{ display: 'block', fontFamily: "'VT323', 'DM Mono', monospace", fontSize: '20px', lineHeight: 1.2, color: '#10285e', marginTop: '2px' }}>{answerLabel}</span>
+                                    </span>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
 
                           {/* Card Footer */}
-                          <div style={{ background: '#3a2412', padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.7)', lineHeight: 1.4 }}>
-                              Bring this card to AJCC El Centro or your MESA advisor.
-                            </div>
-                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '8px', color: 'rgba(255,255,255,.5)', letterSpacing: '.1em' }}>
-                              STEWARD OS · {pathway.name.toUpperCase()} TRAIL
-                            </div>
+                          <div style={{ padding: '15px 18px', background: '#10285e', borderTop: '5px solid #1c1526' }}>
+                            <div style={{ fontSize: '14px', lineHeight: 1.45, color: '#f2f6ff' }}>Bring this card to AJCC El Centro or your MESA advisor. Ship your first portfolio piece this week.</div>
+                            <div style={{ fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '6.5px', color: '#8f88ad', letterSpacing: '.4px', marginTop: '11px', lineHeight: 1.7 }}>STEWARD OS · WORKFORCE DEVELOPMENT · {pathway.name.toUpperCase()} TRAIL</div>
                           </div>
                         </div>
                       )}
@@ -1467,6 +1520,14 @@ export default function CozyHubRoom({
                 })}
               </div>
             )}
+
+            {/* Keyframe for avatar float animation */}
+            <style>{`
+              @keyframes sw-float {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-6px); }
+              }
+            `}</style>
           </>
         );
       })()}
