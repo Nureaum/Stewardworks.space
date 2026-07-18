@@ -43,27 +43,43 @@ export async function POST(request: NextRequest) {
       console.warn('Some cert logos not found, continuing without them')
     }
 
-    // Try to use puppeteer (works locally) or fallback to HTML response
+    const certificateHTML = buildCertificateHTML({
+      playerName, characterKey, certOrg, certFacilitator, certFacTitle,
+      certSponsor, certSponsorOrg, certMessage, deliverables, characterSpriteUri,
+      caJobsFirstLogo, sdsuRfLogo, becomingLogo, stewardSealLogo
+    })
+
+    // Generate PDF using puppeteer-core + @sparticuz/chromium (works on Vercel)
     let pdf: Buffer | null = null
     
     try {
-      const puppeteer = (await import('puppeteer')).default
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      })
+      let browser
+
+      if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+        // Production: Use @sparticuz/chromium for serverless
+        const chromium = (await import('@sparticuz/chromium')).default
+        const puppeteerCore = (await import('puppeteer-core')).default
+
+        browser = await puppeteerCore.launch({
+          args: chromium.args,
+          defaultViewport: { width: 800, height: 1200, deviceScaleFactor: 2 },
+          executablePath: await chromium.executablePath(),
+          headless: true,
+        })
+      } else {
+        // Local development: Use full puppeteer
+        const puppeteer = (await import('puppeteer')).default
+        browser = await puppeteer.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox']
+        })
+      }
 
       const page = await browser.newPage()
       await page.setViewport({ width: 800, height: 1200, deviceScaleFactor: 2 })
-
-      const certificateHTML = buildCertificateHTML({
-        playerName, characterKey, certOrg, certFacilitator, certFacTitle,
-        certSponsor, certSponsorOrg, certMessage, deliverables, characterSpriteUri,
-        caJobsFirstLogo, sdsuRfLogo, becomingLogo, stewardSealLogo
-      })
-
-      await page.setContent(certificateHTML, { waitUntil: 'load' })
+      await page.setContent(certificateHTML, { waitUntil: 'networkidle0' })
       
+      // Wait for fonts to load
       try {
         await page.waitForFunction(() => document.fonts.ready, { timeout: 5000 })
       } catch (e) {}
@@ -78,15 +94,9 @@ export async function POST(request: NextRequest) {
 
       await browser.close()
     } catch (puppeteerError) {
-      console.error('Puppeteer failed, returning HTML certificate:', puppeteerError)
+      console.error('PDF generation failed:', puppeteerError)
       
       // Fallback: return the certificate as printable HTML
-      const certificateHTML = buildCertificateHTML({
-        playerName, characterKey, certOrg, certFacilitator, certFacTitle,
-        certSponsor, certSponsorOrg, certMessage, deliverables, characterSpriteUri,
-        caJobsFirstLogo, sdsuRfLogo, becomingLogo, stewardSealLogo
-      })
-      
       return new NextResponse(certificateHTML, {
         status: 200,
         headers: {

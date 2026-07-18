@@ -306,12 +306,12 @@ export const DEFAULT_CHARACTER = {
   accent_color: '#45d6ff',
   tint: 'default',
   headgear: 'bare',
-  loadout: 'camera',
+  loadout: 'none',
   outfit: 'plain',
-  hair: 'signature',  // Matched with HTML reference
+  hair: 'signature',
   hair_color: 'default',
   facial: 'none',
-  companion: 'roadrunner',
+  companion: 'none',
 }
 
 

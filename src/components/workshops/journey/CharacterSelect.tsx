@@ -87,11 +87,6 @@ export default function CharacterSelect({
           // Switching from non-human to human - set default hair
           setHair('signature')
         }
-        
-        // Set smart companion defaults
-        if (companion === 'none') {
-          if (k === 'nayeli') setCompanion('roadrunner')
-        }
       }
     }
   }
