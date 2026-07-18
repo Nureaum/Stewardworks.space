@@ -10,7 +10,7 @@ function buildClientCertHTML(opts: any) {
   const { playerName, characterKey, certOrg, certFacilitator, certFacTitle,
     certSponsor, certSponsorOrg, certMessage, deliverables, characterSpriteUri } = opts;
 
-  return `<div style="font-family:Georgia,'Times New Roman',serif;background:#f7f1e0;width:794px;min-height:1123px;border:3px solid #b58a2e;border-radius:5px;color:#3a2c14;padding:48px 56px;text-align:center;box-sizing:border-box">
+  return `<div style="font-family:Georgia,'Times New Roman',serif;background:#f7f1e0;width:794px;min-height:1123px;border:3px solid #b58a2e;border-radius:5px;color:#3a2c14;padding:36px 48px;text-align:center;box-sizing:border-box">
   <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:8px;letter-spacing:3px;color:#a07d2c">✦ ${(certOrg || 'STEWARDWORKS').toUpperCase()} ✦</div>
   <div style="font-size:13px;letter-spacing:5px;color:#8a6a2a;margin-top:9px;text-transform:uppercase">Pilot Workshops · The Steward's Journey</div>
   <div style="height:2px;width:130px;background:#c9a24a;margin:18px auto"></div>
@@ -59,6 +59,11 @@ function buildClientCertHTML(opts: any) {
   </div>
   <div style="border-top:1px solid rgba(138,106,42,.3);margin:24px auto 0;padding-top:20px;max-width:580px;text-align:center">
     <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:8px;color:#a07d2c;letter-spacing:2px;margin-bottom:12px">WITH FUNDING FROM JOBS FIRST THROUGH SDSU</div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:40px">
+      <img src="${typeof window !== 'undefined' ? window.location.origin : ''}/images/cert/logo-ca-jobs-first.png" alt="CA Jobs First" style="height:38px;object-fit:contain" crossorigin="anonymous"/>
+      <img src="${typeof window !== 'undefined' ? window.location.origin : ''}/images/cert/logo-sdsu-rf.png" alt="SDSU RF" style="height:38px;object-fit:contain" crossorigin="anonymous"/>
+      <img src="${typeof window !== 'undefined' ? window.location.origin : ''}/images/cert/logo-becoming.webp" alt="Becoming" style="height:38px;object-fit:contain" crossorigin="anonymous"/>
+    </div>
   </div>
 </div>`;
 }
@@ -246,15 +251,31 @@ export default function VictoryScreen({
       // Wait for fonts to load
       console.log('[CertPDF] Waiting for fonts...');
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('[CertPDF] Fonts ready. Starting html2canvas render...');
+      
+      // Wait for images to load in the container
+      const images = container.querySelectorAll('img');
+      console.log('[CertPDF] Waiting for', images.length, 'images to load...');
+      await Promise.all(Array.from(images).map(img => 
+        new Promise<void>((resolve) => {
+          if (img.complete) { resolve(); return; }
+          img.onload = () => resolve();
+          img.onerror = () => { console.warn('[CertPDF] Failed to load image:', img.src); resolve(); };
+        })
+      ));
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log('[CertPDF] Fonts and images ready. Starting html2canvas render...');
+
+      // Get the actual content height to capture everything
+      const contentHeight = container.scrollHeight || container.offsetHeight || 1123;
+      console.log('[CertPDF] Container actual height:', contentHeight);
 
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#f7f1e0',
         width: 794,
-        height: 1123, // A4 height in px at 96dpi
+        height: contentHeight, // Use actual content height, not fixed A4
       });
       console.log('[CertPDF] Canvas rendered. Size:', canvas.width, 'x', canvas.height);
 
@@ -264,8 +285,26 @@ export default function VictoryScreen({
       console.log('[CertPDF] Image data generated, length:', imgData.length);
       
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
-      console.log('[CertPDF] PDF created. Triggering save...');
+      // Scale the image to fit exactly on one A4 page (210mm x 297mm)
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgAspect = canvas.width / canvas.height;
+      const pageAspect = pageWidth / pageHeight;
+      
+      let imgW = pageWidth;
+      let imgH = pageWidth / imgAspect;
+      
+      // If the image is taller than the page, scale to fit height instead
+      if (imgH > pageHeight) {
+        imgH = pageHeight;
+        imgW = pageHeight * imgAspect;
+      }
+      
+      // Center horizontally
+      const xOffset = (pageWidth - imgW) / 2;
+      
+      pdf.addImage(imgData, 'PNG', xOffset, 0, imgW, imgH);
+      console.log('[CertPDF] PDF created. Dimensions:', imgW.toFixed(1), 'x', imgH.toFixed(1), 'mm. Triggering save...');
       pdf.save(`certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
       console.log('[CertPDF] ✅ PDF save triggered successfully!');
 
