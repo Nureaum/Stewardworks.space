@@ -6,6 +6,63 @@ import type { WorkshopCharacter, WorkshopProgressPrinciple, WorkshopDay, Worksho
 import { MAP_ICONS } from './character-data';
 import { getCelebrateProps, getWinSkill, buildCastFx } from './VictoryEffects';
 
+function buildClientCertHTML(opts: any) {
+  const { playerName, characterKey, certOrg, certFacilitator, certFacTitle,
+    certSponsor, certSponsorOrg, certMessage, deliverables, characterSpriteUri } = opts;
+
+  return `<div style="font-family:Georgia,'Times New Roman',serif;background:#f7f1e0;width:794px;min-height:1123px;border:3px solid #b58a2e;border-radius:5px;color:#3a2c14;padding:48px 56px;text-align:center;box-sizing:border-box">
+  <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:8px;letter-spacing:3px;color:#a07d2c">✦ ${(certOrg || 'STEWARDWORKS').toUpperCase()} ✦</div>
+  <div style="font-size:13px;letter-spacing:5px;color:#8a6a2a;margin-top:9px;text-transform:uppercase">Pilot Workshops · The Steward's Journey</div>
+  <div style="height:2px;width:130px;background:#c9a24a;margin:18px auto"></div>
+  <div style="font-size:42px;font-weight:700;letter-spacing:2px;color:#241a08">Certificate of Completion</div>
+  <div style="font-size:17px;color:#5a4626;margin-top:22px;font-style:italic">This certifies that</div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:15px;margin:12px 0 6px;flex-wrap:wrap">
+    ${characterSpriteUri ? `<img src="${characterSpriteUri}" alt="" width="48" height="48" style="image-rendering:pixelated"/>` : ''}
+    <div style="font-size:36px;font-weight:700;color:#1a1206;border-bottom:2px solid #c9a24a;padding:0 18px 6px">${playerName || 'Student'}</div>
+  </div>
+  <div style="font-size:13px;color:#8a6a2a;letter-spacing:2px;margin-bottom:22px;text-transform:uppercase">Steward · Certified Steward</div>
+  <div style="font-size:17px;line-height:1.75;color:#3a2c14;max-width:580px;margin:0 auto">${certMessage || `has journeyed the full three-day intensive of <strong>The Steward's Journey</strong>, practicing <em>Active Production over Passive Consumption</em> and banking three original deliverables into the <strong>${certOrg || 'StewardWorks'}</strong> portfolio. In recognition of principled, human-in-the-loop craft with artificial intelligence — and of <strong>12 Steward Principles</strong> carried forward — this steward is hereby conferred the standing of <strong>Certified Steward</strong>.`}</div>
+  ${deliverables && deliverables.length > 0 ? `
+  <div style="border-top:2px solid #dcc890;border-bottom:2px solid #dcc890;margin:26px auto;padding:18px 0;max-width:580px;text-align:left">
+    <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:8px;color:#a07d2c;letter-spacing:2px;text-align:center;margin-bottom:15px">◆ DELIVERABLES OF RECORD ◆</div>
+    ${deliverables.map((d: any, idx: number) => `
+    <div style="display:flex;gap:14px;align-items:baseline;margin-bottom:11px">
+      <div style="font-family:'Courier New',monospace;font-weight:bold;flex:none;font-size:10px;color:#8a6a2a;min-width:52px">DAY ${String(idx + 1).padStart(2, '0')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:16px;color:#241a08;font-weight:700">${d.title || 'Deliverable ' + (idx + 1)}</div>
+      </div>
+    </div>`).join('')}
+  </div>` : ''}
+  <div style="display:flex;flex-wrap:wrap;gap:22px;justify-content:space-between;align-items:flex-end;max-width:580px;margin:30px auto 0">
+    <div style="flex:1;min-width:160px;text-align:center">
+      <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1">${certFacilitator || 'Marisol Vega'}</div>
+      <div style="border-top:2px solid #3a2c14;margin-top:5px;padding-top:6px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">${certFacTitle || 'Program Director'} · ${certOrg || 'StewardWorks'}</div>
+    </div>
+    <div style="flex:none;text-align:center">
+      <div style="width:88px;height:88px;border-radius:50%;background:radial-gradient(circle at 38% 30%,#f6dd8c 0%,#e6bd54 46%,#c69528 78%,#9c7015 100%);border:3px solid #8a6a2a;margin:0 auto;display:flex;align-items:center;justify-content:center">
+        <span style="font-size:24px">⚝</span>
+      </div>
+      <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:6px;color:#8a6a2a;margin-top:7px;letter-spacing:2px">OFFICIAL SEAL</div>
+    </div>
+    <div style="flex:1;min-width:160px;text-align:center">
+      <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1">${playerName || 'Student'}</div>
+      <div style="border-top:2px solid #3a2c14;margin-top:5px;padding-top:6px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">THE STEWARD</div>
+    </div>
+  </div>
+  <div style="max-width:300px;margin:24px auto 0;text-align:center">
+    <div style="font-family:'Segoe Script','Brush Script MT',cursive;font-size:27px;color:#1a1206;line-height:1">${certSponsor || 'Authorized Signatory'}</div>
+    <div style="border-top:2px solid #3a2c14;margin-top:5px;padding-top:6px;font-size:11px;letter-spacing:1px;color:#5a4626;text-transform:uppercase">FISCAL SPONSOR · ${certSponsorOrg || 'SDSU Research Foundation'}</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;max-width:580px;margin:26px auto 0;font-size:11px;color:#8a6a2a;letter-spacing:1px;font-family:'Courier New',monospace">
+    <div>ISSUED ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+    <div>CERTIFICATE NO. SW-${(characterKey || 'TEST').toUpperCase()}-${Date.now().toString().slice(-4)}</div>
+  </div>
+  <div style="border-top:1px solid rgba(138,106,42,.3);margin:24px auto 0;padding-top:20px;max-width:580px;text-align:center">
+    <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:8px;color:#a07d2c;letter-spacing:2px;margin-bottom:12px">WITH FUNDING FROM JOBS FIRST THROUGH SDSU</div>
+  </div>
+</div>`;
+}
+
 interface VictoryScreenProps {
   character: WorkshopCharacter;
   daysComplete: number;
@@ -120,13 +177,17 @@ export default function VictoryScreen({
 
   const handleDownloadCertificate = async () => {
     setIsDownloadingPDF(true);
+    console.log('[CertPDF] Starting certificate download...');
     
     try {
       // Fetch latest certificate settings from database
+      console.log('[CertPDF] Fetching certificate settings...');
       const certResponse = await fetch(`/api/workshops/${cohortId}/certificate-settings`);
       const latestCertSettings = certResponse.ok ? await certResponse.json() : certSettings;
+      console.log('[CertPDF] Certificate settings loaded:', JSON.stringify(latestCertSettings).slice(0, 200));
       
       // Generate character sprite URI
+      console.log('[CertPDF] Generating sprite URI...');
       const { buildSpriteUri } = await import('@/components/workshops/journey/PixelSprite');
       const characterSpriteUri = buildSpriteUri(
         character.character_key,
@@ -136,6 +197,7 @@ export default function VictoryScreen({
           outfit: (character as any).outfit || 'plain'
         }
       );
+      console.log('[CertPDF] Sprite URI generated, length:', characterSpriteUri?.length);
 
       // Prepare deliverables data
       const deliverables = days.slice(0, 3).map((day, idx) => {
@@ -146,57 +208,73 @@ export default function VictoryScreen({
           url: ''
         };
       });
+      console.log('[CertPDF] Deliverables prepared:', deliverables.length);
 
-      // Call the PDF generation API
-      const response = await fetch('/api/certificate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          playerName: playerName,
-          characterKey: character.character_key,
-          certOrg: latestCertSettings.certOrg,
-          certFacilitator: latestCertSettings.certFacilitator,
-          certFacTitle: latestCertSettings.certFacTitle,
-          certSponsor: latestCertSettings.certSponsor,
-          certSponsorOrg: latestCertSettings.certSponsorOrg,
-          certMessage: latestCertSettings.certMessage,
-          deliverables: deliverables,
-          characterSpriteUri: characterSpriteUri
-        })
+      // Client-side PDF generation using html2canvas + jsPDF
+      console.log('[CertPDF] Importing html2canvas and jsPDF...');
+      const [html2canvasModule, jsPDFModule] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ]);
+      const html2canvas = html2canvasModule.default;
+      const { jsPDF } = jsPDFModule;
+      console.log('[CertPDF] Libraries loaded successfully. html2canvas:', typeof html2canvas, 'jsPDF:', typeof jsPDF);
+
+      // Create a hidden container with the certificate HTML
+      console.log('[CertPDF] Creating hidden certificate container...');
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '794px'; // A4 width in px at 96dpi
+      container.style.zIndex = '-1';
+      container.innerHTML = buildClientCertHTML({
+        playerName,
+        characterKey: character.character_key,
+        certOrg: latestCertSettings.certOrg,
+        certFacilitator: latestCertSettings.certFacilitator,
+        certFacTitle: latestCertSettings.certFacTitle,
+        certSponsor: latestCertSettings.certSponsor,
+        certSponsorOrg: latestCertSettings.certSponsorOrg,
+        certMessage: latestCertSettings.certMessage,
+        deliverables,
+        characterSpriteUri
       });
+      document.body.appendChild(container);
+      console.log('[CertPDF] Container added to DOM, innerHTML length:', container.innerHTML.length);
 
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF');
-      }
+      // Wait for fonts to load
+      console.log('[CertPDF] Waiting for fonts...');
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[CertPDF] Fonts ready. Starting html2canvas render...');
 
-      const contentType = response.headers.get('content-type') || '';
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f7f1e0',
+        width: 794,
+        height: 1123, // A4 height in px at 96dpi
+      });
+      console.log('[CertPDF] Canvas rendered. Size:', canvas.width, 'x', canvas.height);
+
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL('image/png');
+      console.log('[CertPDF] Image data generated, length:', imgData.length);
       
-      if (contentType.includes('text/html')) {
-        // Fallback: open HTML certificate in new window for printing
-        const html = await response.text();
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(html);
-          printWindow.document.close();
-          setTimeout(() => printWindow.print(), 500);
-        }
-      } else {
-        // Download the PDF
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      console.log('[CertPDF] PDF created. Triggering save...');
+      pdf.save(`certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
+      console.log('[CertPDF] ✅ PDF save triggered successfully!');
+
     } catch (error) {
-      console.error('Error downloading certificate:', error);
-      alert('Failed to download certificate. Please try again.');
+      console.error('[CertPDF] ❌ ERROR:', error);
+      console.error('[CertPDF] Error name:', (error as any)?.name);
+      console.error('[CertPDF] Error message:', (error as any)?.message);
+      console.error('[CertPDF] Error stack:', (error as any)?.stack);
+      alert('Failed to download certificate. Check browser console for details.');
     } finally {
       setIsDownloadingPDF(false);
     }
