@@ -15,6 +15,8 @@ interface JourneySceneProps {
   cohortId: string
   principles: WorkshopPrinciple[]
   bankedPrincipleIds: string[]
+  bankedPrinciples?: any[] // full objects with { progress_id, principle_id } — approved only
+  allBankedPrinciples?: any[] // includes submitted+approved, for pending detection
   progressRows: WorkshopProgress[]
   submissions?: any[]
   onDeliverableSubmitted: (msg: string, shouldOpenVictory?: boolean) => void
@@ -162,7 +164,7 @@ const ARTIFACT_SPACING = 500
 
 function artifactX(i: number) { return ARTIFACT_X_START + i * ARTIFACT_SPACING }
 
-export default function JourneyScene({ character, day, visited, setVisited, onBack, cohortId, principles, bankedPrincipleIds, progressRows, submissions = [], onDeliverableSubmitted, onOpenList }: JourneySceneProps) {
+export default function JourneyScene({ character, day, visited, setVisited, onBack, cohortId, principles, bankedPrincipleIds, bankedPrinciples = [], allBankedPrinciples = [], progressRows, submissions = [], onDeliverableSubmitted, onOpenList }: JourneySceneProps) {
   // ALWAYS use hardcoded scene config matching the original reference exactly
   // (ignoring any database scene_config values which may have old/incorrect colors)
   const sc: any = DEFAULT_SCENES[day.day_number] || DEFAULT_SCENES[1]
@@ -752,6 +754,7 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
       {/* ── Artifact Reader modal ── */}
       {activeEntry && (
         <ArtifactReader
+          key={`${day.id}-${activeEntry.id}`}
           entry={activeEntry}
           dayId={day.id}
           dayNumber={day.day_number}
@@ -761,8 +764,17 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
           cohortId={cohortId}
           principles={principles}
           bankedPrincipleIds={bankedPrincipleIds}
+          currentDayPrincipleId={(() => {
+            // Find the progress row for this specific day
+            const dayProgress = progressRows.find(p => p.workshop_day_id === day.id)
+            if (!dayProgress) return null
+            // Use allBankedPrinciples (submitted+approved) so pending submissions also show their principle
+            const bankedMatch = allBankedPrinciples.find((bp: any) => bp.progress_id === dayProgress.id)
+            return bankedMatch?.principle_id || null
+          })()}
           progressRows={progressRows}
           submissions={submissions}
+          allBankedPrinciples={allBankedPrinciples}
           onDeliverableSubmitted={onDeliverableSubmitted}
         />
       )}

@@ -822,6 +822,38 @@ export async function reviewApprovalItem(id: string, kind: string, action: 'appr
       .eq('id', id)
       
     if (error) throw new Error(`Failed to ${action} deliverable: ${error.message}`)
+
+    // When admin REJECTS a deliverable, unlock the principle so the student can pick again
+    if (action === 'reject') {
+      console.log('[reviewApprovalItem] Rejection: deleting banked principle for progress_id:', id)
+      const { error: principleDeleteError } = await supabase
+        .from('workshop_progress_principles')
+        .delete()
+        .eq('progress_id', id)
+      if (principleDeleteError) {
+        console.error('[reviewApprovalItem] Failed to delete principle on rejection:', principleDeleteError.message)
+      } else {
+        console.log('[reviewApprovalItem] Principle unlocked successfully on rejection')
+      }
+    }
+
+    // Find the cohort_id so we can revalidate the student's journey page too
+    const { data: progressRow } = await supabase
+      .from('workshop_progress')
+      .select('workshop_day_id')
+      .eq('id', id)
+      .single()
+    if (progressRow?.workshop_day_id) {
+      const { data: dayRow } = await supabase
+        .from('workshop_days')
+        .select('cohort_id')
+        .eq('id', progressRow.workshop_day_id)
+        .single()
+      if (dayRow?.cohort_id) {
+        revalidatePath(`/hub/pilot-workshops/${dayRow.cohort_id}/journey`)
+        revalidatePath(`/hub/pilot-workshops/${dayRow.cohort_id}`)
+      }
+    }
   } else {
     const status = action === 'approve' ? 'approved' : 'rejected'
     const { error } = await supabase

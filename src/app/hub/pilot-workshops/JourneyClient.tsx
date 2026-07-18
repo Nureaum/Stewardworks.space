@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   MonitorFrame,
   JourneyHeader,
@@ -40,6 +41,7 @@ interface JourneyClientProps {
   progressRows: WorkshopProgress[]
   principles: WorkshopPrinciple[]
   bankedPrinciples: WorkshopProgressPrinciple[]
+  allBankedPrinciples?: WorkshopProgressPrinciple[]  // submitted+approved for pending detection
   initialEngagements: WorkshopEngagement[]
   submissions?: any[]
   showcaseItems: WorkshopShowcase[]
@@ -58,6 +60,7 @@ export default function JourneyClient({
   progressRows,
   principles,
   bankedPrinciples: initialBankedPrinciples,
+  allBankedPrinciples = [],
   initialEngagements,
   submissions = [],
   showcaseItems,
@@ -68,6 +71,7 @@ export default function JourneyClient({
 }: JourneyClientProps) {
   const [tab, setTab] = useState<JourneyTab>(initialTab)
   const [screen, setScreen] = useState<JourneyScreen>(initialCharacter ? 'map' : 'select')
+  const router = useRouter()
   const [role, setRole] = useState<Role>(initialRole)
   const [character, setCharacter] = useState(initialCharacter)
   const [activeDay, setActiveDay] = useState<number>(1)
@@ -413,10 +417,13 @@ export default function JourneyClient({
                   cohortId={cohortId}
                   principles={principles}
                   bankedPrincipleIds={bankedPrinciples.map(p => p.principle_id)}
+                  bankedPrinciples={bankedPrinciples}
+                  allBankedPrinciples={allBankedPrinciples}
                   progressRows={progressRows}
                   submissions={submissions}
                   onDeliverableSubmitted={(msg, shouldOpenVictory) => {
                     showToast(msg)
+                    router.refresh()
                     if (shouldOpenVictory) {
                       // Automatically open victory screen when all 3 days are complete
                       setTimeout(() => setVictoryVisible(true), 800)
@@ -439,6 +446,18 @@ export default function JourneyClient({
                     activeDay={activeDay}
                     daysComplete={daysComplete}
                     onChangeDay={(dayNum) => setActiveDay(dayNum)}
+                    principles={principles}
+                    bankedPrincipleIds={bankedPrinciples.map(p => p.principle_id)}
+                    bankedPrinciples={bankedPrinciples}
+                    allBankedPrinciples={allBankedPrinciples}
+                    submissions={submissions}
+                    onDeliverableSubmitted={(msg, shouldOpenVictory) => {
+                      showToast(msg)
+                      router.refresh()
+                      if (shouldOpenVictory) {
+                        setTimeout(() => setVictoryVisible(true), 800)
+                      }
+                    }}
                 />
               ) : (
                 <TreasureMap

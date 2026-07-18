@@ -39,6 +39,7 @@ interface JourneyClientProps {
   progressRows: WorkshopProgress[]
   principles: WorkshopPrinciple[]
   bankedPrinciples: WorkshopProgressPrinciple[]
+  allBankedPrinciples?: WorkshopProgressPrinciple[]  // includes submitted+approved for pending detection
   initialEngagements: WorkshopEngagement[]
   submissions?: any[]
   showcaseItems: WorkshopShowcase[]
@@ -57,6 +58,7 @@ export default function JourneyClient({
   progressRows,
   principles,
   bankedPrinciples: initialBankedPrinciples,
+  allBankedPrinciples = [],
   initialEngagements,
   submissions = [],
   showcaseItems,
@@ -328,9 +330,14 @@ export default function JourneyClient({
                   cohortId={cohortId}
                   principles={principles}
                   bankedPrincipleIds={bankedPrinciples.map(p => p.principle_id)}
+                  bankedPrinciples={bankedPrinciples}
+                  allBankedPrinciples={allBankedPrinciples}
                   progressRows={progressRows}
                   submissions={submissions}
-                  onDeliverableSubmitted={(msg) => setToast(msg)}
+                  onDeliverableSubmitted={(msg) => {
+                    setToast(msg)
+                    router.refresh()
+                  }}
                   onOpenList={() => setToast('Day list not yet implemented')}
                 />
               ) : null}

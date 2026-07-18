@@ -20,6 +20,12 @@ interface JourneyDayListProps {
   activeDay?: number
   daysComplete?: number
   onChangeDay?: (dayNum: number) => void
+  principles?: any[]
+  bankedPrincipleIds?: string[]
+  bankedPrinciples?: any[]        // approved-only, full objects { progress_id, principle_id }
+  allBankedPrinciples?: any[]     // submitted+approved, for pending detection in the picker
+  submissions?: any[]
+  onDeliverableSubmitted?: (msg: string, shouldOpenVictory?: boolean) => void
 }
 
 function secColor(a: string) {
@@ -39,7 +45,13 @@ export default function JourneyDayList({
   days = [],
   activeDay = 1,
   daysComplete = 0,
-  onChangeDay
+  onChangeDay,
+  principles = [],
+  bankedPrincipleIds = [],
+  bankedPrinciples = [],
+  allBankedPrinciples = [],
+  submissions = [],
+  onDeliverableSubmitted
 }: JourneyDayListProps) {
   // Get all entries flat
   const allEntries = day.sections?.flatMap(s => s.entries?.map(e => ({
@@ -56,6 +68,19 @@ export default function JourneyDayList({
     }
     return allEntries[0] || null
   })
+
+  // When the day changes, automatically select the first entry of the new day
+  React.useEffect(() => {
+    if (allEntries.length > 0) {
+      // Only reset if the current active entry is not in the new day's entries
+      const stillExists = allEntries.some(e => e.id === activeEntry?.id)
+      if (!stillExists) {
+        setActiveEntry(allEntries[0])
+      }
+    } else {
+      setActiveEntry(null)
+    }
+  }, [day.id])
 
   const accent = character?.accent_color || '#45d6ff'
   const dayIconUri = buildIconUri(MAP_ICONS.tent, accent) // Simplified icon
@@ -194,6 +219,7 @@ export default function JourneyDayList({
         <div style={{ flex: '2 1 400px', background: 'linear-gradient(180deg, rgba(0,0,0,.08), transparent)' }}>
           {activeEntry ? (
             <ArtifactReader
+              key={`${day.id}-${activeEntry.id}`}
               entry={activeEntry}
               dayId={day.id}
               dayNumber={day.day_number}
@@ -202,6 +228,19 @@ export default function JourneyDayList({
               cohortId={cohortId}
               progressRows={progressRows}
               inline={true}
+              principles={principles}
+              bankedPrincipleIds={bankedPrincipleIds}
+              currentDayPrincipleId={(() => {
+                // Find the progress row for this specific day
+                const dayProgress = progressRows.find(p => p.workshop_day_id === day.id)
+                if (!dayProgress) return null
+                // Use allBankedPrinciples (submitted+approved) so pending submissions also show their principle
+                const bankedMatch = allBankedPrinciples.find((bp: any) => bp.progress_id === dayProgress.id)
+                return bankedMatch?.principle_id || null
+              })()}
+              submissions={submissions}
+              allBankedPrinciples={allBankedPrinciples}
+              onDeliverableSubmitted={onDeliverableSubmitted}
             />
           ) : (
             <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--mu,#a493c9)', fontSize: 15 }}>

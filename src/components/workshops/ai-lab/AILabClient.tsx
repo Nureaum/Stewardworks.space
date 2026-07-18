@@ -246,15 +246,17 @@ export default function AILabClient({
                       principles={principles} 
                       initialEngagements={initialEngagements}
                       currentDaySubmission={(() => {
-                        const currentDay = days?.find(d => d.day_number === day);
+                        const currentDay = days?.find((d: any) => d.day_number === day);
                         if (!currentDay) return null;
                         return submissions?.find((s: any) => s.workshop_day_id === currentDay.id) || null;
                       })()}
                       currentDayProgress={(() => {
-                        const currentDayDash = dashboard?.find((d: any) => d.day?.day_number === day);
+                        // dashboard items have day_number at the top level (not nested under .day)
+                        const currentDayDash = dashboard?.find((d: any) => d.day_number === day);
                         return currentDayDash?.progress || null;
                       })()}
                       bankedPrincipleIds={bankedPrinciples.map((bp: any) => bp.principle_id)}
+                      onChangeDay={(d) => { setDay(d); setActiveEntry(null); }}
                     />
                   </div>
                 )}

@@ -98,16 +98,16 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
         if (subData) submissions = subData;
       }
       
-      // Fetch banked principles for submitted or approved progress
-      // This prevents users from selecting the same principle while waiting for approval
-      const submittedOrApprovedProgressIds = dashboard
-        .filter(d => d.progress && (d.progress.deliverable_status === 'submitted' || d.progress.deliverable_status === 'approved'))
+      // Only count principles for APPROVED rows — principles are only locked after admin approves.
+      const activeProgressIds = dashboard
+        .filter(d => d.progress && d.progress.deliverable_status === 'approved')
         .map(d => d.progress.id);
-      if (submittedOrApprovedProgressIds.length > 0) {
+      if (activeProgressIds.length > 0) {
         const { data: bpData } = await supabase
           .from('workshop_progress_principles')
           .select('*')
-          .in('progress_id', submittedOrApprovedProgressIds);
+          .in('progress_id', activeProgressIds)
+          .order('banked_at', { ascending: false });
         if (bpData) bankedPrinciples = bpData;
       }
     } catch (e) {

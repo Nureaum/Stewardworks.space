@@ -61,7 +61,8 @@ export default function SubmissionTracker({
   initialEngagements = [],
   currentDaySubmission,
   currentDayProgress,
-  bankedPrincipleIds = []
+  bankedPrincipleIds = [],
+  onChangeDay
 }: { 
   day: number, 
   dayId?: string, 
@@ -73,6 +74,7 @@ export default function SubmissionTracker({
   currentDaySubmission?: DaySubmission | null,
   currentDayProgress?: DayProgress | null,
   bankedPrincipleIds?: string[]
+  onChangeDay?: (day: number) => void
 }) {
   const [minimized, setMinimized] = useState(false);
   const [selectedPrinciple, setSelectedPrinciple] = useState('');
@@ -86,6 +88,8 @@ export default function SubmissionTracker({
   const [localProgress, setLocalProgress] = useState<DayProgress | null>(currentDayProgress || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  // Track banked principles locally so UI updates immediately after submission
+  const [localBankedPrincipleIds, setLocalBankedPrincipleIds] = useState<string[]>(bankedPrincipleIds);
 
   // Check if already submitted
   const isAlreadySubmitted = localProgress?.deliverable_status === 'submitted' || localProgress?.deliverable_status === 'approved';
@@ -95,7 +99,19 @@ export default function SubmissionTracker({
   useEffect(() => {
     setLocalSubmission(currentDaySubmission || null);
     setLocalProgress(currentDayProgress || null);
-  }, [currentDaySubmission, currentDayProgress]);
+    setLocalBankedPrincipleIds(bankedPrincipleIds);
+    setIsEditMode(false);
+    setSubmissionTitle('');
+    setSubmissionDescription('');
+    setSubmissionUrl('');
+    setFileToUpload(null);
+    setSelectedPrinciple('');
+  }, [day, currentDaySubmission, currentDayProgress]);
+
+  // Keep banked IDs in sync when props refresh (e.g. after router.refresh)
+  useEffect(() => {
+    setLocalBankedPrincipleIds(bankedPrincipleIds);
+  }, [bankedPrincipleIds.join(',')]);
 
   // Get the submitted URL from local submission
   const getSubmittedUrl = () => {
@@ -129,8 +145,14 @@ export default function SubmissionTracker({
         { id: 'p9', name: 'Making Gaps Visible' },
       ];
 
-  // Filter out already banked principles
-  const availablePrinciples = mappedPrinciples.filter((p: any) => !bankedPrincipleIds.includes(p.id));
+  // Find the principle used specifically for THIS day's submission
+  // so we can allow re-selecting it in edit mode
+  const currentDayPrincipleId = (isAlreadySubmitted && localSubmission)
+    ? localBankedPrincipleIds.find(pid => mappedPrinciples.some((p: any) => p.id === pid)) || null
+    : null;
+
+  // IDs banked for OTHER days — these must be blocked from selection
+  const otherDaysBankedIds = localBankedPrincipleIds.filter(id => id !== currentDayPrincipleId);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -155,6 +177,8 @@ export default function SubmissionTracker({
       setSubmissionTitle(localSubmission.title || '');
       setSubmissionDescription(localSubmission.description || '');
       setSubmissionUrl(getSubmittedUrl());
+      // Pre-fill the previously selected principle so user can re-select or change it
+      setSelectedPrinciple(currentDayPrincipleId || '');
     }
     setIsEditMode(true);
   };
@@ -178,8 +202,9 @@ export default function SubmissionTracker({
   };
 
   const handleSubmitDeliverable = async () => {
-    // Allow submission without principle if no unbanked principles remain
-    if (availablePrinciples.length > 0 && !selectedPrinciple) {
+    // Allow submission without principle if no available (non-other-day-banked) principles remain
+    const availableCount = mappedPrinciples.filter((p: any) => !otherDaysBankedIds.includes(p.id)).length;
+    if (availableCount > 0 && !selectedPrinciple) {
       toast.error('Please select a principle first.', { position: 'bottom-center' });
       return;
     }
@@ -227,6 +252,13 @@ export default function SubmissionTracker({
           deliverable_status: 'submitted',
           review_note: null,
         });
+        // Immediately update local banked principles so next day's form excludes this principle
+        if (selectedPrinciple) {
+          setLocalBankedPrincipleIds(prev => {
+            const filtered = prev.filter(id => id !== currentDayPrincipleId); // remove old
+            return [...filtered, selectedPrinciple]; // add new
+          });
+        }
       }
       
       toast('▲ Deliverable banked · pending teacher approval', {
@@ -366,9 +398,11 @@ export default function SubmissionTracker({
                 const d = dObj.day_number || (idx + 1);
                 const isActive = d === day;
                 const isBanked = d <= daysComplete;
+                const isLocked = d > daysComplete + 1;
                 return (
                   <div 
                     key={d} 
+                    onClick={() => !isLocked && onChangeDay && onChangeDay(d)}
                     style={{ 
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -377,7 +411,9 @@ export default function SubmissionTracker({
                       borderRadius: 8, 
                       padding: '12px 14px',
                       background: isActive ? 'rgba(255,210,63,.08)' : 'rgba(0,0,0,.2)',
-                      opacity: (d > daysComplete + 1 && !isActive) ? 0.5 : 1,
+                      opacity: isLocked ? 0.4 : 1,
+                      cursor: isLocked ? 'not-allowed' : (onChangeDay ? 'pointer' : 'default'),
+                      transition: 'all 0.15s',
                     }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -396,7 +432,7 @@ export default function SubmissionTracker({
                       color: isActive ? 'var(--bg,#0e1512)' : 'var(--tx,#d6ffe0)',
                       border: `1px solid ${isActive ? 'var(--sy,#ffd23f)' : 'var(--ln,#28432f)'}`
                     }}>
-                      {isBanked ? '✓ BANKED' : (isActive ? 'ACTIVE' : 'QUEUED')}
+                      {isBanked ? '✓ BANKED' : (isActive ? 'ACTIVE' : isLocked ? '🔒 LOCKED' : 'QUEUED')}
                     </div>
                   </div>
                 );
@@ -450,27 +486,18 @@ export default function SubmissionTracker({
                     </div>
                   )}
 
-                  {/* Submitted URL/Image */}
+                  {/* Submitted URL - always show as a link, never embed image */}
                   {getSubmittedUrl() && (
                     <div style={{ marginBottom: 12 }}>
                       <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>DELIVERABLE</div>
-                      {isImageUrl(getSubmittedUrl()) ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <div style={{ border: '1px solid var(--ln,#28432f)', borderRadius: 6, overflow: 'hidden', maxWidth: 300 }}>
-                            <img src={getSubmittedUrl()} alt="Submitted deliverable" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                          </div>
-                          <a href={getSubmittedUrl()} target="_blank" rel="noopener noreferrer"
-                            style={{ fontSize: 14, color: 'var(--cy,#45d6ff)', fontFamily: "'VT323', monospace" }}>
-                            🔗 View Full Size
-                          </a>
-                        </div>
-                      ) : (
-                        <a href={getSubmittedUrl().startsWith('http') ? getSubmittedUrl() : `https://${getSubmittedUrl()}`} 
-                          target="_blank" rel="noopener noreferrer"
-                          style={{ fontSize: 16, color: 'var(--cy,#45d6ff)', fontFamily: "'VT323', monospace", wordBreak: 'break-all' }}>
-                          🔗 {getSubmittedUrl()}
-                        </a>
-                      )}
+                      <a 
+                        href={getSubmittedUrl().startsWith('http') ? getSubmittedUrl() : `https://${getSubmittedUrl()}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ fontSize: 16, color: 'var(--cy,#45d6ff)', fontFamily: "'VT323', monospace", wordBreak: 'break-all' }}
+                      >
+                        🔗 {getSubmittedUrl()}
+                      </a>
                     </div>
                   )}
 
@@ -484,15 +511,13 @@ export default function SubmissionTracker({
                     </div>
                   )}
 
-                  {/* Edit Button - only show if not approved */}
-                  {!isApproved && (
-                    <div style={{ marginTop: 16 }}>
-                      <button onClick={handleEditClick} className="font-pixel"
-                        style={{ fontSize: 9, color: 'var(--pk,#ff5fd2)', background: 'transparent', border: '2px solid var(--pk,#ff5fd2)', borderRadius: 6, padding: '10px 16px', cursor: 'pointer' }}>
-                        ✎ EDIT DELIVERABLE
-                      </button>
-                    </div>
-                  )}
+                  {/* Edit Button - always show so students can update anytime */}
+                  <div style={{ marginTop: 16 }}>
+                    <button onClick={handleEditClick} className="font-pixel"
+                      style={{ fontSize: 9, color: 'var(--pk,#ff5fd2)', background: 'transparent', border: '2px solid var(--pk,#ff5fd2)', borderRadius: 6, padding: '10px 16px', cursor: 'pointer' }}>
+                      ✎ EDIT & RESUBMIT
+                    </button>
+                  </div>
                 </div>
               ) : (
                 /* Submission Form */
@@ -610,39 +635,44 @@ export default function SubmissionTracker({
                   {/* Principle Selection */}
                   <div>
                     <div className="font-pixel" style={{ fontSize: 8, color: 'var(--pk,#ff5fd2)', marginBottom: 12, letterSpacing: 1 }}>
-                      4 · ASSIGN ONE UNREPEATED STEWARD PRINCIPLE
+                      4 · ASSIGN ONE STEWARD PRINCIPLE <span style={{ color: 'var(--mu,#77b78d)', fontSize: 7 }}>(each can only be used once across all days)</span>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {availablePrinciples.map((p: any, i) => {
+                      {mappedPrinciples.map((p: any, i) => {
                         const principleId = p.id || p;
                         const principleName = p.name || p.title || p;
                         const isSelected = selectedPrinciple === principleId;
+                        const isUsedOtherDay = otherDaysBankedIds.includes(principleId);
+                        const isCurrentDayPrinciple = principleId === currentDayPrincipleId;
                         return (
                           <button
                             key={principleId || i}
-                            onClick={() => setSelectedPrinciple(principleId)}
+                            onClick={() => !isUsedOtherDay && setSelectedPrinciple(principleId)}
+                            title={isUsedOtherDay ? 'Already used in another day' : ''}
                             style={{
-                              background: isSelected ? 'rgba(77,255,160,.15)' : 'rgba(0,0,0,.3)',
+                              background: isSelected ? 'rgba(77,255,160,.15)' : isUsedOtherDay ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.3)',
                               border: `1px solid ${isSelected ? 'var(--ng,#4dffa0)' : 'var(--ln,#28432f)'}`,
                               borderRadius: 20,
                               padding: '6px 12px',
-                              color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--tx,#d6ffe0)',
+                              color: isSelected ? 'var(--ng,#4dffa0)' : isUsedOtherDay ? 'rgba(119,183,141,0.3)' : 'var(--tx,#d6ffe0)',
                               fontFamily: "'VT323', monospace",
                               fontSize: 15,
-                              cursor: 'pointer',
+                              cursor: isUsedOtherDay ? 'not-allowed' : 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: 6,
-                              transition: 'all 0.2s'
+                              transition: 'all 0.2s',
+                              opacity: isUsedOtherDay ? 0.4 : 1,
+                              textDecoration: isUsedOtherDay ? 'line-through' : 'none',
                             }}
                           >
-                            <span style={{ color: isSelected ? 'var(--ng,#4dffa0)' : 'var(--mu,#77b78d)', fontSize: 10 }}>◈</span> {principleName}
+                            <span style={{ color: isSelected ? 'var(--ng,#4dffa0)' : isUsedOtherDay ? 'rgba(119,183,141,0.3)' : 'var(--mu,#77b78d)', fontSize: 10 }}>◈</span> {principleName}
                           </button>
                         )
                       })}
-                      {availablePrinciples.length === 0 && (
+                      {mappedPrinciples.filter((p: any) => !otherDaysBankedIds.includes(p.id || p)).length === 0 && (
                         <span className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#77b78d)', fontStyle: 'italic' }}>
-                          No unbanked principles left!
+                          No fresh principles left!
                         </span>
                       )}
                     </div>

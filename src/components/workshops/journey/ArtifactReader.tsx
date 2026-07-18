@@ -15,6 +15,8 @@ interface ArtifactReaderProps {
   cohortId?: string
   principles?: WorkshopPrinciple[]
   bankedPrincipleIds?: string[]
+  allBankedPrinciples?: { progress_id: string; principle_id: string }[]  // full objects for pending detection
+  currentDayPrincipleId?: string | null  // principle used for THIS day's submission
   progressRows?: WorkshopProgress[]
   submissions?: WorkshopDeliverableSubmission[]
   onDeliverableSubmitted?: (msg: string, shouldOpenVictory?: boolean) => void
@@ -44,7 +46,7 @@ function relicUri(type: string, accent: string): string {
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='72' height='60' viewBox='0 0 72 60' shape-rendering='crispEdges'>${relic}</svg>`)}`
 }
 
-export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], progressRows = [], submissions = [], onDeliverableSubmitted, onClose, inline }: ArtifactReaderProps) {
+export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], allBankedPrinciples = [], currentDayPrincipleId: propCurrentDayPrincipleId, progressRows = [], submissions = [], onDeliverableSubmitted, onClose, inline }: ArtifactReaderProps) {
   const readerAccent = secColor(entry.sectionKey)
   const iconSrc = relicUri(entry.entry_type, accent)
   const actLabel = scene?.label || `ACT ${dayNumber}`
@@ -67,7 +69,14 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
   const [showFeaturedPopup, setShowFeaturedPopup] = useState(false)
   const [fileToUpload, setFileToUpload] = useState<File | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
+  // Track banked principles locally so the list updates immediately after submission
+  const [localBankedPrincipleIds, setLocalBankedPrincipleIds] = useState<string[]>(bankedPrincipleIds)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Keep in sync when parent refreshes props
+  React.useEffect(() => {
+    setLocalBankedPrincipleIds(bankedPrincipleIds)
+  }, [bankedPrincipleIds.join(',')])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -90,6 +99,26 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
 
   const dayProgress = progressRows.find(p => p.workshop_day_id === dayId)
   const isSubmitted = dayProgress?.deliverable_status === 'submitted' || dayProgress?.deliverable_status === 'approved'
+  const isRejected = dayProgress?.deliverable_status === 'rejected'
+
+  // Track the current day's principle locally so it updates immediately on submit
+  const [localCurrentDayPrincipleId, setLocalCurrentDayPrincipleId] = useState<string | null>(propCurrentDayPrincipleId || null)
+
+  React.useEffect(() => {
+    if (propCurrentDayPrincipleId !== undefined) {
+      setLocalCurrentDayPrincipleId(propCurrentDayPrincipleId)
+    }
+  }, [propCurrentDayPrincipleId])
+
+  // Principles used by OTHER days — only APPROVED submissions fully lock a principle.
+  const otherDaysBankedIds = localBankedPrincipleIds.filter(id => id !== localCurrentDayPrincipleId)
+
+  // Principles that are PENDING (submitted but not yet approved) on OTHER days.
+  // Derived from other days' progress rows with status 'submitted', matched via allBankedPrinciples.
+  const pendingOtherDayPrincipleIds = progressRows
+    .filter(p => p.workshop_day_id !== dayId && p.deliverable_status === 'submitted')
+    .map(p => allBankedPrinciples.find(bp => bp.progress_id === p.id)?.principle_id)
+    .filter(Boolean) as string[]
 
   const handleSubmit = async () => {
     if ((!url.trim() && !fileToUpload) || !dayId || isSubmitting) return
@@ -97,9 +126,9 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
       alert('Please enter a title for your deliverable')
       return
     }
-    // Allow submission without principle if no unbanked principles remain
-    const unbankedCount = principles.filter(p => !bankedPrincipleIds.includes(p.id)).length
-    if (unbankedCount > 0 && !selectedPrinciple) {
+    // Allow submission without principle if no available principles remain
+    const availableCount = principles.filter(p => !otherDaysBankedIds.includes(p.id) && !pendingOtherDayPrincipleIds.includes(p.id)).length
+    if (availableCount > 0 && !selectedPrinciple) {
       alert('Please select a principle for your deliverable')
       return
     }
@@ -139,12 +168,23 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
       const willBeComplete = currentlyComplete + 1
       const shouldOpenVictory = willBeComplete >= 3
       
+      // Immediately update local banked principles so subsequent day forms exclude this principle
+      if (selectedPrinciple) {
+        setLocalBankedPrincipleIds(prev => {
+          const filtered = prev.filter(id => id !== localCurrentDayPrincipleId) // remove old day principle
+          return [...filtered, selectedPrinciple] // add new one
+        })
+        setLocalCurrentDayPrincipleId(selectedPrinciple)
+      }
+
       if (onDeliverableSubmitted) {
         const message = shouldOpenVictory 
           ? '★ Final deliverable banked — quest complete!' 
           : 'Deliverable submitted successfully! Pending admin approval.'
         onDeliverableSubmitted(message, shouldOpenVictory)
       }
+      setIsSubmitting(false)
+      setIsEditMode(false)
       if (onClose) onClose()
     } catch (e: any) {
       alert(e?.message || 'Failed to submit deliverable')
@@ -353,13 +393,74 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   const submittedUrl = daySubmission?.external_video_url || daySubmission?.submission_text || ''
                   const cleanSubmittedUrl = submittedUrl.replace('[SHOWCASE_REQUESTED]', '').replace(/Selected Principle ID:.*$/, '').trim()
                   
-                  // Get the principle that was banked with this submission
-                  const submittedPrincipleId = bankedPrincipleIds.find(pid => {
-                    // The bankedPrincipleIds includes principles for this day
-                    return principles.some(p => p.id === pid)
-                  })
+                  // Get the principle that was banked with this submission (use local state for freshness)
+                  const submittedPrincipleId = localCurrentDayPrincipleId
                   const submittedPrinciple = submittedPrincipleId ? principles.find(p => p.id === submittedPrincipleId) : null
                   
+                  if (isRejected && !isEditMode) {
+                    // Show the rejected/returned view — needs resubmission
+                    return (
+                      <div style={{ border: '2px solid var(--er,#ff5f5f)', borderRadius: 6, padding: 16, background: 'rgba(255,95,95,.06)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                          <span className="font-pixel" style={{ fontSize: 11, color: 'var(--er,#ff5f5f)' }}>✕ RETURNED — NEEDS RESUBMISSION</span>
+                        </div>
+
+                        {/* Show teacher's return note */}
+                        {dayProgress?.review_note && (
+                          <div style={{ marginBottom: 14, padding: '12px 14px', borderRadius: 6, background: 'rgba(255,95,95,.12)', borderLeft: '4px solid var(--er,#ff5f5f)' }}>
+                            <div className="font-pixel" style={{ fontSize: 9, color: 'var(--er,#ff5f5f)', marginBottom: 6 }}>
+                              ▤ TEACHER FEEDBACK:
+                            </div>
+                            <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>
+                              {dayProgress.review_note}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Show what was originally submitted */}
+                        {daySubmission?.title && (
+                          <div className="font-pixel" style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
+                            {daySubmission.title}
+                          </div>
+                        )}
+                        {daySubmission?.description && (
+                          <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 8, lineHeight: 1.4 }}>
+                            {daySubmission.description}
+                          </div>
+                        )}
+                        {cleanSubmittedUrl && (
+                          <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 10, wordBreak: 'break-all' }}>
+                            🔗 <a href={cleanSubmittedUrl.startsWith('http') ? cleanSubmittedUrl : `https://${cleanSubmittedUrl}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--s,#45d6ff)', textDecoration: 'underline' }}>
+                              {cleanSubmittedUrl}
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Resubmit button — pre-fills the form with old data */}
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+                          <button
+                            onClick={() => {
+                              setIsEditMode(true)
+                              setTitle(daySubmission?.title || '')
+                              setDescription(daySubmission?.description || '')
+                              setUrl(cleanSubmittedUrl)
+                              setSelectedPrinciple('')  // principle was freed on rejection, pick fresh
+                            }}
+                            className="font-pixel"
+                            style={{ fontSize: 9, color: '#ff5f5f', background: 'none', border: '2px solid #ff5f5f', borderRadius: 4, padding: '9px 14px', cursor: 'pointer' }}
+                          >
+                            ↺ RESUBMIT DELIVERABLE
+                          </button>
+                          {onClose && (
+                            <button onClick={onClose} className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', background: 'none', border: '2px solid var(--gold,#ffd23f)', borderRadius: 4, padding: '9px 12px', cursor: 'pointer' }}>
+                              ◂ BACK
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  }
+
                   if (isSubmitted && !isEditMode) {
                     // Show the completed/banked view
                     const statusColor = dayProgress?.deliverable_status === 'approved' ? 'var(--ok,#74f0a0)' : 'var(--gold,#ffd23f)'
@@ -401,8 +502,14 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         {/* Show banked principle */}
                         {submittedPrinciple && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '10px 0' }}>
-                            <span style={{ fontSize: 14, color: 'var(--ok,#74f0a0)', border: '1px solid var(--ok,#74f0a0)', borderRadius: 20, padding: '2px 10px' }}>
-                              ◈ {submittedPrinciple.name}
+                            <span style={{ 
+                              fontSize: 14, 
+                              color: dayProgress?.deliverable_status === 'approved' ? 'var(--ok,#74f0a0)' : '#ffa032',
+                              border: `1px solid ${dayProgress?.deliverable_status === 'approved' ? 'var(--ok,#74f0a0)' : '#ffa032'}`, 
+                              borderRadius: 20, 
+                              padding: '2px 10px' 
+                            }}>
+                              ◈ {submittedPrinciple.name} {dayProgress?.deliverable_status !== 'approved' && <span style={{fontSize: 9, marginLeft: 4}}>⏳PENDING</span>}
                             </span>
                           </div>
                         )}
@@ -421,21 +528,21 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         
                         {/* Action buttons */}
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-                          {/* Edit/Resubmit button - only show if not approved */}
-                          {dayProgress?.deliverable_status !== 'approved' && (
-                            <button 
-                              onClick={() => {
-                                setIsEditMode(true)
-                                setTitle(daySubmission?.title || '')
-                                setDescription(daySubmission?.description || '')
-                                setUrl(cleanSubmittedUrl)
-                              }}
-                              className="font-pixel" 
-                              style={{ fontSize: 9, color: 'var(--p,#ff5fd2)', background: 'none', border: '2px solid var(--p,#ff5fd2)', borderRadius: 4, padding: '9px 12px', cursor: 'pointer' }}
-                            >
-                              ✎ EDIT & RESUBMIT
-                            </button>
-                          )}
+                          {/* Edit/Resubmit button - always show so students can update anytime */}
+                          <button 
+                            onClick={() => {
+                              setIsEditMode(true)
+                              setTitle(daySubmission?.title || '')
+                              setDescription(daySubmission?.description || '')
+                              setUrl(cleanSubmittedUrl)
+                              // Pre-fill the previously selected principle
+                              setSelectedPrinciple(submittedPrincipleId || '')
+                            }}
+                            className="font-pixel" 
+                            style={{ fontSize: 9, color: 'var(--p,#ff5fd2)', background: 'none', border: '2px solid var(--p,#ff5fd2)', borderRadius: 4, padding: '9px 12px', cursor: 'pointer' }}
+                          >
+                            ✎ EDIT & RESUBMIT
+                          </button>
                           {cohortId && (
                             <a href={`/hub/pilot-workshops/${cohortId}?tab=portfolio`} style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: 'var(--s,#45d6ff)', textDecoration: 'none', border: '2px solid var(--s,#45d6ff)', borderRadius: 4, padding: '9px 12px' }}>
                               VIEW IN PORTFOLIO ↗
@@ -468,7 +575,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                               setFileToUpload(null)
                             }}
                             className="font-pixel"
-                            style={{ fontSize: 8, color: 'var(--mu,#a493c9)', background: 'none', border: '1px solid var(--ln,#3d2668)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer' }}
+                            style={{ fontSize: 12, color: 'var(--mu,#a493c9)', background: 'none', border: '1px solid var(--ln,#3d2668)', borderRadius: 4, padding: '8px 12px', cursor: 'pointer' }}
                           >
                             CANCEL
                           </button>
@@ -582,30 +689,49 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                       </div>
                       
                       <div className="font-pixel" style={{ fontSize: 8, color: 'var(--p,#ff5fd2)', marginBottom: 9 }}>
-                        4 · Assign <span style={{ color: 'var(--gold,#ffd23f)' }}>at least one fresh Steward Principle</span>:
+                        4 · Assign <span style={{ color: 'var(--gold,#ffd23f)' }}>a fresh Steward Principle</span>
+                        <span style={{ color: 'var(--mu,#a493c9)', marginLeft: 6 }}>(each principle can only be used once)</span>:
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
-                        {principles.filter(p => !bankedPrincipleIds.includes(p.id)).map(p => (
-                          <div
-                            key={p.id}
-                            onClick={() => setSelectedPrinciple(p.id)}
-                            className="font-pixel"
-                            style={{
-                              fontSize: 9,
-                              padding: '6px 10px',
-                              borderRadius: 4,
-                              cursor: 'pointer',
-                              background: selectedPrinciple === p.id ? 'var(--gold,#ffd23f)' : 'rgba(0,0,0,.3)',
-                              color: selectedPrinciple === p.id ? '#000' : 'var(--mu,#a493c9)',
-                              border: `1px solid ${selectedPrinciple === p.id ? 'var(--gold,#ffd23f)' : 'var(--ln,#3d2668)'}`
-                            }}
-                          >
-                            {p.name.toUpperCase()}
-                          </div>
-                        ))}
-                        {principles.filter(p => !bankedPrincipleIds.includes(p.id)).length === 0 && (
+                        {principles.map(p => {
+                          const isUsedOtherDay = otherDaysBankedIds.includes(p.id)
+                          const isPendingOtherDay = !isUsedOtherDay && pendingOtherDayPrincipleIds.includes(p.id)
+                          const isCurrentDayPrinciple = p.id === localCurrentDayPrincipleId
+                          const isSelected = selectedPrinciple === p.id
+                          const isBlocked = isUsedOtherDay || isPendingOtherDay
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => !isBlocked && setSelectedPrinciple(p.id)}
+                              className="font-pixel"
+                              title={
+                                isUsedOtherDay ? 'Already used in another day' :
+                                isPendingOtherDay ? 'Pending approval on another day — select a different principle' :
+                                ''
+                              }
+                              style={{
+                                fontSize: 9,
+                                padding: '6px 10px',
+                                borderRadius: 4,
+                                cursor: isBlocked ? 'not-allowed' : 'pointer',
+                                background: isSelected ? 'var(--gold,#ffd23f)' : isUsedOtherDay ? 'rgba(0,0,0,.15)' : isPendingOtherDay ? 'rgba(255,160,50,.08)' : 'rgba(0,0,0,.3)',
+                                color: isSelected ? '#000' : isUsedOtherDay ? 'var(--ln,#3d2668)' : isPendingOtherDay ? '#ffa032' : 'var(--mu,#a493c9)',
+                                border: `1px solid ${isSelected ? 'var(--gold,#ffd23f)' : isUsedOtherDay ? 'var(--ln,#3d2668)' : isPendingOtherDay ? '#ffa032' : 'var(--ln,#3d2668)'}`,
+                                opacity: isUsedOtherDay ? 0.4 : isPendingOtherDay ? 0.7 : 1,
+                                textDecoration: isUsedOtherDay ? 'line-through' : 'none',
+                                position: 'relative',
+                              }}
+                            >
+                              {p.name.toUpperCase()}
+                              {isPendingOtherDay && (
+                                <span style={{ marginLeft: 5, fontSize: 7, color: '#ffa032' }}>⏳PENDING</span>
+                              )}
+                            </div>
+                          )
+                        })}
+                        {principles.filter(p => !otherDaysBankedIds.includes(p.id) && !pendingOtherDayPrincipleIds.includes(p.id)).length === 0 && (
                           <span className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', fontStyle: 'italic' }}>
-                            No unbanked principles left!
+                            No fresh principles left!
                           </span>
                         )}
                       </div>
@@ -635,9 +761,9 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                       </div>
                       
                       {(() => {
-                        const unbankedCount = principles.filter(p => !bankedPrincipleIds.includes(p.id)).length
+                        const availableCount = principles.filter(p => !otherDaysBankedIds.includes(p.id) && !pendingOtherDayPrincipleIds.includes(p.id)).length
                         const hasContent = (url.trim() || fileToUpload) && title.trim()
-                        const canSubmit = hasContent && (unbankedCount === 0 || selectedPrinciple)
+                        const canSubmit = hasContent && (availableCount === 0 || selectedPrinciple)
                         const isDisabled = isSubmitting || !canSubmit
                         
                         return (
@@ -646,10 +772,10 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                             disabled={isDisabled}
                             className="font-pixel" 
                             style={{
-                              fontSize: 10, color: 'var(--bg,#12081e)',
+                              fontSize: 14, color: 'var(--bg,#12081e)',
                               background: 'var(--gold,#ffd23f)',
                               border: 'none', borderRadius: 6,
-                              padding: '12px 18px', cursor: isDisabled ? 'not-allowed' : 'pointer',
+                              padding: '16px 24px', cursor: isDisabled ? 'not-allowed' : 'pointer',
                               boxShadow: '0 4px 0 #b8912a',
                               opacity: isDisabled ? 0.5 : 1,
                             }}

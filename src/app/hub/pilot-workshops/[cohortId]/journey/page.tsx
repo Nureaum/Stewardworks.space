@@ -94,17 +94,38 @@ export default async function JourneyPage({ params, searchParams }: Props) {
     .eq('cohort_id', cohortId)
     .order('sort_order')
 
-  // Get banked principles - include both submitted and approved progress
-  // This prevents users from selecting the same principle while waiting for approval
-  const submittedOrApprovedProgressIds = (progressRows || [])
+  // APPROVED only — these principles are fully locked (counted in user's bank)
+  const approvedProgressIds = (progressRows || [])
+    .filter(p => p.deliverable_status === 'approved')
+    .map(p => p.id)
+
+  // SUBMITTED + APPROVED — used for pending detection in the principle picker
+  const activeProgressIds = (progressRows || [])
     .filter(p => p.deliverable_status === 'submitted' || p.deliverable_status === 'approved')
     .map(p => p.id)
-  const { data: bankedPrinciples } = submittedOrApprovedProgressIds.length > 0
+
+  console.log('[journey/page] progressRows:', progressRows?.map(p => ({ id: p.id, day: p.workshop_day_id, status: p.deliverable_status })))
+
+  // bankedPrinciples = approved only (what's locked & counted in user's principle bank)
+  const { data: bankedPrinciples } = approvedProgressIds.length > 0
     ? await supabase
         .from('workshop_progress_principles')
         .select('*')
-        .in('progress_id', submittedOrApprovedProgressIds)
+        .in('progress_id', approvedProgressIds)
+        .order('banked_at', { ascending: false })
     : { data: [] }
+
+  // allBankedPrinciples = submitted + approved (used to detect pending principles in the picker)
+  const { data: allBankedPrinciples } = activeProgressIds.length > 0
+    ? await supabase
+        .from('workshop_progress_principles')
+        .select('*')
+        .in('progress_id', activeProgressIds)
+        .order('banked_at', { ascending: false })
+    : { data: [] }
+
+  console.log('[journey/page] bankedPrinciples (approved):', bankedPrinciples)
+  console.log('[journey/page] allBankedPrinciples (submitted+approved):', allBankedPrinciples)
 
   // Get user's deliverable submissions
   const { data: submissions } = dayIds.length > 0
@@ -141,6 +162,7 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       progressRows={progressRows || []}
       principles={principles || []}
       bankedPrinciples={bankedPrinciples || []}
+      allBankedPrinciples={allBankedPrinciples || []}
       initialEngagements={initialEngagements || []}
       showcaseItems={showcaseItems || []}
       submissions={submissions || []}

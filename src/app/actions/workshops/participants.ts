@@ -424,14 +424,17 @@ export async function submitDeliverable(
     }
 
     // Verify day is unlocked (Registration was removed, so we no longer block here if progress is missing)
-    const { data: progress } = await supabase
+    const { data: progress, error: progressFetchError } = await supabase
       .from('workshop_progress')
-      .select('unlocked_at, deliverable_status')
+      .select('id, unlocked_at, deliverable_status')
       .eq('workshop_day_id', dayId)
       .eq('profile_id', profile.id)
       .single()
+
+    console.log('[submitDeliverable] Step 1 - Existing progress row:', progress, 'fetchError:', progressFetchError?.message)
+    console.log('[submitDeliverable] principle_id received:', submissionData.principle_id)
       
-    // We proceed even if progress doesn't exist yet, we will upsert it later.
+    // We proceed even if progress doesn't exist yet, we will insert it later.
 
     // Handle file upload if present
     let file_storage_path: string | null = null
@@ -489,46 +492,86 @@ export async function submitDeliverable(
     }
 
     // Update or insert progress row
-    const { data: progressUpdate, error: updateError } = await supabase
-      .from('workshop_progress')
-      .upsert({
-        workshop_day_id: dayId,
-        profile_id: profile.id,
-        unlocked_at: progress?.unlocked_at || new Date().toISOString(),
-        deliverable_submitted_at: new Date().toISOString(),
-        deliverable_status: 'submitted',
-        review_note: null,
-        reviewed_by: null,
-        reviewed_at: null,
-      }, { onConflict: 'workshop_day_id,profile_id' })
-      .select('id')
-      .single()
+    // NOTE: Supabase upsert sometimes returns null on update, so we do update first then fetch.
+    let progressId: string | null = progress?.id || null
+    console.log('[submitDeliverable] Step 2 - progressId from existing row:', progressId)
 
-    if (updateError) {
-      console.error('Progress update error:', updateError)
-      return { success: false, message: 'Failed to update progress status.' } as any
-    } else if (progressUpdate && submissionData.principle_id) {
-      // Save banked principle
-      console.log('[submitDeliverable] Saving principle:', {
-        progress_id: progressUpdate.id,
-        principle_id: submissionData.principle_id
-      })
-      const { data: insertedPrinciple, error: principleError } = await supabase
-        .from('workshop_progress_principles')
+    if (progressId) {
+      // Row already exists — just update it
+      const { error: updateError } = await supabase
+        .from('workshop_progress')
+        .update({
+          deliverable_submitted_at: new Date().toISOString(),
+          deliverable_status: 'submitted',
+          review_note: null,
+          reviewed_by: null,
+          reviewed_at: null,
+        })
+        .eq('id', progressId)
+
+      console.log('[submitDeliverable] Step 2a - Updated existing progress row. updateError:', updateError?.message)
+      if (updateError) {
+        console.error('Progress update error:', updateError)
+        return { success: false, message: 'Failed to update progress status.' } as any
+      }
+    } else {
+      // Row does not exist — insert it
+      const { data: inserted, error: insertError } = await supabase
+        .from('workshop_progress')
         .insert({
+          workshop_day_id: dayId,
+          profile_id: profile.id,
+          unlocked_at: new Date().toISOString(),
+          deliverable_submitted_at: new Date().toISOString(),
+          deliverable_status: 'submitted',
+        })
+        .select('id')
+        .single()
+
+      console.log('[submitDeliverable] Step 2b - Inserted new progress row. id:', inserted?.id, 'insertError:', insertError?.message)
+      if (insertError) {
+        console.error('Progress insert error:', insertError)
+        return { success: false, message: 'Failed to create progress status.' } as any
+      }
+      progressId = inserted?.id || null
+    }
+
+    const progressUpdate = progressId ? { id: progressId } : null
+    console.log('[submitDeliverable] Step 3 - Final progressId for principle save:', progressId)
+
+    if (progressUpdate) {
+      // Always delete any existing principle for this progress first (handles resubmission)
+      const { error: deleteError } = await supabase
+        .from('workshop_progress_principles')
+        .delete()
+        .eq('progress_id', progressUpdate.id)
+      console.log('[submitDeliverable] Step 3a - Deleted old principle. deleteError:', deleteError?.message)
+
+      // Save new banked principle if provided
+      if (submissionData.principle_id) {
+        console.log('[submitDeliverable] Step 3b - Saving principle:', {
           progress_id: progressUpdate.id,
           principle_id: submissionData.principle_id
         })
-        .select()
-        
-      if (principleError) {
-        console.error('[submitDeliverable] Failed to save banked principle:', principleError)
+        const { data: insertedPrinciple, error: principleError } = await supabase
+          .from('workshop_progress_principles')
+          .insert({
+            progress_id: progressUpdate.id,
+            principle_id: submissionData.principle_id
+          })
+          .select()
+          
+        if (principleError) {
+          console.error('[submitDeliverable] Step 3b FAILED - principle save error:', principleError)
+        } else {
+          console.log('[submitDeliverable] Step 3b SUCCESS - Principle saved:', insertedPrinciple)
+        }
       } else {
-        console.log('[submitDeliverable] Principle saved successfully:', insertedPrinciple)
+        console.log('[submitDeliverable] Step 3b - No principle_id provided, skipping principle save.')
       }
     } else {
-      console.log('[submitDeliverable] No principle to save. progressUpdate:', progressUpdate?.id, 'principle_id:', submissionData.principle_id)
-    }
+      console.error('[submitDeliverable] Step 3 FAILED - progressId is null, cannot save principle!')
+    } // end if (progressUpdate)
 
     // Get cohort_id for revalidation
     const { data: day } = await supabase
@@ -575,26 +618,51 @@ export async function markDayProgressApproved(dayId: string, cohortId: string) {
     
     console.log('[markDayProgressApproved] Found profile:', profile.id)
     
-    // Use upsert to ensure the row exists and is marked approved
-    const { data, error } = await supabase
+    // First find the existing progress row to get its ID
+    const { data: existingProgress } = await supabase
       .from('workshop_progress')
-      .upsert({ 
-        workshop_day_id: dayId,
-        profile_id: profile.id,
-        deliverable_status: 'approved',
-        unlocked_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'workshop_day_id,profile_id'
-      })
-      .select()
+      .select('id')
+      .eq('workshop_day_id', dayId)
+      .eq('profile_id', profile.id)
+      .single()
+
+    console.log('[markDayProgressApproved] Existing progress row:', existingProgress)
+
+    let data, error
+    if (existingProgress?.id) {
+      // Row exists — just update it (preserves the row ID so principles stay linked)
+      const result = await supabase
+        .from('workshop_progress')
+        .update({ 
+          deliverable_status: 'approved',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingProgress.id)
+        .select()
+      data = result.data
+      error = result.error
+    } else {
+      // Row doesn't exist — insert it
+      const result = await supabase
+        .from('workshop_progress')
+        .insert({ 
+          workshop_day_id: dayId,
+          profile_id: profile.id,
+          deliverable_status: 'approved',
+          unlocked_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+      data = result.data
+      error = result.error
+    }
       
     if (error) {
-      console.error('[markDayProgressApproved] Supabase upsert error:', error)
+      console.error('[markDayProgressApproved] Supabase update/insert error:', error)
       return false
     }
     
-    console.log('[markDayProgressApproved] Upsert successful:', data)
+    console.log('[markDayProgressApproved] Update/insert successful:', data)
       
     revalidatePath(`/hub/pilot-workshops/${cohortId}`, 'layout')
     console.log('[markDayProgressApproved] revalidatePath called')
