@@ -34,3 +34,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# kiro spec files
+.kiro/specs/
+
+# stray files
+clude.jsx
