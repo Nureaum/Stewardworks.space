@@ -19,7 +19,7 @@ export default function AuthCard({ children, showAvatar = true }: AuthCardProps)
       )}
       {/* Form card - left side (50%) */}
       <div
-        className="w-full md:w-1/2 p-5 md:p-6"
+        className="w-full md:w-1/2 p-4 md:p-5"
         style={{
           background: '#0C1636',
           border: '3px solid #060B1E',
@@ -32,7 +32,7 @@ export default function AuthCard({ children, showAvatar = true }: AuthCardProps)
       {/* Character Parade - right side (50%) */}
       {showAvatar && (
         <div
-          className="hidden md:flex md:w-1/2 items-center justify-center px-6 py-8"
+          className="hidden md:flex md:w-1/2 items-center justify-center px-4 py-4"
           style={{
             background: '#0C1636',
             border: '3px solid #060B1E',
@@ -41,7 +41,7 @@ export default function AuthCard({ children, showAvatar = true }: AuthCardProps)
             borderRadius: '0 2px 2px 0',
           }}
         >
-          <CharacterParade size={220} />
+          <CharacterParade size={180} />
         </div>
       )}
     </div>
