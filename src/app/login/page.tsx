@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useSignIn, useAuth } from '@clerk/nextjs';
 import { Mail, CheckCircle, ChevronLeft, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import GamingAuthLayout from '@/app/components/auth/GamingAuthLayout';
+import AuthCard from '@/app/components/auth/AuthCard';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -314,65 +316,67 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-steward-offwhite flex flex-col items-center justify-center font-exo p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 md:p-10 border border-gray-100">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-steward-blue rounded-full flex items-center justify-center mb-4 text-white font-black text-xl shadow-inner">
-            SW
-          </div>
-          <h1 className="text-2xl font-black text-steward-dark uppercase tracking-tight">
-            {forgotPasswordStep === 'email_sent' ? 'New Password' : forgotPasswordStep === 'enter_email' ? 'Reset Password' : 'Log In'}
-          </h1>
-          <p className="text-sm text-steward-dark/60 mt-2 text-center font-medium">
-            {forgotPasswordStep === 'email_sent' 
-              ? 'Enter the 6-digit code sent to your email and your new password.'
-              : forgotPasswordStep === 'enter_email'
-              ? 'Enter your email address and we will send you a reset code.'
-              : 'Enter your email and password to access the StewardWorks Hub.'}
-          </p>
+    <GamingAuthLayout>
+      <AuthCard>
+        <div className="flex flex-col items-center mb-3">
+          <h1 className="text-xl font-black text-white uppercase tracking-tight">StewardWorks</h1>
+          <p className="text-[#7FC4E8] text-xs font-bold uppercase tracking-[0.2em]">Education Platform</p>
         </div>
 
+        {forgotPasswordStep !== 'none' && (
+        <div className="flex flex-col items-center mb-3">
+          <h2 className="text-lg font-black text-white uppercase tracking-tight">
+            {forgotPasswordStep === 'email_sent' ? 'New Password' : 'Reset Password'}
+          </h2>
+          <p className="text-sm text-white/50 mt-1.5 text-center font-medium">
+            {forgotPasswordStep === 'email_sent' 
+              ? 'Enter the 6-digit code sent to your email and your new password.'
+              : 'Enter your email address and we will send you a reset code.'}
+          </p>
+        </div>
+        )}
+
         {crossBrowserHint && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center">
-            <p className="text-blue-800 text-sm font-bold mb-1">✓ Email Verified!</p>
-            <p className="text-blue-600 text-xs">
+          <div className="mb-6 bg-blue-500/10 border border-blue-400/30 rounded-2xl p-4 text-center">
+            <p className="text-blue-300 text-sm font-bold mb-1">✓ Email Verified!</p>
+            <p className="text-blue-300/80 text-xs">
               Your email is verified. Please log in on this browser to continue.
             </p>
           </div>
         )}
 
         {status === 'success' ? (
-          <div className="bg-steward-green/10 border border-steward-green/30 rounded-2xl p-6 text-center space-y-4 animate-in fade-in zoom-in duration-300">
+          <div className="bg-green-500/10 border border-green-400/30 rounded-2xl p-6 text-center space-y-4 animate-in fade-in zoom-in duration-300">
             <div className="flex justify-center">
-              <CheckCircle className="text-steward-green" size={48} />
+              <CheckCircle className="text-green-400" size={48} />
             </div>
-            <h3 className="text-lg font-bold text-steward-dark">Logged In!</h3>
-            <p className="text-sm text-steward-dark/80">
+            <h3 className="text-lg font-bold text-white">Logged In!</h3>
+            <p className="text-sm text-white/80">
               Redirecting you to the Hub...
             </p>
           </div>
         ) : status === 'magic_success' ? (
-          <div className="bg-steward-green/10 border border-steward-green/30 rounded-2xl p-6 text-center space-y-4 animate-in fade-in zoom-in duration-300">
+          <div className="bg-green-500/10 border border-green-400/30 rounded-2xl p-6 text-center space-y-4 animate-in fade-in zoom-in duration-300">
             <div className="flex justify-center">
-              <CheckCircle className="text-steward-green" size={48} />
+              <CheckCircle className="text-green-400" size={48} />
             </div>
-            <h3 className="text-lg font-bold text-steward-dark">Check your email!</h3>
-            <p className="text-sm text-steward-dark/80">
+            <h3 className="text-lg font-bold text-white">Check your email!</h3>
+            <p className="text-sm text-white/80">
               We've sent a magic link to <span className="font-bold">{email}</span>. Click the link in that email to enter the site.
             </p>
             <button 
               onClick={() => setStatus('idle')}
-              className="text-xs font-bold text-steward-blue uppercase tracking-widest mt-4 hover:underline"
+              className="text-xs font-bold text-[#7FC4E8] uppercase tracking-widest mt-4 hover:underline"
             >
               Use a different email
             </button>
           </div>
         ) : forgotPasswordStep === 'email_sent' ? (
-          <form onSubmit={handleResetPassword} className="space-y-4">
+          <form onSubmit={handleResetPassword} className="space-y-3">
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <CheckCircle className="text-steward-gold/60" size={20} />
+                  <CheckCircle className="text-[#7FC4E8]/60" size={20} />
                 </div>
                 <input
                   type="text"
@@ -380,7 +384,7 @@ export default function LoginPage() {
                   onChange={(e) => setResetCode(e.target.value)}
                   placeholder="6-digit Code"
                   required
-                  className="w-full pl-12 pr-6 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium tracking-widest"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-sm bg-[#182A57] border-2 border-[#2B3A6B] focus:border-[#E8823C] focus:ring-2 focus:ring-[#E8823C]/30 outline-none transition-all font-bold text-white placeholder:text-[#9AA6C0] tracking-widest"
                 />
               </div>
             </div>
@@ -388,7 +392,7 @@ export default function LoginPage() {
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="text-steward-gold/60" size={20} />
+                  <Lock className="text-[#7FC4E8]/60" size={20} />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -396,12 +400,12 @@ export default function LoginPage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="New Password"
                   required
-                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-sm bg-[#182A57] border-2 border-[#2B3A6B] focus:border-[#E8823C] focus:ring-2 focus:ring-[#E8823C]/30 outline-none transition-all font-bold text-white placeholder:text-[#9AA6C0]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-steward-gold/60 hover:text-steward-blue transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#7FC4E8]/60 hover:text-[#E8823C] transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -411,7 +415,7 @@ export default function LoginPage() {
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="text-steward-gold/60" size={20} />
+                  <Lock className="text-[#7FC4E8]/60" size={20} />
                 </div>
                 <input
                   type={showConfirmPassword ? "text" : "password"}
@@ -419,19 +423,19 @@ export default function LoginPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm New Password"
                   required
-                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-sm bg-[#182A57] border-2 border-[#2B3A6B] focus:border-[#E8823C] focus:ring-2 focus:ring-[#E8823C]/30 outline-none transition-all font-bold text-white placeholder:text-[#9AA6C0]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-steward-gold/60 hover:text-steward-blue transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#7FC4E8]/60 hover:text-[#E8823C] transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
               {status === 'error' && (
                 <div className="mt-2 ml-1">
-                  <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
+                  <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
                 </div>
               )}
             </div>
@@ -439,17 +443,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={status === 'loading'}
-              className="w-full bg-steward-blue text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] hover:bg-steward-orange transition-colors shadow-lg shadow-steward-blue/20 disabled:opacity-50 mt-2"
+              className="w-full bg-[#E8823C] text-[#0B1330] py-3 rounded-sm font-black uppercase tracking-[0.2em] hover:bg-[#F0C64C] transition-colors shadow-lg shadow-[#E8823C]/20 disabled:opacity-50"
             >
               {status === 'loading' ? 'Resetting...' : 'Reset Password'}
             </button>
           </form>
         ) : forgotPasswordStep === 'enter_email' ? (
-          <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-3">
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="text-steward-gold/60" size={20} />
+                  <Mail className="text-[#7FC4E8]/60" size={20} />
                 </div>
                 <input
                   type="email"
@@ -457,12 +461,12 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
                   required
-                  className="w-full pl-12 pr-6 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-sm bg-[#182A57] border-2 border-[#2B3A6B] focus:border-[#E8823C] focus:ring-2 focus:ring-[#E8823C]/30 outline-none transition-all font-bold text-white placeholder:text-[#9AA6C0]"
                 />
               </div>
               {status === 'error' && (
                 <div className="mt-2 ml-1">
-                  <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
+                  <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
                 </div>
               )}
             </div>
@@ -470,18 +474,18 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={status === 'loading' || !email.trim()}
-              className="w-full bg-steward-blue text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] hover:bg-steward-orange transition-colors shadow-lg shadow-steward-blue/20 disabled:opacity-50 mt-2"
+              className="w-full bg-[#E8823C] text-[#0B1330] py-3 rounded-sm font-black uppercase tracking-[0.2em] hover:bg-[#F0C64C] transition-colors shadow-lg shadow-[#E8823C]/20 disabled:opacity-50"
             >
               {status === 'loading' ? 'Sending...' : 'Send Reset Code'}
             </button>
           </form>
         ) : (
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-3">
             <div id="clerk-captcha"></div>
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="text-steward-gold/60" size={20} />
+                  <Mail className="text-[#7FC4E8]/60" size={20} />
                 </div>
                 <input
                   type="email"
@@ -489,7 +493,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
                   required
-                  className="w-full pl-12 pr-6 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-sm bg-[#182A57] border-2 border-[#2B3A6B] focus:border-[#E8823C] focus:ring-2 focus:ring-[#E8823C]/30 outline-none transition-all font-bold text-white placeholder:text-[#9AA6C0]"
                 />
               </div>
             </div>
@@ -497,7 +501,7 @@ export default function LoginPage() {
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="text-steward-gold/60" size={20} />
+                  <Lock className="text-[#7FC4E8]/60" size={20} />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -505,12 +509,12 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
                   required
-                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-steward-blue focus:ring-2 focus:ring-steward-blue/20 outline-none transition-all font-bold text-steward-dark placeholder:text-gray-400 placeholder:font-medium"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-sm bg-[#182A57] border-2 border-[#2B3A6B] focus:border-[#E8823C] focus:ring-2 focus:ring-[#E8823C]/30 outline-none transition-all font-bold text-white placeholder:text-[#9AA6C0]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-steward-gold/60 hover:text-steward-blue transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#7FC4E8]/60 hover:text-[#E8823C] transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -519,7 +523,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleForgotPassword}
-                  className="text-xs font-bold text-steward-blue hover:text-steward-orange transition-colors"
+                  className="text-xs font-bold text-[#7FC4E8] hover:text-[#E8823C] transition-colors"
                 >
                   Forgot Password?
                 </button>
@@ -527,41 +531,41 @@ export default function LoginPage() {
               {status === 'error' && (
                 <div className="mt-2 ml-1">
                   {errorMessage === 'INVALID_CREDENTIALS' ? (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
-                      <p className="text-red-600 text-xs font-bold">
+                    <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-3 space-y-2">
+                      <p className="text-red-400 text-xs font-bold">
                         Email or password is incorrect.
                       </p>
-                      <p className="text-red-500/80 text-[11px]">
+                      <p className="text-red-400/80 text-[11px]">
                         Double-check your password. If you originally signed up without a password, please use the <strong>Send Magic Link</strong> button below. Otherwise, you can{' '}
-                        <Link href="/signup" className="font-black underline text-steward-blue hover:text-steward-orange transition-colors">
+                        <Link href="/signup" className="font-black underline text-[#7FC4E8] hover:text-[#E8823C] transition-colors">
                           create a new account
                         </Link>.
                       </p>
                     </div>
                   ) : errorMessage === 'EMAIL_NOT_CONFIRMED' ? (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 space-y-2">
-                      <p className="text-yellow-700 text-xs font-bold">
+                    <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-3 space-y-2">
+                      <p className="text-yellow-400 text-xs font-bold">
                         Your email hasn't been verified yet.
                       </p>
-                      <p className="text-yellow-600/80 text-[11px]">
+                      <p className="text-yellow-400/80 text-[11px]">
                         Check your inbox for the confirmation link we sent when you signed up. Click that link first, then come back and log in.
                       </p>
                     </div>
                   ) : errorMessage === 'ACCOUNT_NOT_FOUND' ? (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
-                      <p className="text-red-600 text-xs font-bold">
+                    <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-3 space-y-2">
+                      <p className="text-red-400 text-xs font-bold">
                         No account found with this email.
                       </p>
-                      <p className="text-red-500/80 text-[11px]">
+                      <p className="text-red-400/80 text-[11px]">
                         You must{' '}
-                        <Link href="/signup" className="font-black underline text-steward-blue hover:text-steward-orange transition-colors">
+                        <Link href="/signup" className="font-black underline text-[#7FC4E8] hover:text-[#E8823C] transition-colors">
                           create an account
                         </Link>{' '}
                         first before you can log in with a magic link!
                       </p>
                     </div>
                   ) : (
-                    <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
+                    <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{errorMessage}</p>
                   )}
                 </div>
               )}
@@ -570,31 +574,31 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={status === 'loading'}
-              className="w-full bg-steward-blue text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] hover:bg-steward-orange transition-colors shadow-lg shadow-steward-blue/20 disabled:opacity-50 mt-2"
+              className="w-full bg-[#E8823C] text-[#0B1330] py-3 rounded-sm font-black uppercase tracking-[0.2em] hover:bg-[#F0C64C] transition-colors shadow-lg shadow-[#E8823C]/20 disabled:opacity-50"
             >
               {status === 'loading' ? 'Processing...' : 'Log In'}
             </button>
             
-            <div className="relative py-4 flex items-center justify-center">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-              <div className="relative bg-white px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">OR</div>
+            <div className="relative py-2 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#2B3A6B]"></div></div>
+              <div className="relative bg-[#0C1636] px-4 text-xs font-bold text-[#8FA0C7]/60 uppercase tracking-widest">OR</div>
             </div>
 
             <button
               type="button"
               onClick={handleMagicLink}
               disabled={status === 'loading' || !email}
-              className="w-full bg-white border-2 border-steward-blue text-steward-blue py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-steward-blue/5 transition-colors disabled:opacity-50"
+              className="w-full bg-transparent border-2 border-[#E8823C]/60 text-[#E8823C] py-2.5 rounded-sm font-bold uppercase tracking-widest hover:bg-[#E8823C]/10 transition-colors disabled:opacity-50"
             >
               Send Magic Link
             </button>
           </form>
         )}
 
-        <div className="mt-8 text-center">
-          <p className="text-sm font-medium text-steward-dark/60">
+        <div className="mt-5 text-center">
+          <p className="text-sm font-medium text-white/60">
             Don't have an account?{' '}
-            <Link href="/signup" className="font-bold text-steward-blue hover:text-steward-orange transition-colors">
+            <Link href="/signup" className="font-bold text-[#7FC4E8] hover:text-[#E8823C] transition-colors">
               Create Account
             </Link>
           </p>
@@ -603,23 +607,16 @@ export default function LoginPage() {
         {forgotPasswordStep !== 'none' ? (
           <button 
             onClick={() => { setForgotPasswordStep('none'); setStatus('idle'); setErrorMessage(''); setConfirmPassword(''); setResetCode(''); setNewPassword(''); }}
-            className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-steward-gold uppercase tracking-widest hover:text-steward-dark transition-colors w-full"
+            className="mt-4 flex items-center justify-center gap-2 text-xs font-bold text-[#7FC4E8] uppercase tracking-widest hover:text-[#E8823C] transition-colors w-full"
           >
             <ChevronLeft size={14} /> Back to Login
           </button>
         ) : (
-          <Link href="/" className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-steward-gold uppercase tracking-widest hover:text-steward-dark transition-colors">
+          <Link href="/" className="mt-4 flex items-center justify-center gap-2 text-xs font-bold text-[#7FC4E8] uppercase tracking-widest hover:text-[#E8823C] transition-colors">
             <ChevronLeft size={14} /> Back to Home
           </Link>
         )}
-      </div>
-      
-      {/* Background visual accents */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-[-1] overflow-hidden">
-        <div className="absolute top-[10%] right-[5%] text-[12vw] font-black opacity-[0.02] text-steward-green select-none uppercase tracking-tighter">
-          Steward
-        </div>
-      </div>
-    </div>
+      </AuthCard>
+    </GamingAuthLayout>
   );
 }

@@ -11,6 +11,8 @@ export default function PreHome() {
   const { t } = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [learnMoreLoading, setLearnMoreLoading] = useState(false);
+  const [bulletinLoading, setBulletinLoading] = useState(false);
   const { isLoaded, userId } = useAuth();
   const isAuthenticated = isLoaded && !!userId;
 
@@ -22,6 +24,18 @@ export default function PreHome() {
     } else {
       router.push('/login');
     }
+  };
+
+  const handleLearnMore = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setLearnMoreLoading(true);
+    router.push('/info');
+  };
+
+  const handleBulletin = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setBulletinLoading(true);
+    router.push('/onboarding/bulletin');
   };
 
   return (
@@ -72,11 +86,22 @@ export default function PreHome() {
 
       {/* 6. Buttons (Center Bottom) */}
       <div className="mt-12 md:mt-16 z-20 flex flex-col md:flex-row gap-4 lg:gap-6 items-center w-full px-4 md:px-0 md:w-auto">
-        <Link href="/info" className="w-full md:w-auto">
-          <button className="w-full md:w-auto group relative overflow-hidden px-6 lg:px-8 py-4 text-base lg:text-lg font-bold tracking-[0.1em] transition-all duration-300 border-2 border-steward-gold text-steward-gold hover:bg-steward-gold hover:text-steward-offwhite bg-transparent rounded-full whitespace-nowrap">
-            <span className="relative z-10">{t('learn.more')}</span>
-          </button>
-        </Link>
+        <button 
+          onClick={handleLearnMore}
+          disabled={learnMoreLoading}
+          className="w-full md:w-auto group relative overflow-hidden px-6 lg:px-8 py-4 text-base lg:text-lg font-bold tracking-[0.1em] transition-all duration-300 border-2 border-steward-gold text-steward-gold hover:bg-steward-gold hover:text-steward-offwhite bg-transparent rounded-full whitespace-nowrap disabled:opacity-70 flex items-center justify-center"
+        >
+          <span className="relative z-10 flex items-center gap-2">
+            {learnMoreLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-steward-gold/30 border-t-steward-gold rounded-full animate-spin" />
+                Loading...
+              </>
+            ) : (
+              t('learn.more')
+            )}
+          </span>
+        </button>
         <button 
           onClick={handleEnterSite}
           disabled={isLoading || !isLoaded}
@@ -93,11 +118,22 @@ export default function PreHome() {
             )}
           </span>
         </button>
-        <Link href="/onboarding/bulletin" className="w-full md:w-auto">
-          <button className="w-full md:w-auto group relative overflow-hidden px-6 lg:px-8 py-4 text-sm lg:text-base font-bold tracking-[0.1em] transition-all duration-300 border border-steward-dark/30 text-steward-dark hover:bg-steward-dark hover:text-steward-offwhite bg-white/50 rounded-full whitespace-nowrap">
-            <span className="relative z-10">Project Bulletin</span>
-          </button>
-        </Link>
+        <button 
+          onClick={handleBulletin}
+          disabled={bulletinLoading}
+          className="w-full md:w-auto group relative overflow-hidden px-6 lg:px-8 py-4 text-sm lg:text-base font-bold tracking-[0.1em] transition-all duration-300 border border-steward-dark/30 text-steward-dark hover:bg-steward-dark hover:text-steward-offwhite bg-white/50 rounded-full whitespace-nowrap disabled:opacity-70 flex items-center justify-center"
+        >
+          <span className="relative z-10 flex items-center gap-2">
+            {bulletinLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-steward-dark/30 border-t-steward-dark rounded-full animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Project Bulletin'
+            )}
+          </span>
+        </button>
       </div>
 
       {/* Post-modern background accents */}

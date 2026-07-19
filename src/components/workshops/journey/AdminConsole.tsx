@@ -150,6 +150,7 @@ export default function AdminConsole({
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false)
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
   const [participantsProgress, setParticipantsProgress] = useState<any[]>([])
+  const [reviewingIds, setReviewingIds] = useState<Record<string, 'approving' | 'rejecting'>>({})
   // Platforms state
   const [platformsData, setPlatformsData] = useState<{ id: string; name: string; url: string; is_default: boolean }[]>([])
   const [newPlatformName, setNewPlatformName] = useState('')
@@ -276,6 +277,7 @@ export default function AdminConsole({
   }, [selectedCohortId, section])
 
   const handleReview = async (progressId: string, status: 'approved' | 'rejected', note?: string, isEngagement?: boolean) => {
+    setReviewingIds(prev => ({ ...prev, [progressId]: status === 'approved' ? 'approving' : 'rejecting' }))
     try {
       if (isEngagement) {
         await reviewEngagement(progressId, status, note)
@@ -294,6 +296,12 @@ export default function AdminConsole({
       });
     } catch (e) {
       console.error('Failed to review item', e)
+    } finally {
+      setReviewingIds(prev => {
+        const next = { ...prev };
+        delete next[progressId];
+        return next;
+      })
     }
   }
 
@@ -2212,6 +2220,7 @@ export default function AdminConsole({
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                           <button
                             onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], !isDeliverable)}
+                            disabled={!!reviewingIds[reviewId]}
                             style={{
                               fontFamily: "'VT323', monospace",
                               fontSize: 16,
@@ -2220,15 +2229,17 @@ export default function AdminConsole({
                               borderRadius: 6,
                               background: '#86b89a',
                               color: '#12081e',
-                              cursor: 'pointer',
-                              letterSpacing: 0.5
+                              cursor: reviewingIds[reviewId] ? 'wait' : 'pointer',
+                              letterSpacing: 0.5,
+                              opacity: reviewingIds[reviewId] ? 0.6 : 1,
                             }}
                           >
-                            {approveLabel}
+                            {reviewingIds[reviewId] === 'approving' ? '⏳ Approving...' : approveLabel}
                           </button>
                           
                           <button
                             onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId] || 'Needs more work', !isDeliverable)}
+                            disabled={!!reviewingIds[reviewId]}
                             style={{
                               fontFamily: "'VT323', monospace",
                               fontSize: 16,
@@ -2237,11 +2248,12 @@ export default function AdminConsole({
                               borderRadius: 6,
                               background: 'transparent',
                               color: '#c9a85f',
-                              cursor: 'pointer',
-                              letterSpacing: 0.5
+                              cursor: reviewingIds[reviewId] ? 'wait' : 'pointer',
+                              letterSpacing: 0.5,
+                              opacity: reviewingIds[reviewId] ? 0.6 : 1,
                             }}
                           >
-                            ↩ RETURN
+                            {reviewingIds[reviewId] === 'rejecting' ? '⏳ Returning...' : '↩ RETURN'}
                           </button>
                           
                           <input 
@@ -2354,8 +2366,8 @@ export default function AdminConsole({
                                         <div style={{ fontSize: 17, color: 'var(--tx,#e4e0ee)', lineHeight: 1.25, marginBottom: 3 }}>{d.title || d.day_title || `Day ${d.day_number}`}</div>
                                         <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', marginBottom: 9 }}>Day {d.day_number} deliverable · {dateStr}</div>
                                         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                                          <button onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], false)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: '#141019', background: 'var(--ok,#86b89a)', border: 'none', borderRadius: 5, padding: '6px 12px', cursor: 'pointer' }}>✓ APPROVE +25%</button>
-                                          <button onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId], false)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: 'var(--mu,#9990ab)', background: 'none', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, padding: '5px 11px', cursor: 'pointer' }}>↩ RETURN</button>
+                                          <button disabled={!!reviewingIds[reviewId]} onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], false)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: '#141019', background: 'var(--ok,#86b89a)', border: 'none', borderRadius: 5, padding: '6px 12px', cursor: reviewingIds[reviewId] ? 'wait' : 'pointer', opacity: reviewingIds[reviewId] ? 0.6 : 1 }}>{reviewingIds[reviewId] === 'approving' ? '⏳ Approving...' : '✓ APPROVE +25%'}</button>
+                                          <button disabled={!!reviewingIds[reviewId]} onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId], false)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: 'var(--mu,#9990ab)', background: 'none', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, padding: '5px 11px', cursor: reviewingIds[reviewId] ? 'wait' : 'pointer', opacity: reviewingIds[reviewId] ? 0.6 : 1 }}>{reviewingIds[reviewId] === 'rejecting' ? '⏳ Returning...' : '↩ RETURN'}</button>
                                         </div>
                                       </div>
                                     )
@@ -2382,8 +2394,8 @@ export default function AdminConsole({
                                         </div>
                                         <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', marginBottom: 9 }}>{e.source || 'Engagement'} · {dateStr}</div>
                                         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                                          <button onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: '#141019', background: 'var(--ok,#86b89a)', border: 'none', borderRadius: 5, padding: '6px 12px', cursor: 'pointer' }}>✓ APPROVE</button>
-                                          <button onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: 'var(--mu,#9990ab)', background: 'none', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, padding: '5px 11px', cursor: 'pointer' }}>↩ RETURN</button>
+                                          <button disabled={!!reviewingIds[reviewId]} onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: '#141019', background: 'var(--ok,#86b89a)', border: 'none', borderRadius: 5, padding: '6px 12px', cursor: reviewingIds[reviewId] ? 'wait' : 'pointer', opacity: reviewingIds[reviewId] ? 0.6 : 1 }}>{reviewingIds[reviewId] === 'approving' ? '⏳ Approving...' : '✓ APPROVE'}</button>
+                                          <button disabled={!!reviewingIds[reviewId]} onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: 'var(--mu,#9990ab)', background: 'none', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, padding: '5px 11px', cursor: reviewingIds[reviewId] ? 'wait' : 'pointer', opacity: reviewingIds[reviewId] ? 0.6 : 1 }}>{reviewingIds[reviewId] === 'rejecting' ? '⏳ Returning...' : '↩ RETURN'}</button>
                                         </div>
                                       </div>
                                     )
