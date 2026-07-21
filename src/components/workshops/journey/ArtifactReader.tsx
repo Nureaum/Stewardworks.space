@@ -860,11 +860,64 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                     )}
                     {m.kind === 'video' && m.url && <video src={m.url} controls style={{ width: '100%', display: 'block' }} />}
                     {m.kind === 'audio' && m.url && <audio src={m.url} controls style={{ width: '100%', padding: '8px 0' }} />}
-                    {m.kind === 'link' && m.url && (
-                      <div style={{ padding: 10, wordBreak: 'break-all', fontSize: 13, color: 'var(--s,#45d6ff)' }}>
-                        <a href={m.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{m.url}</a>
-                      </div>
-                    )}
+                    {m.kind === 'link' && m.url && (() => {
+                      const url = m.url.toLowerCase();
+                      // Check if it's an image link
+                      const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)(\?.*)?$/i.test(url);
+                      // Check if it's a YouTube link
+                      const ytMatch = m.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]+)/);
+                      // Check if it's a Vimeo link
+                      const vimeoMatch = m.url.match(/vimeo\.com\/(\d+)/);
+                      
+                      if (isImage) {
+                        return (
+                          <div 
+                            style={{ position: 'relative', cursor: 'zoom-in', width: '100%' }}
+                            onClick={(e) => { e.stopPropagation(); setZoomedImage(m.url) }}
+                          >
+                            <img src={m.url} alt={m.label || ''} style={{ width: '100%', display: 'block' }} />
+                            <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: 6, display: 'flex' }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--tx,#efe6ff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                <line x1="11" y1="8" x2="11" y2="14"></line>
+                                <line x1="8" y1="11" x2="14" y2="11"></line>
+                              </svg>
+                            </div>
+                          </div>
+                        );
+                      } else if (ytMatch) {
+                        return (
+                          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
+                            <iframe 
+                              src={`https://www.youtube.com/embed/${ytMatch[1]}`}
+                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              title={m.label || 'Video'}
+                            />
+                          </div>
+                        );
+                      } else if (vimeoMatch) {
+                        return (
+                          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
+                            <iframe 
+                              src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
+                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                              allow="autoplay; fullscreen; picture-in-picture"
+                              allowFullScreen
+                              title={m.label || 'Video'}
+                            />
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div style={{ padding: 10, wordBreak: 'break-all', fontSize: 13, color: 'var(--s,#45d6ff)' }}>
+                            <a href={m.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{m.label || m.url}</a>
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
                 ))}
               </div>

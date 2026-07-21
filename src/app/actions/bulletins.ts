@@ -142,7 +142,9 @@ export async function getSystemBulletins() {
       contact_details: '',
       contact_email: '',
       contact_phone: '',
-      contact_address: ''
+      contact_address: '',
+      homepage_title: '',
+      homepage_subtitle: ''
     };
   }
   
@@ -190,6 +192,8 @@ export async function updateAboutPageRich(data: {
   contactEmail: string;
   contactPhone: string;
   contactAddress: string;
+  homepageTitle?: string;
+  homepageSubtitle?: string;
 }) {
   const supabase = createServerSupabaseClient();
   const { userId } = await auth();
@@ -203,14 +207,30 @@ export async function updateAboutPageRich(data: {
       contact_email: data.contactEmail,
       contact_phone: data.contactPhone,
       contact_address: data.contactAddress,
+      homepage_title: data.homepageTitle ?? null,
+      homepage_subtitle: data.homepageSubtitle ?? null,
       updated_at: new Date().toISOString() 
     });
 
   if (error) throw new Error(error.message);
   
+  revalidatePath('/');
   revalidatePath('/admin/about');
   revalidatePath('/admin/announcements');
   revalidatePath('/info');
+}
+
+export async function getHomepageContent() {
+  const supabase = createServerSupabaseClient();
+  const { data } = await supabase
+    .from('system_bulletins')
+    .select('homepage_title, homepage_subtitle')
+    .eq('id', 1)
+    .single();
+  return {
+    homepage_title: data?.homepage_title || '',
+    homepage_subtitle: data?.homepage_subtitle || '',
+  };
 }
 
 export async function updateOnboardingBulletin(data: {

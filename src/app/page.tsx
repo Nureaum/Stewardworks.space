@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
@@ -15,6 +15,23 @@ export default function PreHome() {
   const [bulletinLoading, setBulletinLoading] = useState(false);
   const { isLoaded, userId } = useAuth();
   const isAuthenticated = isLoaded && !!userId;
+
+  // Dynamic homepage text from DB (falls back to translation defaults if empty)
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroSubtitle, setHeroSubtitle] = useState('');
+
+  useEffect(() => {
+    fetch('/api/homepage-content')
+      .then(r => r.json())
+      .then(d => {
+        if (d.homepage_title) setHeroTitle(d.homepage_title);
+        if (d.homepage_subtitle) setHeroSubtitle(d.homepage_subtitle);
+      })
+      .catch(() => {/* silently fall back to defaults */});
+  }, []);
+
+  const displayTitle = heroTitle || t('mission.phrase');
+  const displaySubtitle = heroSubtitle || t('mission.body');
 
   const handleEnterSite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -65,18 +82,18 @@ export default function PreHome() {
 
         {/* Text Section (Center Right) */}
         <div className="md:col-span-7 flex flex-col space-y-8 text-steward-green">
-          {/* 2. Mission Phrase (Numen Aquae) - Top Right */}
+          {/* 2. Mission Phrase - Top Right (dynamic from DB or default) */}
           <div className="space-y-2">
             <h1 className="text-5xl md:text-7xl font-exo font-black uppercase tracking-tighter leading-none animate-in fade-in slide-in-from-right-10 duration-1000">
-              {t('mission.phrase')}
+              {displayTitle}
             </h1>
             <div className="h-[2px] w-24 bg-steward-orange" />
           </div>
 
-          {/* 3. Mission Statement - Center Right below phrase */}
+          {/* 3. Mission Statement - Center Right below phrase (dynamic from DB or default) */}
           <div className="max-w-xl animate-in fade-in slide-in-from-right-10 duration-1000 delay-300">
             <p className="text-xl md:text-2xl font-exo leading-relaxed tracking-tight font-bold opacity-90">
-              {t('mission.body')}
+              {displaySubtitle}
             </p>
           </div>
 

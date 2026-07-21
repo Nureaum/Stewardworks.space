@@ -274,6 +274,12 @@ body {
 @keyframes sw-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sw-label{from{opacity:0;transform:translate(-50%,-100%) translateY(6px)}to{opacity:1;transform:translate(-50%,-100%) translateY(0)}}
 @keyframes sw-fadein{from{opacity:0}to{opacity:1}}
+@keyframes sw-slide-left{from{transform:translateX(100%)}to{transform:translateX(0)}}
+
+/* Announcement body rich content */
+.announcement-body a{color:#2c8a4a;text-decoration:underline}
+.announcement-body img{max-width:100%;border-radius:8px;margin:6px 0;display:block}
+.announcement-body b,.announcement-body strong{font-weight:700}
 
 /* Environmental Literacy Animations */
 @keyframes el-rise{0%{transform:translateY(0);opacity:0}20%{opacity:.5}100%{transform:translateY(-30px);opacity:0}}

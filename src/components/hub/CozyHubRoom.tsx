@@ -7,6 +7,7 @@ import { useUser } from '@clerk/nextjs';
 import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
 import { getShowcaseItems } from '@/app/actions/workshops/showcase';
 import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions';
+import { getUnreadNotifications, markNotificationAsRead } from '@/app/actions/notificationActions';
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
 import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero';
 import type { CohortProgress } from '@/app/api/workshops/progress/route';
@@ -42,12 +43,15 @@ export default function CozyHubRoom({
   
   const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements' | 'showcase'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);
+  const [announcementsSidebarOpen, setAnnouncementsSidebarOpen] = useState(false);
 
   // Bulletins & Announcements Data
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [unreadIds, setUnreadIds] = useState<string[]>([]);
   const [bulletinText, setBulletinText] = useState('');
-  
+  const [hasUnreadBulletin, setHasUnreadBulletin] = useState(false);
+  const [bulletinUpdatedAt, setBulletinUpdatedAt] = useState<string | null>(null);
+  const [personalNotifications, setPersonalNotifications] = useState<any[]>([]);
   // Bookmarks & Engagements Data
   const [bookmarksAndEngagements, setBookmarksAndEngagements] = useState<any[]>([]);
   const [loadingBookmarks, setLoadingBookmarks] = useState(false);
@@ -127,9 +131,24 @@ export default function CozyHubRoom({
         const unread = await getUnreadAnnouncements();
         setUnreadIds(unread.map(u => u.id));
 
+        // Fetch personal notifications (approvals, helpdesk, etc.)
+        try {
+          const notifications = await getUnreadNotifications();
+          setPersonalNotifications(notifications);
+        } catch (err) {
+          console.error("Failed to load personal notifications", err);
+        }
+
         const sys = await getSystemBulletins();
         if (sys && sys.project_bulletin_text) {
           setBulletinText(sys.project_bulletin_text);
+          if (sys.updated_at) {
+            setBulletinUpdatedAt(sys.updated_at);
+            const lastRead = localStorage.getItem('sw_bulletin_read_at');
+            if (!lastRead || lastRead !== sys.updated_at) {
+              setHasUnreadBulletin(true);
+            }
+          }
         }
         
         // Check onboarding completion status
@@ -398,7 +417,11 @@ export default function CozyHubRoom({
     logout: { show: hovered === 'logout', enter: () => setHovered('logout'), click: () => open({ id: 'logout' }) },
     showcase: { show: hovered === 'showcase', enter: () => setHovered('showcase'), click: () => setScreen('showcase') },
     phone: { show: hovered === 'phone', enter: () => setHovered('phone'), click: async () => {
-      setScreen('announcements');
+      setAnnouncementsSidebarOpen(true);
+      if (bulletinUpdatedAt) {
+        localStorage.setItem('sw_bulletin_read_at', bulletinUpdatedAt);
+        setHasUnreadBulletin(false);
+      }
       if (unreadIds.length > 0) {
         for (const id of unreadIds) {
           await markAnnouncementAsRead(id);
@@ -497,7 +520,8 @@ export default function CozyHubRoom({
   const isNeon = exitStyle === 'neon';
   const isWood = exitStyle === 'wood';
 
-  const phoneRinging = unreadIds.length > 0;
+  const notificationCount = unreadIds.length + personalNotifications.length + (hasUnreadBulletin ? 1 : 0);
+  const phoneRinging = notificationCount > 0;
   const showPhone = !isAdmin && !isGuest;
   const isLogout = bridgeId === 'logout';
   const isLink = bridgeId !== 'logout';
@@ -646,27 +670,24 @@ export default function CozyHubRoom({
     {/*  EXIT SIGN (Log Out)  */}
     <div style={{"position":"absolute","left":"1004px","top":"46px","width":"256px","height":"150px","zIndex":"6","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-4" onMouseEnter={o.logout.enter} onMouseLeave={leave} onClick={o.logout.click}>
       { o.logout.show && (
-<><div style={{"position":"absolute","left":"50%","top":"-12px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Log Out<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
+<><div style={{"position":"absolute","left":"50%","top":"-6px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Log Out<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
-
-      {/*  NEON version — frameless tubing mounted on the wall  */}
-      { isNeon && (
-<>
-        {/*  small backing plate sized to the sign  */}
-        <div style={{"position":"absolute","left":"50%","top":"50%","transform":"translate(-50%,-50%)","width":"236px","height":"118px","borderRadius":"16px","background":"linear-gradient(160deg,rgba(120,92,72,.30),rgba(96,72,56,.34))","boxShadow":"0 6px 14px rgba(0,0,0,.14),inset 0 0 0 1px rgba(255,210,150,.12)"}}></div>
-        <div style={{"position":"absolute","left":"50%","top":"50%","transform":"translate(-50%,-50%)","textAlign":"center","animation":"sw-neon 4s linear infinite"}}>
-          <div style={{"fontFamily":"'DM Mono',monospace","fontWeight":"500","fontSize":"44px","letterSpacing":".05em","color":"#fff5cf","textShadow":"0 0 6px #ffd24a,0 0 16px #ff9a3a,0 0 30px #ff6a2a","lineHeight":".9"}}>EXIT</div>
-          <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"19px","letterSpacing":".04em","color":"#b6edff","textShadow":"0 0 6px #5fd0ff,0 0 15px #2a9fe0","marginTop":"8px"}}>STEWARD.WORKS</div>
+      { isWood ? (
+        <div style={{"position":"absolute","inset":"0","background":"linear-gradient(160deg,#87593c,#583621)","borderRadius":"8px","boxShadow":"0 16px 30px rgba(0,0,0,.4)","display":"flex","alignItems":"center","justifyContent":"center","border":"2px solid #362012"}}>
+          <div style={{"fontFamily":"sans-serif","fontWeight":"900","fontSize":"44px","letterSpacing":".12em","color":"#2a180d","textShadow":"0 2px 2px rgba(255,255,255,.15), inset 0 -2px 2px rgba(0,0,0,.3)"}}>EXIT</div>
         </div>
-        {/*  mounting screws on plate corners  */}
-        <div style={{"position":"absolute","left":"50%","top":"50%","width":"236px","height":"118px","transform":"translate(-50%,-50%)","pointerEvents":"none"}}>
-          <div style={{"position":"absolute","left":"8px","top":"8px","width":"6px","height":"6px","borderRadius":"50%","background":"radial-gradient(circle at 35% 35%,#cfd3da,#7d8595)"}}></div>
-          <div style={{"position":"absolute","right":"8px","top":"8px","width":"6px","height":"6px","borderRadius":"50%","background":"radial-gradient(circle at 35% 35%,#cfd3da,#7d8595)"}}></div>
-          <div style={{"position":"absolute","left":"8px","bottom":"8px","width":"6px","height":"6px","borderRadius":"50%","background":"radial-gradient(circle at 35% 35%,#cfd3da,#7d8595)"}}></div>
-          <div style={{"position":"absolute","right":"8px","bottom":"8px","width":"6px","height":"6px","borderRadius":"50%","background":"radial-gradient(circle at 35% 35%,#cfd3da,#7d8595)"}}></div>
+      ) : (
+        <div style={{"position":"absolute","inset":"0","background":"linear-gradient(180deg,#e5e1da,#cfcac2)","borderRadius":"6px","boxShadow":"inset 0 0 0 1px #fff,0 12px 24px rgba(0,0,0,.3),0 0 60px rgba(219,80,60,.12)","display":"flex","alignItems":"center","justifyContent":"center"}}>
+          <div style={{"position":"absolute","top":"-18px","left":"30px","width":"6px","height":"18px","background":"linear-gradient(90deg,#9a9a9a,#7a7a7a)"}}></div>
+          <div style={{"position":"absolute","top":"-18px","right":"30px","width":"6px","height":"18px","background":"linear-gradient(90deg,#9a9a9a,#7a7a7a)"}}></div>
+          <div style={{"position":"absolute","top":"-26px","left":"20px","width":"26px","height":"8px","background":"linear-gradient(180deg,#c0c0c0,#808080)","borderRadius":"3px"}}></div>
+          <div style={{"position":"absolute","top":"-26px","right":"20px","width":"26px","height":"8px","background":"linear-gradient(180deg,#c0c0c0,#808080)","borderRadius":"3px"}}></div>
+          <div style={{"position":"absolute","inset":"6px","background":"linear-gradient(180deg,#241c18,#16100d)","borderRadius":"3px","boxShadow":"inset 0 4px 10px rgba(0,0,0,.6)","display":"flex","alignItems":"center","justifyContent":"center","overflow":"hidden"}}>
+            <div style={{"fontFamily":"sans-serif","fontWeight":"800","fontSize":"56px","letterSpacing":".08em","color":"#ff3a20","textShadow":"0 0 12px rgba(255,58,32,.7),0 0 24px rgba(255,58,32,.4)","position":"relative","zIndex":"2"}}>EXIT</div>
+            <div style={{"position":"absolute","inset":"0","background":"linear-gradient(180deg,rgba(255,255,255,.08),transparent 40%)","zIndex":"3","pointerEvents":"none"}}></div>
+          </div>
         </div>
-      </>
-)}
+      )}
     </div>
 
     {/* WALL PHONE (Announcements — student view only; hangs in the same wall spot as the admin key) */}
@@ -715,8 +736,8 @@ export default function CozyHubRoom({
         </div>
       </div>
       {/* unread badge */}
-      { phoneRinging && (
-      <div style={{"position":"absolute","right":"6px","top":"8px","minWidth":"22px","height":"22px","padding":"0 6px","borderRadius":"12px","background":"#c0492f","color":"#fff","fontFamily":"'DM Mono',monospace","fontSize":"12px","fontWeight":"500","display":"flex","alignItems":"center","justifyContent":"center","boxShadow":"0 3px 8px rgba(0,0,0,.4)","zIndex":"5"}}>{unreadIds.length}</div>
+      { notificationCount > 0 && (
+      <div style={{"position":"absolute","right":"6px","top":"8px","minWidth":"22px","height":"22px","padding":"0 6px","borderRadius":"12px","background":"#c0492f","color":"#fff","fontFamily":"'DM Mono',monospace","fontSize":"12px","fontWeight":"500","display":"flex","alignItems":"center","justifyContent":"center","boxShadow":"0 3px 8px rgba(0,0,0,.4)","zIndex":"5"}}>{notificationCount}</div>
       )}
     </div>
     )}
@@ -1376,10 +1397,74 @@ export default function CozyHubRoom({
                 </div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <button
-                    onClick={() => router.push('/hub/my-profile')}
-                    style={{ background: '#FEFAE0', color: '#2E5534', border: '2px solid #2E5534', borderRadius: '10px', padding: '11px 20px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px', letterSpacing: '.06em', fontWeight: 700 }}
+                    onClick={async () => {
+                      if (isDownloadingPDF) return;
+                      setIsDownloadingPDF(true);
+                      try {
+                        const playerName = user?.fullName || 'Steward';
+                        const cohortName = selectedCohort.cohortName || 'workshop';
+                        
+                        // Fetch certificate settings for this cohort
+                        let certSettings = {
+                          certOrg: 'StewardWorks',
+                          certFacilitator: 'Marisol Vega',
+                          certFacTitle: 'Program Director',
+                          certSponsor: 'Dr. Jane Smith',
+                          certSponsorOrg: 'SDSU Research Foundation',
+                          certMessage: ''
+                        };
+                        try {
+                          const certRes = await fetch(`/api/workshops/${selectedCohortId}/certificate-settings`);
+                          if (certRes.ok) {
+                            const settings = await certRes.json();
+                            certSettings = {
+                              certOrg: settings.certOrg || certSettings.certOrg,
+                              certFacilitator: settings.certFacilitator || certSettings.certFacilitator,
+                              certFacTitle: settings.certFacTitle || certSettings.certFacTitle,
+                              certSponsor: settings.certSponsor || certSettings.certSponsor,
+                              certSponsorOrg: settings.certSponsorOrg || certSettings.certSponsorOrg,
+                              certMessage: settings.certMessage || ''
+                            };
+                          }
+                        } catch (e) { /* use defaults */ }
+
+                        const response = await fetch('/api/certificate-pdf', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            playerName,
+                            characterKey: 'steward',
+                            cohortName,
+                            ...certSettings,
+                            deliverables: [
+                              { title: 'DAY 1 DELIVERABLE', url: '' },
+                              { title: 'DAY 2 DELIVERABLE', url: '' },
+                              { title: 'DAY 3 DELIVERABLE', url: '' }
+                            ]
+                          })
+                        });
+
+                        if (!response.ok) throw new Error('Failed to generate PDF');
+
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `certificate-${cohortName.replace(/\s+/g, '-')}-${playerName.replace(/\s+/g, '-')}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      } catch (err) {
+                        console.error('Certificate download error:', err);
+                      } finally {
+                        setIsDownloadingPDF(false);
+                      }
+                    }}
+                    disabled={isDownloadingPDF}
+                    style={{ background: '#FEFAE0', color: '#2E5534', border: '2px solid #2E5534', borderRadius: '10px', padding: '11px 20px', cursor: isDownloadingPDF ? 'wait' : 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px', letterSpacing: '.06em', fontWeight: 700, opacity: isDownloadingPDF ? 0.6 : 1 }}
                   >
-                    ◆ VIEW & DOWNLOAD CERTIFICATE
+                    {isDownloadingPDF ? '⏳ DOWNLOADING...' : '◆ VIEW & DOWNLOAD CERTIFICATE'}
                   </button>
                 </div>
               </div>
@@ -1608,39 +1693,87 @@ export default function CozyHubRoom({
   </>
 )}
 
-  {/* =================== ANNOUNCEMENTS (Wall Phone) =================== */}
-  { screen === 'announcements' && (
-  <div data-screen-label="Announcements" style={{"position":"fixed","inset":"0","zIndex":"100","display":"flex","flexDirection":"column","background":"linear-gradient(180deg,#F8CDA6,#e0a074)","animation":"sw-fade .3s ease","fontFamily":"'Exo',sans-serif","overflow":"auto"}}>
-    <div style={{"maxWidth":"720px","margin":"0 auto","width":"100%","padding":"34px 26px 60px"}}>
-      <button style={{"background":"rgba(33,40,46,.14)","border":"1px solid rgba(33,40,46,.2)","borderRadius":"10px","padding":"9px 15px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#3a2412","marginBottom":"22px"}} onClick={goHub}>← Back to Hub</button>
-      <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".3em","color":"#8a5a2e"}}>THE WALL PHONE</div>
-      <h1 style={{"margin":"4px 0 4px","fontSize":"34px","fontWeight":"700","color":"#3a2412"}}>Hub Announcements</h1>
-      <p style={{"margin":"0 0 26px","fontSize":"14px","color":"#6b4a2a"}}>Messages from your StewardWorks admins. When the phone rings, there's something new to read.</p>
-      
-      { bulletinText && (
-      <div style={{"background":"#21282E","color":"#FEFAE0","borderRadius":"16px","padding":"20px 22px","marginBottom":"24px","boxShadow":"0 14px 30px rgba(0,0,0,.2)"}}>
-        <div style={{"display":"flex","alignItems":"center","gap":"8px","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".18em","color":"#FDDD9A","marginBottom":"8px"}}>📌 PINNED BULLETIN</div>
-        <div style={{"fontSize":"15px","lineHeight":"1.55","whiteSpace":"pre-wrap"}}>{bulletinText}</div>
+  {/* =================== ANNOUNCEMENTS SIDEBAR (Right Panel) =================== */}
+  { announcementsSidebarOpen && (
+  <>
+    {/* Backdrop overlay */}
+    <div style={{"position":"fixed","inset":"0","zIndex":"200","background":"rgba(0,0,0,.4)","animation":"sw-fade .2s ease"}} onClick={() => setAnnouncementsSidebarOpen(false)}></div>
+    {/* Sidebar panel */}
+    <div data-screen-label="Announcements Sidebar" style={{"position":"fixed","top":"0","right":"0","bottom":"0","width":"min(420px, 90vw)","zIndex":"201","display":"flex","flexDirection":"column","background":"#FEFAE0","boxShadow":"-8px 0 40px rgba(0,0,0,.2)","animation":"sw-slide-left .28s ease","fontFamily":"'Exo',sans-serif","overflow":"hidden"}}>
+      {/* Header */}
+      <div style={{"padding":"20px 22px 16px","borderBottom":"1.5px solid rgba(33,40,46,.1)","display":"flex","alignItems":"center","justifyContent":"space-between","background":"#21282E"}}>
+        <div>
+          <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".2em","color":"#FDDD9A","marginBottom":"4px"}}>📞 NOTIFICATIONS</div>
+          <div style={{"fontSize":"18px","fontWeight":"700","color":"#FEFAE0"}}>Announcements</div>
+        </div>
+        <button onClick={() => setAnnouncementsSidebarOpen(false)} style={{"background":"rgba(254,250,224,.12)","border":"1px solid rgba(254,250,224,.2)","borderRadius":"10px","width":"36px","height":"36px","display":"flex","alignItems":"center","justifyContent":"center","cursor":"pointer","color":"#FEFAE0","fontSize":"18px","transition":"background .2s"}}>✕</button>
       </div>
-      )}
       
-      <div style={{"display":"flex","justifyContent":"spaceBetween","alignItems":"baseline","marginBottom":"12px"}}>
-        <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".2em","color":"#8a5a2e"}}>POSTED</span>
-        <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","color":"#8a5a2e"}}>{announcements.length} TOTAL</span>
-      </div>
-      <div style={{"display":"flex","flexDirection":"column","gap":"12px"}}>
-        { announcements.map((a: any, i: number) => (
-          <div key={a.id || i} style={{"display":"flex","gap":"14px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.1)","borderRadius":"14px","padding":"16px 18px","boxShadow":"0 10px 22px rgba(0,0,0,.08)"}}>
-            <div style={{"width":"40px","height":"40px","flex":"none","borderRadius":"11px","background":"rgba(219,155,47,.18)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"18px"}}>📣</div>
-            <div style={{"flex":"1","minWidth":"0"}}>
-              <div style={{"display":"flex","justifyContent":"space-between","gap":"10px","alignItems":"baseline"}}><div style={{"fontWeight":"700","fontSize":"15.5px","color":"#3a2412"}}>{a.title}</div><div style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","color":"#a07a4a","whiteSpace":"nowrap"}}>{new Date(a.created_at).toLocaleDateString()}</div></div>
-              <div style={{"fontSize":"13.5px","color":"#6b4a2a","marginTop":"4px","lineHeight":"1.5","whiteSpace":"pre-wrap"}}>{a.body}</div>
-            </div>
+      {/* Scrollable content */}
+      <div style={{"flex":"1","overflow":"auto","padding":"18px 20px 30px"}}>
+        {/* Personal Notifications (approvals, etc.) */}
+        { personalNotifications.length > 0 && (
+        <>
+          <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"10px"}}>
+            <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#2E5534"}}>🔔 NEW FOR YOU</span>
+            <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#2E5534"}}>{personalNotifications.length} UNREAD</span>
           </div>
-        ))}
+          <div style={{"display":"flex","flexDirection":"column","gap":"8px","marginBottom":"22px"}}>
+            { personalNotifications.map((n: any) => (
+              <div key={n.id} style={{"display":"flex","gap":"12px","background":"rgba(46,85,52,.06)","border":"1.5px solid rgba(46,85,52,.15)","borderRadius":"12px","padding":"13px 15px","cursor":"pointer","transition":"opacity .2s"}} onClick={async () => {
+                await markNotificationAsRead(n.id);
+                setPersonalNotifications(prev => prev.filter(p => p.id !== n.id));
+              }}>
+                <div style={{"width":"34px","height":"34px","flex":"none","borderRadius":"10px","background":"rgba(46,85,52,.12)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"15px"}}>{n.title?.includes('approved') ? '✅' : n.title?.includes('revision') ? '❌' : '🔔'}</div>
+                <div style={{"flex":"1","minWidth":"0"}}>
+                  <div style={{"fontWeight":"700","fontSize":"13px","color":"#2E5534","marginBottom":"3px"}}>{n.title}</div>
+                  <div style={{"fontSize":"12.5px","color":"#4a6a4a","lineHeight":"1.4"}}>{n.message}</div>
+                  <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#8a9a8a","marginTop":"4px"}}>{new Date(n.created_at).toLocaleDateString()} · tap to dismiss</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+        )}
+
+        {/* Pinned Bulletin */}
+        { bulletinText && (
+        <div style={{"background":"#21282E","color":"#FEFAE0","borderRadius":"14px","padding":"16px 18px","marginBottom":"18px","boxShadow":"0 8px 20px rgba(0,0,0,.15)"}}>
+          <div style={{"display":"flex","alignItems":"center","gap":"8px","fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".16em","color":"#FDDD9A","marginBottom":"6px"}}>📌 PINNED BULLETIN</div>
+          <div style={{"fontSize":"13.5px","lineHeight":"1.5","whiteSpace":"pre-wrap"}}>{bulletinText}</div>
+        </div>
+        )}
+        
+        {/* Announcements list */}
+        <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"12px"}}>
+          <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#8a5a2e"}}>ANNOUNCEMENTS</span>
+          <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#8a5a2e"}}>{announcements.length} TOTAL</span>
+        </div>
+        
+        { announcements.length === 0 && personalNotifications.length === 0 && (
+          <div style={{"textAlign":"center","padding":"40px 20px","color":"#a07a4a","fontSize":"14px"}}>
+            <div style={{"fontSize":"32px","marginBottom":"12px"}}>📭</div>
+            No notifications yet.
+          </div>
+        )}
+        
+        <div style={{"display":"flex","flexDirection":"column","gap":"10px"}}>
+          { announcements.map((a: any, i: number) => (
+            <div key={a.id || i} style={{"display":"flex","gap":"12px","background":"rgba(33,40,46,.04)","border":"1.5px solid rgba(33,40,46,.08)","borderRadius":"12px","padding":"14px 16px","transition":"background .2s"}}>
+              <div style={{"width":"36px","height":"36px","flex":"none","borderRadius":"10px","background":"rgba(219,155,47,.15)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"16px"}}>📣</div>
+              <div style={{"flex":"1","minWidth":"0"}}>
+                <div style={{"display":"flex","justifyContent":"space-between","gap":"8px","alignItems":"baseline"}}>
+                  <div style={{"fontWeight":"700","fontSize":"14px","color":"#3a2412"}}>{a.title}</div>
+                  <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#a07a4a","whiteSpace":"nowrap"}}>{new Date(a.created_at).toLocaleDateString()}</div>
+                </div>
+                <div className="announcement-body" style={{"fontSize":"13px","color":"#6b4a2a","marginTop":"4px","lineHeight":"1.45"}} dangerouslySetInnerHTML={{ __html: a.body }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
-  </div>
+  </>
   )}
 
   {/*  =================== BRIDGE / LINK SCREEN ===================  */}

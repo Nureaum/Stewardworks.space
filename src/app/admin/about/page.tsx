@@ -445,18 +445,29 @@ export default function AboutEditorPage() {
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [contactAddress, setContactAddress] = useState('');
+  const [homepageTitle, setHomepageTitle] = useState('');
+  const [homepageSubtitle, setHomepageSubtitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const sys = await getSystemBulletins();
-      if (sys) {
-        // Use rich HTML content if available, fallback to plain text
-        setAboutContentHtml(sys.about_content_html || sys.about_content || '');
-        setContactEmail(sys.contact_email || sys.contact_details || '');
-        setContactPhone(sys.contact_phone || '');
-        setContactAddress(sys.contact_address || '');
+      try {
+        const sys = await getSystemBulletins();
+        if (sys) {
+          setAboutContentHtml(sys.about_content_html || sys.about_content || '');
+          setContactEmail(sys.contact_email || sys.contact_details || '');
+          setContactPhone(sys.contact_phone || '');
+          setContactAddress(sys.contact_address || '');
+          setHomepageTitle(sys.homepage_title || '');
+          setHomepageSubtitle(sys.homepage_subtitle || '');
+        }
+      } catch (err) {
+        console.error('Failed to load about page data:', err);
+        toast.error('Failed to load content');
+      } finally {
+        setIsLoading(false);
       }
     }
     load();
@@ -469,7 +480,9 @@ export default function AboutEditorPage() {
         aboutContentHtml,
         contactEmail,
         contactPhone,
-        contactAddress
+        contactAddress,
+        homepageTitle,
+        homepageSubtitle,
       });
       toast.success("About page published successfully!");
     } catch (error: any) {
@@ -482,12 +495,102 @@ export default function AboutEditorPage() {
 
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full font-exo text-[#241c12] animate-in fade-in duration-300">
+      {/* Sticky Save Bar */}
+      <div className="sticky top-0 z-40 bg-[#fdfaf0]/95 backdrop-blur-sm border-b border-[#785a32]/10 px-8 py-3 flex items-center justify-between">
+        <h1 className="text-[20px] font-[800] uppercase">About Page Editor</h1>
+        <button 
+          onClick={handleSave}
+          disabled={isSaving}
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-b from-steward-green to-[#2f6b3a] text-white font-[800] text-sm shadow-[0_4px_10px_rgba(44,138,74,0.3)] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+        >
+          {isSaving ? (
+            <>
+              <span className="animate-spin">⏳</span>
+              Saving...
+            </>
+          ) : (
+            <>
+              <span>💾</span>
+              Save All Changes
+            </>
+          )}
+        </button>
+      </div>
+
       <main className="flex-1 overflow-y-auto p-8 lg:p-12">
         <div className="max-w-5xl mx-auto">
           <Link href="/admin/announcements" className="text-[#8a7c66] hover:text-[#5c4f3c] mb-6 inline-block font-[700] text-[14px]">
             &larr; Back to Announcements
           </Link>
-          <h1 className="text-[30px] font-[800] tracking-[0.01em] mb-8 uppercase">About Page Editor</h1>
+          
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-8 h-8 border-3 border-[#785a32]/20 border-t-steward-green rounded-full animate-spin" />
+              <p className="text-[#8a7c66] text-sm font-medium">Loading editor...</p>
+            </div>
+          ) : (
+          <>
+          
+          {/* ── Homepage Hero Editor ── */}
+          <div className="bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08] mb-6">
+            <div className="flex items-center gap-3 mb-1">
+              <span className="text-steward-green text-xl">🏠</span>
+              <div className="font-[800] text-[18px]">Homepage Hero Text</div>
+            </div>
+            <p className="text-[13px] text-[#8a7c66] mb-6">
+              Edit the big title and subtitle paragraph shown on the homepage (stewardworks.space). Leave blank to use the default text.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Main Title */}
+              <div>
+                <label className="block text-[13px] font-[700] text-[#5c4f3c] mb-2">
+                  🔤 Main Title
+                  <span className="ml-2 font-normal text-[#8a7c66] text-[11px]">default: &ldquo;Numen Aquae&rdquo;</span>
+                </label>
+                <input
+                  type="text"
+                  value={homepageTitle}
+                  onChange={(e) => setHomepageTitle(e.target.value)}
+                  placeholder="Numen Aquae"
+                  className="w-full p-3 rounded-xl border border-[#785a32]/20 bg-[#fdfaf0] text-sm outline-none focus:border-steward-green focus:ring-2 focus:ring-steward-green/20 transition-all font-exo font-black uppercase tracking-tighter text-steward-green text-xl"
+                />
+                <p className="text-[11px] text-[#8a7c66] mt-1">This appears as the large headline on the homepage</p>
+              </div>
+
+              {/* Subtitle / Mission Body */}
+              <div>
+                <label className="block text-[13px] font-[700] text-[#5c4f3c] mb-2">
+                  📝 Subtitle / Mission Statement
+                  <span className="ml-2 font-normal text-[#8a7c66] text-[11px]">default: &ldquo;Learning AI and media skills...&rdquo;</span>
+                </label>
+                <textarea
+                  value={homepageSubtitle}
+                  onChange={(e) => setHomepageSubtitle(e.target.value)}
+                  placeholder="Learning AI and media skills to build environmental careers in Imperial County."
+                  rows={3}
+                  className="w-full p-3 rounded-xl border border-[#785a32]/20 bg-[#fdfaf0] text-sm outline-none focus:border-steward-green focus:ring-2 focus:ring-steward-green/20 transition-all resize-none"
+                />
+                <p className="text-[11px] text-[#8a7c66] mt-1">This appears as the bold paragraph below the title on the homepage</p>
+              </div>
+            </div>
+
+            {/* Live preview */}
+            {(homepageTitle || homepageSubtitle) && (
+              <div className="mt-6 pt-5 border-t border-[#785a32]/10">
+                <div className="text-[11px] font-[700] text-[#8a7c66] uppercase tracking-widest mb-3">Preview</div>
+                <div className="bg-[#f6f0e8] rounded-xl p-5 border border-[#785a32]/10">
+                  <h2 className="text-4xl font-black uppercase tracking-tighter leading-none text-steward-green mb-2">
+                    {homepageTitle || 'Numen Aquae'}
+                  </h2>
+                  <div className="h-[2px] w-16 bg-steward-orange mb-3" />
+                  <p className="text-lg font-exo font-bold text-steward-green opacity-90">
+                    {homepageSubtitle || 'Learning AI and media skills to build environmental careers in Imperial County.'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
           
           <div className="bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08]">
             {/* Header */}
@@ -660,6 +763,9 @@ export default function AboutEditorPage() {
               </button>
             </div>
           </div>
+
+          </>
+          )}
         </div>
       </main>
     </div>

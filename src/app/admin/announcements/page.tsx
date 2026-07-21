@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { 
   createAnnouncement, 
   getAnnouncements,
@@ -18,8 +19,75 @@ import {
   updateBulletinEvent,
   updateAboutPage
 } from '@/app/actions/bulletins';
-import { Pin, Globe, Trash2, Pencil } from 'lucide-react';
+import { Pin, Globe, Trash2, Pencil, Bold, Italic, Link as LinkIcon, Image } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Mini Rich Text Editor for announcements
+function AnnouncementEditor({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const isInitialized = useRef(false);
+
+  useEffect(() => {
+    if (editorRef.current && value && !isInitialized.current) {
+      editorRef.current.innerHTML = value;
+      isInitialized.current = true;
+    }
+  }, [value]);
+
+  // When value is cleared externally (after posting), reset editor
+  useEffect(() => {
+    if (editorRef.current && value === '' && isInitialized.current) {
+      editorRef.current.innerHTML = '';
+      isInitialized.current = false;
+    }
+  }, [value]);
+
+  const emit = () => {
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+  };
+
+  const cmd = (c: string, val?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(c, false, val);
+    emit();
+  };
+
+  const insertLink = () => {
+    const url = window.prompt('Enter URL:', 'https://');
+    if (url) cmd('createLink', url);
+  };
+
+  const insertImage = () => {
+    const url = window.prompt('Enter image URL:', 'https://');
+    if (url) {
+      editorRef.current?.focus();
+      document.execCommand('insertHTML', false, `<img src="${url}" alt="image" style="max-width:100%;border-radius:8px;margin:8px 0;" />`);
+      emit();
+    }
+  };
+
+  const btnClass = "p-1.5 rounded border border-[#785a32]/15 hover:bg-[#f6e5c3] transition-colors text-[#5c4f3c] flex items-center justify-center";
+
+  return (
+    <div className="my-[7px] mb-[18px] rounded-[11px] border border-[#785a32]/20 overflow-hidden bg-[#fdfaf0]">
+      <div className="flex gap-1 p-2 border-b border-[#785a32]/10 bg-[#fef8ec]">
+        <button type="button" className={btnClass} title="Bold" onMouseDown={e => { e.preventDefault(); cmd('bold'); }}><Bold size={14} /></button>
+        <button type="button" className={btnClass} title="Italic" onMouseDown={e => { e.preventDefault(); cmd('italic'); }}><Italic size={14} /></button>
+        <button type="button" className={btnClass} title="Add link" onMouseDown={e => { e.preventDefault(); insertLink(); }}><LinkIcon size={14} /></button>
+        <button type="button" className={btnClass} title="Add image URL" onMouseDown={e => { e.preventDefault(); insertImage(); }}><Image size={14} /></button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={emit}
+        onBlur={emit}
+        data-placeholder={placeholder || 'Write the announcement members will read…'}
+        className="p-[13px_15px] text-[14px] min-h-[96px] leading-relaxed outline-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-[#9c8d76] [&:empty]:before:pointer-events-none [&_a]:text-[#2c8a4a] [&_a]:underline [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2"
+      />
+    </div>
+  );
+}
 
 export default function AdminAnnouncementsPage() {
   // Announcements State
@@ -130,7 +198,8 @@ export default function AdminAnnouncementsPage() {
   }
 
   async function handlePostAnnouncement() {
-    if (!annTitle.trim() || !annBody.trim()) {
+    const strippedBody = annBody.replace(/<[^>]*>/g, '').trim();
+    if (!annTitle.trim() || !strippedBody) {
       toast.error("Please enter a title and message.");
       return;
     }
@@ -161,6 +230,8 @@ export default function AdminAnnouncementsPage() {
     setIsSavingBulletin(true);
     try {
       await updateProjectBulletin(bulletinText);
+      setPhoneRinging(true);
+      setTimeout(() => setPhoneRinging(false), 5000);
       toast.success("Project bulletin updated!");
     } catch (error: any) {
       toast.error("Failed to update bulletin.");
@@ -314,9 +385,9 @@ export default function AdminAnnouncementsPage() {
             <p className="m-0 mt-[6px] font-mono text-[11px] tracking-[0.2em] text-[#9c8d76]">THE WALL PHONE · MESSAGES TO HUB MEMBERS</p>
           </div>
           <div className="flex items-center gap-4">
-            <a href="/admin/about" className="font-bold text-[13px] text-white bg-steward-green px-4 py-2 rounded-full shadow-md hover:bg-[#2c8a4a] transition-colors">
+            <Link href="/admin/about" className="font-bold text-[13px] text-white bg-steward-green px-4 py-2 rounded-full shadow-md hover:bg-[#2c8a4a] transition-colors">
               Edit Learn More / Contact Us
-            </a>
+            </Link>
             <div className="flex items-center gap-[8px] bg-white border border-[#785a32]/[0.16] rounded-full px-4 py-2 shadow-[0_3px_10px_rgba(120,90,50,0.08)]">
               <span className="w-2 h-2 rounded-full bg-[#2c8a4a] shadow-[0_0_0_3px_rgba(44,138,74,0.18)] animate-pulse"></span>
               <span className="font-bold text-[12.5px] text-[#3a6b46] tracking-[0.08em]">LIVE ON HUB</span>
@@ -343,11 +414,10 @@ export default function AdminAnnouncementsPage() {
               />
               
               <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block">MESSAGE</label>
-              <textarea 
+              <AnnouncementEditor 
                 value={annBody} 
-                onChange={(e) => setAnnBody(e.target.value)} 
-                placeholder="Write the announcement members will read…" 
-                className="w-full my-[7px] mb-[18px] p-[13px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[14px] min-h-[96px] resize-y leading-relaxed outline-none focus:border-[#785a32]/40 transition-colors"
+                onChange={setAnnBody}
+                placeholder="Write the announcement members will read… Add links and images with the toolbar."
               />
               
               <div className="flex gap-[12px]">

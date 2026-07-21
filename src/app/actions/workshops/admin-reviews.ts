@@ -6,6 +6,42 @@ import { ReviewDeliverableResult, SubmissionWithMetadata, UpdateRegistrationStat
 import { revalidatePath } from 'next/cache'
 
 /**
+ * Creates a notification for a user when their engagement or deliverable is reviewed
+ */
+async function createApprovalNotification(
+  profileId: string,
+  type: 'engagement' | 'deliverable',
+  status: 'approved' | 'rejected',
+  itemTitle: string,
+  reviewNote?: string
+) {
+  try {
+    const supabase = createServerSupabaseClient()
+    
+    const emoji = status === 'approved' ? '✅' : '❌'
+    const action = status === 'approved' ? 'approved' : 'needs revision'
+    const title = `${emoji} ${type === 'engagement' ? 'Engagement' : 'Deliverable'} ${action}`
+    const message = reviewNote 
+      ? `Your ${type} "${itemTitle}" has been ${action}. Note: ${reviewNote}`
+      : `Your ${type} "${itemTitle}" has been ${action}.`
+    
+    await supabase
+      .from('helpdesk_notifications')
+      .insert({
+        user_id: profileId,
+        title,
+        message,
+        link: '/hub/my-profile',
+        is_read: false,
+        type: 'approval'
+      })
+  } catch (err) {
+    // Don't fail the review if notification fails
+    console.error('Failed to create approval notification:', err)
+  }
+}
+
+/**
  * Gets deliverable submissions for admin review
  * Can filter by cohort and/or status
  * @param cohortId - Optional cohort UUID to filter by
@@ -335,6 +371,16 @@ export async function reviewDeliverable(
       throw new Error(`Failed to update review: ${updateError.message}`)
     }
 
+    // Notify the student about the review result
+    const dayLabel = `Day ${(progress.workshop_days as any)?.day_number || ''}`;
+    await createApprovalNotification(
+      progress.profile_id,
+      'deliverable',
+      status,
+      `${dayLabel} Deliverable`,
+      reviewNote
+    )
+
     // Check if we should unlock next day
     let nextDayUnlocked = false
     let bankedPrinciple: any = undefined
@@ -644,6 +690,15 @@ export async function reviewEngagement(engagementId: string, status: 'approved' 
       console.error('Review engagement error:', engError)
       throw new Error(`Failed to review engagement: ${engError.message}`)
     }
+
+    // Notify the student about the review result
+    await createApprovalNotification(
+      engagement.profile_id,
+      'engagement',
+      status,
+      engagement.title || engagement.kind || 'item',
+      note
+    )
 
     revalidatePath('/hub/pilot-workshops')
     revalidatePath('/admin/pilot-workshops')

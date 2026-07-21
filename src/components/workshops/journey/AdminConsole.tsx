@@ -174,6 +174,11 @@ export default function AdminConsole({
     message: string
     onConfirm: () => void
   } | null>(null)
+  const [linkInputDialog, setLinkInputDialog] = useState<{
+    entryId: string
+    kind: 'link'
+  } | null>(null)
+  const [linkInputValue, setLinkInputValue] = useState('')
 
   React.useEffect(() => {
     const loadApprovals = async () => {
@@ -413,18 +418,21 @@ export default function AdminConsole({
   }
 
   const handleDeleteEntry = async (entryId: string, sectionId: string) => {
-    if (!confirm('Delete this entry?')) return
-    saveField(async () => {
-      await deleteEntry(entryId)
-      setDaysData(prev => prev.map(d => ({
-        ...d,
-        sections: (d.sections || []).map((s: any) =>
-          s.id === sectionId
-            ? { ...s, entries: (s.entries || []).filter((e: any) => e.id !== entryId) }
-            : s
-        )
-      })))
-      if (selectedEntry === entryId) setSelectedEntry(null)
+    setConfirmDialog({
+      message: 'Delete this entry? This cannot be undone.',
+      onConfirm: async () => {
+        await deleteEntry(entryId)
+        setDaysData(prev => prev.map(d => ({
+          ...d,
+          sections: (d.sections || []).map((s: any) =>
+            s.id === sectionId
+              ? { ...s, entries: (s.entries || []).filter((e: any) => e.id !== entryId) }
+              : s
+          )
+        })))
+        if (selectedEntry === entryId) setSelectedEntry(null)
+        setConfirmDialog(null)
+      }
     })
   }
 
@@ -444,14 +452,17 @@ export default function AdminConsole({
   }
 
   const handleDeleteSection = async (sectionId: string, dayId: string) => {
-    if (!confirm('Delete this entire section and all its entries?')) return
-    saveField(async () => {
-      await deleteSection(sectionId)
-      setDaysData(prev => prev.map(d =>
-        d.id === dayId
-          ? { ...d, sections: (d.sections || []).filter((s: any) => s.id !== sectionId) }
-          : d
-      ))
+    setConfirmDialog({
+      message: 'Delete this entire section and all its entries? This cannot be undone.',
+      onConfirm: async () => {
+        await deleteSection(sectionId)
+        setDaysData(prev => prev.map(d =>
+          d.id === dayId
+            ? { ...d, sections: (d.sections || []).filter((s: any) => s.id !== sectionId) }
+            : d
+        ))
+        setConfirmDialog(null)
+      }
     })
   }
 
@@ -487,13 +498,8 @@ export default function AdminConsole({
 
   const handleAddMedia = async (entryId: string, kind: 'link' | 'photo' | 'video' | 'audio') => {
     if (kind === 'link') {
-      const url = prompt(`Enter ${kind} URL:`)
-      if (!url) return
-      saveField(async () => {
-        await createEntryMedia(entryId, { kind, url, label: '' })
-        const updatedMedia = await getEntryMedia(entryId)
-        setEntryMediaList(updatedMedia)
-      })
+      setLinkInputValue('')
+      setLinkInputDialog({ entryId, kind })
     } else {
       setUploadingMediaKind(kind)
       // Small timeout to ensure state is set before click
@@ -501,6 +507,19 @@ export default function AdminConsole({
         fileInputRef.current?.click()
       }, 50)
     }
+  }
+
+  const handleLinkInputSubmit = async () => {
+    if (!linkInputDialog || !linkInputValue.trim()) return
+    const { entryId } = linkInputDialog
+    const url = linkInputValue.trim()
+    setLinkInputDialog(null)
+    setLinkInputValue('')
+    saveField(async () => {
+      await createEntryMedia(entryId, { kind: 'link', url, label: '' })
+      const updatedMedia = await getEntryMedia(entryId)
+      setEntryMediaList(updatedMedia)
+    })
   }
 
   const handleMediaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -529,11 +548,14 @@ export default function AdminConsole({
   }
 
   const handleRemoveMedia = async (mediaId: string, entryId: string) => {
-    if (!confirm('Remove this media attachment?')) return
-    saveField(async () => {
-      await deleteEntryMedia(mediaId)
-      const updatedMedia = await getEntryMedia(entryId)
-      setEntryMediaList(updatedMedia)
+    setConfirmDialog({
+      message: 'Delete this media attachment? This cannot be undone.',
+      onConfirm: async () => {
+        await deleteEntryMedia(mediaId)
+        const updatedMedia = await getEntryMedia(entryId)
+        setEntryMediaList(updatedMedia)
+        setConfirmDialog(null)
+      }
     })
   }
 
@@ -2873,9 +2895,9 @@ export default function AdminConsole({
             </div>
 
             {/* Modal body */}
-            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex' }}>
               {/* LEFT: text content */}
-              <div style={{ flex: '3 1 460px', minWidth: 300, padding: 'clamp(18px,2.4vw,28px)' }}>
+              <div style={{ flex: '3 1 460px', minWidth: 300, padding: 'clamp(18px,2.4vw,28px)', overflow: 'auto' }}>
                 <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>TOPIC TITLE</div>
                 <input defaultValue={selEntry.title} onBlur={e => handleEntryFieldBlur(selEntry.id, 'title', e.target.value)} style={{ ...inputStyle, fontSize: 20, marginBottom: 12 }} />
                 <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBTITLE / SIDEBAR LABEL</div>
@@ -3007,9 +3029,11 @@ export default function AdminConsole({
               <div style={{
                 flex: '2 1 320px',
                 minWidth: 260,
+                maxWidth: 420,
                 borderLeft: '2px solid var(--ln,#3d2668)',
                 background: 'rgba(0,0,0,.18)',
                 padding: 'clamp(16px,2vw,24px)',
+                overflow: 'auto',
               }}>
                 <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', letterSpacing: 1, marginBottom: 10 }}>
                   ◈ PHOTOS · VIDEO · LINKS
@@ -3053,9 +3077,9 @@ export default function AdminConsole({
                     No visuals yet — add a photo, video, audio or link above. They appear beside this session's text in the student's pop-up.
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
                     {entryMediaList.map(m => (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#3d2668)', borderRadius: 8, padding: '10px 14px' }}>
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#3d2668)', borderRadius: 8, padding: '10px 14px', overflow: 'hidden' }}>
                         <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', flex: 'none', background: 'rgba(255,210,63,.1)', padding: '5px 7px', borderRadius: 4, marginTop: 4 }}>
                           {m.kind.toUpperCase()}
                         </span>
@@ -3070,7 +3094,7 @@ export default function AdminConsole({
                           ) : m.kind === 'audio' && m.url ? (
                             <audio src={m.url} controls style={{ width: '100%', marginTop: 4 }} />
                           ) : (
-                            <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', wordBreak: 'break-all' }}>{m.url}</div>
+                            <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', wordBreak: 'break-all', overflow: 'hidden', maxHeight: 60 }}>{m.url}</div>
                           )}
                         </div>
                         
@@ -3188,6 +3212,117 @@ export default function AdminConsole({
           onConfirm={confirmDialog.onConfirm}
           onCancel={() => setConfirmDialog(null)}
         />
+      )}
+
+      {/* Link Input Dialog */}
+      {linkInputDialog && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,.75)',
+            backdropFilter: 'blur(4px)',
+            animation: 'fadeIn 0.2s ease',
+          }}
+          onClick={() => { setLinkInputDialog(null); setLinkInputValue('') }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#201a30',
+              border: '3px solid var(--gold,#ffd23f)',
+              borderRadius: 12,
+              padding: '28px 32px',
+              maxWidth: 480,
+              width: '90%',
+              boxShadow: '0 0 30px rgba(255,210,63,.3)',
+            }}
+          >
+            <div
+              className="font-pixel"
+              style={{
+                fontSize: 10,
+                color: 'var(--gold,#ffd23f)',
+                marginBottom: 16,
+                textAlign: 'center',
+              }}
+            >
+              🔗 ADD LINK
+            </div>
+            
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--mu,#a493c9)', marginBottom: 8, letterSpacing: '.1em' }}>
+                ENTER URL
+              </label>
+              <input
+                type="url"
+                value={linkInputValue}
+                onChange={(e) => setLinkInputValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && linkInputValue.trim()) handleLinkInputSubmit() }}
+                placeholder="https://..."
+                autoFocus
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: 'rgba(0,0,0,.4)',
+                  border: '2px solid var(--ln,#3d2668)',
+                  borderRadius: 6,
+                  padding: '12px 14px',
+                  fontSize: 14,
+                  color: 'var(--tx,#efe6ff)',
+                  fontFamily: "'Exo', sans-serif",
+                  outline: 'none',
+                }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--mu,#a493c9)', marginTop: 8, opacity: 0.7 }}>
+                Paste an image URL, YouTube link, or any web URL
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button
+                onClick={() => { setLinkInputDialog(null); setLinkInputValue('') }}
+                className="font-pixel"
+                style={{
+                  fontSize: 9,
+                  padding: '12px 24px',
+                  border: '2px solid var(--mu,#9990ab)',
+                  borderRadius: 8,
+                  background: 'rgba(153,144,171,.15)',
+                  color: 'var(--mu,#9990ab)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={handleLinkInputSubmit}
+                disabled={!linkInputValue.trim()}
+                className="font-pixel"
+                style={{
+                  fontSize: 9,
+                  padding: '12px 24px',
+                  border: '2px solid var(--gold,#ffd23f)',
+                  borderRadius: 8,
+                  background: linkInputValue.trim() ? 'rgba(255,210,63,.2)' : 'rgba(255,210,63,.05)',
+                  color: linkInputValue.trim() ? 'var(--gold,#ffd23f)' : 'rgba(255,210,63,.4)',
+                  cursor: linkInputValue.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s',
+                }}
+              >
+                ADD LINK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toast Notification */}

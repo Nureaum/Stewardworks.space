@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { WorkshopCharacter, DayWithSections, WorkshopDayEntry, SceneConfig, WorkshopPrinciple, WorkshopProgress } from '@/types/workshops'
 import { PixelSprite, buildIconUri } from '@/components/workshops/journey'
 import { DEFAULT_CHARACTER } from './character-data'
+import { getWinSkill, buildCastFx } from './VictoryEffects'
 import ArtifactReader from './ArtifactReader'
 
 interface JourneySceneProps {
@@ -542,10 +543,11 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
               willChange: 'transform,left',
               filter: `drop-shadow(0 6px 0 rgba(0,0,0,.4)) drop-shadow(0 0 12px ${accent})`,
               transform: 'translateX(-50%) scaleX(1)',
+              animation: castCount > 0 ? getWinSkill(charKey).heroStyle?.animation : 'none',
             }}
           />
 
-          {/* Cast skill effect - positioned at player location */}
+          {/* Cast skill effect - avatar-specific burst via VictoryEffects */}
           {castCount > 0 && (
             <div
               ref={castRef}
@@ -561,59 +563,7 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
                 zIndex: 7,
               }}
             >
-              {/* Flash */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '50%',
-                  top: 96,
-                  width: 150,
-                  height: 150,
-                  marginLeft: -75,
-                  marginTop: -75,
-                  borderRadius: '50%',
-                  background: `radial-gradient(circle, ${accent}, transparent 62%)`,
-                  animation: 'skFlash 0.7s ease-out both',
-                }}
-              />
-              {/* Expanding rings */}
-              {[0, 0.12, 0.24, 0.36].map((delay, i) => (
-                <div
-                  key={`ring-${i}`}
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: 96,
-                    width: 54,
-                    height: 54,
-                    marginLeft: -27,
-                    marginTop: -27,
-                    border: `3px solid ${accent}`,
-                    borderRadius: '50%',
-                    boxShadow: `0 0 18px ${accent}`,
-                    animation: `cShieldD 1.1s ease-out ${delay}s both`,
-                  }}
-                />
-              ))}
-              {/* Rising symbols */}
-              {['✦', '✧', '◈', '★', '✦', '✧'].map((symbol, i) => (
-                <div
-                  key={`sym-${i}`}
-                  style={{
-                    position: 'absolute',
-                    left: `${24 + i * 9}%`,
-                    top: 132,
-                    fontFamily: "'VT323', monospace",
-                    fontSize: 26 + (i % 3) * 6,
-                    lineHeight: 1,
-                    color: i % 2 ? 'var(--s,#45d6ff)' : accent,
-                    textShadow: `0 0 8px ${i % 2 ? 'var(--s,#45d6ff)' : accent}`,
-                    animation: `cRise 1.1s ease-out ${i * 0.09}s both`,
-                  }}
-                >
-                  {symbol}
-                </div>
-              ))}
+              {buildCastFx(charKey, castCount)}
             </div>
           )}
         </div>
