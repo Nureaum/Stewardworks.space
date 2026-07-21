@@ -484,6 +484,8 @@ export default function AboutEditorPage() {
         homepageTitle,
         homepageSubtitle,
       });
+      // Bust the homepage sessionStorage cache so the next visit always shows fresh data
+      try { sessionStorage.removeItem('sw_homepage_content'); } catch {}
       toast.success("About page published successfully!");
     } catch (error: any) {
       console.error('Save error:', error);

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Lock, ChevronLeft, Image as ImageIcon, Users, BookOpen, Layers, Map, MessageSquare, Beaker, ChevronDown, Megaphone, BarChart3 } from 'lucide-react';
+import { Lock, ChevronLeft, Image as ImageIcon, Users, BookOpen, Layers, Map, MessageSquare, Beaker, ChevronDown, Megaphone, BarChart3, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { AdminLoadingProvider } from '@/context/AdminLoadingContext';
@@ -112,6 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Environmental Literacy', href: '/admin/environmental', icon: BookOpen, exact: false },
     { label: 'Community Sessions', href: '/admin/community-listening', icon: Users, exact: false },
     { label: 'Help Desk', href: '/admin/helpdesk', icon: MessageSquare, exact: false },
+    { label: 'Wellness', href: '/admin/wellness', icon: Heart, exact: false },
   ];
 
   const programItems = [

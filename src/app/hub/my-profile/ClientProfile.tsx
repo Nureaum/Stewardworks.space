@@ -54,6 +54,8 @@ export default function ClientProfile({
   const [bookmarkedEnvironmental, setBookmarkedEnvironmental] = useState<any[]>([]);
   const [isFetchingResources, setIsFetchingResources] = useState(false);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+  const [selectedNoteItem, setSelectedNoteItem] = useState<any | null>(null);
+  const [selectedResourceItem, setSelectedResourceItem] = useState<any | null>(null);
   
   // Engagement counts
   const [engagementCounts, setEngagementCounts] = useState({ bookmarks: 0, notes: 0, prompts: 0, generations: 0 });
@@ -67,6 +69,7 @@ export default function ClientProfile({
   const [workshopBookmarks, setWorkshopBookmarks] = useState<any[]>([]);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [noteType, setNoteType] = useState<'note' | 'prompt'>('note');
+  const [bookmarkFilter, setBookmarkFilter] = useState('all');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [activeCohortId, setActiveCohortId] = useState<string | null>(initialCohortId);
@@ -808,7 +811,7 @@ export default function ClientProfile({
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '9px' }}>
                   <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.04em', background: 'rgba(254,250,224,.14)', border: '1px solid rgba(254,250,224,.25)', padding: '5px 12px', borderRadius: '20px' }}>
-                    🌱 {displayLearningStyle}
+                    🌱 Learning style: {displayLearningStyle}
                   </span>
                   <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.04em', background: 'rgba(254,250,224,.14)', border: '1px solid rgba(254,250,224,.25)', padding: '5px 12px', borderRadius: '20px' }}>
                     🎯 Dream role: {displayDreamJob}
@@ -1143,27 +1146,35 @@ export default function ClientProfile({
               <p style={{ fontSize: '13px', color: '#7a5a3a', margin: 0 }}>All your bookmarks collected from across the StewardWorks hub.</p>
             </div>
             
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', background: 'rgba(255,255,255,0.5)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(138,90,46,.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#417C98' }}></span>
-                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>LIBRARY</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#A27532' }}></span>
-                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>WORKSHOPS</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#2E5534' }}></span>
-                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>WORKFORCE</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#ff6a2e' }}></span>
-                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>JOBS</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#4B8B9B' }}></span>
-                <span style={{ fontSize: '10px', color: '#3a2412', fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>ENVIRONMENTAL</span>
-              </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {[
+                { key: 'all', label: 'All', color: '#3a2412', count: bookmarkedResources.length + workshopBookmarks.length + bookmarkedWorkforce.length + bookmarkedJobs.length + bookmarkedEnvironmental.length },
+                { key: 'library', label: 'Library', color: '#417C98', count: bookmarkedResources.length },
+                { key: 'workshops', label: 'Workshops', color: '#A27532', count: workshopBookmarks.length },
+                { key: 'workforce', label: 'Workforce', color: '#2E5534', count: bookmarkedWorkforce.length },
+                { key: 'jobs', label: 'Jobs', color: '#ff6a2e', count: bookmarkedJobs.length },
+                { key: 'environmental', label: 'Environmental', color: '#4B8B9B', count: bookmarkedEnvironmental.length },
+              ].filter(c => c.key === 'all' || c.count > 0).map(cat => (
+                <button
+                  key={cat.key}
+                  onClick={() => setBookmarkFilter(cat.key)}
+                  style={{
+                    fontFamily: '"DM Mono", monospace',
+                    fontSize: '10px',
+                    letterSpacing: '.06em',
+                    fontWeight: 600,
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    border: bookmarkFilter === cat.key ? `2px solid ${cat.color}` : '1.5px solid rgba(138,90,46,.15)',
+                    background: bookmarkFilter === cat.key ? `${cat.color}18` : 'rgba(255,255,255,0.5)',
+                    color: bookmarkFilter === cat.key ? cat.color : '#5a4a3a',
+                    cursor: 'pointer',
+                    transition: 'all .2s',
+                  }}
+                >
+                  {cat.label} {cat.count > 0 && <span style={{ opacity: 0.7 }}>({cat.count})</span>}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1176,38 +1187,22 @@ export default function ClientProfile({
           ) : (
             <>
               {/* 1. LIBRARY */}
-              {bookmarkedResources.length > 0 && (
+              {bookmarkedResources.length > 0 && (bookmarkFilter === 'all' || bookmarkFilter === 'library') && (
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#417C98', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     STEWARD LIBRARY <span style={{ background: 'rgba(65,124,152,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedResources.length}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
                     {bookmarkedResources.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => window.open(`/hub/library/${b.id}`, '_blank')}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'LIBRARY', _color: '#417C98', _bg: '#EBF4F8', _url: `/hub/library/${b.id}`, _status: b.bookmarkStatus, _source: domain(b.external_url || b.url) })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#417C98', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>LIBRARY</span>
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
                           {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3, cursor: 'pointer' }}>{b.title}</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                          <span style={{ fontSize: '12px', color: '#5a8a9a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{domain(b.external_url || b.url)}</span>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            {b.reviewNote && (
-                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#417C98' : '#DDEAF0', border: '1.5px solid #417C98', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#417C98', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                              </button>
-                            )}
-                            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#417C98' }}>Open →</span>
-                          </div>
-                        </div>
-                        {expandedNoteId === b.id && b.reviewNote && (
-                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(65,124,152,.08)', border: '1px solid rgba(65,124,152,.2)', borderRadius: '8px' }}>
-                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#417C98', marginBottom: '5px' }}>ADMIN NOTE</div>
-                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#2a4a5a' }}>{b.reviewNote}</div>
-                          </div>
-                        )}
+                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                        <div style={{ fontSize: '12px', color: '#5a8a9a', marginTop: '7px' }}>{domain(b.external_url || b.url)}</div>
                       </div>
                     ))}
                   </div>
@@ -1215,37 +1210,22 @@ export default function ClientProfile({
               )}
 
               {/* 2. WORKSHOPS */}
-              {workshopBookmarks.length > 0 && (
+              {workshopBookmarks.length > 0 && (bookmarkFilter === 'all' || bookmarkFilter === 'workshops') && (
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#A27532', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     WORKSHOPS <span style={{ background: 'rgba(162,117,50,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{workshopBookmarks.length}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
                     {workshopBookmarks.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => b.url && window.open(b.url, '_blank')}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKSHOP', _color: '#A27532', _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source, content: b.content || b.note || '' })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#A27532', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>WORKSHOP</span>
                           {b.status === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
                           {b.status === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.status === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, marginBottom: '8px' }}>{b.title}</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                          <span style={{ fontSize: '11px', color: '#A27532' }}>🔖 {b.source}</span>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            {b.reviewNote && (
-                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#A27532' : '#F6ECD9', border: '1.5px solid #A27532', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#A27532', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        {expandedNoteId === b.id && b.reviewNote && (
-                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(162,117,50,.08)', border: '1px solid rgba(162,117,50,.2)', borderRadius: '8px' }}>
-                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#A27532', marginBottom: '5px' }}>ADMIN NOTE</div>
-                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#4a3a2a' }}>{b.reviewNote}</div>
-                          </div>
-                        )}
+                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                        <div style={{ fontSize: '11px', color: '#A27532', marginTop: '7px' }}>🔖 {b.source}</div>
                       </div>
                     ))}
                   </div>
@@ -1253,14 +1233,14 @@ export default function ClientProfile({
               )}
 
               {/* 3. WORKFORCE PATHWAYS */}
-              {bookmarkedWorkforce.length > 0 && (
+              {bookmarkedWorkforce.length > 0 && (bookmarkFilter === 'all' || bookmarkFilter === 'workforce') && (
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#2E5534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     WORKFORCE PATHWAYS <span style={{ background: 'rgba(46,85,52,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedWorkforce.length}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
                     {bookmarkedWorkforce.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => window.open(b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, '_blank')}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKFORCE', _color: '#2E5534', _bg: '#EAF2EB', _url: b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, _status: b.bookmarkStatus, _source: b.source || domain(b.url) })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#2E5534', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>VAULT</span>
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
@@ -1268,23 +1248,7 @@ export default function ClientProfile({
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
                         <div style={{ fontWeight: 700, color: '#1a2a1a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                          <span style={{ fontSize: '12px', color: '#3a5a4a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{domain(b.url)} {b.source ? `- ${b.source}` : ''}</span>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            {b.reviewNote && (
-                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#2E5534' : '#DDF0E1', border: '1.5px solid #2E5534', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#2E5534', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                              </button>
-                            )}
-                            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#2E5534' }}>View →</span>
-                          </div>
-                        </div>
-                        {expandedNoteId === b.id && b.reviewNote && (
-                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(46,85,52,.08)', border: '1px solid rgba(46,85,52,.2)', borderRadius: '8px' }}>
-                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#2E5534', marginBottom: '5px' }}>ADMIN NOTE</div>
-                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#1a2a1a' }}>{b.reviewNote}</div>
-                          </div>
-                        )}
+                        <div style={{ fontSize: '12px', color: '#3a5a4a', marginTop: '7px' }}>{b.source || domain(b.url)}</div>
                       </div>
                     ))}
                   </div>
@@ -1292,14 +1256,14 @@ export default function ClientProfile({
               )}
 
               {/* 4. JOBS QUEST */}
-              {bookmarkedJobs.length > 0 && (
+              {bookmarkedJobs.length > 0 && (bookmarkFilter === 'all' || bookmarkFilter === 'jobs') && (
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#ff6a2e', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     JOBS QUEST <span style={{ background: 'rgba(255,106,46,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedJobs.length}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
                     {bookmarkedJobs.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FFF0E6', border: '1.5px solid rgba(255,106,46,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => window.open('/hub/workforce-pathways?jobs=true#wf-jobs', '_blank')}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FFF0E6', border: '1.5px solid rgba(255,106,46,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, title: b.title.replace(/^Job:\s*/, ''), _kind: 'JOB', _color: '#ff6a2e', _bg: '#FFF0E6', _url: b.url || '/hub/workforce-pathways?jobs=true#wf-jobs', _status: b.bookmarkStatus, _source: b.source, _viewLabel: b.url ? 'Apply →' : 'View Jobs →' })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff6a2e', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>JOB</span>
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
@@ -1307,23 +1271,7 @@ export default function ClientProfile({
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
                         <div style={{ fontWeight: 700, color: '#4a2a1a', fontSize: '15px', lineHeight: 1.3 }}>{b.title.replace(/^Job:\s*/, '')}</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                          <span style={{ fontSize: '12px', color: '#8a4a2a' }}>{b.source}</span>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            {b.reviewNote && (
-                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#ff6a2e' : '#FFE0CC', border: '1.5px solid #ff6a2e', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#ff6a2e', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                              </button>
-                            )}
-                            {b.url && <button onClick={(e) => { e.stopPropagation(); window.open(b.url, '_blank'); }} style={{ all: 'unset', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#ff6a2e', textDecoration: 'none' }}>Apply →</button>}
-                          </div>
-                        </div>
-                        {expandedNoteId === b.id && b.reviewNote && (
-                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(255,106,46,.08)', border: '1px solid rgba(255,106,46,.2)', borderRadius: '8px' }}>
-                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#ff6a2e', marginBottom: '5px' }}>ADMIN NOTE</div>
-                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#4a2a1a' }}>{b.reviewNote}</div>
-                          </div>
-                        )}
+                        <div style={{ fontSize: '12px', color: '#8a4a2a', marginTop: '7px' }}>{b.source}</div>
                       </div>
                     ))}
                   </div>
@@ -1331,14 +1279,14 @@ export default function ClientProfile({
               )}
 
               {/* 5. FIELD NOTES */}
-              {bookmarkedEnvironmental.length > 0 && (
+              {bookmarkedEnvironmental.length > 0 && (bookmarkFilter === 'all' || bookmarkFilter === 'environmental') && (
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#4B8B9B', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     ENVIRONMENTAL BOOKMARKS <span style={{ background: 'rgba(75,139,155,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedEnvironmental.length}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
                     {bookmarkedEnvironmental.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF3F5', border: '1.5px solid rgba(75,139,155,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => window.open(`/hub/environmental-literacy?entry=${b.url}`, '_blank')}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF3F5', border: '1.5px solid rgba(75,139,155,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'ENVIRONMENTAL', _color: '#4B8B9B', _bg: '#EAF3F5', _url: `/hub/environmental-literacy?entry=${b.url}`, _status: b.bookmarkStatus, _source: b.source })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#4B8B9B', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>ENVIRONMENTAL</span>
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
@@ -1346,23 +1294,7 @@ export default function ClientProfile({
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
                         <div style={{ fontWeight: 700, color: '#1a3a4a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '7px' }}>
-                          <span style={{ fontSize: '12px', color: '#3a6a7a' }}>{b.source}</span>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            {b.reviewNote && (
-                              <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === b.id ? null : b.id); }} style={{ background: expandedNoteId === b.id ? '#4B8B9B' : '#D6E9EE', border: '1.5px solid #4B8B9B', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === b.id ? '#fff' : '#4B8B9B', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                                {expandedNoteId === b.id ? '✕ NOTE' : '📝 NOTE'}
-                              </button>
-                            )}
-                            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#4B8B9B', cursor: 'pointer' }}>Open →</span>
-                          </div>
-                        </div>
-                        {expandedNoteId === b.id && b.reviewNote && (
-                          <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(75,139,155,.08)', border: '1px solid rgba(75,139,155,.2)', borderRadius: '8px' }}>
-                            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#4B8B9B', marginBottom: '5px' }}>ADMIN NOTE</div>
-                            <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#1a3a4a' }}>{b.reviewNote}</div>
-                          </div>
-                        )}
+                        <div style={{ fontSize: '12px', color: '#3a6a7a', marginTop: '7px' }}>{b.source}</div>
                       </div>
                     ))}
                   </div>
@@ -1400,15 +1332,14 @@ export default function ClientProfile({
                   : isImageUrl ? 'IMAGE' : 'LINK';
               
               return (
-                <div key={g.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '0', boxShadow: '0 8px 18px rgba(0,0,0,.06)', overflow: 'hidden' }}>
+                <div key={g.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '0', boxShadow: '0 8px 18px rgba(0,0,0,.06)', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...g, _kind: 'GENERATION', _color: '#45d6ff', _bg: '#FEFAE0', _url: g.url, _status: g.status, _source: g.source, _typeTag: typeTag, _isImageUrl: isImageUrl })}>
                   {/* Image Preview - Full width at top */}
                   {isImageUrl && g.url && (
                     <div style={{ width: '100%', height: '180px', overflow: 'hidden', background: 'linear-gradient(135deg,rgba(69,214,255,.08),rgba(116,240,160,.08))', position: 'relative' }}>
                       <img 
                         src={g.url} 
                         alt={g.title} 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} 
-                        onClick={() => window.open(g.url, '_blank')}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                         onError={(e) => { 
                           const parent = (e.target as HTMLElement).parentElement;
                           if (parent) {
@@ -1465,48 +1396,14 @@ export default function ClientProfile({
                     
                     {/* Actions */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      {g.reviewNote && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === g.id ? null : g.id); }} 
-                          style={{ 
-                            background: expandedNoteId === g.id ? '#45d6ff' : '#E8F8FF', 
-                            border: '1.5px solid #45d6ff', 
-                            fontFamily: '"DM Mono", monospace', 
-                            fontSize: '10px', 
-                            fontWeight: 700, 
-                            color: expandedNoteId === g.id ? '#fff' : '#45d6ff', 
-                            cursor: 'pointer', 
-                            padding: '5px 10px', 
-                            borderRadius: '6px', 
-                            letterSpacing: '.06em' 
-                          }}
-                        >
-                          {expandedNoteId === g.id ? '✕ NOTE' : '📝 NOTE'}
-                        </button>
-                      )}
-                      {g.url && (
-                        <span 
-                          style={{ 
-                            fontFamily: '"DM Mono", monospace', 
-                            fontSize: '11px', 
-                            color: '#45d6ff', 
-                            cursor: 'pointer', 
-                            marginLeft: g.reviewNote ? '0' : 'auto' 
-                          }} 
-                          onClick={() => window.open(g.url, '_blank')}
-                        >
-                          Open →
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Admin Note Expanded */}
-                    {expandedNoteId === g.id && g.reviewNote && (
-                      <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(69,214,255,.08)', border: '1px solid rgba(69,214,255,.2)', borderRadius: '8px' }}>
-                        <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#417C98', marginBottom: '5px' }}>ADMIN NOTE</div>
-                        <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#3a2412' }}>{g.reviewNote}</div>
+                      <div style={{ fontSize: '11px', color: '#7a5a3a' }}>
+                        {typeTag === 'IMAGE' && '🖼️'}
+                        {typeTag === 'VIDEO' && '🎥'}
+                        {typeTag === 'AUDIO' && '🍵'}
+                        {typeTag === 'LINK' && '🔗'}
+                        {' '}{typeTag}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               );
@@ -1534,7 +1431,12 @@ export default function ClientProfile({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '12px' }}>
             {/* Notes */}
             {notes.map(n => (
-              <div key={n.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)' }}>
+              <div
+                key={n.id}
+                onClick={() => setSelectedNoteItem({ ...n, itemType: 'note' })}
+                className="hover:-translate-y-1 hover:shadow-lg transition-all"
+                style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)', cursor: 'pointer' }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                   <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#A27532', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>NOTE</span>
                   {n.status === 'pending' && (
@@ -1547,37 +1449,22 @@ export default function ClientProfile({
                     <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
                   )}
                 </div>
-                
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '8px' }}>{n.title}</div>
-                
-                <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '10px', maxHeight: '80px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {n.content}
+                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px' }}>{n.title}</div>
+                <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
+                  {n.content && n.content.length > 100 ? n.content.slice(0, 100) + '…' : n.content}
                 </div>
-                
-                <div style={{ fontSize: '11px', color: '#7a5a3a', marginBottom: '10px' }}>
-                  📝 {n.source}
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
-                  {n.reviewNote && (
-                    <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === n.id ? null : n.id); }} style={{ background: expandedNoteId === n.id ? '#A27532' : '#FDF3E0', border: '1.5px solid #A27532', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === n.id ? '#fff' : '#A27532', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                      {expandedNoteId === n.id ? '✕ NOTE' : '📝 NOTE'}
-                    </button>
-                  )}
-                </div>
-                
-                {expandedNoteId === n.id && n.reviewNote && (
-                  <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(162,117,50,.08)', border: '1px solid rgba(162,117,50,.2)', borderRadius: '8px' }}>
-                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '5px' }}>ADMIN NOTE</div>
-                    <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#3a2412' }}>{n.reviewNote}</div>
-                  </div>
-                )}
+                <div style={{ fontSize: '11px', color: '#7a5a3a' }}>📝 {n.source}</div>
               </div>
             ))}
             
             {/* Prompts */}
             {prompts.map(p => (
-              <div key={p.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)' }}>
+              <div
+                key={p.id}
+                onClick={() => setSelectedNoteItem({ ...p, itemType: 'prompt' })}
+                className="hover:-translate-y-1 hover:shadow-lg transition-all"
+                style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)', cursor: 'pointer' }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                   <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#DB9B2F', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>PROMPT</span>
                   {p.status === 'pending' && (
@@ -1590,31 +1477,11 @@ export default function ClientProfile({
                     <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
                   )}
                 </div>
-                
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '8px' }}>{p.title}</div>
-                
-                <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '10px', maxHeight: '80px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {p.content}
+                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px' }}>{p.title}</div>
+                <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
+                  {p.content && p.content.length > 100 ? p.content.slice(0, 100) + '…' : p.content}
                 </div>
-                
-                <div style={{ fontSize: '11px', color: '#7a5a3a', marginBottom: '10px' }}>
-                  ⌘ {p.source}
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
-                  {p.reviewNote && (
-                    <button onClick={(e) => { e.stopPropagation(); setExpandedNoteId(expandedNoteId === p.id ? null : p.id); }} style={{ background: expandedNoteId === p.id ? '#DB9B2F' : '#FFF8E8', border: '1.5px solid #DB9B2F', fontFamily: '"DM Mono", monospace', fontSize: '10px', fontWeight: 700, color: expandedNoteId === p.id ? '#fff' : '#DB9B2F', cursor: 'pointer', padding: '5px 10px', borderRadius: '6px', letterSpacing: '.06em' }}>
-                      {expandedNoteId === p.id ? '✕ NOTE' : '📝 NOTE'}
-                    </button>
-                  )}
-                </div>
-                
-                {expandedNoteId === p.id && p.reviewNote && (
-                  <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(219,155,47,.08)', border: '1px solid rgba(219,155,47,.2)', borderRadius: '8px' }}>
-                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#8a6a2e', marginBottom: '5px' }}>ADMIN NOTE</div>
-                    <div style={{ fontSize: '13px', lineHeight: 1.4, color: '#3a2412' }}>{p.reviewNote}</div>
-                  </div>
-                )}
+                <div style={{ fontSize: '11px', color: '#7a5a3a' }}>⌘ {p.source}</div>
               </div>
             ))}
           </div>
@@ -1622,6 +1489,213 @@ export default function ClientProfile({
 
       </div>
       
+      {/* Note / Prompt Detail Popup */}
+      {selectedNoteItem && (
+        <div
+          onClick={() => setSelectedNoteItem(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(20,12,4,.72)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 'clamp(12px,4vw,40px)',
+            animation: 'fadeIn .18s ease'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 560,
+              background: '#FEFAE0',
+              border: '2px solid rgba(162,117,50,.25)',
+              borderRadius: '18px',
+              padding: 'clamp(22px,4vw,36px)',
+              boxShadow: '0 24px 60px rgba(0,0,0,.28)',
+              position: 'relative',
+              maxHeight: '88vh', overflowY: 'auto',
+              animation: 'slideUp .2s ease'
+            }}
+          >
+            {/* Close */}
+            <button
+              onClick={() => setSelectedNoteItem(null)}
+              style={{
+                position: 'absolute', top: 14, right: 14,
+                background: 'rgba(162,117,50,.1)', border: '1.5px solid rgba(162,117,50,.3)',
+                color: '#8a5a2e', borderRadius: '50%', width: 30, height: 30,
+                cursor: 'pointer', fontSize: '14px', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', fontWeight: 700,
+                lineHeight: 1
+              }}
+            >✕</button>
+
+            {/* Badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              {selectedNoteItem.itemType === 'note' ? (
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#A27532', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>NOTE</span>
+              ) : (
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#DB9B2F', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>PROMPT</span>
+              )}
+              {selectedNoteItem.status === 'pending' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 9px', borderRadius: '20px' }}>PENDING</span>}
+              {selectedNoteItem.status === 'approved' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 9px', borderRadius: '20px' }}>✓ APPROVED</span>}
+              {selectedNoteItem.status === 'rejected' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>✕ REJECTED</span>}
+            </div>
+
+            {/* Title */}
+            <div style={{ fontWeight: 800, color: '#3a2412', fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.3, marginBottom: '14px' }}>
+              {selectedNoteItem.title}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: '1px', background: 'rgba(162,117,50,.18)', marginBottom: '16px' }} />
+
+            {/* Full content */}
+            <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '18px' }}>
+              {selectedNoteItem.content}
+            </div>
+
+            {/* Source */}
+            <div style={{ fontSize: '11px', color: '#7a5a3a', fontFamily: '"DM Mono", monospace', letterSpacing: '.06em', marginBottom: selectedNoteItem.reviewNote ? '14px' : 0 }}>
+              {selectedNoteItem.itemType === 'note' ? '📝' : '⌘'} {selectedNoteItem.source}
+            </div>
+
+            {/* Admin review note */}
+            {selectedNoteItem.reviewNote && (
+              <div style={{ padding: '12px 14px', background: 'rgba(162,117,50,.08)', border: '1px solid rgba(162,117,50,.22)', borderRadius: '10px' }}>
+                <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.12em', color: '#8a5a2e', marginBottom: '6px' }}>ADMIN NOTE</div>
+                <div style={{ fontSize: '13px', lineHeight: 1.5, color: '#3a2412' }}>{selectedNoteItem.reviewNote}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Resource Preview Popup */}
+      {selectedResourceItem && (() => {
+        const r = selectedResourceItem;
+        const color = r._color || '#8a5a2e';
+        const status = r._status;
+        const isGenImage = r._kind === 'GENERATION' && r._isImageUrl && r._url;
+        return (
+          <div
+            onClick={() => setSelectedResourceItem(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 10000,
+              background: 'rgba(20,12,4,.72)',
+              backdropFilter: 'blur(6px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 'clamp(12px,4vw,40px)',
+              animation: 'fadeIn .18s ease'
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                width: '100%', maxWidth: 520,
+                background: r._bg || '#FEFAE0',
+                border: `2px solid ${color}30`,
+                borderRadius: '18px',
+                boxShadow: '0 24px 60px rgba(0,0,0,.28)',
+                position: 'relative',
+                maxHeight: '88vh', overflowY: 'auto',
+                animation: 'slideUp .2s ease'
+              }}
+            >
+              {/* Image preview for generations */}
+              {isGenImage && (
+                <div style={{ width: '100%', height: '220px', overflow: 'hidden', borderRadius: '16px 16px 0 0' }}>
+                  <img src={r._url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+
+              <div style={{ padding: 'clamp(22px,4vw,32px)' }}>
+                {/* Close */}
+                <button
+                  onClick={() => setSelectedResourceItem(null)}
+                  style={{
+                    position: 'absolute', top: isGenImage ? 230 : 14, right: 14,
+                    background: 'rgba(0,0,0,.08)', border: `1.5px solid ${color}40`,
+                    color: color, borderRadius: '50%', width: 30, height: 30,
+                    cursor: 'pointer', fontSize: '14px', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', fontWeight: 700,
+                    lineHeight: 1, zIndex: 2
+                  }}
+                >✕</button>
+
+                {/* Badges */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: color, color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>{r._kind}</span>
+                  {r._typeTag && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: 'rgba(0,0,0,.08)', color: '#5a4a3a', padding: '3px 9px', borderRadius: '20px' }}>{r._typeTag}</span>}
+                  {status === 'pending' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 9px', borderRadius: '20px' }}>PENDING</span>}
+                  {status === 'approved' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 9px', borderRadius: '20px' }}>✓ APPROVED</span>}
+                  {status === 'rejected' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>✕ REJECTED</span>}
+                </div>
+
+                {/* Title */}
+                <div style={{ fontWeight: 800, color: '#3a2412', fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.3, marginBottom: '14px' }}>
+                  {r.title}
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: '1px', background: `${color}30`, marginBottom: '16px' }} />
+
+                {/* Content / Description */}
+                {(r.content || r.description || r.note) && (
+                  <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
+                    {r.content || r.description || r.note}
+                  </div>
+                )}
+
+                {/* Source */}
+                {r._source && (
+                  <div style={{ fontSize: '11px', color: '#7a5a3a', fontFamily: '"DM Mono", monospace', letterSpacing: '.06em', marginBottom: r.reviewNote ? '14px' : '18px' }}>
+                    📌 {r._source}
+                  </div>
+                )}
+
+                {/* Admin review note */}
+                {r.reviewNote && (
+                  <div style={{ padding: '12px 14px', background: `${color}12`, border: `1px solid ${color}30`, borderRadius: '10px', marginBottom: '18px' }}>
+                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.12em', color: color, marginBottom: '6px' }}>ADMIN NOTE</div>
+                    <div style={{ fontSize: '13px', lineHeight: 1.5, color: '#3a2412' }}>{r.reviewNote}</div>
+                  </div>
+                )}
+
+                {/* View button */}
+                {r._url && (
+                  <button
+                    onClick={() => window.open(r._url, '_blank')}
+                    style={{
+                      width: '100%', padding: '14px 20px',
+                      background: color, color: '#fff', border: 'none',
+                      borderRadius: '10px', fontFamily: '"DM Mono", monospace',
+                      fontSize: '13px', fontWeight: 700, letterSpacing: '.08em',
+                      cursor: 'pointer', boxShadow: `0 4px 14px ${color}40`,
+                      transition: 'opacity .2s'
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                  >
+                    {r._viewLabel || 'View →'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
+
       {/* Certificate Preview Modal - Matching VictoryScreen design */}
       {showCertPreview && (
         <div 

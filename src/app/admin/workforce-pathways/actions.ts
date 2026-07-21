@@ -30,12 +30,17 @@ export async function fetchWorkforceCounts() {
   let pendingCount = 0;
   const stopCounts: Record<string, number> = {};
 
-  const { data: entryCounts } = await supabase
-    .from('workforce_entries')
-    .select('pathway_id, stop_id, status');
+  // Run all queries in parallel instead of sequentially
+  const [entryCounts, jobsResult, externalBoardsResult, sourcesResult, quizzesResult] = await Promise.all([
+    supabase.from('workforce_entries').select('pathway_id, stop_id, status'),
+    supabase.from('workforce_jobs').select('*', { count: 'exact', head: true }),
+    supabase.from('workforce_external_boards').select('*', { count: 'exact', head: true }),
+    supabase.from('workforce_entries').select('*', { count: 'exact', head: true }).not('sources', 'is', null).neq('sources', '[]'),
+    supabase.from('workforce_quizzes').select('*', { count: 'exact', head: true })
+  ]);
 
-  if (entryCounts) {
-    entryCounts.forEach(row => {
+  if (entryCounts.data) {
+    entryCounts.data.forEach(row => {
       if (row.status === 'pending') {
         pendingCount++;
       } else if (row.status === 'published' || !row.status) {
@@ -46,32 +51,14 @@ export async function fetchWorkforceCounts() {
     });
   }
 
-  const { count: jobsCount } = await supabase
-    .from('workforce_jobs')
-    .select('*', { count: 'exact', head: true });
-
-  const { count: externalBoardsCount } = await supabase
-    .from('workforce_external_boards')
-    .select('*', { count: 'exact', head: true });
-
-  const { count: sourcesCount } = await supabase
-    .from('workforce_entries')
-    .select('*', { count: 'exact', head: true })
-    .not('sources', 'is', null)
-    .neq('sources', '[]');
-
-  const { count: quizzesCount } = await supabase
-    .from('workforce_quizzes')
-    .select('*', { count: 'exact', head: true });
-
   return {
     creatorCount,
     enviroCount,
-    jobsCount: jobsCount || 0,
-    externalBoardsCount: externalBoardsCount || 0,
+    jobsCount: jobsResult.count || 0,
+    externalBoardsCount: externalBoardsResult.count || 0,
     pendingCount,
-    sourcesCount: sourcesCount || 0,
-    quizzesCount: quizzesCount || 0,
+    sourcesCount: sourcesResult.count || 0,
+    quizzesCount: quizzesResult.count || 0,
     stopCounts
   };
 }

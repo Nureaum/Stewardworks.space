@@ -275,11 +275,17 @@ body {
 @keyframes sw-label{from{opacity:0;transform:translate(-50%,-100%) translateY(6px)}to{opacity:1;transform:translate(-50%,-100%) translateY(0)}}
 @keyframes sw-fadein{from{opacity:0}to{opacity:1}}
 @keyframes sw-slide-left{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes sw-popup{from{opacity:0;transform:translate(-50%,-50%) scale(0.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 
 /* Announcement body rich content */
 .announcement-body a{color:#2c8a4a;text-decoration:underline}
 .announcement-body img{max-width:100%;border-radius:8px;margin:6px 0;display:block}
 .announcement-body b,.announcement-body strong{font-weight:700}
+
+/* Admin announcement preview - compact */
+.announcement-admin-preview a{color:#2c8a4a;text-decoration:underline}
+.announcement-admin-preview img{width:48px;height:48px;object-fit:cover;border-radius:6px;display:inline-block;margin:4px 4px 4px 0;vertical-align:middle}
+.announcement-admin-preview b,.announcement-admin-preview strong{font-weight:700}
 
 /* Environmental Literacy Animations */
 @keyframes el-rise{0%{transform:translateY(0);opacity:0}20%{opacity:.5}100%{transform:translateY(-30px);opacity:0}}

@@ -112,23 +112,41 @@ function WorkforcePathwaysContent() {
 
   useEffect(() => {
     if (user?.id) {
-      getArcadeAvatar(user.id).then(data => {
-        if (data) {
-           setInitialAvatar({
-             form: data.form,
-             skin: data.skin,
-             outfit: data.outfit,
-             hairStyle: data.hair_style,
-             hairColor: data.hair_color,
-             hatType: data.hat_type,
-             hatColor: data.hat_color,
-             gear: data.gear
-           });
+      // Fetch avatar, bookmarks, and picks in parallel
+      Promise.all([
+        getArcadeAvatar(user.id),
+        fetchUserBookmarks('workforce'),
+        fetchUserPicks(user.id)
+      ]).then(([avatarData, bmData, picksData]) => {
+        if (avatarData) {
+          setInitialAvatar({
+            form: avatarData.form,
+            skin: avatarData.skin,
+            outfit: avatarData.outfit,
+            hairStyle: avatarData.hair_style,
+            hairColor: avatarData.hair_color,
+            hatType: avatarData.hat_type,
+            hatColor: avatarData.hat_color,
+            gear: avatarData.gear
+          });
         }
+        const bm: Record<string, boolean> = {};
+        const jbm: Record<string, boolean> = {};
+        bmData.forEach((b: any) => {
+          if (b.item_id) {
+            bm[b.item_id] = true;
+            jbm[b.item_id] = true;
+          }
+        });
+        setBookmarks(bm);
+        setJobBookmarks(jbm);
+        setDbUserPicks(picksData || []);
+        setDataLoaded(true);
       });
+    } else if (isLoaded) {
+      setDataLoaded(true);
     }
-  }, [user?.id]);
-
+  }, [user?.id, isLoaded]);
   const onSaveAvatar = async (avatarData: any) => {
     if (user?.id) {
       await saveArcadeAvatar(user.id, avatarData);
@@ -187,31 +205,6 @@ function WorkforcePathwaysContent() {
       setDbSummits(summits || []);
     });
   }, []);
-
-  useEffect(() => {
-    if (user?.id) {
-      Promise.all([
-        fetchUserBookmarks('workforce'),
-        fetchUserPicks(user.id)
-      ]).then(([bmData, picksData]) => {
-        const bm: Record<string, boolean> = {};
-        const jbm: Record<string, boolean> = {};
-        bmData.forEach((b: any) => {
-          if (b.item_id) {
-            bm[b.item_id] = true;
-            jbm[b.item_id] = true; // Jobs also use item_id (URL)
-          }
-        });
-        setBookmarks(bm);
-        setJobBookmarks(jbm);
-        setDbUserPicks(picksData || []);
-        setDataLoaded(true);
-      });
-    } else if (isLoaded) {
-      setDataLoaded(true);
-    }
-  }, [user?.id, isLoaded]);
-
 
   useEffect(() => {
     if (pathway && stopId) {

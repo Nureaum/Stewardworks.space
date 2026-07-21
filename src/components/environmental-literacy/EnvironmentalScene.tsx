@@ -375,7 +375,7 @@ export function EnvironmentalScene({
           <rect x="36" y="470" width="484" height="360" fill="transparent"/>
           <rect className="el-ring" x="52" y="496" width="432" height="318" rx="18" fill="none" stroke="#2E5534" strokeWidth="3" strokeDasharray="9 8"/>
 
-          {/* OBSIDIAN BUTTES — larger dark volcanic domes on the ancient lakeshore */}
+          {/* RED ISLAND LAVA DOME VOLCANO (part of Salton Buttes) — larger dark volcanic domes on the ancient lakeshore */}
           <ellipse cx="262" cy="640" rx="252" ry="32" fill="#5b4a38" opacity=".26"/>
           <path d="M74 634 Q150 496 246 510 Q326 522 344 634 Z" fill="#3b3a44"/>
           <path d="M74 634 Q150 496 246 510 Q276 514 292 544 Q198 532 122 634 Z" fill="#4c4b58" opacity=".8"/>
@@ -385,7 +385,7 @@ export function EnvironmentalScene({
           {/* small obsidian shards at the foot */}
           <g fill="#26252e"><path d="M118 638 l10 -22 l7 22 Z"/><path d="M150 642 l6 -14 l6 14 Z"/><path d="M422 640 l8 -18 l7 18 Z"/><path d="M454 642 l6 -13 l6 13 Z"/><path d="M300 648 l7 -15 l6 15 Z"/></g>
           <g fill="#4a4956" opacity=".7"><path d="M133 638 l4 -12 l1 12 Z"/><path d="M429 640 l4 -12 l1 12 Z"/></g>
-          <text className="el-tip" x="300" y="586" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="10" fontWeight="700" letterSpacing="1.5" fill="#e7e2ee">OBSIDIAN BUTTES</text>
+          <text className="el-tip" x="300" y="586" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="10" fontWeight="700" letterSpacing="1.5" fill="#e7e2ee">RED ISLAND LAVA DOME VOLCANO (SALTON BUTTES)</text>
 
           {/* woven trade mat */}
           <ellipse cx="248" cy="760" rx="150" ry="26" fill="#B98B4E"/>

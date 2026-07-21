@@ -7,25 +7,47 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 
+const CACHE_KEY = 'sw_homepage_content';
+
 export default function PreHome() {
   const { t } = useLanguage();
   const router = useRouter();
+  // Always reset button loading states on mount (prevents stuck spinners on back-navigation)
   const [isLoading, setIsLoading] = useState(false);
   const [learnMoreLoading, setLearnMoreLoading] = useState(false);
   const [bulletinLoading, setBulletinLoading] = useState(false);
   const { isLoaded, userId } = useAuth();
   const isAuthenticated = isLoaded && !!userId;
 
-  // Dynamic homepage text from DB (falls back to translation defaults if empty)
-  const [heroTitle, setHeroTitle] = useState('');
-  const [heroSubtitle, setHeroSubtitle] = useState('');
+  // Dynamic homepage text — show cached value instantly, then refresh from DB
+  const [heroTitle, setHeroTitle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
+        return cached.homepage_title || '';
+      } catch { return ''; }
+    }
+    return '';
+  });
+  const [heroSubtitle, setHeroSubtitle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
+        return cached.homepage_subtitle || '';
+      } catch { return ''; }
+    }
+    return '';
+  });
 
   useEffect(() => {
-    fetch('/api/homepage-content')
+    // Fetch fresh data every time the page mounts — bypasses browser & CDN cache
+    fetch('/api/homepage-content', { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
         if (d.homepage_title) setHeroTitle(d.homepage_title);
         if (d.homepage_subtitle) setHeroSubtitle(d.homepage_subtitle);
+        // Update sessionStorage so next visit shows current values instantly
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(d));
       })
       .catch(() => {/* silently fall back to defaults */});
   }, []);

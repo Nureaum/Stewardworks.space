@@ -44,6 +44,8 @@ export default function CozyHubRoom({
   const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements' | 'showcase'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);
   const [announcementsSidebarOpen, setAnnouncementsSidebarOpen] = useState(false);
+  const [viewedAnnouncementIds, setViewedAnnouncementIds] = useState<string[]>([]);
+  const [expandedAnnouncement, setExpandedAnnouncement] = useState<any>(null);
 
   // Bulletins & Announcements Data
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -88,6 +90,9 @@ export default function CozyHubRoom({
   const [medRunning, setMedRunning] = useState(false);
   const [medTheme, setMedTheme] = useState(0);
   const [medTone, setMedTone] = useState(false);
+  const [activeToneId, setActiveToneId] = useState<string | null>(null);
+  const [wellnessResources, setWellnessResources] = useState<{slot_key:string;label:string;title:string;description:string}[]>([]);
+  const [wellnessTones, setWellnessTones] = useState<{id:string;name:string;frequency:number;wave_type:string;gain:number}[]>([]);
   
   const [lampIndex, setLampIndex] = useState(0);
 
@@ -101,6 +106,19 @@ export default function CozyHubRoom({
       }
     };
   }, []);
+
+  // Fetch wellness resources + tones when meditation screen opens
+  useEffect(() => {
+    if (screen === 'meditation') {
+      fetch('/api/public/wellness')
+        .then(r => r.json())
+        .then(data => {
+          if (data.resources?.length) setWellnessResources(data.resources);
+          if (data.tones?.length) setWellnessTones(data.tones);
+        })
+        .catch(() => {});
+    }
+  }, [screen]);
 
   useEffect(() => {
     // Always use initialChiaProgress from the API (supports multi-cohort switching)
@@ -366,20 +384,24 @@ export default function CozyHubRoom({
   const medTheme1 = () => setMedTheme(1);
   const medTheme2 = () => setMedTheme(2);
   const medTheme3 = () => setMedTheme(3);
-  const medToneToggle = () => {
-    if (medTone) {
+  const playTone = (tone: {id:string;frequency:number;wave_type:string;gain:number}) => {
+    // If clicking the same active tone, stop it
+    if (activeToneId === tone.id && medTone) {
       if (_stopToneRef.current) _stopToneRef.current();
       setMedTone(false);
+      setActiveToneId(null);
       return;
     }
+    // Stop any existing tone first
+    if (_stopToneRef.current) _stopToneRef.current();
     
     try {
       // @ts-ignore
       const Ctx = window.AudioContext || window.webkitAudioContext;
       const ctx = new Ctx();
       const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'sine'; o.frequency.value = 174; g.gain.value = 0; o.connect(g); g.connect(ctx.destination); o.start();
-      g.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 1.5);
+      o.type = tone.wave_type as OscillatorType; o.frequency.value = tone.frequency; g.gain.value = 0; o.connect(g); g.connect(ctx.destination); o.start();
+      g.gain.linearRampToValueAtTime(tone.gain, ctx.currentTime + 1.5);
       
       _stopToneRef.current = () => {
         try {
@@ -390,9 +412,20 @@ export default function CozyHubRoom({
       };
       
       setMedTone(true);
+      setActiveToneId(tone.id);
     } catch (e) {
       console.error("Audio API not supported or error", e);
     }
+  };
+  // Fallback for when no tones loaded from DB
+  const medToneToggle = () => {
+    if (medTone) {
+      if (_stopToneRef.current) _stopToneRef.current();
+      setMedTone(false);
+      setActiveToneId(null);
+      return;
+    }
+    playTone({ id: '_fallback', frequency: 174, wave_type: 'sine', gain: 0.05 });
   };
 
   const s = { timeOfDay, progress, exitStyle, screen, bridgeId, medRunning, medTone, lampIndex, medLeft, medTheme };
@@ -532,6 +565,7 @@ export default function CozyHubRoom({
   const medDisplay = fmt(medLeft);
   const medPlayLabel = medRunning ? 'Pause' : 'Begin';
   const medToneLabel = medTone ? '♪ Tone on' : '♪ Tone off';
+  const hasDbTones = wellnessTones.length > 0;
 
   const bridgeBack = () => { if (bridgeId && subIds.includes(bridgeId)) { setScreen('monitor'); setBridgeId(null); } else goHub(); };
   const confirmLogout = () => { if (onLogout) onLogout(); else { setScreen('loggedout'); setBridgeId(null); setHovered(null); } };
@@ -672,7 +706,26 @@ export default function CozyHubRoom({
       { o.logout.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-6px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Log Out<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
-      { isWood ? (
+
+      {/*  NEON version — frameless tubing mounted on the wall  */}
+      { isNeon && (
+<>
+        {/*  small backing plate sized to the sign  */}
+        <div style={{"position":"absolute","left":"50%","top":"50%","transform":"translate(-50%,-50%)","width":"236px","height":"118px","borderRadius":"16px","background":"linear-gradient(160deg,rgba(120,92,72,.30),rgba(96,72,56,.34))","boxShadow":"0 6px 14px rgba(0,0,0,.14),inset 0 0 0 1px rgba(255,210,150,.12)"}}></div>
+        <div style={{"position":"absolute","left":"50%","top":"50%","transform":"translate(-50%,-50%)","textAlign":"center","animation":"sw-neon 4s linear infinite"}}>
+          <div style={{"fontFamily":"'DM Mono',monospace","fontWeight":"500","fontSize":"44px","letterSpacing":".05em","color":"#fff5cf","textShadow":"0 0 6px #ffd24a,0 0 16px #ff9a3a,0 0 30px #ff6a2a","lineHeight":".9"}}>EXIT</div>
+          <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"19px","letterSpacing":".04em","color":"#b6edff","textShadow":"0 0 6px #5fd0ff,0 0 15px #2a9fe0","marginTop":"8px"}}>STEWARD.WORKS</div>
+        </div>
+        {/*  mounting screws on plate corners  */}
+        <div style={{"position":"absolute","left":"50%","top":"50%","width":"236px","height":"118px","transform":"translate(-50%,-50%)","pointerEvents":"none"}}>
+          <div style={{"position":"absolute","left":"8px","top":"8px","width":"6px","height":"6px","borderRadius":"50%","background":"radial-gradient(circle at 35% 35%,#cfd3da,#7d8595)"}}></div>
+          <div style={{"position":"absolute","right":"8px","top":"8px","width":"6px","height":"6px","borderRadius":"50%","background":"radial-gradient(circle at 35% 35%,#cfd3da,#7d8595)"}}></div>
+          <div style={{"position":"absolute","left":"8px","bottom":"8px","width":"6px","height":"6px","borderRadius":"50%","background":"radial-gradient(circle at 35% 35%,#cfd3da,#7d8595)"}}></div>
+          <div style={{"position":"absolute","right":"8px","bottom":"8px","width":"6px","height":"6px","borderRadius":"50%","background":"radial-gradient(circle at 35% 35%,#cfd3da,#7d8595)"}}></div>
+        </div>
+      </>
+)}
+      { !isNeon && ( isWood ? (
         <div style={{"position":"absolute","inset":"0","background":"linear-gradient(160deg,#87593c,#583621)","borderRadius":"8px","boxShadow":"0 16px 30px rgba(0,0,0,.4)","display":"flex","alignItems":"center","justifyContent":"center","border":"2px solid #362012"}}>
           <div style={{"fontFamily":"sans-serif","fontWeight":"900","fontSize":"44px","letterSpacing":".12em","color":"#2a180d","textShadow":"0 2px 2px rgba(255,255,255,.15), inset 0 -2px 2px rgba(0,0,0,.3)"}}>EXIT</div>
         </div>
@@ -687,7 +740,7 @@ export default function CozyHubRoom({
             <div style={{"position":"absolute","inset":"0","background":"linear-gradient(180deg,rgba(255,255,255,.08),transparent 40%)","zIndex":"3","pointerEvents":"none"}}></div>
           </div>
         </div>
-      )}
+      ))}
     </div>
 
     {/* WALL PHONE (Announcements — student view only; hangs in the same wall spot as the admin key) */}
@@ -1131,8 +1184,25 @@ export default function CozyHubRoom({
     <div style={{"display":"flex","gap":"12px","alignItems":"center","marginBottom":"22px"}}>
       <button style={{"background":"#FEFAE0","border":"none","borderRadius":"11px","padding":"13px 34px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontWeight":"500","fontSize":"14px","letterSpacing":".08em","color":"#21282E","boxShadow":"0 8px 18px rgba(0,0,0,.25)"}} onClick={medToggle}>{medPlayLabel}</button>
       <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"11px","padding":"13px 18px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={medReset}>Reset</button>
-      <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"11px","padding":"13px 18px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={medToneToggle}>{medToneLabel}</button>
+      {!hasDbTones && (
+        <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"11px","padding":"13px 18px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"13px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={medToneToggle}>{medToneLabel}</button>
+      )}
     </div>
+
+    {/* Dynamic tone selector — shown when DB tones are loaded */}
+    {hasDbTones && (
+    <div style={{"display":"flex","gap":"8px","alignItems":"center","marginBottom":"22px","flexWrap":"wrap","justifyContent":"center"}}>
+      <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".2em","color":"#fff","opacity":".7"}}>TONES</span>
+      {wellnessTones.map(tone => (
+        <button key={tone.id} onClick={() => playTone(tone)} style={{"background": activeToneId === tone.id && medTone ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.14)","border": activeToneId === tone.id && medTone ? "1.5px solid rgba(255,255,255,.8)" : "1px solid rgba(255,255,255,.3)","borderRadius":"10px","padding":"8px 14px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"11px","color":"#fff","backdropFilter":"blur(6px)","transition":"all .2s ease","boxShadow": activeToneId === tone.id && medTone ? "0 0 12px rgba(255,255,255,.2)" : "none"}}>
+          {activeToneId === tone.id && medTone ? '♪ ' : ''}{tone.name}
+        </button>
+      ))}
+      {medTone && (
+        <button onClick={() => { if (_stopToneRef.current) _stopToneRef.current(); setMedTone(false); setActiveToneId(null); }} style={{"background":"rgba(255,80,80,.25)","border":"1px solid rgba(255,100,100,.5)","borderRadius":"10px","padding":"8px 12px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"11px","color":"#fff","backdropFilter":"blur(6px)"}}>Stop</button>
+      )}
+    </div>
+    )}
 
     {/*  ambient theme swatches  */}
     <div style={{"display":"flex","gap":"12px","alignItems":"center","marginBottom":"24px"}}>
@@ -1143,23 +1213,19 @@ export default function CozyHubRoom({
       <button title="Night Field" style={{"width":"30px","height":"30px","borderRadius":"50%","border":"2px solid rgba(255,255,255,.7)","cursor":"pointer","background":"linear-gradient(140deg,#4A5A6E,#21282E)"}} onClick={medTheme3}></button>
     </div>
 
-    {/*  resources  */}
+    {/*  resources — dynamic from DB, with hardcoded fallback  */}
     <div style={{"display":"flex","gap":"12px","flexWrap":"wrap","justifyContent":"center","maxWidth":"680px"}}>
-      <div style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.35)","borderRadius":"12px","padding":"12px 16px","backdropFilter":"blur(6px)","color":"#fff","width":"200px"}}>
-        <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","opacity":".7","marginBottom":"4px"}}>GROUNDING</div>
-        <div style={{"fontSize":"14px","fontWeight":"600"}}>4-7-8 Breathing</div>
-        <div style={{"fontSize":"12px","opacity":".85","lineHeight":"1.4"}}>Inhale 4 · hold 7 · exhale 8.</div>
-      </div>
-      <div style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.35)","borderRadius":"12px","padding":"12px 16px","backdropFilter":"blur(6px)","color":"#fff","width":"200px"}}>
-        <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","opacity":".7","marginBottom":"4px"}}>SUPPORT</div>
-        <div style={{"fontSize":"14px","fontWeight":"600"}}>988 Lifeline</div>
-        <div style={{"fontSize":"12px","opacity":".85","lineHeight":"1.4"}}>Call or text 988 anytime, free &amp; confidential.</div>
-      </div>
-      <div style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.35)","borderRadius":"12px","padding":"12px 16px","backdropFilter":"blur(6px)","color":"#fff","width":"200px"}}>
-        <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","opacity":".7","marginBottom":"4px"}}>TEXT</div>
-        <div style={{"fontSize":"14px","fontWeight":"600"}}>Crisis Text Line</div>
-        <div style={{"fontSize":"12px","opacity":".85","lineHeight":"1.4"}}>Text HOME to 741741.</div>
-      </div>
+      {(wellnessResources.length > 0 ? wellnessResources : [
+        { slot_key: 'grounding', label: 'GROUNDING', title: '4-7-8 Breathing', description: 'Inhale 4 · hold 7 · exhale 8.' },
+        { slot_key: 'support', label: 'SUPPORT', title: '988 Lifeline', description: 'Call or text 988 anytime, free & confidential.' },
+        { slot_key: 'text', label: 'TEXT', title: 'Crisis Text Line', description: 'Text HOME to 741741.' },
+      ]).map(r => (
+        <div key={r.slot_key} style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.35)","borderRadius":"12px","padding":"12px 16px","backdropFilter":"blur(6px)","color":"#fff","width":"200px"}}>
+          <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","opacity":".7","marginBottom":"4px"}}>{r.label}</div>
+          <div style={{"fontSize":"14px","fontWeight":"600"}}>{r.title}</div>
+          <div style={{"fontSize":"12px","opacity":".85","lineHeight":"1.4"}}>{r.description}</div>
+        </div>
+      ))}
     </div>
   </div>
   </>
@@ -1758,19 +1824,57 @@ export default function CozyHubRoom({
         )}
         
         <div style={{"display":"flex","flexDirection":"column","gap":"10px"}}>
-          { announcements.map((a: any, i: number) => (
-            <div key={a.id || i} style={{"display":"flex","gap":"12px","background":"rgba(33,40,46,.04)","border":"1.5px solid rgba(33,40,46,.08)","borderRadius":"12px","padding":"14px 16px","transition":"background .2s"}}>
-              <div style={{"width":"36px","height":"36px","flex":"none","borderRadius":"10px","background":"rgba(219,155,47,.15)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"16px"}}>📣</div>
+          { announcements.map((a: any, i: number) => {
+            const isUnread = unreadIds.includes(a.id) || !viewedAnnouncementIds.includes(a.id);
+            // Strip HTML for preview text
+            const plainText = a.body?.replace(/<[^>]*>/g, '') || '';
+            const preview = plainText.length > 80 ? plainText.slice(0, 80) + '…' : plainText;
+            const hasMedia = /<img\s/i.test(a.body || '');
+            
+            return (
+            <div key={a.id || i} 
+              onClick={() => {
+                setExpandedAnnouncement(a);
+                if (!viewedAnnouncementIds.includes(a.id)) {
+                  setViewedAnnouncementIds(prev => [...prev, a.id]);
+                }
+              }}
+              style={{"display":"flex","gap":"12px","background": isUnread ? "rgba(219,155,47,.08)" : "rgba(33,40,46,.03)","border": isUnread ? "1.5px solid rgba(219,155,47,.25)" : "1.5px solid rgba(33,40,46,.06)","borderRadius":"12px","padding":"14px 16px","cursor":"pointer","transition":"background .2s"}}>
+              <div style={{"width":"36px","height":"36px","flex":"none","borderRadius":"10px","background": isUnread ? "rgba(219,155,47,.2)" : "rgba(219,155,47,.1)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"16px"}}>{isUnread ? '🔔' : '📣'}</div>
               <div style={{"flex":"1","minWidth":"0"}}>
                 <div style={{"display":"flex","justifyContent":"space-between","gap":"8px","alignItems":"baseline"}}>
-                  <div style={{"fontWeight":"700","fontSize":"14px","color":"#3a2412"}}>{a.title}</div>
+                  <div style={{"fontWeight": isUnread ? "800" : "600","fontSize":"14px","color":"#3a2412"}}>{a.title}</div>
                   <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#a07a4a","whiteSpace":"nowrap"}}>{new Date(a.created_at).toLocaleDateString()}</div>
                 </div>
-                <div className="announcement-body" style={{"fontSize":"13px","color":"#6b4a2a","marginTop":"4px","lineHeight":"1.45"}} dangerouslySetInnerHTML={{ __html: a.body }}></div>
+                <div style={{"fontSize":"12.5px","color":"#6b4a2a","marginTop":"4px","lineHeight":"1.4","overflow":"hidden","textOverflow":"ellipsis","whiteSpace":"nowrap"}}>{preview}</div>
+                {hasMedia && <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#a07a4a","marginTop":"4px"}}>📷 contains image · tap to view</div>}
+                {isUnread && <div style={{"display":"inline-block","marginTop":"6px","fontFamily":"'DM Mono',monospace","fontSize":"9px","background":"rgba(219,155,47,.15)","color":"#8a5a2e","padding":"2px 8px","borderRadius":"8px","letterSpacing":".05em"}}>NEW</div>}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
+      </div>
+    </div>
+  </>
+  )}
+
+  {/* =================== ANNOUNCEMENT EXPANDED POPUP =================== */}
+  { expandedAnnouncement && (
+  <>
+    <div style={{"position":"fixed","inset":"0","zIndex":"300","background":"rgba(0,0,0,.6)","animation":"sw-fadein .2s ease"}} onClick={() => setExpandedAnnouncement(null)}></div>
+    <div style={{"position":"fixed","top":"50%","left":"50%","transform":"translate(-50%,-50%)","zIndex":"301","width":"min(520px, 92vw)","maxHeight":"80vh","display":"flex","flexDirection":"column","background":"#FEFAE0","borderRadius":"18px","boxShadow":"0 20px 60px rgba(0,0,0,.3)","animation":"sw-popup .25s cubic-bezier(0.34, 1.56, 0.64, 1)","fontFamily":"'Exo',sans-serif","overflow":"hidden"}} onClick={e => e.stopPropagation()}>
+      {/* Popup header */}
+      <div style={{"padding":"18px 22px 14px","borderBottom":"1.5px solid rgba(33,40,46,.08)","display":"flex","alignItems":"center","justifyContent":"space-between"}}>
+        <div>
+          <div style={{"fontWeight":"700","fontSize":"17px","color":"#3a2412"}}>{expandedAnnouncement.title}</div>
+          <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#a07a4a","marginTop":"4px"}}>{new Date(expandedAnnouncement.created_at).toLocaleDateString()}</div>
+        </div>
+        <button onClick={() => setExpandedAnnouncement(null)} style={{"background":"rgba(33,40,46,.06)","border":"1px solid rgba(33,40,46,.1)","borderRadius":"10px","width":"34px","height":"34px","display":"flex","alignItems":"center","justifyContent":"center","cursor":"pointer","color":"#3a2412","fontSize":"16px"}}>✕</button>
+      </div>
+      {/* Popup body - scrollable */}
+      <div style={{"flex":"1","overflow":"auto","padding":"20px 22px 28px"}}>
+        <div className="announcement-body" style={{"fontSize":"15px","color":"#3a2412","lineHeight":"1.6"}} dangerouslySetInnerHTML={{ __html: expandedAnnouncement.body }}></div>
       </div>
     </div>
   </>

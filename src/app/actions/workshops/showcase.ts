@@ -249,6 +249,7 @@ export async function addShowcaseItem(cohortId: string, data: {
       published_at: new Date().toISOString(),
       created_by: profile.id,
       updated_by: profile.id,
+      source_tag: 'contributor',
     }
     
     console.log('📦 Library payload:', JSON.stringify(libraryPayload, null, 2))

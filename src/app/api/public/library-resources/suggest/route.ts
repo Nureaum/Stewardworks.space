@@ -1,16 +1,130 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
+import { auth } from '@clerk/nextjs/server'
+import { revalidatePath } from 'next/cache'
 
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient()
   
   try {
     const body = await request.json()
-    const { title, url, category, resource_type, note } = body
+    const { title, url, category, resource_type, note, directAdd, peerReviewed, sourceTag } = body
     
     if (!title || !url) {
       return NextResponse.json({ error: 'Title and URL are required' }, { status: 400 })
+    }
+
+    // Check if this is a direct add from an admin
+    if (directAdd) {
+      // Verify the user is an admin using Clerk
+      const { userId } = await auth()
+      
+      if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      // Check user role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('clerk_user_id', userId)
+        .single()
+
+      if (profileError || !profile) {
+        console.error('Profile lookup error:', profileError)
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      }
+
+      const isAdmin = profile.role === 'admin' || profile.role === 'super_admin'
+      
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+      }
+
+      // Get the category ID
+      let categoryId = null
+      if (category) {
+        const { data: existingCat } = await supabase
+          .from('content_categories')
+          .select('id')
+          .eq('label', category)
+          .single()
+
+        if (existingCat) {
+          categoryId = existingCat.id
+        }
+      }
+
+      // Direct add to content_items table as published library resource
+      const insertPayload: any = {
+        title,
+        body: note || '',
+        content_type: 'library_resource',
+        resource_type: resource_type || 'article',
+        status: 'published',
+        published_at: new Date().toISOString(),
+        created_by: profile.id,
+        updated_by: profile.id,
+        peer_reviewed: peerReviewed || false,
+        source_tag: sourceTag || null
+      }
+      
+      // Only add category_id if we found one
+      if (categoryId) {
+        insertPayload.category_id = categoryId
+      }
+
+      const { data: insertedItem, error: insertError } = await supabase
+        .from('content_items')
+        .insert(insertPayload)
+        .select('id')
+        .single()
+
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        throw insertError
+      }
+
+      // Add the URL as a media item (external link)
+      if (url && insertedItem?.id) {
+        const { error: mediaError } = await supabase
+          .from('content_media')
+          .insert({
+            content_item_id: insertedItem.id,
+            media_type: 'external_link',
+            url: url,
+            label: title,
+            sort_order: 0
+          })
+
+        if (mediaError) {
+          console.error('Media insert error:', mediaError)
+          // Don't throw - the main item was created successfully
+        }
+      }
+
+      // Revalidate the library page to show the new resource
+      revalidatePath('/hub/library', 'layout')
+
+      return NextResponse.json({ success: true, directAdd: true })
+    }
+
+    // Regular suggestion flow for non-admins
+    // Get current user info if available
+    let submitterName = 'Anonymous Library User'
+    const { userId } = await auth()
+    
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('clerk_user_id', userId)
+        .single()
+      
+      if (profile?.full_name) {
+        submitterName = profile.full_name
+      }
     }
 
     const { error } = await supabase
@@ -22,13 +136,17 @@ export async function POST(request: Request) {
         resource_type,
         note,
         status: 'pending',
-        submitted_by_name: 'Anonymous Library User'
+        submitted_by_name: submitterName
       })
 
-    if (error) throw error
+    if (error) {
+      console.error('Suggestion insert error:', error)
+      throw error
+    }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
+    console.error('API error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

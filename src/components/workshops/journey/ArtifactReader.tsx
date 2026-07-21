@@ -235,9 +235,9 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
 
       {/* ── Content Body ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 'clamp(16px,3vw,30px)', background: inline ? 'transparent' : 'linear-gradient(180deg, rgba(0,0,0,.08), transparent)' }}>
-        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
+        <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: inline ? 'column' : 'row', flexWrap: inline ? 'nowrap' : 'wrap', alignItems: 'stretch' }}>
           {/* MAIN TEXT COLUMN */}
-          <div style={{ flex: '3 1 430px', minWidth: 280, padding: 'clamp(18px,2.6vw,30px)' }}>
+          <div style={{ flex: inline ? 'none' : '3 1 430px', minWidth: inline ? 'auto' : 280, maxWidth: '100%', padding: 'clamp(18px,2.6vw,30px)', overflow: 'hidden' }}>
             {/* Subtitle */}
             {entry.subtitle && (
               <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 16, lineHeight: 1.4 }}>
@@ -805,12 +805,16 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
             )}
           </div>
 
-          {/* ── MEDIA RAIL (right column) ── */}
+          {/* ── MEDIA RAIL (right column in modal, below content when inline) ── */}
           <div style={{
-            flex: '2 1 300px', minWidth: 240,
-            borderLeft: '2px solid var(--ln,#3d2668)',
+            flex: inline ? 'none' : '2 1 300px', 
+            minWidth: 0,
+            maxWidth: '100%',
+            borderLeft: inline ? 'none' : '2px solid var(--ln,#3d2668)',
+            borderTop: inline ? '2px solid var(--ln,#3d2668)' : 'none',
             background: 'rgba(0,0,0,.18)',
             padding: 'clamp(16px,2vw,24px)',
+            overflow: 'hidden',
           }}>
             <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', letterSpacing: 1, marginBottom: 14 }}>
               ◈ VISUALS &amp; MEDIA
@@ -835,19 +839,21 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {media.map(m => (
-                  <div key={m.id} style={{ border: '1px solid var(--ln,#3d2668)', borderRadius: 6, overflow: 'hidden', background: 'rgba(0,0,0,.2)' }}>
-                    <div style={{ padding: '4px 8px', background: 'var(--pn,#241542)', borderBottom: '1px solid var(--ln,#3d2668)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div key={m.id} style={{ border: '1px solid var(--ln,#3d2668)', borderRadius: 6, overflow: 'hidden', background: 'rgba(0,0,0,.2)', minWidth: 0 }}>
+                    <div style={{ padding: '4px 8px', background: 'var(--pn,#241542)', borderBottom: '1px solid var(--ln,#3d2668)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
                       <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)' }}>{m.kind.toUpperCase()}</span>
-                      <span style={{ flex: 1, fontSize: 13, color: 'var(--tx,#efe6ff)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {m.label || m.file_name || m.url}
-                      </span>
+                      {(m.label || m.file_name || m.kind === 'link') && (
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--tx,#efe6ff)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {m.label || m.file_name || (m.kind === 'link' ? m.url : '')}
+                        </span>
+                      )}
                     </div>
                     {m.kind === 'photo' && m.url && (
                       <div 
                         style={{ position: 'relative', cursor: 'zoom-in', width: '100%' }}
                         onClick={(e) => { e.stopPropagation(); setZoomedImage(m.url) }}
                       >
-                        <img src={m.url} alt="" style={{ width: '100%', display: 'block' }} />
+                        <img src={m.url} alt="" style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
                         <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: 6, display: 'flex' }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--tx,#efe6ff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
@@ -858,7 +864,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         </div>
                       </div>
                     )}
-                    {m.kind === 'video' && m.url && <video src={m.url} controls style={{ width: '100%', display: 'block' }} />}
+                    {m.kind === 'video' && m.url && <video src={m.url} controls style={{ width: '100%', maxWidth: '100%', display: 'block' }} />}
                     {m.kind === 'audio' && m.url && <audio src={m.url} controls style={{ width: '100%', padding: '8px 0' }} />}
                     {m.kind === 'link' && m.url && (() => {
                       const url = m.url.toLowerCase();
@@ -875,7 +881,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                             style={{ position: 'relative', cursor: 'zoom-in', width: '100%' }}
                             onClick={(e) => { e.stopPropagation(); setZoomedImage(m.url) }}
                           >
-                            <img src={m.url} alt={m.label || ''} style={{ width: '100%', display: 'block' }} />
+                            <img src={m.url} alt={m.label || ''} style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
                             <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: 6, display: 'flex' }}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--tx,#efe6ff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8"></circle>

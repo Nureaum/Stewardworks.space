@@ -25,7 +25,36 @@ import toast from 'react-hot-toast';
 // Mini Rich Text Editor for announcements
 function AnnouncementEditor({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isInitialized = useRef(false);
+  const savedRangeRef = useRef<Range | null>(null);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+
+  // Handle clicks on images in editor
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG' && editorRef.current?.contains(target)) {
+        e.preventDefault();
+        setSelectedImg(target as HTMLImageElement);
+      } else if (!target.closest('.img-delete-btn')) {
+        setSelectedImg(null);
+      }
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
+
+  const deleteSelectedImage = () => {
+    if (selectedImg && editorRef.current?.contains(selectedImg)) {
+      selectedImg.remove();
+      setSelectedImg(null);
+      emit();
+    }
+  };
 
   useEffect(() => {
     if (editorRef.current && value && !isInitialized.current) {
@@ -46,36 +75,129 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
     if (editorRef.current) onChange(editorRef.current.innerHTML);
   };
 
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    if (savedRangeRef.current && editorRef.current) {
+      editorRef.current.focus();
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(savedRangeRef.current);
+      }
+    }
+  };
+
   const cmd = (c: string, val?: string) => {
     editorRef.current?.focus();
     document.execCommand(c, false, val);
     emit();
   };
 
-  const insertLink = () => {
-    const url = window.prompt('Enter URL:', 'https://');
-    if (url) cmd('createLink', url);
+  const handleLinkClick = () => {
+    saveSelection();
+    setLinkUrl('https://');
+    setShowLinkInput(true);
   };
 
-  const insertImage = () => {
-    const url = window.prompt('Enter image URL:', 'https://');
-    if (url) {
-      editorRef.current?.focus();
-      document.execCommand('insertHTML', false, `<img src="${url}" alt="image" style="max-width:100%;border-radius:8px;margin:8px 0;" />`);
-      emit();
+  const insertLink = () => {
+    if (!linkUrl.trim()) return;
+    restoreSelection();
+    document.execCommand('createLink', false, linkUrl.trim());
+    emit();
+    setShowLinkInput(false);
+    setLinkUrl('');
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
+      const data = await res.json();
+      
+      if (res.ok && data.url) {
+        restoreSelection();
+        editorRef.current?.focus();
+        document.execCommand('insertHTML', false, `<img src="${data.url}" alt="image" style="max-width:100%;border-radius:8px;margin:8px 0;" />`);
+        emit();
+      } else {
+        toast.error(data.error || 'Failed to upload image');
+      }
+    } catch (err) {
+      console.error('Image upload error:', err);
+      toast.error('Failed to upload image');
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const btnClass = "p-1.5 rounded border border-[#785a32]/15 hover:bg-[#f6e5c3] transition-colors text-[#5c4f3c] flex items-center justify-center";
 
   return (
-    <div className="my-[7px] mb-[18px] rounded-[11px] border border-[#785a32]/20 overflow-hidden bg-[#fdfaf0]">
-      <div className="flex gap-1 p-2 border-b border-[#785a32]/10 bg-[#fef8ec]">
+    <div className="my-[7px] mb-[18px] rounded-[11px] border border-[#785a32]/20 overflow-hidden bg-[#fdfaf0] relative">
+      <div className="flex gap-1 p-2 border-b border-[#785a32]/10 bg-[#fef8ec] items-center">
         <button type="button" className={btnClass} title="Bold" onMouseDown={e => { e.preventDefault(); cmd('bold'); }}><Bold size={14} /></button>
         <button type="button" className={btnClass} title="Italic" onMouseDown={e => { e.preventDefault(); cmd('italic'); }}><Italic size={14} /></button>
-        <button type="button" className={btnClass} title="Add link" onMouseDown={e => { e.preventDefault(); insertLink(); }}><LinkIcon size={14} /></button>
-        <button type="button" className={btnClass} title="Add image URL" onMouseDown={e => { e.preventDefault(); insertImage(); }}><Image size={14} /></button>
+        <button type="button" className={btnClass} title="Add link" onMouseDown={e => { e.preventDefault(); handleLinkClick(); }}><LinkIcon size={14} /></button>
+        <label 
+          className={`${btnClass} cursor-pointer ${isUploading ? 'opacity-50' : ''}`} 
+          title="Upload image"
+          onMouseDown={() => saveSelection()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+            disabled={isUploading}
+          />
+          {isUploading ? <span className="animate-spin text-xs">⏳</span> : <Image size={14} />}
+        </label>
+        {isUploading && <span className="text-[11px] text-[#8a7c66] ml-1">Uploading...</span>}
       </div>
+
+      {/* Link input inline bar */}
+      {showLinkInput && (
+        <div className="flex items-center gap-2 p-2 border-b border-[#785a32]/10 bg-[#f6f0e0]">
+          <LinkIcon size={13} className="text-[#5c4f3c] flex-none" />
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={e => setLinkUrl(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); insertLink(); } if (e.key === 'Escape') setShowLinkInput(false); }}
+            placeholder="https://example.com"
+            autoFocus
+            className="flex-1 p-1.5 rounded border border-[#785a32]/20 bg-white text-[13px] outline-none focus:border-[#2c8a4a]"
+          />
+          <button type="button" onClick={insertLink} className="px-3 py-1.5 rounded bg-[#2c8a4a] text-white text-[11px] font-bold hover:bg-[#247840]">Add</button>
+          <button type="button" onClick={() => setShowLinkInput(false)} className="px-2 py-1.5 rounded border border-[#785a32]/20 text-[11px] text-[#5c4f3c] hover:bg-[#f6e5c3]">Cancel</button>
+        </div>
+      )}
+
+      {/* Image selected - show delete bar */}
+      {selectedImg && (
+        <div className="flex items-center gap-2 p-2 border-b border-red-200 bg-red-50">
+          <span className="text-[11px] text-red-600 font-medium flex-1">Image selected</span>
+          <button type="button" onClick={deleteSelectedImage} className="img-delete-btn px-3 py-1.5 rounded bg-red-500 text-white text-[11px] font-bold hover:bg-red-600 flex items-center gap-1">
+            🗑 Remove image
+          </button>
+          <button type="button" onClick={() => setSelectedImg(null)} className="px-2 py-1.5 rounded border border-[#785a32]/20 text-[11px] text-[#5c4f3c] hover:bg-[#f6e5c3]">Cancel</button>
+        </div>
+      )}
+
       <div
         ref={editorRef}
         contentEditable
@@ -83,7 +205,7 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
         onInput={emit}
         onBlur={emit}
         data-placeholder={placeholder || 'Write the announcement members will read…'}
-        className="p-[13px_15px] text-[14px] min-h-[96px] leading-relaxed outline-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-[#9c8d76] [&:empty]:before:pointer-events-none [&_a]:text-[#2c8a4a] [&_a]:underline [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2"
+        className="p-[13px_15px] text-[14px] min-h-[96px] leading-relaxed outline-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-[#9c8d76] [&:empty]:before:pointer-events-none [&_a]:text-[#2c8a4a] [&_a]:underline [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2 [&_img]:cursor-pointer [&_img]:hover:ring-2 [&_img]:hover:ring-red-300"
       />
     </div>
   );
@@ -449,7 +571,17 @@ export default function AdminAnnouncementsPage() {
               </div>
               
               <div className="flex flex-col gap-[12px]">
-                {announcements.map((a, i) => (
+                {announcements.map((a, i) => {
+                  // Extract plain text preview (no HTML)
+                  const plainText = a.body?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() || '';
+                  const textPreview = plainText.length > 120 ? plainText.slice(0, 120) + '…' : plainText;
+                  // Extract image URLs from body
+                  const imgMatches = [...(a.body || '').matchAll(/<img[^>]+src="([^"]+)"/gi)];
+                  const imageUrls = imgMatches.map(m => m[1]);
+                  // Extract links
+                  const linkMatches = [...(a.body || '').matchAll(/<a[^>]+href="([^"]+)"[^>]*>([^<]*)<\/a>/gi)];
+                  
+                  return (
                   <div key={a.id || i} className="flex gap-[14px] p-[15px] rounded-[14px] bg-[#fdf8ea] border border-[#785a32]/10">
                     <div className="w-[38px] h-[38px] shrink-0 rounded-[10px] bg-[#e2b54a]/[0.16] flex items-center justify-center text-[17px]">📣</div>
                     <div className="flex-1 min-w-0">
@@ -459,7 +591,28 @@ export default function AdminAnnouncementsPage() {
                           {new Date(a.created_at).toLocaleDateString()}
                         </div>
                       </div>
-                      <div className="text-[13px] text-[#7c6f5a] mt-[3px] leading-[1.45]">{a.body}</div>
+                      <div className="text-[13px] text-[#7c6f5a] mt-[3px] leading-[1.45]">{textPreview}</div>
+                      
+                      {/* Links */}
+                      {linkMatches.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {linkMatches.map((link, li) => (
+                            <a key={li} href={link[1]} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-[#2c8a4a] bg-[#2c8a4a]/8 border border-[#2c8a4a]/15 rounded-full px-2.5 py-1 no-underline hover:bg-[#2c8a4a]/15 transition-colors">
+                              🔗 {link[2] || new URL(link[1]).hostname}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Image thumbnails */}
+                      {imageUrls.length > 0 && (
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {imageUrls.map((url, imgIdx) => (
+                            <img key={imgIdx} src={url} alt="" className="w-[56px] h-[56px] object-cover rounded-lg border border-[#785a32]/10 shadow-sm" />
+                          ))}
+                        </div>
+                      )}
+                      
                       <div className="inline-flex items-center gap-[6px] mt-[9px] px-[10px] py-[4px] rounded-full bg-[#2c8a4a]/10 font-mono text-[10.5px] tracking-[0.06em] text-[#2f6b3a]">
                         👁 {a.reads} MEMBERS READ
                       </div>
@@ -473,7 +626,8 @@ export default function AdminAnnouncementsPage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 
                 {announcements.length === 0 && (
                   <div className="text-center py-8 text-[#9c8d76] text-sm">No announcements posted yet.</div>

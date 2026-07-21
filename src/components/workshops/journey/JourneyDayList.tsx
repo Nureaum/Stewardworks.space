@@ -129,10 +129,10 @@ export default function JourneyDayList({
       </div>
 
       {/* ── Two-column Master/Detail ── */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', minHeight: 'min(70vh, 600px)', border: '3px solid var(--ln,#3d2668)', borderRadius: 14, overflow: 'hidden', background: '#181024' }}>
+      <div style={{ display: 'flex', minHeight: 'min(70vh, 600px)', border: '3px solid var(--ln,#3d2668)', borderRadius: 14, overflow: 'hidden', background: '#181024' }}>
         
         {/* Left: Master List */}
-        <div style={{ flex: '1 1 280px', minWidth: 240, maxWidth: 360, borderRight: '2px solid var(--ln,#3d2668)', background: 'rgba(0,0,0,.16)' }}>
+        <div style={{ flex: '1 1 280px', minWidth: 240, maxWidth: 360, borderRight: '2px solid var(--ln,#3d2668)', background: 'rgba(0,0,0,.16)', overflow: 'auto' }}>
           <div style={{ background: 'linear-gradient(180deg, rgba(255,95,210,.14), transparent)', borderBottom: '2px solid var(--ln,#3d2668)', padding: '18px 18px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <img src={dayIconUri} alt="" width="46" height="46" style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 0 10px var(--p,#ff5fd2))', flex: 'none' }} />
@@ -216,7 +216,7 @@ export default function JourneyDayList({
         </div>
         
         {/* Right: Detail View (ArtifactReader inline) */}
-        <div style={{ flex: '2 1 400px', background: 'linear-gradient(180deg, rgba(0,0,0,.08), transparent)' }}>
+        <div style={{ flex: '2 1 400px', minWidth: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.08), transparent)', overflow: 'auto' }}>
           {activeEntry ? (
             <ArtifactReader
               key={`${day.id}-${activeEntry.id}`}

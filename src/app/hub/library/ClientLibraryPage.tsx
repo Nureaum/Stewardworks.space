@@ -79,6 +79,10 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
   const [resources, setResources] = useState<any[]>(initialResources);
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
   const [isNavigatingToProfile, setIsNavigatingToProfile] = useState(false);
+  const [listMode, setListMode] = useState<'cards' | 'book'>('cards');
+  const [bookSpread, setBookSpread] = useState(0);
+  const [flipNext, setFlipNext] = useState(false);
+  const [flipPrev, setFlipPrev] = useState(false);
 
   // Check for category parameter in URL
   useEffect(() => {
@@ -146,11 +150,51 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
   
   // Interactive state variables
   const [admin, setAdmin] = useState(false);
+  const [consoleOpen, setConsoleOpen] = useState(false);
   const [hovKnob, setHovKnob] = useState(false);
   const [hovOco, setHovOco] = useState(false);
   const [hovRattle, setHovRattle] = useState(false);
   const [hovAlmanac, setHovAlmanac] = useState(false);
   const [hovGlobe, setHovGlobe] = useState(false);
+
+  // Suggestions state for librarian console
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionProcessing, setSuggestionProcessing] = useState<string | null>(null);
+  const [suggestionDetail, setSuggestionDetail] = useState<any>(null);
+
+  // Fetch suggestions when console opens
+  useEffect(() => {
+    if (consoleOpen && isAdmin) {
+      fetch('/api/admin/library/suggestions')
+        .then(res => res.json())
+        .then(data => {
+          setSuggestions(data.suggestions || []);
+        })
+        .catch(console.error);
+    }
+  }, [consoleOpen, isAdmin]);
+
+  const handleSuggestionAction = async (id: string, status: 'approved' | 'rejected') => {
+    setSuggestionProcessing(id);
+    try {
+      const res = await fetch(`/api/admin/library/suggestions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error(`Failed to ${status} suggestion`);
+      toast.success(`Suggestion ${status}!`);
+      setSuggestions(s => s.filter(x => x.id !== id));
+      if (suggestionDetail?.id === id) {
+        setSuggestionDetail(null);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Action failed');
+    } finally {
+      setSuggestionProcessing(null);
+    }
+  };
 
   // Hardcode the prototype categories to guarantee exact color, code, and spine mapping
   const PROTOTYPE_CATS = [
@@ -205,6 +249,8 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
         type: resType,
         note: stripHtml(r.body),
         date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        peerReviewed: r.peer_reviewed || false,
+        sourceTag: r.source_tag || null,
         raw: r
       };
     });
@@ -321,7 +367,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
       bandColor: darken(c.color, 0.2),
       labelBg: darken(c.color, 0.3),
       spineFont: spineFont,
-      onOpen: () => { setCat(c.id); setType('all'); setQ(''); setDetail(null); },
+      onOpen: () => { setCat(c.id); setType('all'); setQ(''); setDetail(null); setListMode('cards'); setBookSpread(0); },
       onAdd: () => {
         setDetail(null);
         setForm({ mode: 'add', data: { title: '', url: '', cat: c.id, type: 'article', note: '' } });
@@ -370,22 +416,50 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
     if (!form || form.mode === 'shelf') return;
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/public/library-resources/suggest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.data.title,
-          url: form.data.url,
-          category: cats.find((c: any) => c.id === form.data.cat)?.name || 'Uncategorized',
-          resource_type: form.data.type,
-          note: form.data.note
-        })
-      });
-      if (!res.ok) throw new Error('Failed to submit');
-      toast.success('Suggestion sent to the librarians!');
+      if (form.mode === 'add-direct') {
+        // Admin direct add — save directly to library
+        const res = await fetch('/api/public/library-resources/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: form.data.title,
+            url: form.data.url,
+            category: cats.find((c: any) => c.id === form.data.cat)?.name || 'Uncategorized',
+            resource_type: form.data.type,
+            note: form.data.note,
+            peerReviewed: form.data.peerReviewed || false,
+            sourceTag: form.data.sourceTag || null,
+            directAdd: true
+          })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to save');
+        }
+        toast.success('Resource added to the library!');
+        setForm(null);
+        // Refresh the page to show the new resource
+        router.refresh();
+        return;
+      } else {
+        // Regular suggestion
+        const res = await fetch('/api/public/library-resources/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: form.data.title,
+            url: form.data.url,
+            category: cats.find((c: any) => c.id === form.data.cat)?.name || 'Uncategorized',
+            resource_type: form.data.type,
+            note: form.data.note
+          })
+        });
+        if (!res.ok) throw new Error('Failed to submit');
+        toast.success('Suggestion sent to the librarians!');
+      }
       setForm(null);
     } catch (err) {
-      toast.error('Error submitting suggestion.');
+      toast.error('Error submitting resource.');
     } finally {
       setIsSubmitting(false);
     }
@@ -396,6 +470,9 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes sl-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes sl-pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pageflip-next { from { transform: rotateY(0deg); } to { transform: rotateY(-168deg); } }
+        @keyframes pageflip-prev { from { transform: rotateY(0deg); } to { transform: rotateY(168deg); } }
+        @keyframes sl-glow { 0%,100% { box-shadow: 0 0 0 3px #3e2a1a, 0 0 10px 2px rgba(231,205,134,.55), 0 2px 4px rgba(0,0,0,.5); } 50% { box-shadow: 0 0 0 3px #3e2a1a, 0 0 20px 6px rgba(231,205,134,.9), 0 2px 4px rgba(0,0,0,.5); } }
         .sl-placeholder::placeholder { color: rgba(33,40,46,.4); }
       `}} />
       <div style={{ minHeight: '100vh', backgroundColor: '#FEFAE0', backgroundImage: 'radial-gradient(rgba(45,75,62,.06) 1px, transparent 1px)', backgroundSize: '22px 22px', fontFamily: '"Exo", sans-serif', color: '#21282E', position: 'relative', overflowX: 'hidden', paddingBottom: '80px' }}>
@@ -496,7 +573,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
             <div style={{ textAlign: 'center', marginBottom: '30px' }}>
               <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', letterSpacing: '.4em', textTransform: 'uppercase', color: '#A27532', fontWeight: 700 }}>A Reading Room of Resources</div>
               <h1 style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-.02em', margin: '10px 0 8px' }}>Pull a book from the shelf</h1>
-              <p style={{ maxWidth: '620px', margin: '0 auto', fontSize: '16px', lineHeight: 1.6, color: 'rgba(33,40,46,.65)' }}>Every shelf is a topic, every spine a category from the curriculum. Choose one to browse its links — filter by type, or use Librarian Mode to add your own.</p>
+              <p style={{ maxWidth: '620px', margin: '0 auto', fontSize: '16px', lineHeight: 1.6, color: 'rgba(33,40,46,.65)' }}>Every shelf is a topic, every spine a category from the curriculum. Choose one to browse its links — filter by type{isAdmin ? ', or use Librarian Mode to add your own' : ''}.</p>
               <div style={{ fontFamily: '"Courier New", monospace', fontSize: '12px', color: 'rgba(33,40,46,.45)', marginTop: '14px', letterSpacing: '.05em' }}>{cats.length} shelves · {res.length} resources catalogued</div>
             </div>
 
@@ -508,7 +585,13 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
                 <div style={{ position: 'relative', width: '250px', height: '58px' }}>
                   <div style={{ position: 'absolute', left: 0, bottom: 0, width: 0, height: 0, borderLeft: '125px solid transparent', borderRight: '125px solid transparent', borderBottom: '52px solid #3e2a1a' }}></div>
                   <div style={{ position: 'absolute', left: '9px', bottom: 0, width: 0, height: 0, borderLeft: '116px solid transparent', borderRight: '116px solid transparent', borderBottom: '44px solid #5b3f29' }}></div>
-                  <div onClick={() => setAdmin(!admin)} onMouseEnter={() => setHovKnob(true)} onMouseLeave={() => setHovKnob(false)} title="Librarian access — click to unlock" style={{ position: 'absolute', left: '50%', bottom: '5px', transform: 'translateX(-50%)', width: '30px', height: '30px', cursor: 'pointer', zIndex: 4 }}>
+                  <div 
+                    onClick={isAdmin ? () => setAdmin(!admin) : undefined} 
+                    onMouseEnter={isAdmin ? () => setHovKnob(true) : undefined} 
+                    onMouseLeave={isAdmin ? () => setHovKnob(false) : undefined} 
+                    title={isAdmin ? "Librarian access — click to unlock" : undefined} 
+                    style={{ position: 'absolute', left: '50%', bottom: '5px', transform: 'translateX(-50%)', width: '30px', height: '30px', cursor: isAdmin ? 'pointer' : 'default', zIndex: 4, pointerEvents: isAdmin ? 'auto' : 'none' }}
+                  >
                     {admin ? (
                       <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'radial-gradient(circle at 34% 30%,#fbe6b0,#e7cd86 60%,#b8932f)', animation: 'sl-glow 2.2s ease-in-out infinite' }}>
                         <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%) rotate(90deg)', width: '4px', height: '13px', background: '#3a2a14', borderRadius: '2px', transition: 'transform .4s ease' }}></div>
@@ -520,7 +603,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
                         <div style={{ position: 'absolute', left: '50%', top: '13px', transform: 'translateX(-50%)', width: '4px', height: '9px', background: '#3a2a14', borderRadius: '2px' }}></div>
                       </div>
                     )}
-                    {hovKnob && (
+                    {isAdmin && hovKnob && (
                       <div style={{ position: 'absolute', top: '34px', left: '50%', transform: 'translateX(-50%)', zIndex: 5, whiteSpace: 'nowrap', background: 'linear-gradient(180deg,#2E5534,#1d3a23)', color: '#f4ead0', border: '1px solid rgba(231,205,134,.5)', borderRadius: '4px', padding: '4px 9px', fontFamily: '"Courier New", monospace', fontSize: '8.5px', letterSpacing: '.08em', textTransform: 'uppercase', boxShadow: '0 6px 14px rgba(0,0,0,.5)', animation: 'sl-pop .18s ease' }}>{admin ? 'Lock Console' : 'Unlock Admin'}</div>
                     )}
                   </div>
@@ -532,14 +615,14 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
                     <div style={{ position: 'absolute', top: '5px', left: '50%', transform: 'translateX(-236px)', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 6 }}>
                       <div style={{ width: '2px', height: '12px', background: 'linear-gradient(#e7cd86,#8a6a2c)' }}></div>
                       <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid #3a2a14', background: 'transparent', marginBottom: '-6px', zIndex: 2 }}></div>
-                      <button title="Open the librarian console" className="hover:-translate-y-[1px] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,.55),0_8px_15px_rgba(0,0,0,.4)]" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 13px 8px', background: 'linear-gradient(180deg,#f0dca0,#c9a44e 55%,#9c7a33)', border: '2px solid #3e2a1a', borderRadius: '8px', boxShadow: 'inset 0 1px 1px rgba(255,255,255,.55),0 5px 11px rgba(0,0,0,.34)', color: '#3a2a14', fontFamily: '"Courier New", monospace', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s' }}>
+                      <button onClick={() => setConsoleOpen(true)} title="Open the librarian console" className="hover:-translate-y-[1px] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,.55),0_8px_15px_rgba(0,0,0,.4)]" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 13px 8px', background: 'linear-gradient(180deg,#f0dca0,#c9a44e 55%,#9c7a33)', border: '2px solid #3e2a1a', borderRadius: '8px', boxShadow: 'inset 0 1px 1px rgba(255,255,255,.55),0 5px 11px rgba(0,0,0,.34)', color: '#3a2a14', fontFamily: '"Courier New", monospace', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s' }}>
                         ⚙ Console
                       </button>
                     </div>
                     <div style={{ position: 'absolute', top: '5px', left: '50%', transform: 'translateX(150px)', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 6 }}>
                       <div style={{ width: '2px', height: '12px', background: 'linear-gradient(#e7cd86,#8a6a2c)' }}></div>
                       <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid #3a2a14', background: 'transparent', marginBottom: '-6px', zIndex: 2 }}></div>
-                      <button onClick={() => setForm({ mode: 'add', data: { title: '', url: '', cat: cats[0]?.id || '', type: 'article', note: '' } })} title="Shelve a new resource" className="hover:-translate-y-[1px] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,.28),0_8px_15px_rgba(0,0,0,.4)]" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 14px 8px', background: 'linear-gradient(180deg,#3a6b40,#2E5534 58%,#20431f)', border: '2px solid #3e2a1a', borderRadius: '8px', boxShadow: 'inset 0 1px 1px rgba(255,255,255,.28),0 5px 11px rgba(0,0,0,.34)', color: '#f4ead0', fontFamily: '"Courier New", monospace', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s' }}>
+                      <button onClick={() => setForm({ mode: 'add-direct', data: { title: '', url: '', cat: cats[0]?.id || '', type: 'article', note: '', peerReviewed: false, sourceTag: '' } })} title="Shelve a new resource" className="hover:-translate-y-[1px] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,.28),0_8px_15px_rgba(0,0,0,.4)]" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 14px 8px', background: 'linear-gradient(180deg,#3a6b40,#2E5534 58%,#20431f)', border: '2px solid #3e2a1a', borderRadius: '8px', boxShadow: 'inset 0 1px 1px rgba(255,255,255,.28),0 5px 11px rgba(0,0,0,.34)', color: '#f4ead0', fontFamily: '"Courier New", monospace', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s' }}>
                         ✚ Add Resource
                       </button>
                     </div>
@@ -820,29 +903,180 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
         {showList && (
           <div style={{ position: 'relative', zIndex: 2, maxWidth: '1000px', margin: '0 auto', padding: '18px 26px 0', animation: 'sl-fade 0.3s ease' }}>
             {currentResources.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: '13px' }}>
-                {currentResources.map(r => (
-                  <div key={r.id} onClick={r.onOpen} className="hover:-translate-y-[3px] hover:shadow-[0_12px_20px_-10px_rgba(0,0,0,0.25)]" style={{ position: 'relative', background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderLeft: `5px solid ${r.typeColor}`, borderRadius: '9px', padding: '14px 16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 2px 5px rgba(0,0,0,.05)', transition: 'transform .16s ease,box-shadow .16s ease' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '22px', height: '22px', borderRadius: '4px', background: r.typeColor, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '9.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{r.typeCode}</span>
-                      <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: r.typeColor, fontWeight: 700 }}>{r.typeLabel}</span>
-                      <span style={{ flex: 1 }}></span>
-                      {r.bookmarked ? (
-                        <button onClick={r.onBookmark} title="Remove bookmark" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E' }}>★</button>
-                      ) : (
-                        <button onClick={r.onBookmark} title="Bookmark to My Shelf" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: 'rgba(33,40,46,.3)' }}>☆</button>
-                      )}
-                      <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)' }}>{r.source}</span>
-                    </div>
-                    <div style={{ fontSize: '15.5px', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-.01em' }}>{r.title}</div>
-                    <div style={{ fontSize: '12.5px', lineHeight: 1.45, color: 'rgba(33,40,46,.6)' }}>{r.note}</div>
+              <>
+                {/* Cards / Open Book Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(33,40,46,.5)', marginRight: 'auto' }}>{currentResources.length} resources</span>
+                  <div style={{ display: 'flex', gap: '3px', background: 'rgba(33,40,46,.07)', padding: '3px', borderRadius: '9px' }}>
+                    <button onClick={() => { setListMode('cards'); setBookSpread(0); }} style={{ padding: '7px 14px', fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: '6px', background: listMode === 'cards' ? '#fff' : 'transparent', color: listMode === 'cards' ? '#21282E' : 'rgba(33,40,46,.5)', boxShadow: listMode === 'cards' ? '0 1px 2px rgba(0,0,0,.14)' : 'none' }}>Cards</button>
+                    <button onClick={() => { setListMode('book'); setBookSpread(0); }} style={{ padding: '7px 14px', fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: '6px', background: listMode === 'book' ? '#fff' : 'transparent', color: listMode === 'book' ? '#21282E' : 'rgba(33,40,46,.5)', boxShadow: listMode === 'book' ? '0 1px 2px rgba(0,0,0,.14)' : 'none' }}>Open Book</button>
                   </div>
-                ))}
-              </div>
+                </div>
+
+                {/* CARDS MODE */}
+                {listMode === 'cards' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: '13px' }}>
+                    {currentResources.map(r => (
+                      <div key={r.id} onClick={r.onOpen} className="hover:-translate-y-[3px] hover:shadow-[0_12px_20px_-10px_rgba(0,0,0,0.25)]" style={{ position: 'relative', background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderLeft: `5px solid ${r.typeColor}`, borderRadius: '9px', padding: '14px 16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 2px 5px rgba(0,0,0,.05)', transition: 'transform .16s ease,box-shadow .16s ease' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '22px', height: '22px', borderRadius: '4px', background: r.typeColor, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '9.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{r.typeCode}</span>
+                          <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: r.typeColor, fontWeight: 700 }}>{r.typeLabel}</span>
+                          {r.peerReviewed && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: 'linear-gradient(180deg,#e7cd86,#c9a44e)', color: '#3a2a14', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px' }}>✓ Peer-Reviewed</span>
+                          )}
+                          {r.sourceTag && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: r.sourceTag === 'contributor' ? 'linear-gradient(180deg,#5b8dd9,#3a6bc5)' : r.sourceTag === 'student' ? 'linear-gradient(180deg,#6bc5a0,#3da87a)' : r.sourceTag === 'vault' ? 'linear-gradient(180deg,#9b7fd4,#7653b8)' : r.sourceTag === 'partner' ? 'linear-gradient(180deg,#e09050,#c06e30)' : 'linear-gradient(180deg,#6ba8d4,#4088b8)', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px' }}>{r.sourceTag === 'contributor' ? '★' : r.sourceTag === 'student' ? '✎' : r.sourceTag === 'vault' ? '◆' : r.sourceTag === 'partner' ? '⚙' : '⚡'} {r.sourceTag}</span>
+                          )}
+                          <span style={{ flex: 1 }}></span>
+                          {r.bookmarked ? (
+                            <button onClick={r.onBookmark} title="Remove bookmark" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E' }}>★</button>
+                          ) : (
+                            <button onClick={r.onBookmark} title="Bookmark to My Shelf" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: 'rgba(33,40,46,.3)' }}>☆</button>
+                          )}
+                          <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)' }}>{r.source}</span>
+                        </div>
+                        <div style={{ fontSize: '15.5px', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-.01em' }}>{r.title}</div>
+                        <div style={{ fontSize: '12.5px', lineHeight: 1.45, color: 'rgba(33,40,46,.6)' }}>{r.note}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* OPEN BOOK MODE */}
+                {listMode === 'book' && (() => {
+                  // Build pages: title page on left, then resources one per page, then end page
+                  const pages: Array<{ type: 'title' | 'resource' | 'end' | 'blank', data?: any }> = [];
+                  pages.push({ type: 'title' });
+                  currentResources.forEach(r => pages.push({ type: 'resource', data: r }));
+                  pages.push({ type: 'end' });
+                  // Ensure even number of pages for spreads
+                  if (pages.length % 2 !== 0) pages.push({ type: 'blank' });
+
+                  const totalSpreads = Math.ceil(pages.length / 2);
+                  const leftIdx = bookSpread * 2;
+                  const rightIdx = leftIdx + 1;
+                  const leftPage = pages[leftIdx] || { type: 'blank' };
+                  const rightPage = pages[rightIdx] || { type: 'blank' };
+
+                  const canPrev = bookSpread > 0;
+                  const canNext = bookSpread < totalSpreads - 1;
+
+                  const goNext = () => {
+                    if (!canNext || flipNext || flipPrev) return;
+                    setFlipNext(true);
+                    setTimeout(() => { setBookSpread(s => s + 1); setFlipNext(false); }, 480);
+                  };
+                  const goPrev = () => {
+                    if (!canPrev || flipPrev || flipNext) return;
+                    setFlipPrev(true);
+                    setTimeout(() => { setBookSpread(s => s - 1); setFlipPrev(false); }, 480);
+                  };
+
+                  const renderPage = (page: typeof leftPage) => {
+                    if (page.type === 'title' && currentCat) {
+                      return (
+                        <div style={{ minHeight: '380px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '14px' }}>
+                          <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', letterSpacing: '.3em', color: '#A27532', fontWeight: 700 }}>{currentCat.code}</div>
+                          <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: currentCat.color, boxShadow: '0 3px 8px rgba(0,0,0,.25)' }}></div>
+                          <h2 style={{ fontSize: '30px', fontWeight: 900, lineHeight: 1.15, margin: 0, maxWidth: '300px' }}>{currentCat.name}</h2>
+                          <div style={{ width: '64px', height: '2px', background: '#c9a44e' }}></div>
+                          <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'rgba(33,40,46,.7)', maxWidth: '330px', margin: 0 }}>{currentCat.blurb}</p>
+                          <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', color: 'rgba(33,40,46,.5)', letterSpacing: '.05em' }}>{currentResources.length} resources within · turn the page ›</div>
+                        </div>
+                      );
+                    }
+                    if (page.type === 'resource') {
+                      const r = page.data;
+                      return (
+                        <div onClick={r.onOpen} style={{ cursor: 'pointer', minHeight: '380px', display: 'flex', flexDirection: 'column', gap: '13px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '24px', height: '24px', borderRadius: '5px', background: r.typeColor, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{r.typeCode}</span>
+                            <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: r.typeColor, fontWeight: 700 }}>{r.typeLabel}</span>
+                            {r.peerReviewed && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: 'linear-gradient(180deg,#e7cd86,#c9a44e)', color: '#3a2a14', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px' }}>✓ Peer-Reviewed</span>
+                            )}
+                            {r.sourceTag && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: r.sourceTag === 'contributor' ? 'linear-gradient(180deg,#5b8dd9,#3a6bc5)' : r.sourceTag === 'student' ? 'linear-gradient(180deg,#6bc5a0,#3da87a)' : r.sourceTag === 'vault' ? 'linear-gradient(180deg,#9b7fd4,#7653b8)' : r.sourceTag === 'partner' ? 'linear-gradient(180deg,#e09050,#c06e30)' : 'linear-gradient(180deg,#6ba8d4,#4088b8)', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px' }}>{r.sourceTag === 'contributor' ? '★' : r.sourceTag === 'student' ? '✎' : r.sourceTag === 'vault' ? '◆' : r.sourceTag === 'partner' ? '⚙' : '⚡'} {r.sourceTag}</span>
+                            )}
+                            <span style={{ flex: 1 }}></span>
+                            <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)' }}>{r.source}</span>
+                            {r.bookmarked ? (
+                              <button onClick={r.onBookmark} title="Remove bookmark" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E' }}>★</button>
+                            ) : (
+                              <button onClick={r.onBookmark} title="Bookmark to My Shelf" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: 'rgba(33,40,46,.3)' }}>☆</button>
+                            )}
+                          </div>
+                          <h3 style={{ fontSize: '22px', fontWeight: 800, lineHeight: 1.26, letterSpacing: '-.01em', margin: 0 }}>{r.title}</h3>
+                          <p style={{ fontSize: '14.5px', lineHeight: 1.62, color: 'rgba(33,40,46,.72)', margin: 0, flex: 1 }}>{r.note}</p>
+                          <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', color: 'rgba(33,40,46,.5)', borderTop: '1px solid rgba(33,40,46,.16)', paddingTop: '11px' }}>Acquired {r.date}</div>
+                          <div style={{ color: '#2E5534', fontWeight: 800, fontSize: '13px' }}>Open record →</div>
+                        </div>
+                      );
+                    }
+                    if (page.type === 'end') {
+                      return (
+                        <div style={{ minHeight: '380px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '12px', color: 'rgba(33,40,46,.55)' }}>
+                          <div style={{ width: '9px', height: '9px', background: '#c9a44e', transform: 'rotate(45deg)' }}></div>
+                          <div style={{ fontFamily: '"Courier New", monospace', fontSize: '12px', letterSpacing: '.22em' }}>END OF VOLUME</div>
+                          <div style={{ fontSize: '13px' }}>{currentResources.length} resources catalogued in this book</div>
+                        </div>
+                      );
+                    }
+                    return <div style={{ minHeight: '380px' }}></div>;
+                  };
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '4px 0 12px' }}>
+                      <div style={{ position: 'relative', width: 'min(900px, 98%)' }}>
+                        {/* Book binding/cover */}
+                        <div style={{ background: 'linear-gradient(180deg,#5b3f29,#42301d)', borderRadius: '12px', padding: '15px', boxShadow: '0 30px 50px -22px rgba(0,0,0,.55)', border: '1px solid #2e1d10', position: 'relative' }}>
+                          {/* Gold inset border */}
+                          <div style={{ position: 'absolute', inset: '9px', border: '1.5px solid rgba(231,205,134,.32)', borderRadius: '8px', pointerEvents: 'none', zIndex: 6 }}></div>
+                          {/* Book pages container */}
+                          <div style={{ position: 'relative', display: 'flex', background: '#f4ead0', borderRadius: '3px', minHeight: '440px', boxShadow: 'inset 0 0 44px rgba(120,90,40,.2)', perspective: '2000px' }}>
+                            {/* Center spine shadow */}
+                            <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '48px', background: 'linear-gradient(90deg,rgba(0,0,0,0),rgba(80,55,20,.26) 44%,rgba(80,55,20,.34) 50%,rgba(80,55,20,.26) 56%,rgba(0,0,0,0))', zIndex: 3, pointerEvents: 'none' }}></div>
+
+                            {/* Left page */}
+                            <div style={{ flex: 1, padding: '30px 36px', position: 'relative', zIndex: 1, backgroundImage: 'repeating-linear-gradient(transparent,transparent 33px,rgba(65,124,152,.07) 34px)' }}>
+                              {renderPage(leftPage)}
+                            </div>
+
+                            {/* Right page */}
+                            <div style={{ flex: 1, padding: '30px 36px', position: 'relative', zIndex: 1, backgroundImage: 'repeating-linear-gradient(transparent,transparent 33px,rgba(65,124,152,.07) 34px)' }}>
+                              {renderPage(rightPage)}
+                            </div>
+
+                            {/* Page flip animations */}
+                            {flipNext && (
+                              <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', right: 0, zIndex: 4, background: 'linear-gradient(90deg,#efe4c8,#f7eed6)', transformOrigin: 'left center', boxShadow: '-10px 0 22px rgba(0,0,0,.22)', animation: 'pageflip-next .52s ease-in forwards' }}></div>
+                            )}
+                            {flipPrev && (
+                              <div style={{ position: 'absolute', top: 0, bottom: 0, right: '50%', left: 0, zIndex: 4, background: 'linear-gradient(270deg,#efe4c8,#f7eed6)', transformOrigin: 'right center', boxShadow: '10px 0 22px rgba(0,0,0,.22)', animation: 'pageflip-prev .52s ease-in forwards' }}></div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Navigation buttons */}
+                        {canPrev && (
+                          <button onClick={goPrev} title="Previous page" style={{ position: 'absolute', left: '-21px', top: '50%', transform: 'translateY(-50%)', zIndex: 8, width: '46px', height: '46px', borderRadius: '50%', border: '2px solid #4a3220', cursor: 'pointer', background: 'radial-gradient(circle at 34% 30%,#f0dca0,#c9a44e 70%,#a07e36)', color: '#3a2a14', fontSize: '22px', fontWeight: 800, lineHeight: 1, boxShadow: '0 5px 12px rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+                        )}
+                        {canNext && (
+                          <button onClick={goNext} title="Next page" style={{ position: 'absolute', right: '-21px', top: '50%', transform: 'translateY(-50%)', zIndex: 8, width: '46px', height: '46px', borderRadius: '50%', border: '2px solid #4a3220', cursor: 'pointer', background: 'radial-gradient(circle at 34% 30%,#f0dca0,#c9a44e 70%,#a07e36)', color: '#3a2a14', fontSize: '22px', fontWeight: 800, lineHeight: 1, boxShadow: '0 5px 12px rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+                        )}
+                      </div>
+                      {/* Spread label */}
+                      <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', letterSpacing: '.12em', color: 'rgba(33,40,46,.55)', background: 'rgba(33,40,46,.06)', padding: '6px 16px', borderRadius: '999px' }}>
+                        {bookSpread === 0 ? 'Title page' : `Pages ${bookSpread * 2 - 1}–${Math.min(bookSpread * 2, currentResources.length)}`} of {currentResources.length}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
             ) : (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(33,40,46,.5)' }}>
                 <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '6px' }}>This shelf is empty</div>
-                <div style={{ fontSize: '14px' }}>Nothing here yet — try another type filter{showCategory ? ', or switch on Librarian Mode to add one.' : '.'}</div>
+                <div style={{ fontSize: '14px' }}>Nothing here yet — try another type filter{showCategory && isAdmin ? ', or switch on Librarian Mode to add one.' : '.'}</div>
               </div>
             )}
           </div>
@@ -861,6 +1095,12 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
                 <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '14px' }}>
                   <span style={{ width: '26px', height: '26px', borderRadius: '5px', background: decoratedDetail.typeColor, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{decoratedDetail.typeCode}</span>
                   <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.12em', color: decoratedDetail.typeColor, fontWeight: 700 }}>{decoratedDetail.typeLabel}</span>
+                  {decoratedDetail.peerReviewed && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'linear-gradient(180deg,#e7cd86,#c9a44e)', color: '#3a2a14', fontFamily: '"Courier New", monospace', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', padding: '5px 10px', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,.15)' }}>✓ Peer-Reviewed</span>
+                  )}
+                  {decoratedDetail.sourceTag && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: decoratedDetail.sourceTag === 'contributor' ? 'linear-gradient(180deg,#5b8dd9,#3a6bc5)' : decoratedDetail.sourceTag === 'student' ? 'linear-gradient(180deg,#6bc5a0,#3da87a)' : decoratedDetail.sourceTag === 'vault' ? 'linear-gradient(180deg,#9b7fd4,#7653b8)' : decoratedDetail.sourceTag === 'partner' ? 'linear-gradient(180deg,#e09050,#c06e30)' : 'linear-gradient(180deg,#6ba8d4,#4088b8)', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', padding: '5px 10px', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,.15)' }}>{decoratedDetail.sourceTag === 'contributor' ? '★' : decoratedDetail.sourceTag === 'student' ? '✎' : decoratedDetail.sourceTag === 'vault' ? '◆' : decoratedDetail.sourceTag === 'partner' ? '⚙' : '⚡'} {decoratedDetail.sourceTag}</span>
+                  )}
                 </div>
                 <h2 style={{ fontSize: '25px', fontWeight: 900, lineHeight: 1.18, letterSpacing: '-.01em', margin: '0 0 12px', maxWidth: '88%' }}>{decoratedDetail.title}</h2>
                 <div style={{ fontFamily: '"Courier New", monospace', fontSize: '12px', color: 'rgba(33,40,46,.6)', marginBottom: '14px' }}>Shelf — {decoratedDetail.catName}</div>
@@ -882,15 +1122,15 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
 
         {/* ======================= FORM MODAL ======================= */}
         {form && (
-          <div onClick={() => setForm(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,18,12,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '22px', zIndex: 200, animation: 'sl-pop 0.25s ease' }}>
+          <div onClick={() => setForm(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,18,12,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '22px', zIndex: 215, animation: 'sl-pop 0.25s ease' }}>
             <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px,94vw)', maxHeight: '92vh', overflow: 'auto', background: '#FBF3DC', border: '1px solid rgba(33,40,46,.22)', borderRadius: '7px', boxShadow: '0 30px 60px -20px rgba(0,0,0,.6)' }}>
               <div style={{ background: '#21282E', color: '#FBF3DC', padding: '11px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.16em' }}>
-                <span>{form.mode === 'add' ? 'New Acquisition' : form.mode === 'edit' ? 'Edit Record' : 'New Shelf'}</span>
+                <span>{form.mode === 'add-direct' ? 'New Acquisition' : form.mode === 'add' ? 'Suggest a Resource' : form.mode === 'edit' ? 'Edit Record' : 'New Shelf'}</span>
                 <span style={{ opacity: .7 }}>Steward Library</span>
               </div>
               <div style={{ padding: '22px 26px 8px' }}>
 
-                {form.mode !== 'shelf' && (
+                {(form.mode !== 'shelf') && (
                   <>
                     <div style={{ marginBottom: '14px' }}>
                       <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.6)', fontWeight: 700, marginBottom: '6px' }}>Title</div>
@@ -902,7 +1142,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
                     </div>
                     <div style={{ display: 'flex', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
                       <div style={{ flex: 1, minWidth: '170px' }}>
-                        <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.6)', fontWeight: 700, marginBottom: '6px' }}>Shelf</div>
+                        <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.6)', fontWeight: 700, marginBottom: '6px' }}>Book</div>
                         <select value={form.data.cat} onChange={(e) => setF('cat', e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid rgba(33,40,46,.25)', borderRadius: '6px', background: '#fff', fontFamily: '"Exo", sans-serif', fontSize: '14px', color: '#21282E', outline: 'none' }}>
                           {cats.map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
@@ -922,6 +1162,38 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
                       <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.6)', fontWeight: 700, marginBottom: '6px' }}>Note <span style={{ opacity: .55, textTransform: 'none' }}>(one line for students)</span></div>
                       <textarea value={form.data.note} onChange={(e) => setF('note', e.target.value)} rows={3} placeholder="What is this and why does it matter?" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid rgba(33,40,46,.25)', borderRadius: '6px', background: '#fff', fontFamily: '"Exo", sans-serif', fontSize: '14px', color: '#21282E', outline: 'none', resize: 'vertical' }} className="sl-placeholder"></textarea>
                     </div>
+                    {/* Peer-reviewed checkbox — only for admin direct add */}
+                    {form.mode === 'add-direct' && (
+                      <div style={{ marginTop: '14px', marginBottom: '6px' }}>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '11px', cursor: 'pointer', background: 'rgba(46,85,52,.06)', border: '1.5px solid rgba(46,85,52,.28)', borderRadius: '8px', padding: '12px 14px' }}>
+                          <input type="checkbox" checked={form.data.peerReviewed || false} onChange={(e) => setF('peerReviewed', e.target.checked)} style={{ width: '18px', height: '18px', marginTop: '1px', accentColor: '#2E5534', cursor: 'pointer', flexShrink: 0 }} />
+                          <span>
+                            <span style={{ fontWeight: 800, fontSize: '13.5px', color: '#21282E' }}>Peer-reviewed study</span>
+                            <span style={{ display: 'block', fontSize: '12px', lineHeight: 1.4, color: 'rgba(33,40,46,.62)', marginTop: '2px' }}>Tick if this link is — or references — a peer-reviewed study. It earns a gilt seal in the AI Research book and across the catalog.</span>
+                          </span>
+                        </label>
+                      </div>
+                    )}
+                    {/* Source tag — only for admin direct add */}
+                    {form.mode === 'add-direct' && (
+                      <div style={{ marginTop: '10px', marginBottom: '6px' }}>
+                        <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.6)', fontWeight: 700, marginBottom: '6px' }}>Source Tag</div>
+                        <select value={form.data.sourceTag || ''} onChange={(e) => setF('sourceTag', e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid rgba(33,40,46,.25)', borderRadius: '6px', background: '#fff', fontFamily: '"Exo", sans-serif', fontSize: '14px', fontWeight: 700, color: '#21282E', outline: 'none', cursor: 'pointer' }}>
+                          <option value="">None (standard resource)</option>
+                          <option value="contributor">★ Contributor</option>
+                          <option value="student">✎ Student</option>
+                          <option value="vault">◆ Vault</option>
+                          <option value="partner">⚙ Partner</option>
+                          <option value="ai-generated">⚡ AI Generated</option>
+                        </select>
+                      </div>
+                    )}
+                    {/* Info blurb for suggestions */}
+                    {form.mode === 'add' && (
+                      <div style={{ marginTop: '14px', marginBottom: '6px', background: 'rgba(65,124,152,.08)', border: '1.5px solid rgba(65,124,152,.3)', borderRadius: '8px', padding: '12px 14px', fontSize: '12.5px', lineHeight: 1.5, color: 'rgba(33,40,46,.72)' }}>
+                        <strong style={{ color: '#21282E' }}>A librarian reviews every suggestion.</strong> Once approved, it joins the shelf for everyone — no edit or delete access needed on your end.
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -949,8 +1221,176 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '14px 26px 22px' }}>
                 <button onClick={() => setForm(null)} style={{ background: 'none', border: '1.5px solid rgba(33,40,46,.25)', color: '#21282E', padding: '11px 18px', borderRadius: '7px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', fontFamily: '"Exo", sans-serif' }}>Cancel</button>
                 <button onClick={saveForm} disabled={isSubmitting || !form.data.title || !form.data.url} style={{ background: '#2E5534', color: '#FEFAE0', border: 'none', padding: '11px 22px', borderRadius: '7px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', fontFamily: '"Exo", sans-serif', boxShadow: '0 3px 0 #1d3a23', opacity: (isSubmitting || !form.data.title || !form.data.url) ? 0.45 : 1 }}>
-                  {isSubmitting ? 'Sending...' : 'Suggest to Librarians'}
+                  {isSubmitting ? 'Saving...' : form.mode === 'add-direct' ? 'Save to Library' : 'Suggest to Librarians'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================= LIBRARIAN CONSOLE MODAL ======================= */}
+        {consoleOpen && (
+          <div onClick={() => { setConsoleOpen(false); setShowSuggestions(false); setSuggestionDetail(null); }} style={{ position: 'fixed', inset: 0, background: 'rgba(20,18,12,.62)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '22px', zIndex: 206, animation: 'sl-pop 0.25s ease' }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(660px,95vw)', maxHeight: '90vh', overflow: 'auto', background: '#FBF3DC', border: '1px solid rgba(33,40,46,.22)', borderRadius: '11px', boxShadow: '0 30px 70px -20px rgba(0,0,0,.65)' }}>
+              {/* Header */}
+              <div style={{ position: 'sticky', top: 0, background: '#21282E', color: '#FBF3DC', padding: '15px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 2, borderRadius: '11px 11px 0 0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span style={{ fontFamily: '"Courier New", monospace', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.16em' }}>Librarian Console</span>
+                  <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', letterSpacing: '.05em', color: 'rgba(231,205,134,.85)', display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#5fae6b', boxShadow: '0 0 6px #5fae6b' }}></span>Signed in as Librarian · session linked</span>
+                </div>
+                <button onClick={() => { setConsoleOpen(false); setShowSuggestions(false); setSuggestionDetail(null); }} style={{ background: 'none', border: 'none', color: '#FBF3DC', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+              </div>
+
+              <div style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
+                  <div style={{ background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '30px', fontWeight: 700, color: '#2E5534', lineHeight: 1 }}>{cats.length}</div>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.5)', marginTop: '5px' }}>Thematic Books</div>
+                  </div>
+                  <div style={{ background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '30px', fontWeight: 700, color: '#417C98', lineHeight: 1 }}>{res.length}</div>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.5)', marginTop: '5px' }}>Resources</div>
+                  </div>
+                  <div style={{ background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '30px', fontWeight: 700, color: '#A27532', lineHeight: 1 }}>{suggestions.length}</div>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.5)', marginTop: '5px' }}>Pending Review</div>
+                  </div>
+                </div>
+
+                {/* Curation actions */}
+                <div>
+                  <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.12em', color: 'rgba(33,40,46,.5)', fontWeight: 700, marginBottom: '10px' }}>Curation</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    <button onClick={() => setShowSuggestions(!showSuggestions)} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px', background: showSuggestions ? '#7c531f' : '#A27532', color: '#FEFAE0', border: 'none', padding: '11px 18px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '13px', cursor: 'pointer', boxShadow: showSuggestions ? '0 1px 0 #5a3a15' : '0 3px 0 #7c531f' }}>
+                      {showSuggestions ? '← Back' : 'Review Suggestions'}
+                      {suggestions.length > 0 && !showSuggestions && (
+                        <span style={{ minWidth: '20px', height: '20px', padding: '0 6px', borderRadius: '999px', background: '#fff', color: '#A27532', fontFamily: '"Courier New", monospace', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{suggestions.length}</span>
+                      )}
+                    </button>
+                    <button onClick={() => { setConsoleOpen(false); setForm({ mode: 'add-direct', data: { title: '', url: '', cat: cats[0]?.id || '', type: 'article', note: '', peerReviewed: false, sourceTag: '' } }); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#2E5534', color: '#FEFAE0', border: 'none', padding: '11px 18px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '13px', cursor: 'pointer', boxShadow: '0 3px 0 #1d3a23' }}>+ Add Resource</button>
+                    <button onClick={() => { setConsoleOpen(false); setForm({ mode: 'shelf', data: { name: '', color: PALETTE[0] } }); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fff', color: '#2E5534', border: '1.5px solid rgba(46,85,52,.45)', padding: '11px 18px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>+ Add Book</button>
+                  </div>
+                </div>
+
+                {/* Suggestions Review Section */}
+                {showSuggestions ? (
+                  <div style={{ background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderRadius: '11px', padding: '18px 20px', animation: 'sl-fade 0.25s ease' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <div style={{ fontFamily: '"Exo", sans-serif', fontSize: '15px', fontWeight: 800, color: '#21282E' }}>Community Suggestions</div>
+                    </div>
+                    <div style={{ fontSize: '12.5px', color: 'rgba(33,40,46,.55)', marginBottom: '16px' }}>A librarian reviews every suggestion. Approve to add it to the shelf for everyone.</div>
+                    
+                    {suggestions.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '30px 20px', color: 'rgba(33,40,46,.45)' }}>
+                        <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.12em' }}>No pending suggestions</div>
+                        <div style={{ fontSize: '12px', marginTop: '6px', fontStyle: 'italic' }}>Community submissions will appear here for your review.</div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {suggestions.map((s) => (
+                          <div key={s.id} style={{ display: 'flex', gap: '14px', alignItems: 'center', padding: '14px 16px', borderRadius: '10px', background: '#fdf8ea', border: '1px solid rgba(162,117,50,.15)' }}>
+                            <div style={{ width: '38px', height: '38px', flexShrink: 0, borderRadius: '9px', background: 'rgba(46,85,52,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>📚</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontFamily: '"Exo", sans-serif', fontSize: '14px', fontWeight: 700, color: '#21282E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</div>
+                              <div style={{ fontSize: '11.5px', color: 'rgba(33,40,46,.55)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.note || 'No note provided'}</div>
+                              <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)', marginTop: '5px', letterSpacing: '.04em' }}>{s.category || 'Uncategorized'} · {s.resource_type || 'Link'} · by {s.submitted_by_name || 'Anonymous'}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                              <button onClick={() => setSuggestionDetail(s)} style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(33,40,46,.15)', background: '#fff', color: '#21282E', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                ◎ Details
+                              </button>
+                              <button onClick={() => handleSuggestionAction(s.id, 'approved')} disabled={suggestionProcessing === s.id} style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#2E5534', color: '#FEFAE0', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: suggestionProcessing === s.id ? 'wait' : 'pointer', opacity: suggestionProcessing === s.id ? 0.6 : 1, boxShadow: '0 2px 0 #1d3a23' }}>
+                                Approve
+                              </button>
+                              <button onClick={() => handleSuggestionAction(s.id, 'rejected')} disabled={suggestionProcessing === s.id} style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid rgba(220,80,80,.3)', background: '#fff', color: '#c04040', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: suggestionProcessing === s.id ? 'wait' : 'pointer', opacity: suggestionProcessing === s.id ? 0.6 : 1 }}>
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {/* Show hint when suggestions not expanded */}
+                    <div style={{ fontSize: '12px', color: 'rgba(33,40,46,.5)', marginTop: '-10px', fontStyle: 'italic' }}>
+                      {suggestions.length === 0 
+                        ? 'No suggestions waiting — community submissions appear here for approval.'
+                        : `${suggestions.length} suggestion${suggestions.length > 1 ? 's' : ''} waiting for review.`
+                      }
+                    </div>
+
+                {/* Backend bridge */}
+                <div style={{ background: 'linear-gradient(135deg,#21282E,#2c3742)', borderRadius: '11px', padding: '20px 22px', color: '#FBF3DC' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(231,205,134,.16)', border: '1px solid rgba(231,205,134,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px' }}>⛬</div>
+                    <div style={{ fontFamily: '"Exo", sans-serif', fontSize: '15px', fontWeight: 800 }}>Back-End Admin Console</div>
+                  </div>
+                  <p style={{ fontSize: '13px', lineHeight: 1.55, color: 'rgba(251,243,220,.78)', margin: '0 0 16px' }}>Your librarian role is linked to the Steward admin console. Open the full back-end to manage user accounts & roles, view the audit log of every approval and edit, and configure the curriculum sections — including the four Environmental Literacy themes.</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+                    <Link href="/admin/library" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#E7CD86', color: '#21282E', border: 'none', padding: '11px 20px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '13px', cursor: 'pointer', boxShadow: '0 3px 0 #b89c52', textDecoration: 'none' }}>Open Admin Console ↗</Link>
+                    <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', color: 'rgba(231,205,134,.7)', letterSpacing: '.04em' }}>/admin/library</span>
+                  </div>
+                </div>
+
+                {/* Reader profile bridge */}
+                <div style={{ background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderRadius: '11px', padding: '18px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(162,117,50,.14)', border: '1px solid rgba(162,117,50,.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: '#A27532' }}>★</div>
+                    <div style={{ fontFamily: '"Exo", sans-serif', fontSize: '15px', fontWeight: 800 }}>Reader Profile & Bookmarks</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '20px', marginBottom: '14px' }}>
+                    <div><span style={{ fontFamily: '"Courier New", monospace', fontSize: '24px', fontWeight: 700, color: '#A27532' }}>{Object.keys(bookmarks).length}</span> <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', color: 'rgba(33,40,46,.5)', textTransform: 'uppercase', letterSpacing: '.08em' }}>bookmarked</span></div>
+                    <div><span style={{ fontFamily: '"Courier New", monospace', fontSize: '24px', fontWeight: 700, color: '#2E5534' }}>0</span> <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', color: 'rgba(33,40,46,.5)', textTransform: 'uppercase', letterSpacing: '.08em' }}>read</span></div>
+                  </div>
+                  <p style={{ fontSize: '12.5px', lineHeight: 1.5, color: 'rgba(33,40,46,.62)', margin: '0 0 14px' }}>Bookmarks and reading history sync to each member's profile on Steward Works, where they keep their personal collection.</p>
+                  <button onClick={() => { setConsoleOpen(false); router.push('/hub/my-profile'); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#2E5534', color: '#FEFAE0', border: 'none', padding: '10px 18px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '13px', cursor: 'pointer', boxShadow: '0 3px 0 #1d3a23' }}>Open My Profile ↗</button>
+                </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================= SUGGESTION DETAIL MODAL ======================= */}
+        {suggestionDetail && (
+          <div onClick={() => setSuggestionDetail(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,18,12,.72)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '22px', zIndex: 210, animation: 'sl-pop 0.2s ease' }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(480px,95vw)', maxHeight: '85vh', overflow: 'auto', background: '#fff', border: '1px solid rgba(33,40,46,.15)', borderRadius: '14px', boxShadow: '0 24px 48px rgba(0,0,0,.25)' }}>
+              <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(33,40,46,.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontFamily: '"Exo", sans-serif', fontSize: '16px', fontWeight: 800, color: '#21282E' }}>Suggestion Details</div>
+                <button onClick={() => setSuggestionDetail(null)} style={{ background: 'none', border: 'none', fontSize: '20px', color: 'rgba(33,40,46,.4)', cursor: 'pointer', lineHeight: 1 }}>×</button>
+              </div>
+              <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.45)', marginBottom: '4px' }}>Title</div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#21282E' }}>{suggestionDetail.title}</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.45)', marginBottom: '4px' }}>URL</div>
+                  <a href={suggestionDetail.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#A27532', fontWeight: 600, wordBreak: 'break-all' }}>{suggestionDetail.url}</a>
+                </div>
+                <div style={{ background: '#fdf8ea', padding: '14px', borderRadius: '9px', border: '1px solid rgba(162,117,50,.12)' }}>
+                  <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.5)', marginBottom: '4px' }}>Submitter Note</div>
+                  <div style={{ fontSize: '13px', color: '#21282E', lineHeight: 1.5 }}>{suggestionDetail.note || 'No note provided.'}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '24px' }}>
+                  <div>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.45)', marginBottom: '4px' }}>Category</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#21282E' }}>{suggestionDetail.category || 'Uncategorized'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.45)', marginBottom: '4px' }}>Type</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#21282E' }}>{suggestionDetail.resource_type || 'Link'}</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ padding: '16px 22px', borderTop: '1px solid rgba(33,40,46,.1)', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button onClick={() => setSuggestionDetail(null)} style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid rgba(33,40,46,.15)', background: '#fff', color: '#21282E', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer' }}>Close</button>
+                <button onClick={() => handleSuggestionAction(suggestionDetail.id, 'approved')} disabled={suggestionProcessing === suggestionDetail.id} style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#2E5534', color: '#FEFAE0', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: suggestionProcessing === suggestionDetail.id ? 'wait' : 'pointer', opacity: suggestionProcessing === suggestionDetail.id ? 0.6 : 1, boxShadow: '0 3px 0 #1d3a23' }}>Approve</button>
+                <button onClick={() => handleSuggestionAction(suggestionDetail.id, 'rejected')} disabled={suggestionProcessing === suggestionDetail.id} style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid rgba(220,80,80,.3)', background: '#fff', color: '#c04040', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: suggestionProcessing === suggestionDetail.id ? 'wait' : 'pointer', opacity: suggestionProcessing === suggestionDetail.id ? 0.6 : 1 }}>Reject</button>
               </div>
             </div>
           </div>

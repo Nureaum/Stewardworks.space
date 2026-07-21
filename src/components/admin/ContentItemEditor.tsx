@@ -35,6 +35,8 @@ export default function ContentItemEditor({
   const [newCategoryLabel, setNewCategoryLabel] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [resourceType, setResourceType] = useState(initialData?.resource_type || "");
+  const [peerReviewed, setPeerReviewed] = useState(initialData?.peer_reviewed || false);
+  const [sourceTag, setSourceTag] = useState(initialData?.source_tag || "");
 
   const [categoryId, setCategoryId] = useState(
     initialData?.category_id || (categories?.[0]?.id ?? ""),
@@ -226,6 +228,8 @@ export default function ContentItemEditor({
       if (categoryId && categoryId !== "__create_new__") payload.category_id = categoryId;
       if (topicInput) payload.topic_label = topicInput;
       if (resourceType) payload.resource_type = resourceType;
+      if (contentType === 'library_resource') payload.peer_reviewed = peerReviewed;
+      if (contentType === 'library_resource') payload.source_tag = sourceTag || null;
 
       await onSubmit(payload);
 
@@ -643,6 +647,44 @@ export default function ContentItemEditor({
                 <option value="slides">Slides</option>
                 <option value="meme">Image/Meme</option>
               </select>
+            </div>
+          )}
+
+          {contentType === "library_resource" && (
+            <div className="col-span-full mt-2">
+              <label className="flex items-start gap-3 cursor-pointer bg-[#2E5534]/5 border border-[#2E5534]/20 rounded-xl p-4 hover:bg-[#2E5534]/8 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={peerReviewed}
+                  onChange={(e) => setPeerReviewed(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 accent-[#2E5534] cursor-pointer shrink-0"
+                />
+                <span>
+                  <span className="block text-[14px] font-extrabold text-[#241c12]">Peer-reviewed study</span>
+                  <span className="block text-[12px] text-[#8a7c66] mt-1 leading-relaxed">Tick if this link is — or references — a peer-reviewed study. It earns a gilt seal in the AI Research book and across the catalog.</span>
+                </span>
+              </label>
+            </div>
+          )}
+
+          {contentType === "library_resource" && (
+            <div className="col-span-full">
+              <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">
+                Source Tag
+              </label>
+              <select
+                value={sourceTag}
+                onChange={(e) => setSourceTag(e.target.value)}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-steward-dark focus:bg-white transition-all font-bold text-steward-dark"
+              >
+                <option value="">None (standard resource)</option>
+                <option value="contributor">★ Contributor</option>
+                <option value="student">✎ Student</option>
+                <option value="vault">◆ Vault</option>
+                <option value="partner">⚙ Partner</option>
+                <option value="ai-generated">⚡ AI Generated</option>
+              </select>
+              <p className="text-[11px] text-[#8a7c66] mt-1.5">Tag the source origin of this resource. Shows as a badge on the card.</p>
             </div>
           )}
         </div>

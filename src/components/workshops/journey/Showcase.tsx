@@ -905,6 +905,30 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
 
           {/* action buttons */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-pixel"
+                style={{
+                  fontSize: 9,
+                  padding: '10px 18px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: 'var(--s,#45d6ff)',
+                  color: '#12081e',
+                  cursor: 'pointer',
+                  letterSpacing: '.5px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                ↗ VIEW CREATION
+              </a>
+            )}
             <button
               onClick={() => {
                 // Navigate to library with "How to Use AI" category pre-selected
