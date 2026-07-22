@@ -32,5 +32,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
     .eq('content_item_id', id)
     .order('sort_order', { ascending: true })
 
-  return NextResponse.json({ resource: { ...resource, media: media || [] } })
+  return NextResponse.json({ resource: { ...resource, media: media || [] } }, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    }
+  })
 }

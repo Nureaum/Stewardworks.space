@@ -818,7 +818,7 @@ export default function AdminConsole({
           fontSize: '9px',
           lineHeight: '1.6',
           cursor: 'pointer',
-          padding: '13px 12px',
+          padding: '9px 14px',
           borderRadius: '8px',
           border: `2px solid ${active ? col : '#3d2668'}`,
           background: active ? col : 'rgba(0,0,0,.25)',
@@ -891,6 +891,8 @@ export default function AdminConsole({
     borderRadius: 6,
     color: 'var(--tx,#e4e0ee)',
     fontFamily: '"VT323", monospace',
+    fontSize: 18,
+    padding: '10px 12px',
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box',
@@ -996,7 +998,7 @@ export default function AdminConsole({
                       fontFamily: "'Press Start 2P', monospace",
                       fontSize: '9px',
                       fontWeight: 'bold',
-                      padding: '12px 16px',
+                      padding: '9px 14px',
                       border: `2px solid ${active ? 'var(--gold,#ffd23f)' : 'var(--ln,#3d2668)'}`,
                       borderRadius: 8,
                       background: active ? 'var(--gold,#ffd23f)' : 'rgba(0,0,0,.25)',
@@ -1287,8 +1289,8 @@ export default function AdminConsole({
                       onClick={() => { setActiveDayIdx(i); setSelectedEntry(null) }}
                       className="font-pixel"
                       style={{
-                        fontSize: 16,
-                        padding: '12px 16px',
+                        fontSize: 9,
+                        padding: '9px 14px',
                         border: `2px solid ${isActive ? '#ffd23f' : 'var(--ln,#3d2668)'}`,
                         borderRadius: 4,
                         background: isActive ? '#ffd23f' : 'transparent',
@@ -1308,8 +1310,8 @@ export default function AdminConsole({
                   onClick={handleAddDay}
                   className="font-pixel"
                   style={{
-                    fontSize: 16,
-                    padding: '12px 16px',
+                    fontSize: 9,
+                    padding: '9px 14px',
                     border: '2px dashed var(--s,#45d6ff)',
                     borderRadius: 4,
                     background: 'transparent',
@@ -1340,24 +1342,24 @@ export default function AdminConsole({
                     background: 'rgba(0,0,0,.16)',
                     padding: '20px 18px',
                   }}>
-                    <div className="font-pixel" style={{ fontSize: 16, color: 'var(--gold,#ffd23f)', margin: '2px 4px 10px', letterSpacing: 1 }}>
+                    <div className="font-pixel" style={{ fontSize: 10, color: 'var(--gold,#ffd23f)', margin: '2px 4px 8px', letterSpacing: 1 }}>
                       DAY {String(activeDay.day_number).padStart(2, '0')} · WORKSHOP DAY
                     </div>
                     <input
                       defaultValue={activeDay.title}
                       placeholder="Day title…"
                       onBlur={e => handleDayFieldBlur(activeDay.id, 'title', e.target.value)}
-                      style={{ ...inputStyle, fontSize: 16, lineHeight: 1.5, marginBottom: 8 }}
+                      style={{ ...inputStyle, fontSize: 18, lineHeight: 1.5, padding: '10px 12px', marginBottom: 10 }}
                     />
-                    <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Short blurb — map & day header</div>
+                    <div className="font-vt323" style={{ fontSize: 19, color: 'var(--mu,#a493c9)', margin: '0 2px 5px' }}>Short blurb — map & day header</div>
                     <textarea
                       defaultValue={activeDay.content_body || activeDay.blurb || ''}
                       rows={2}
                       placeholder="Short intro shown on the map & day header…"
                       onBlur={e => handleDayFieldBlur(activeDay.id, 'content_body', e.target.value)}
-                      style={{ ...textareaStyle, marginBottom: 12 }}
+                      style={{ ...textareaStyle, fontSize: 18, padding: '10px 12px', marginBottom: 12 }}
                     />
-                    <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>
+                    <div className="font-vt323" style={{ fontSize: 19, color: 'var(--mu,#a493c9)', margin: '0 2px 5px' }}>
                       ◈ Level intro — the card shown when a steward enters this day's scene
                     </div>
                     <textarea
@@ -1365,10 +1367,10 @@ export default function AdminConsole({
                       rows={4}
                       placeholder="Set the scene: what act is this, what will they gather…"
                       onBlur={e => handleDayFieldBlur(activeDay.id, 'intro', e.target.value)}
-                      style={{ ...textareaStyle, borderColor: 'var(--gold,#ffd23f)', marginBottom: 15 }}
+                      style={{ ...textareaStyle, fontSize: 18, padding: '10px 12px', borderColor: 'var(--gold,#ffd23f)', marginBottom: 15 }}
                     />
                     <div className="font-vt323" style={{
-                      fontSize: 16,
+                      fontSize: 17,
                       color: 'var(--mu,#a493c9)',
                       borderTop: '1px dashed var(--ln,#3d2668)',
                       paddingTop: 11,
@@ -1388,9 +1390,9 @@ export default function AdminConsole({
                           padding: '12px 14px',
                           marginBottom: 12,
                         }}>
-                          <div className="font-pixel" style={{ fontSize: 14, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="font-pixel" style={{ fontSize: 11, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>◇ SESSION HEADER</span>
-                            <button onClick={() => handleDeleteSection(sec.id, activeDay.id)} style={{ fontSize: 16, color: '#cf9760', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }} title="Delete section">✕</button>
+                            <button onClick={() => handleDeleteSection(sec.id, activeDay.id)} style={{ fontSize: 14, color: '#cf9760', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }} title="Delete section">✕</button>
                           </div>
                           <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
                             <input
@@ -1398,14 +1400,14 @@ export default function AdminConsole({
                               defaultValue={sec.hour}
                               placeholder="HOUR A"
                               onBlur={e => handleSectionFieldBlur(sec.id, 'hour', e.target.value)}
-                              style={{ ...inputStyle, flex: 1, minWidth: 0, color: 'var(--gold,#ffd23f)', fontSize: 13, padding: '10px 12px', letterSpacing: '.5px' }}
+                              style={{ ...inputStyle, flex: 1, minWidth: 0, color: 'var(--gold,#ffd23f)', fontSize: 11, padding: '8px 10px', letterSpacing: '.5px' }}
                             />
                             <input
                               className="font-retro"
                               defaultValue={sec.duration}
                               placeholder="1 hr"
                               onBlur={e => handleSectionFieldBlur(sec.id, 'duration', e.target.value)}
-                              style={{ ...inputStyle, width: 76, flex: 'none', fontSize: 18, padding: '10px 12px', textAlign: 'center' }}
+                              style={{ ...inputStyle, width: 60, flex: 'none', fontSize: 14, padding: '8px 10px', textAlign: 'center' }}
                             />
                           </div>
                           <input
@@ -1413,7 +1415,7 @@ export default function AdminConsole({
                             defaultValue={sec.title}
                             placeholder="Session title…"
                             onBlur={e => handleSectionFieldBlur(sec.id, 'title', e.target.value)}
-                            style={{ ...inputStyle, fontSize: 20, padding: '10px 12px' }}
+                            style={{ ...inputStyle, fontSize: 17, padding: '10px 12px' }}
                           />
                         </div>
 
@@ -1438,22 +1440,22 @@ export default function AdminConsole({
                               }}
                             >
                               <span className="font-pixel" style={{
-                                fontSize: 16,
+                                fontSize: 9,
                                 color: 'var(--gold,#ffd23f)',
                                 background: 'rgba(0,0,0,.3)',
-                                borderRadius: 6,
-                                padding: '8px 10px',
+                                borderRadius: 4,
+                                padding: '5px 7px',
                                 flex: 'none',
                               }}>
-                                {si + 1}.{ei + 1}
+                                {String((si * 10) + ei + 1).padStart(2, '0')}
                               </span>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 22, color: 'var(--tx,#efe6ff)', lineHeight: 1.15 }}>{en.title}</div>
-                                <div className="font-pixel" style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginTop: 8, lineHeight: 1.5 }}>
+                                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>{en.title}</div>
+                                <div className="font-vt323" style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginTop: 4, lineHeight: 1.3 }}>
                                   {en.subtitle || en.entry_type}
                                 </div>
                               </div>
-                              <span style={{ color: 'var(--mu,#a493c9)', fontSize: 18 }}>›</span>
+                              <span style={{ color: 'var(--mu,#a493c9)', fontSize: 16 }}>›</span>
                             </button>
                             <button
                               onClick={() => handleDeleteEntry(en.id, sec.id)}
@@ -1467,12 +1469,12 @@ export default function AdminConsole({
                           onClick={() => handleAddEntry(sec.id)}
                           className="font-pixel"
                           style={{
-                            fontSize: 16,
+                            fontSize: 10,
                             color: 'var(--p,#ff5fd2)',
                             background: 'none',
                             border: '2px dashed var(--p,#ff5fd2)',
                             borderRadius: 6,
-                            padding: '12px 14px',
+                            padding: '9px 12px',
                             cursor: 'pointer',
                             width: '100%',
                             marginTop: 4,
@@ -1543,10 +1545,10 @@ export default function AdminConsole({
                         }}>
                           {(selEntry.entry_type || 'text').toUpperCase()}
                         </span>
-                        <div className="font-pixel" style={{ fontSize: 12, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, margin: '12px 0 8px' }}>
+                        <div className="font-pixel" style={{ fontSize: 11, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, margin: '12px 0 8px' }}>
                           {selEntry.title}
                         </div>
-                        <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 16 }}>
+                        <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', marginBottom: 16 }}>
                           {selEntry.subtitle}
                         </div>
                         <button
@@ -2214,25 +2216,26 @@ export default function AdminConsole({
                       }}>
                         
                         {/* Top row: Tag, Title, Subtitle, and Pending */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: '1 1 auto', minWidth: 200 }}>
                             <div className="font-pixel" style={{
-                              fontSize: 9,
+                              fontSize: 8,
                               color: tagColor,
                               border: `1px solid ${tagColor}`,
                               borderRadius: 20,
-                              padding: '5px 10px',
+                              padding: '4px 8px',
                               letterSpacing: 1,
                               flex: 'none',
-                              marginTop: 4
+                              marginTop: 2,
+                              whiteSpace: 'nowrap',
                             }}>
                               {tagLabel}
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                              <div style={{ fontFamily: "'VT323', monospace", fontSize: 20, color: 'var(--tx,#e4e0ee)', letterSpacing: 0.5, lineHeight: 1.1 }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontFamily: "'VT323', monospace", fontSize: 18, color: 'var(--tx,#e4e0ee)', letterSpacing: 0.5, lineHeight: 1.2 }}>
                                 {title}
                               </div>
-                              <div style={{ fontFamily: "'VT323', monospace", fontSize: 16, color: 'var(--mu,#9990ab)', lineHeight: 1.1 }}>
+                              <div style={{ fontFamily: "'VT323', monospace", fontSize: 14, color: 'var(--mu,#9990ab)', lineHeight: 1.2, marginTop: 2 }}>
                                 {subtitle}
                               </div>
                             </div>
@@ -2273,41 +2276,38 @@ export default function AdminConsole({
                             }
 
                             return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-                                {/* Badges */}
-                                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                  <div className="font-pixel" style={{
-                                    fontSize: 9,
-                                    color: '#c9a85f',
-                                    border: '1px solid #c9a85f',
-                                    borderRadius: 20,
-                                    padding: '5px 10px',
-                                    letterSpacing: 1,
-                                    marginTop: 4
-                                  }}>
-                                    PENDING
-                                  </div>
-                                  
-                                  {principleName && (
-                                    <div className="font-pixel" style={{
-                                      fontSize: 9, color: 'var(--ok,#74f0a0)', border: '1px solid var(--ok,#74f0a0)',
-                                      borderRadius: 20, padding: '5px 10px', letterSpacing: 1, marginTop: 4
-                                    }}>
-                                      ◈ {principleName.toUpperCase()}
-                                    </div>
-                                  )}
-                                  
-                                  {isShowcaseRequested && (
-                                    <div className="font-pixel" style={{
-                                      fontSize: 9, color: '#101613', border: 'none',
-                                      borderRadius: 20, padding: '5px 10px', letterSpacing: 1, marginTop: 4,
-                                      background: 'var(--pk,#ff5fd2)',
-                                      display: 'flex', alignItems: 'center', gap: 4
-                                    }}>
-                                      <span style={{ fontSize: 10 }}>↺</span> WANTS SHOWCASE
-                                    </div>
-                                  )}
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', flex: 'none' }}>
+                                <div className="font-pixel" style={{
+                                  fontSize: 8,
+                                  color: '#c9a85f',
+                                  border: '1px solid #c9a85f',
+                                  borderRadius: 20,
+                                  padding: '4px 8px',
+                                  letterSpacing: 1,
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  PENDING
                                 </div>
+                                  
+                                {principleName && (
+                                  <div className="font-pixel" style={{
+                                    fontSize: 8, color: 'var(--ok,#74f0a0)', border: '1px solid var(--ok,#74f0a0)',
+                                    borderRadius: 20, padding: '4px 8px', letterSpacing: 1, whiteSpace: 'nowrap',
+                                  }}>
+                                    ◈ {principleName.toUpperCase()}
+                                  </div>
+                                )}
+                                  
+                                {isShowcaseRequested && (
+                                  <div className="font-pixel" style={{
+                                    fontSize: 8, color: '#101613', border: 'none',
+                                    borderRadius: 20, padding: '4px 8px', letterSpacing: 1,
+                                    background: 'var(--pk,#ff5fd2)',
+                                    display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+                                  }}>
+                                    <span style={{ fontSize: 9 }}>↺</span> WANTS SHOWCASE
+                                  </div>
+                                )}
                               </div>
                             );
                           })()}
@@ -2953,8 +2953,32 @@ export default function AdminConsole({
               background: 'var(--pn,#241542)',
               overflow: 'hidden',
               boxShadow: '0 0 50px rgba(0,0,0,.7)',
+              position: 'relative',
             }}
           >
+            {/* CRT Scanlines effect */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 40, background: 'repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0px, rgba(0,0,0,.12) 1px, transparent 2px, transparent 3px)', mixBlendMode: 'multiply' }} />
+            {/* Decorative top bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 16px',
+              background: 'rgba(0,0,0,.3)',
+              borderBottom: '2px solid var(--ln,#3d2668)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 5 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#e07a6a' }}></span>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#e6c25a' }}></span>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#7fb06a' }}></span>
+                </div>
+                <span className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
+                  SESSION EDITOR · STEWARD CONSOLE
+                </span>
+              </div>
+            </div>
+
             {/* Modal header */}
             <div style={{
               display: 'flex',
@@ -2969,38 +2993,38 @@ export default function AdminConsole({
                 value={selEntry.entry_type || 'text'}
                 onChange={e => handleEntryFieldBlur(selEntry.id, 'entry_type', e.target.value)}
                 style={{ 
-                  fontSize: 11, 
+                  fontSize: 9, 
                   color: '#141019', 
                   background: 'var(--gold,#ffd23f)', 
                   borderRadius: 20, 
-                  padding: '6px 12px', 
+                  padding: '5px 10px', 
                   flex: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   outline: 'none'
                 }}
               >
-                <option value="text" style={{ fontSize: 14 }}>TEXT</option>
-                <option value="list" style={{ fontSize: 14 }}>LIST</option>
-                <option value="dual" style={{ fontSize: 14 }}>DUAL</option>
-                <option value="featured" style={{ fontSize: 14 }}>FEATURED</option>
-                <option value="deliverable" style={{ fontSize: 14 }}>DELIVERABLE</option>
+                <option value="text" style={{ fontSize: 12 }}>TEXT</option>
+                <option value="list" style={{ fontSize: 12 }}>LIST</option>
+                <option value="dual" style={{ fontSize: 12 }}>DUAL</option>
+                <option value="featured" style={{ fontSize: 12 }}>FEATURED</option>
+                <option value="deliverable" style={{ fontSize: 12 }}>DELIVERABLE</option>
               </select>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
+                <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
                   SESSION {selEntry.num}
                 </div>
-                <div className="font-pixel" style={{ fontSize: 'clamp(11px,1.7vw,14px)', color: 'var(--tx,#efe6ff)', marginTop: 6, lineHeight: 1.4 }}>
+                <div className="font-pixel" style={{ fontSize: 'clamp(10px,1.5vw,12px)', color: 'var(--tx,#efe6ff)', marginTop: 4, lineHeight: 1.4 }}>
                   {selEntry.title}
                 </div>
               </div>
-              <span className="font-pixel" style={{ fontSize: 10, color: isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)', border: `1px solid ${isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)'}`, borderRadius: 20, padding: '4px 9px', flex: 'none' }}>
+              <span className="font-pixel" style={{ fontSize: 8, color: isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)', border: `1px solid ${isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)'}`, borderRadius: 20, padding: '4px 8px', flex: 'none' }}>
                 {isSaving ? '○ SAVING…' : '● SAVES LIVE'}
               </span>
               <button
                 onClick={() => setEditorOpen(false)}
                 className="font-pixel"
-                style={{ fontSize: 12, color: 'var(--tx,#efe6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 5, padding: '9px 12px', cursor: 'pointer', flex: 'none' }}
+                style={{ fontSize: 9, color: 'var(--tx,#efe6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 5, padding: '7px 10px', cursor: 'pointer', flex: 'none' }}
               >✓ SAVE & CLOSE</button>
             </div>
 
@@ -3008,10 +3032,10 @@ export default function AdminConsole({
             <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex' }}>
               {/* LEFT: text content */}
               <div style={{ flex: '3 1 460px', minWidth: 300, padding: 'clamp(18px,2.4vw,28px)', overflow: 'auto' }}>
-                <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>TOPIC TITLE</div>
-                <input defaultValue={selEntry.title} onBlur={e => handleEntryFieldBlur(selEntry.id, 'title', e.target.value)} style={{ ...inputStyle, fontSize: 20, marginBottom: 12 }} />
-                <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBTITLE / SIDEBAR LABEL</div>
-                <input defaultValue={selEntry.subtitle || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'subtitle', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16 }} />
+                <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>TOPIC TITLE</div>
+                <input defaultValue={selEntry.title} onBlur={e => handleEntryFieldBlur(selEntry.id, 'title', e.target.value)} style={{ ...inputStyle, fontSize: 20, marginBottom: 16, padding: '12px 14px' }} />
+                <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBTITLE / SIDEBAR LABEL</div>
+                <input defaultValue={selEntry.subtitle || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'subtitle', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 18, padding: '12px 14px' }} />
                 
                 {selEntry.entry_type === 'deliverable' ? (
                   (() => {
@@ -3029,7 +3053,7 @@ export default function AdminConsole({
 
                     return (
                       <>
-                        <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>PRINCIPLE APPLIED</div>
+                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>PRINCIPLE APPLIED</div>
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={appliedBody}
@@ -3039,7 +3063,7 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>LAB PROCESS</div>
+                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>LAB PROCESS</div>
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={labBody}
@@ -3049,7 +3073,7 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>DELIVERABLE GOAL</div>
+                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>DELIVERABLE GOAL</div>
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={goalBody}
@@ -3059,14 +3083,14 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBMISSION PROMPT LABEL</div>
-                        <input defaultValue={selEntry.submit_label || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'submit_label', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16 }} placeholder="e.g. Paste your story asset link..." />
+                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBMISSION PROMPT LABEL</div>
+                        <input defaultValue={selEntry.submit_label || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'submit_label', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }} placeholder="e.g. Paste your story asset link..." />
                       </>
                     )
                   })()
                 ) : (
                   <>
-                    <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
+                    <div style={{ fontSize: 19, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>
                       CONTENT · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — bold, italic, lists & links</span>
                     </div>
                     {(() => {
@@ -3084,7 +3108,7 @@ export default function AdminConsole({
                           />
                           
                           <div style={{ borderTop: '1px dashed var(--ln,#3d2668)', marginTop: 18, paddingTop: 16 }}>
-                            <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 10, lineHeight: 1.4 }}>
+                            <div style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 10, lineHeight: 1.4 }}>
                               ADDITIONAL TEXT BLOCKS · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — each block appears below the content in the student's session</span>
                             </div>
                             {additionalBlocks.map((blk, idx) => (
@@ -3148,7 +3172,7 @@ export default function AdminConsole({
                 <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', letterSpacing: 1, marginBottom: 10 }}>
                   ◈ PHOTOS · VIDEO · LINKS
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', marginBottom: 12, lineHeight: 1.4 }}>
+                <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 12, lineHeight: 1.4 }}>
                   Attach a visual to sit beside the text — matched to this session in the student's pop-up view.
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -3160,15 +3184,15 @@ export default function AdminConsole({
                     accept={uploadingMediaKind === 'photo' ? 'image/*' : uploadingMediaKind === 'video' ? 'video/*' : uploadingMediaKind === 'audio' ? 'audio/*' : '*/*'}
                   />
                   {isUploadingMedia ? (
-                    <div className="font-pixel" style={{ fontSize: 10, color: 'var(--gold,#ffd23f)', padding: '10px 14px', animation: 'pulse 1.5s infinite' }}>
+                    <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', padding: '8px 12px', animation: 'pulse 1.5s infinite' }}>
                       ⏳ UPLOADING {uploadingMediaKind?.toUpperCase()}...
                     </div>
                   ) : (
                     (['photo', 'video', 'audio', 'link'] as const).map(t => (
                       <button key={t} onClick={() => handleAddMedia(selEntry.id, t)} className="font-pixel" style={{
-                        fontSize: 12,
+                        fontSize: 9,
                         fontWeight: 'bold',
-                        padding: '10px 14px',
+                        padding: '8px 11px',
                         border: '2px dashed var(--ln,#3d2668)',
                         borderRadius: 6,
                         background: 'rgba(0,0,0,.25)',
@@ -3200,12 +3224,51 @@ export default function AdminConsole({
                           {m.kind === 'photo' && m.url ? (
                             <img src={m.url} alt={m.label || 'Attached photo'} style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 6, objectFit: 'contain', border: '1px solid rgba(255,255,255,0.1)' }} />
                           ) : m.kind === 'video' && m.url ? (
-                            <video src={m.url} controls style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)' }} />
+                            (() => {
+                              const url = m.url || '';
+                              const isYT = url.includes('youtube.com') || url.includes('youtu.be');
+                              const isVimeo = url.includes('vimeo.com');
+                              if (isYT) {
+                                let videoId = null;
+                                if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1]?.split('?')[0];
+                                else videoId = new URLSearchParams(url.split('?')[1] || '').get('v');
+                                return videoId ? (
+                                  <iframe src={`https://www.youtube.com/embed/${videoId}`} style={{ width: '100%', height: 160, borderRadius: 6, border: 'none' }} allowFullScreen />
+                                ) : <video src={url} controls style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 6 }} />;
+                              }
+                              if (isVimeo) {
+                                const vimeoId = url.split('/').pop();
+                                return <iframe src={`https://player.vimeo.com/video/${vimeoId}`} style={{ width: '100%', height: 160, borderRadius: 6, border: 'none' }} allowFullScreen />;
+                              }
+                              return <video src={url} controls style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)' }} />;
+                            })()
                           ) : m.kind === 'audio' && m.url ? (
                             <audio src={m.url} controls style={{ width: '100%', marginTop: 4 }} />
-                          ) : (
-                            <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', wordBreak: 'break-all', overflow: 'hidden', maxHeight: 60 }}>{m.url}</div>
-                          )}
+                          ) : m.url ? (
+                            (() => {
+                              const url = (m.url || '').toLowerCase();
+                              const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$)/i.test(url) || url.includes('unsplash.com') || url.includes('imgur.com');
+                              const isVideo = url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com') || /\.(mp4|webm|mov)(\?|#|$)/i.test(url);
+                              const isAudio = /\.(mp3|wav|ogg|m4a)(\?|#|$)/i.test(url);
+                              
+                              if (isImage) {
+                                return <img src={m.url} alt={m.label || 'Link preview'} style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 6, objectFit: 'contain', border: '1px solid rgba(255,255,255,0.1)' }} />;
+                              }
+                              if (isVideo) {
+                                const ytMatch = m.url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&?]+)/);
+                                if (ytMatch) return <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} style={{ width: '100%', height: 160, borderRadius: 6, border: 'none' }} allowFullScreen />;
+                                const vimeoMatch = m.url.match(/vimeo\.com\/(\d+)/);
+                                if (vimeoMatch) return <iframe src={`https://player.vimeo.com/video/${vimeoMatch[1]}`} style={{ width: '100%', height: 160, borderRadius: 6, border: 'none' }} allowFullScreen />;
+                                return <video src={m.url} controls style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 6 }} />;
+                              }
+                              if (isAudio) {
+                                return <audio src={m.url} controls style={{ width: '100%', marginTop: 4 }} />;
+                              }
+                              return (
+                                <a href={m.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--s,#45d6ff)', wordBreak: 'break-all', textDecoration: 'underline' }}>{m.url}</a>
+                              );
+                            })()
+                          ) : null}
                         </div>
                         
                         <button onClick={() => handleRemoveMedia(m.id, selEntry.id)} style={{ fontSize: 14, color: 'var(--warn,#ff7a7a)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', flex: 'none', marginTop: 2 }} title="Remove">✕</button>
@@ -3349,26 +3412,49 @@ export default function AdminConsole({
               background: '#201a30',
               border: '3px solid var(--gold,#ffd23f)',
               borderRadius: 12,
-              padding: '28px 32px',
               maxWidth: 480,
               width: '90%',
               boxShadow: '0 0 30px rgba(255,210,63,.3)',
+              overflow: 'hidden',
+              position: 'relative',
             }}
           >
+            {/* CRT Scanlines effect */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 40, background: 'repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0px, rgba(0,0,0,.12) 1px, transparent 2px, transparent 3px)', mixBlendMode: 'multiply' }} />
+            {/* Decorative top bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 16px',
+              background: 'rgba(0,0,0,.3)',
+              borderBottom: '2px solid var(--ln,#3d2668)',
+            }}>
+              <div style={{ display: 'flex', gap: 5 }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#e07a6a' }}></span>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#e6c25a' }}></span>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#7fb06a' }}></span>
+              </div>
+              <span className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
+                MEDIA · ADD URL
+              </span>
+            </div>
+
+            <div style={{ padding: '24px 28px' }}>
             <div
               className="font-pixel"
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--gold,#ffd23f)',
-                marginBottom: 16,
+                marginBottom: 18,
                 textAlign: 'center',
               }}
             >
               🔗 ADD LINK
             </div>
             
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--mu,#a493c9)', marginBottom: 8, letterSpacing: '.1em' }}>
+            <div style={{ marginBottom: 22 }}>
+              <label style={{ display: 'block', fontFamily: "'DM Mono', monospace", fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 8, letterSpacing: '.1em' }}>
                 ENTER URL
               </label>
               <input
@@ -3384,14 +3470,14 @@ export default function AdminConsole({
                   background: 'rgba(0,0,0,.4)',
                   border: '2px solid var(--ln,#3d2668)',
                   borderRadius: 6,
-                  padding: '12px 14px',
-                  fontSize: 14,
+                  padding: '14px 16px',
+                  fontSize: 16,
                   color: 'var(--tx,#efe6ff)',
                   fontFamily: "'Exo', sans-serif",
                   outline: 'none',
                 }}
               />
-              <div style={{ fontSize: 11, color: 'var(--mu,#a493c9)', marginTop: 8, opacity: 0.7 }}>
+              <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', marginTop: 8, opacity: 0.7 }}>
                 Paste an image URL, YouTube link, or any web URL
               </div>
             </div>
@@ -3401,7 +3487,7 @@ export default function AdminConsole({
                 onClick={() => { setLinkInputDialog(null); setLinkInputValue('') }}
                 className="font-pixel"
                 style={{
-                  fontSize: 9,
+                  fontSize: 10,
                   padding: '12px 24px',
                   border: '2px solid var(--mu,#9990ab)',
                   borderRadius: 8,
@@ -3418,7 +3504,7 @@ export default function AdminConsole({
                 disabled={!linkInputValue.trim()}
                 className="font-pixel"
                 style={{
-                  fontSize: 9,
+                  fontSize: 10,
                   padding: '12px 24px',
                   border: '2px solid var(--gold,#ffd23f)',
                   borderRadius: 8,
@@ -3430,6 +3516,7 @@ export default function AdminConsole({
               >
                 ADD LINK
               </button>
+            </div>
             </div>
           </div>
         </div>

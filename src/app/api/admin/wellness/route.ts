@@ -36,13 +36,23 @@ export async function GET() {
       .order('sort_order', { ascending: true }),
   ])
 
+  // If no resources exist yet, provide default editable cards
+  let resources = resourcesRes.data || [];
+  if (resources.length === 0) {
+    resources = [
+      { slot_key: 'grounding', label: 'GROUNDING', title: '4-7-8 Breathing', description: 'Inhale 4 · hold 7 · exhale 8.', sort_order: 0 },
+      { slot_key: 'support', label: 'SUPPORT', title: '988 Lifeline', description: 'Call or text 988 anytime, free & confidential.', sort_order: 1 },
+      { slot_key: 'text', label: 'TEXT', title: 'Crisis Text Line', description: 'Text HOME to 741741.', sort_order: 2 },
+    ];
+  }
+
   return NextResponse.json({
-    resources: resourcesRes.data || [],
+    resources,
     tones: tonesRes.data || [],
   })
 }
 
-// PUT — bulk-update the 3 resource cards
+// PUT — bulk-update the resource cards (delete all + reinsert to avoid constraint issues)
 export async function PUT(request: Request) {
   const { authorized, status, supabase, profileId } = await verifyAdmin()
   if (!authorized || !supabase) return NextResponse.json({ error: 'Unauthorized' }, { status })
@@ -53,26 +63,37 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'resources must be an array' }, { status: 400 })
   }
 
-  const errors: string[] = []
+  // Delete all existing resources
+  const { error: deleteError } = await supabase
+    .from('wellness_resources')
+    .delete()
+    .neq('slot_key', '__never_match__') // deletes all rows
 
-  for (const r of resources) {
-    const { error } = await supabase
-      .from('wellness_resources')
-      .update({
-        label: r.label,
-        title: r.title,
-        description: r.description,
-        sort_order: r.sort_order,
-        updated_at: new Date().toISOString(),
-        updated_by: profileId,
-      })
-      .eq('slot_key', r.slot_key)
-
-    if (error) errors.push(`${r.slot_key}: ${error.message}`)
+  if (deleteError) {
+    console.error('[wellness PUT] Delete failed:', deleteError)
+    return NextResponse.json({ error: 'Failed to clear old resources: ' + deleteError.message }, { status: 500 })
   }
 
-  if (errors.length > 0) {
-    return NextResponse.json({ error: errors.join('; ') }, { status: 500 })
+  // Insert all resources fresh
+  if (resources.length > 0) {
+    const payload = resources.map((r: any, idx: number) => ({
+      slot_key: r.slot_key,
+      label: r.label,
+      title: r.title,
+      description: r.description,
+      sort_order: r.sort_order ?? idx,
+      updated_at: new Date().toISOString(),
+      updated_by: profileId,
+    }))
+
+    const { error: insertError } = await supabase
+      .from('wellness_resources')
+      .insert(payload)
+
+    if (insertError) {
+      console.error('[wellness PUT] Insert failed:', insertError)
+      return NextResponse.json({ error: 'Failed to save resources: ' + insertError.message }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ success: true })

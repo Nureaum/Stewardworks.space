@@ -98,9 +98,9 @@ export default async function AiLabPage({ searchParams }: { searchParams?: { coh
         if (subData) submissions = subData;
       }
       
-      // Only count principles for APPROVED rows — principles are only locked after admin approves.
+      // Fetch principles for SUBMITTED + APPROVED rows to detect pending states
       const activeProgressIds = dashboard
-        .filter(d => d.progress && d.progress.deliverable_status === 'approved')
+        .filter(d => d.progress && (d.progress.deliverable_status === 'approved' || d.progress.deliverable_status === 'submitted'))
         .map(d => d.progress.id);
       if (activeProgressIds.length > 0) {
         const { data: bpData } = await supabase

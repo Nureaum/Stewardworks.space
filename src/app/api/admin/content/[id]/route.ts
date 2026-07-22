@@ -29,6 +29,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     .from('content_items')
     .select(`
       *,
+      category:content_categories(id, label),
       topic:env_literacy_topics(label),
       media:content_media(*)
     `)
@@ -105,8 +106,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     
     // Delete existing media
     const { error: deleteError } = await supabase.from('content_media').delete().eq('content_item_id', id)
-    if (deleteError) console.error('[PUT media] Delete failed:', deleteError)
-    else console.log('[PUT media] Delete existing OK')
+    if (deleteError) {
+      console.error('[PUT media] Delete failed:', deleteError)
+      return NextResponse.json({ error: 'Failed to update media: ' + deleteError.message }, { status: 500 })
+    }
+    console.log('[PUT media] Delete existing OK')
 
     // Insert new media if any
     if (media.length > 0) {
@@ -127,6 +131,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
       if (mediaError) {
         console.error('[PUT media] Insert FAILED:', mediaError)
+        return NextResponse.json({ error: 'Failed to save media: ' + mediaError.message }, { status: 500 })
       } else {
         console.log(`[PUT media] Insert OK: ${insertedMedia?.length} rows inserted`)
       }

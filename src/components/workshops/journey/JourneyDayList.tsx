@@ -88,11 +88,11 @@ export default function JourneyDayList({
   return (
     <div style={{ padding: '4px clamp(12px,3vw,26px) clamp(14px,3vw,30px)' }}>
       {/* ── Top bar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-        <button onClick={onBack} className="font-pixel" style={{ fontSize: 13, color: 'var(--s,#45d6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+        <button onClick={onBack} className="font-pixel" style={{ fontSize: 11, color: 'var(--s,#45d6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s' }}>
           ◂ MAP
         </button>
-        <button onClick={onSceneView} className="font-pixel" style={{ fontSize: 13, color: 'var(--p,#ff5fd2)', background: 'rgba(255,95,210,.08)', border: '2px solid var(--p,#ff5fd2)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 0 12px rgba(255,95,210,.18)', transition: 'all 0.2s' }}>
+        <button onClick={onSceneView} className="font-pixel" style={{ fontSize: 11, color: 'var(--p,#ff5fd2)', background: 'rgba(255,95,210,.08)', border: '2px solid var(--p,#ff5fd2)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 0 12px rgba(255,95,210,.18)', transition: 'all 0.2s' }}>
           -  GAME VIEW
         </button>
         
@@ -109,9 +109,9 @@ export default function JourneyDayList({
                   onClick={() => onChangeDay(d.day_number)}
                   className="font-pixel"
                   style={{
-                    fontSize: 12,
-                    padding: '10px 14px',
-                    borderRadius: 6,
+                    fontSize: 11,
+                    padding: '8px 14px',
+                    borderRadius: 5,
                     border: isActive ? '2px solid var(--gold,#ffd23f)' : '2px solid var(--ln,#3d2668)',
                     background: isActive ? 'rgba(255,210,63,.1)' : 'transparent',
                     color: isLocked ? '#666' : isActive ? 'var(--gold,#ffd23f)' : '#efe6ff',

@@ -11,7 +11,6 @@ export default function HubPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   
   // Multi-cohort progress state (Validates: Requirements 4.1, 4.4)
   const [chiaProgress, setChiaProgress] = useState(0);
@@ -51,11 +50,7 @@ export default function HubPage() {
 
   useEffect(() => {
     async function fetchProfile() {
-      if (!isLoaded) return;
-      if (!user) {
-        setIsProfileLoaded(true);
-        return;
-      }
+      if (!isLoaded || !user) return;
       try {
         const res = await fetch('/api/profile');
         if (res.ok) {
@@ -76,8 +71,6 @@ export default function HubPage() {
         await fetchProgressData();
       } catch (error) {
         console.error('Error fetching profile:', error);
-      } finally {
-        setIsProfileLoaded(true);
       }
     }
     fetchProfile();
@@ -91,7 +84,8 @@ export default function HubPage() {
     }
   };
 
-  if (!isLoaded || !isProfileLoaded) {
+  // Only show loading on initial Clerk auth check — not on profile/progress fetch
+  if (!isLoaded) {
     return (
       <div style={{width:'100vw',height:'100vh',background:'#21282E',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'16px'}}>
          <div style={{width:'32px',height:'32px',border:'3px solid rgba(253,221,154,.2)',borderTopColor:'#FDDD9A',borderRadius:'50%',animation:'sw-spin 1s linear infinite'}}></div>

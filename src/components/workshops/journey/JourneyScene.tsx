@@ -395,20 +395,20 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
     .length
 
   return (
-    <div style={{ padding: 'clamp(6px,1.5vw,12px) clamp(8px,2vw,18px)', maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-        <button onClick={handleBack} className="font-pixel" style={{ fontSize: 13, color: 'var(--s,#45d6ff)', background: 'none', border: '2px solid var(--s,#45d6ff)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 10px rgba(69,214,255,.2)' }}>
+    <div style={{ padding: 'clamp(4px,1vw,8px) clamp(8px,2vw,18px)', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+        <button onClick={handleBack} className="font-pixel" style={{ fontSize: 11, color: 'var(--s,#45d6ff)', background: 'none', border: '2px solid var(--s,#45d6ff)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 10px rgba(69,214,255,.2)' }}>
           ◂ MAP
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)' }}>{sc.label || `ACT ${day.day_number}`}</div>
-          <div className="font-pixel" style={{ fontSize: 'clamp(12px,1.8vw,15px)', color: 'var(--tx,#efe6ff)', marginTop: 5, lineHeight: 1.4 }}>{day.title}</div>
+          <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)' }}>{sc.label || `ACT ${day.day_number}`}</div>
+          <div className="font-pixel" style={{ fontSize: 'clamp(10px,1.4vw,12px)', color: 'var(--tx,#efe6ff)', marginTop: 3, lineHeight: 1.4 }}>{day.title}</div>
         </div>
-        <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', flex: 'none' }}>◈ {visitedCount} / {entries.length} explored</div>
-        <button onClick={() => setIntroOpen(true)} className="font-pixel" style={{ fontSize: 13, color: 'var(--gold,#ffd23f)', background: 'none', border: '2px solid var(--gold,#ffd23f)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 10px rgba(255,210,63,.2)' }}>
+        <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', flex: 'none' }}>◈ {visitedCount} / {entries.length} explored</div>
+        <button onClick={() => setIntroOpen(true)} className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', background: 'none', border: '2px solid var(--gold,#ffd23f)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 10px rgba(255,210,63,.2)' }}>
           ✦ INTRO
         </button>
-        <button onClick={onOpenList} className="font-pixel" style={{ fontSize: 13, color: 'var(--p,#ff5fd2)', background: 'rgba(255,95,210,.08)', border: '2px solid var(--p,#ff5fd2)', borderRadius: 6, padding: '12px 18px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 12px rgba(255,95,210,.18)' }}>
+        <button onClick={onOpenList} className="font-pixel" style={{ fontSize: 11, color: 'var(--p,#ff5fd2)', background: 'rgba(255,95,210,.08)', border: '2px solid var(--p,#ff5fd2)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 12px rgba(255,95,210,.18)' }}>
           ☰ LIST VIEW
         </button>
       </div>
@@ -652,41 +652,39 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
             position: 'absolute', inset: 0, zIndex: 12,
             background: 'rgba(10,5,20,.74)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 20,
+            padding: 16,
           }}>
             <div
               className="retro-winpop"
               style={{
-                maxWidth: 560,
+                maxWidth: 480,
                 border: '2px solid var(--gold,#ffd23f)',
-                borderRadius: 14,
+                borderRadius: 10,
                 background: 'var(--pn,#241542)',
-                padding: '22px 24px',
+                padding: '16px 20px',
                 boxShadow: '0 0 40px rgba(0,0,0,.6)',
               }}
             >
               <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', letterSpacing: 1 }}>
                 {sc.label || `ACT ${day.day_number}`}
               </div>
-              <div className="font-pixel" style={{ fontSize: 'clamp(12px,2.4vw,17px)', color: 'var(--tx,#efe6ff)', margin: '12px 0 14px', lineHeight: 1.5 }}>
+              <div className="font-pixel" style={{ fontSize: 'clamp(10px,1.6vw,12px)', color: 'var(--tx,#efe6ff)', margin: '6px 0 8px', lineHeight: 1.4 }}>
                 {day.title}
               </div>
-              <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.55, marginBottom: 20 }}>
+              <div style={{ fontSize: 13, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, marginBottom: 14 }}>
                 {day.intro}
               </div>
               <button
                 onClick={() => {
                   setIntroOpen(false)
-                  // Avatar stays at initial position (300, on the spring/ring)
-                  // User manually moves to artifacts using keyboard or clicks
                 }}
                 className="font-pixel"
                 style={{
-                  fontSize: 10, color: 'var(--bg,#12081e)',
+                  fontSize: 9, color: 'var(--bg,#12081e)',
                   background: 'var(--gold,#ffd23f)',
-                  border: 'none', borderRadius: 6,
-                  padding: '12px 18px', cursor: 'pointer',
-                  boxShadow: '0 4px 0 #b8912a',
+                  border: 'none', borderRadius: 5,
+                  padding: '9px 14px', cursor: 'pointer',
+                  boxShadow: '0 3px 0 #b8912a',
                 }}
               >
                 ▸ ENTER THE SCENE

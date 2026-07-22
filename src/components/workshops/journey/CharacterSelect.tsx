@@ -50,7 +50,7 @@ export default function CharacterSelect({
   const [headgear, setHeadgear] = useState(existingCharacter?.headgear || DEFAULT_CHARACTER.headgear)
   const [loadout, setLoadout] = useState(existingCharacter?.loadout || DEFAULT_CHARACTER.loadout)
   const [outfit, setOutfit] = useState(existingCharacter?.outfit || DEFAULT_CHARACTER.outfit)
-  const [hair, setHair] = useState(existingCharacter?.hair || (DEFAULT_CHARACTER.character_key === 'nayeli' ? 'long' : DEFAULT_CHARACTER.hair))
+  const [hair, setHair] = useState(existingCharacter?.hair || DEFAULT_CHARACTER.hair)
   const [hairColor, setHairColor] = useState(existingCharacter?.hair_color || DEFAULT_CHARACTER.hair_color)
   const [facial, setFacial] = useState(existingCharacter?.facial || DEFAULT_CHARACTER.facial)
   const [companion, setCompanion] = useState(existingCharacter?.companion || DEFAULT_CHARACTER.companion)
@@ -80,10 +80,8 @@ export default function CharacterSelect({
         setCompanion('none')
       } else {
         // For human characters, set appropriate defaults
-        // Keep current hair style if already human, otherwise default to 'long' for Nayeli
-        if (k === 'nayeli' && (!activeChar?.people || charKey !== k)) {
-          setHair('long')
-        } else if (!activeChar?.people) {
+        // Keep current hair style if already human, otherwise default to 'signature'
+        if (!activeChar?.people) {
           // Switching from non-human to human - set default hair
           setHair('signature')
         }

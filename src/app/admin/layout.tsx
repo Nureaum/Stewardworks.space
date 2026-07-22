@@ -26,6 +26,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
+      // Check sessionStorage cache first to avoid re-fetching on every navigation
+      const cached = sessionStorage.getItem('admin_role');
+      if (cached) {
+        const { role, ts } = JSON.parse(cached);
+        // Cache for 5 minutes
+        if (Date.now() - ts < 5 * 60 * 1000) {
+          if (role === 'admin' || role === 'super_admin') setIsAdmin(true);
+          if (role === 'super_admin') setIsSuperAdmin(true);
+          setIsCheckingRole(false);
+          return;
+        }
+      }
+
       try {
         const res = await fetch('/api/profile');
         if (res.ok) {
@@ -37,6 +50,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               setIsSuperAdmin(true);
             }
           }
+          // Cache the result
+          sessionStorage.setItem('admin_role', JSON.stringify({ role: profile?.role, ts: Date.now() }));
         }
       } catch (error) {
         console.error('Error checking admin role:', error);
@@ -160,6 +175,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link 
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 className={`w-full flex items-center gap-3 px-[14px] py-[10px] rounded-[10px] font-bold text-[13.5px] transition-all border ${
                   isActive 
                     ? 'bg-[#2a2218] text-[#e2b54a] border-[#e2b54a]/20 shadow-sm' 
@@ -205,6 +221,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link 
                       key={item.href}
                       href={item.href}
+                      prefetch={true}
                       className={`w-full flex items-center gap-3 px-[14px] py-[8px] rounded-[8px] font-bold text-[13px] transition-all ${
                         isActive 
                           ? 'bg-[#2a2218] text-[#e2b54a]' 

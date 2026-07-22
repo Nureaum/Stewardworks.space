@@ -78,10 +78,13 @@ export default function WellnessAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resources }),
       });
-      if (!res.ok) throw new Error('Save failed');
-      showMessage('success', 'Resource cards saved!');
-    } catch (err) {
-      showMessage('error', 'Failed to save resources');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Save failed (${res.status})`);
+      }
+      showMessage('success', 'Resource cards saved! Changes will appear on the wellness page.');
+    } catch (err: any) {
+      showMessage('error', err.message || 'Failed to save resources');
     } finally {
       setSavingResources(false);
     }
@@ -271,21 +274,43 @@ export default function WellnessAdminPage() {
               <p className="text-[12px] text-[#9a8a6a]">The 3 info boxes at the bottom of the meditation page</p>
             </div>
           </div>
-          <button
-            onClick={saveResources}
-            disabled={savingResources}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-white font-bold text-[13px] tracking-wide shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {savingResources ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            Save Cards
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const newKey = `card_${Date.now()}`;
+                setResources(prev => [...prev, { slot_key: newKey, label: 'NEW', title: 'New Card', description: 'Edit this description.', sort_order: prev.length }]);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2a1f14] text-[#FEFAE0] font-bold text-[13px] tracking-wide shadow-md hover:bg-[#1a1209] transition-colors"
+            >
+              <Plus size={16} />
+              Add Card
+            </button>
+            <button
+              onClick={saveResources}
+              disabled={savingResources}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-white font-bold text-[13px] tracking-wide shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {savingResources ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              Save Cards
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-4">
           {resources.map((r, idx) => (
             <div key={r.slot_key} className="bg-[#FBF4E1] rounded-xl border border-[#e8dcc4]/60 p-5">
-              <div className="font-mono text-[10px] tracking-[0.2em] text-[#b89a5a] mb-3 uppercase">
-                Slot: {r.slot_key}
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-mono text-[10px] tracking-[0.2em] text-[#b89a5a] uppercase">
+                  Slot: {r.slot_key}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setResources(prev => prev.filter((_, i) => i !== idx))}
+                  className="w-7 h-7 rounded-lg bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors"
+                  title="Remove card"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>

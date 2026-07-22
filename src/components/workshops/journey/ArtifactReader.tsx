@@ -781,11 +781,11 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                             disabled={isDisabled}
                             className="font-pixel" 
                             style={{
-                              fontSize: 14, color: 'var(--bg,#12081e)',
+                              fontSize: 11, color: 'var(--bg,#12081e)',
                               background: 'var(--gold,#ffd23f)',
-                              border: 'none', borderRadius: 6,
-                              padding: '16px 24px', cursor: isDisabled ? 'not-allowed' : 'pointer',
-                              boxShadow: '0 4px 0 #b8912a',
+                              border: 'none', borderRadius: 5,
+                              padding: '12px 20px', cursor: isDisabled ? 'not-allowed' : 'pointer',
+                              boxShadow: '0 3px 0 #b8912a',
                               opacity: isDisabled ? 0.5 : 1,
                             }}
                           >
@@ -964,6 +964,29 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
         padding: 40, cursor: 'zoom-out'
       }}
     >
+      <button
+        onClick={(e) => { e.stopPropagation(); setZoomedImage(null) }}
+        style={{
+          position: 'absolute',
+          top: 20,
+          right: 20,
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.15)',
+          border: '2px solid rgba(255,255,255,0.4)',
+          color: '#fff',
+          fontSize: 20,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+          zIndex: 10,
+        }}
+      >
+        ✕
+      </button>
       <img src={zoomedImage} alt="Zoomed" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} />
     </div>
   )

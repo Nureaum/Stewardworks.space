@@ -269,6 +269,8 @@ export default function AILabClient({
                         return currentDayDash?.progress || null;
                       })()}
                       bankedPrincipleIds={bankedPrinciples.map((bp: any) => bp.principle_id)}
+                      allBankedPrinciples={bankedPrinciples}
+                      progressRows={dashboard?.filter((d: any) => d.progress).map((d: any) => ({ ...d.progress, workshop_day_id: d.day_id || d.id })) || []}
                       onChangeDay={(d) => { setDay(d); setActiveEntry(null); }}
                     />
                   </div>

@@ -21,6 +21,10 @@ export async function GET() {
     return NextResponse.json({
       resources: resourcesRes.data || [],
       tones: tonesRes.data || [],
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      }
     })
   } catch (error) {
     console.error('Error fetching wellness data:', error)

@@ -49,8 +49,8 @@ export default function JourneyHeader({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '12px clamp(16px, 3vw, 28px)',
-          gap: 16,
+          padding: '8px clamp(12px, 2.5vw, 22px)',
+          gap: 12,
         }}
       >
         {/* Left: Hub button */}
@@ -59,13 +59,13 @@ export default function JourneyHeader({
           className="font-pixel"
           title="Return to the workshop hub"
           style={{
-            fontSize: 'clamp(7px, 1.2vw, 9px)',
+            fontSize: 11,
             lineHeight: '1.6',
             color: 'var(--s, #45d6ff)',
             background: 'transparent',
             border: '2px solid var(--s, #45d6ff)',
-            borderRadius: 4,
-            padding: '9px 12px',
+            borderRadius: 5,
+            padding: '8px 14px',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             boxShadow: '0 0 10px rgba(69,214,255,.2)',
@@ -194,9 +194,9 @@ export default function JourneyHeader({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 clamp(16px, 3vw, 28px) 14px',
+          padding: '0 clamp(12px, 2.5vw, 22px) 10px',
           flexWrap: 'wrap',
-          gap: 16,
+          gap: 12,
         }}
       >
         {/* Left: AI Lab */}
@@ -205,11 +205,11 @@ export default function JourneyHeader({
             href={`/hub/ai-lab${cohortId ? '?cohortId=' + cohortId : ''}`}
             className="font-pixel"
             style={{
-              fontSize: 'clamp(7px, 1.2vw, 9px)',
+              fontSize: 11,
               lineHeight: '1.6',
               cursor: 'pointer',
-              padding: '9px 12px',
-              borderRadius: 4,
+              padding: '8px 14px',
+              borderRadius: 5,
               border: '2px solid var(--ok, #74f0a0)',
               background: 'transparent',
               color: 'var(--ok, #74f0a0)',
@@ -231,15 +231,14 @@ export default function JourneyHeader({
           >
             ◆ JOURNEY
           </ArcadeButton>
-          {character && (
-            <ArcadeButton
-              active={activeTab === 'portfolio'}
-              color="var(--ok, #74f0a0)"
-              onClick={() => onTabChange('portfolio')}
-            >
-              ❀ MY PORTFOLIO
-            </ArcadeButton>
-          )}
+          <ArcadeButton
+            active={activeTab === 'portfolio'}
+            color="var(--ok, #74f0a0)"
+            onClick={() => character ? onTabChange('portfolio') : undefined}
+            style={!character ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+          >
+            ❀ MY PORTFOLIO
+          </ArcadeButton>
         </div>
 
         {/* Right: Contributor Showcase, Student Showcase */}

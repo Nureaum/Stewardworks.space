@@ -18,17 +18,16 @@ export default function EditLibraryResourcePage({ params }: { params: { id: stri
   useEffect(() => {
     setIsLoading(true)
     
-    // Fetch categories and the specific content item
+    // Fetch categories and the specific content item directly by ID
     Promise.all([
       fetch('/api/admin/categories').then(res => res.json()),
-      fetch('/api/admin/content?type=library_resource').then(res => res.json())
+      fetch(`/api/admin/content/${params.id}`).then(res => res.json())
     ])
       .then(([categoriesData, contentData]) => {
         setCategories(categoriesData.categories || [])
         
-        const item = (contentData.items || []).find((i: any) => i.id === params.id)
-        if (item) {
-          setInitialData(item)
+        if (contentData.item) {
+          setInitialData(contentData.item)
         }
         setIsLoading(false)
         setHasLoaded(true)

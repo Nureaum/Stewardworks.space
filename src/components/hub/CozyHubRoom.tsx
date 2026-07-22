@@ -40,6 +40,15 @@ export default function CozyHubRoom({
 }: CozyHubRoomProps) {
   const router = useRouter();
   const { user } = useUser();
+
+  // Prefetch common navigation routes so transitions are near-instant
+  useEffect(() => {
+    router.prefetch('/hub/pilot-workshops');
+    router.prefetch('/hub/ai-lab');
+    router.prefetch('/hub/workforce-pathways');
+    router.prefetch('/hub/library');
+    router.prefetch('/hub/environmental-literacy');
+  }, [router]);
   
   const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements' | 'showcase'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);

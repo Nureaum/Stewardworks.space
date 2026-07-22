@@ -40,18 +40,18 @@ export default async function PilotWorkshopsPage() {
     redirect(`/hub/onboarding?returnUrl=${encodeURIComponent('/hub/pilot-workshops')}`);
   }
 
-  // Get all active cohorts (open or completed)
-  const { data: cohorts } = await supabase
-    .from('cohorts')
-    .select('id, name, status, start_date, description')
-    .in('status', ['open', 'completed'])
-    .order('start_date', { ascending: false })
-
-  // Get user's registrations
-  const { data: registrations } = await supabase
-    .from('workshop_registrations')
-    .select('id, cohort_id, status')
-    .eq('profile_id', profile.id)
+  // Fetch cohorts and registrations in parallel
+  const [{ data: cohorts }, { data: registrations }] = await Promise.all([
+    supabase
+      .from('cohorts')
+      .select('id, name, status, start_date, description')
+      .in('status', ['open', 'completed'])
+      .order('start_date', { ascending: false }),
+    supabase
+      .from('workshop_registrations')
+      .select('id, cohort_id, status')
+      .eq('profile_id', profile.id),
+  ])
 
   return (
     <CohortSelector 

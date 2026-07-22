@@ -62,6 +62,8 @@ export default function ContentItemEditor({
   const [galleryLabel, setGalleryLabel] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [videoLabel, setVideoLabel] = useState("");
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfLabel, setPdfLabel] = useState("");
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<
@@ -171,36 +173,51 @@ export default function ContentItemEditor({
   };
 
   const handleAddAudio = () => {
-    if (!audioUrl) return;
-    console.log('[ContentEditor] Adding audio URL:', audioUrl, 'Type: external_link');
+    if (!audioUrl.trim()) return;
+    const trimmedUrl = audioUrl.trim();
+    console.log('[ContentEditor] Adding audio URL:', trimmedUrl, 'Type: external_link');
     setMediaItems((prev) => [
       ...prev,
-      { media_type: "external_link", url: audioUrl, label: audioLabel },
+      { media_type: "external_link", url: trimmedUrl, label: audioLabel.trim() || "" },
     ]);
     setAudioUrl("");
     setAudioLabel("");
   };
 
   const handleAddGalleryUrl = () => {
-    if (!galleryUrl) return;
-    console.log('[ContentEditor] Adding gallery URL:', galleryUrl, 'Type: image');
+    if (!galleryUrl.trim()) return;
+    const trimmedUrl = galleryUrl.trim();
+    console.log('[ContentEditor] Adding gallery URL:', trimmedUrl, 'Type: image');
     setMediaItems((prev) => [
       ...prev,
-      { media_type: "image", url: galleryUrl, label: galleryLabel || "Image from URL" },
+      { media_type: "image", url: trimmedUrl, label: galleryLabel.trim() || "Image from URL" },
     ]);
     setGalleryUrl("");
     setGalleryLabel("");
   };
 
   const handleAddVideoUrl = () => {
-    if (!videoUrl) return;
-    console.log('[ContentEditor] Adding video URL:', videoUrl, 'Type: video_link');
+    if (!videoUrl.trim()) return;
+    const trimmedUrl = videoUrl.trim();
+    console.log('[ContentEditor] Adding video URL:', trimmedUrl, 'Type: video_link');
     setMediaItems((prev) => [
       ...prev,
-      { media_type: "video_link", url: videoUrl, label: videoLabel || "Video from URL" },
+      { media_type: "video_link", url: trimmedUrl, label: videoLabel.trim() || "Video from URL" },
     ]);
     setVideoUrl("");
     setVideoLabel("");
+  };
+
+  const handleAddPdfUrl = () => {
+    if (!pdfUrl.trim()) return;
+    const trimmedUrl = pdfUrl.trim();
+    console.log('[ContentEditor] Adding PDF URL:', trimmedUrl, 'Type: pdf');
+    setMediaItems((prev) => [
+      ...prev,
+      { media_type: "pdf", url: trimmedUrl, label: pdfLabel.trim() || "Document from URL" },
+    ]);
+    setPdfUrl("");
+    setPdfLabel("");
   };
 
   const removeMedia = (index: number) => {
@@ -250,9 +267,13 @@ export default function ContentItemEditor({
         status: targetStatus,
         content_type: contentType,
         thumbnail_url: thumbnailUrl || null,
-        media: mediaItems,
+        media: mediaItems.filter(m => m.url && m.url.trim()).map(m => ({
+          media_type: m.media_type,
+          url: m.url.trim(),
+          label: m.label || null,
+        })),
       };
-      console.log('[ContentEditor] Submitting payload with', mediaItems.length, 'media items:', mediaItems);
+      console.log('[ContentEditor] Submitting payload with', payload.media.length, 'media items:', payload.media);
       if (categoryId && categoryId !== "__create_new__") payload.category_id = categoryId;
       if (topicInput) payload.topic_label = topicInput;
       if (resourceType) payload.resource_type = resourceType;
@@ -485,15 +506,34 @@ export default function ContentItemEditor({
                             className="object-cover w-full h-full"
                           />
                         ) : media.media_type === "video_link" ? (
-                          <div className="flex flex-col items-center justify-center w-full h-full p-4 text-center">
-                            <Video
-                              className="text-steward-blue mb-2"
-                              size={24}
-                            />
-                            <span className="text-[10px] font-bold text-gray-500 truncate w-full">
-                              {media.label || "Uploaded Video"}
-                            </span>
-                          </div>
+                          (() => {
+                            const url = media.url || '';
+                            const isYT = url.includes('youtube.com') || url.includes('youtu.be');
+                            let ytThumb = null;
+                            if (isYT) {
+                              let videoId = null;
+                              if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1]?.split('?')[0];
+                              else if (url.includes('youtube.com')) videoId = new URLSearchParams(url.split('?')[1] || '').get('v');
+                              if (videoId) ytThumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                            }
+                            return ytThumb ? (
+                              <div className="relative w-full h-full">
+                                <img src={ytThumb} alt="Video" className="object-cover w-full h-full" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-8 h-8 bg-black/70 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-xs ml-0.5">▶</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center w-full h-full p-4 text-center">
+                                <Video className="text-steward-blue mb-2" size={24} />
+                                <span className="text-[10px] font-bold text-gray-500 truncate w-full">
+                                  {media.label || "Video"}
+                                </span>
+                              </div>
+                            );
+                          })()
                         ) : media.media_type === "pdf" ? (
                           <div className="flex flex-col items-center justify-center w-full h-full p-4 text-center">
                             <FileText
@@ -630,6 +670,38 @@ export default function ContentItemEditor({
                     className="w-full py-2 bg-steward-dark text-white rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-black transition-colors"
                   >
                     + Add Video URL
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "pdfs" && (
+              <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
+                <h4 className="text-[10px] font-black uppercase tracking-widest mb-4">
+                  Add PDF / Document URL
+                </h4>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Document URL (e.g. https://example.com/report.pdf)"
+                    value={pdfUrl}
+                    onChange={(e) => setPdfUrl(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-steward-dark focus:border-transparent outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Label (optional)"
+                    value={pdfLabel}
+                    onChange={(e) => setPdfLabel(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-steward-dark focus:border-transparent outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPdfUrl}
+                    disabled={!pdfUrl}
+                    className="w-full py-2 bg-steward-dark text-white rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-black transition-colors"
+                  >
+                    + Add Document URL
                   </button>
                 </div>
               </div>

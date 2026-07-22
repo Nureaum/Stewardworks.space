@@ -237,7 +237,7 @@ export default function CurriculumBrowser({
           <div style={{ fontFamily: "'Press Start 2P'", fontSize: 13, color: '#d6ffe0', lineHeight: 1.5, margin: '13px 0 15px' }}>{selectedEntryData.title}</div>
           
           {selectedEntryData.type === 'text' && (
-            <div style={{ fontSize: 18, color: '#d6ffe0', lineHeight: 1.5, fontFamily: "'VT323', monospace" }}>{selectedEntryData.body}</div>
+            <div style={{ fontSize: 18, color: '#d6ffe0', lineHeight: 1.5, fontFamily: "'VT323', monospace" }} dangerouslySetInnerHTML={{ __html: selectedEntryData.body || '' }} />
           )}
           
           {selectedEntryData.type === 'list' && (
@@ -258,12 +258,12 @@ export default function CurriculumBrowser({
               <div style={{ border: '2px solid #45d6ff', borderRadius: 6, padding: 14, background: 'rgba(69,214,255,.06)' }}>
                 <div style={{ fontFamily: "'Press Start 2P'", fontSize: 6, color: '#0e1512', background: '#45d6ff', padding: '4px 6px', borderRadius: 3, display: 'inline-block', marginBottom: 11 }}>MODERN · NEWS</div>
                 <div style={{ fontFamily: "'Press Start 2P'", fontSize: 10, color: '#45d6ff', lineHeight: 1.5, marginBottom: 10 }}>{selectedEntryData.modernTitle}</div>
-                <div style={{ fontSize: 16, color: '#d6ffe0', lineHeight: 1.45, fontFamily: "'VT323', monospace" }}>{selectedEntryData.modernBody}</div>
+                <div style={{ fontSize: 16, color: '#d6ffe0', lineHeight: 1.45, fontFamily: "'VT323', monospace" }} dangerouslySetInnerHTML={{ __html: selectedEntryData.modernBody || '' }} />
               </div>
               <div style={{ border: '2px solid #ffd23f', borderRadius: 6, padding: 14, background: 'rgba(255,210,63,.06)' }}>
                 <div style={{ fontFamily: "'Press Start 2P'", fontSize: 6, color: '#0e1512', background: '#ffd23f', padding: '4px 6px', borderRadius: 3, display: 'inline-block', marginBottom: 11 }}>ANCIENT · INDIGENOUS</div>
                 <div style={{ fontFamily: "'Press Start 2P'", fontSize: 10, color: '#ffd23f', lineHeight: 1.5, marginBottom: 10 }}>{selectedEntryData.ancientTitle}</div>
-                <div style={{ fontSize: 16, color: '#d6ffe0', lineHeight: 1.45, fontFamily: "'VT323', monospace" }}>{selectedEntryData.ancientBody}</div>
+                <div style={{ fontSize: 16, color: '#d6ffe0', lineHeight: 1.45, fontFamily: "'VT323', monospace" }} dangerouslySetInnerHTML={{ __html: selectedEntryData.ancientBody || '' }} />
               </div>
             </div>
           )}

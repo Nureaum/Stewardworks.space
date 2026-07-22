@@ -42,114 +42,106 @@ export default async function JourneyPage({ params, searchParams }: Props) {
 
   const isAdmin = profile.role === 'admin' || profile.role === 'super_admin'
 
-  // Check registration
-  const { data: registration } = await supabase
-    .from('workshop_registrations')
-    .select('id, status')
-    .eq('cohort_id', cohortId)
-    .eq('profile_id', profile.id)
-    .single()
+  // Parallel fetch: registration, character, days, principles, engagement, showcase
+  const [
+    { data: registration },
+    { data: character },
+    { data: days },
+    { data: principles },
+    { data: initialEngagements },
+    { data: showcaseItems },
+  ] = await Promise.all([
+    supabase
+      .from('workshop_registrations')
+      .select('id, status')
+      .eq('cohort_id', cohortId)
+      .eq('profile_id', profile.id)
+      .single(),
+    supabase
+      .from('workshop_characters')
+      .select('*')
+      .eq('cohort_id', cohortId)
+      .eq('profile_id', profile.id)
+      .single(),
+    supabase
+      .from('workshop_days')
+      .select(`
+        *,
+        sections:workshop_day_sections (
+          *,
+          entries:workshop_day_entries (
+            *
+          )
+        )
+      `)
+      .eq('cohort_id', cohortId)
+      .order('day_number'),
+    supabase
+      .from('workshop_principles')
+      .select('*')
+      .eq('cohort_id', cohortId)
+      .order('sort_order'),
+    supabase
+      .from('workshop_engagement')
+      .select('*')
+      .eq('profile_id', profile.id),
+    supabase
+      .from('workshop_showcase')
+      .select('*')
+      .eq('cohort_id', cohortId)
+      .order('created_at', { ascending: false }),
+  ])
 
   if (!isAdmin && (!registration || registration.status !== 'registered')) {
     redirect(`/hub/pilot-workshops`)
   }
 
-  // Get character (may be null if not yet created)
-  const { data: character } = await supabase
-    .from('workshop_characters')
-    .select('*')
-    .eq('cohort_id', cohortId)
-    .eq('profile_id', profile.id)
-    .single()
+  // Get progress for all days (depends on days result)
+  const dayIds = (days || []).map((d: any) => d.id)
+  const [{ data: progressRows }, { data: submissions }] = await Promise.all([
+    dayIds.length > 0
+      ? supabase
+          .from('workshop_progress')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .in('workshop_day_id', dayIds)
+      : Promise.resolve({ data: [] as any[] }),
+    dayIds.length > 0
+      ? supabase
+          .from('workshop_deliverable_submissions')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .in('workshop_day_id', dayIds)
+          .order('submitted_at', { ascending: false })
+      : Promise.resolve({ data: [] as any[] }),
+  ])
 
-  // Get workshop days
-  const { data: days } = await supabase
-    .from('workshop_days')
-    .select(`
-      *,
-      sections:workshop_day_sections (
-        *,
-        entries:workshop_day_entries (
-          *
-        )
-      )
-    `)
-    .eq('cohort_id', cohortId)
-    .order('day_number')
-
-  // Get progress for all days
-  const dayIds = (days || []).map(d => d.id)
-  const { data: progressRows } = dayIds.length > 0
-    ? await supabase
-        .from('workshop_progress')
-        .select('*')
-        .eq('profile_id', profile.id)
-        .in('workshop_day_id', dayIds)
-    : { data: [] }
-
-  // Get principles
-  const { data: principles } = await supabase
-    .from('workshop_principles')
-    .select('*')
-    .eq('cohort_id', cohortId)
-    .order('sort_order')
-
-  // APPROVED only — these principles are fully locked (counted in user's bank)
+  // Compute principle IDs from progress
   const approvedProgressIds = (progressRows || [])
-    .filter(p => p.deliverable_status === 'approved')
-    .map(p => p.id)
+    .filter((p: any) => p.deliverable_status === 'approved')
+    .map((p: any) => p.id)
 
-  // SUBMITTED + APPROVED — used for pending detection in the principle picker
   const activeProgressIds = (progressRows || [])
-    .filter(p => p.deliverable_status === 'submitted' || p.deliverable_status === 'approved')
-    .map(p => p.id)
+    .filter((p: any) => p.deliverable_status === 'submitted' || p.deliverable_status === 'approved')
+    .map((p: any) => p.id)
 
-  console.log('[journey/page] progressRows:', progressRows?.map(p => ({ id: p.id, day: p.workshop_day_id, status: p.deliverable_status })))
-
-  // bankedPrinciples = approved only (what's locked & counted in user's principle bank)
-  const { data: bankedPrinciples } = approvedProgressIds.length > 0
-    ? await supabase
-        .from('workshop_progress_principles')
-        .select('*')
-        .in('progress_id', approvedProgressIds)
-        .order('banked_at', { ascending: false })
-    : { data: [] }
-
-  // allBankedPrinciples = submitted + approved (used to detect pending principles in the picker)
-  const { data: allBankedPrinciples } = activeProgressIds.length > 0
-    ? await supabase
-        .from('workshop_progress_principles')
-        .select('*')
-        .in('progress_id', activeProgressIds)
-        .order('banked_at', { ascending: false })
-    : { data: [] }
-
-  console.log('[journey/page] bankedPrinciples (approved):', bankedPrinciples)
-  console.log('[journey/page] allBankedPrinciples (submitted+approved):', allBankedPrinciples)
-
-  // Get user's deliverable submissions
-  const { data: submissions } = dayIds.length > 0
-    ? await supabase
-        .from('workshop_deliverable_submissions')
-        .select('*')
-        .eq('profile_id', profile.id)
-        .in('workshop_day_id', dayIds)
-        .order('submitted_at', { ascending: false })
-    : { data: [] }
-
-  // Get user's engagements - GLOBAL (not filtered by cohort)
-  // Engagement contributes 25% to progress and is shared across all cohorts
-  const { data: initialEngagements } = await supabase
-    .from('workshop_engagement')
-    .select('*')
-    .eq('profile_id', profile.id)
-
-  // Get showcase items
-  const { data: showcaseItems } = await supabase
-    .from('workshop_showcase')
-    .select('*')
-    .eq('cohort_id', cohortId)
-    .order('created_at', { ascending: false })
+  // Fetch banked principles in parallel
+  const [{ data: bankedPrinciples }, { data: allBankedPrinciples }] = await Promise.all([
+    approvedProgressIds.length > 0
+      ? supabase
+          .from('workshop_progress_principles')
+          .select('*')
+          .in('progress_id', approvedProgressIds)
+          .order('banked_at', { ascending: false })
+      : Promise.resolve({ data: [] as any[] }),
+    activeProgressIds.length > 0
+      ? supabase
+          .from('workshop_progress_principles')
+          .select('*')
+          .in('progress_id', activeProgressIds)
+          .order('banked_at', { ascending: false })
+      : Promise.resolve({ data: [] as any[] }),
+  ])
 
 
   return (

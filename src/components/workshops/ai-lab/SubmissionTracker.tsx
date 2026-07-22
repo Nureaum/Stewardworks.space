@@ -63,6 +63,8 @@ export default function SubmissionTracker({
   currentDaySubmission,
   currentDayProgress,
   bankedPrincipleIds = [],
+  allBankedPrinciples = [],
+  progressRows = [],
   onChangeDay
 }: { 
   day: number, 
@@ -74,7 +76,9 @@ export default function SubmissionTracker({
   initialEngagements?: any[],
   currentDaySubmission?: DaySubmission | null,
   currentDayProgress?: DayProgress | null,
-  bankedPrincipleIds?: string[]
+  bankedPrincipleIds?: string[],
+  allBankedPrinciples?: { progress_id: string; principle_id: string }[],
+  progressRows?: any[],
   onChangeDay?: (day: number) => void
 }) {
   const [minimized, setMinimized] = useState(false);
@@ -147,13 +151,31 @@ export default function SubmissionTracker({
       ];
 
   // Find the principle used specifically for THIS day's submission
-  // so we can allow re-selecting it in edit mode
-  const currentDayPrincipleId = (isAlreadySubmitted && localSubmission)
-    ? localBankedPrincipleIds.find(pid => mappedPrinciples.some((p: any) => p.id === pid)) || null
-    : null;
+  // by matching this day's progress row to the allBankedPrinciples entries
+  const currentDayPrincipleId = (() => {
+    if (!isAlreadySubmitted || !dayId) return null;
+    // Find progress row for this day
+    const dayProgressRow = progressRows.find((p: any) => p.workshop_day_id === dayId);
+    if (!dayProgressRow) return null;
+    // Find the principle linked to this day's progress
+    const bp = allBankedPrinciples.find(b => b.progress_id === dayProgressRow.id);
+    return bp?.principle_id || null;
+  })();
 
-  // IDs banked for OTHER days — these must be blocked from selection
-  const otherDaysBankedIds = localBankedPrincipleIds.filter(id => id !== currentDayPrincipleId);
+  // IDs from APPROVED progress on OTHER days — these get struck-through
+  const approvedOtherDayProgressIds = progressRows
+    .filter((p: any) => p.workshop_day_id !== dayId && p.deliverable_status === 'approved')
+    .map((p: any) => p.id);
+  const otherDaysBankedIds = allBankedPrinciples
+    .filter(bp => approvedOtherDayProgressIds.includes(bp.progress_id))
+    .map(bp => bp.principle_id)
+    .filter(id => id !== currentDayPrincipleId);
+
+  // Principles that are PENDING (submitted but not yet approved) on OTHER days — orange, blocked
+  const pendingOtherDayPrincipleIds = progressRows
+    .filter((p: any) => p.workshop_day_id !== dayId && p.deliverable_status === 'submitted')
+    .map((p: any) => allBankedPrinciples.find(bp => bp.progress_id === p.id)?.principle_id)
+    .filter((id): id is string => !!id && id !== currentDayPrincipleId && !otherDaysBankedIds.includes(id));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -204,7 +226,7 @@ export default function SubmissionTracker({
 
   const handleSubmitDeliverable = async () => {
     // Allow submission without principle if no available (non-other-day-banked) principles remain
-    const availableCount = mappedPrinciples.filter((p: any) => !otherDaysBankedIds.includes(p.id)).length;
+    const availableCount = mappedPrinciples.filter((p: any) => !otherDaysBankedIds.includes(p.id) && !pendingOtherDayPrincipleIds.includes(p.id)).length;
     if (availableCount > 0 && !selectedPrinciple) {
       toast.error('Please select a principle first.', { position: 'bottom-center' });
       return;
@@ -642,35 +664,46 @@ export default function SubmissionTracker({
                         const principleId = p.id || p;
                         const principleName = p.name || p.title || p;
                         const isSelected = selectedPrinciple === principleId;
+                        const isCurrentDay = principleId === currentDayPrincipleId;
                         const isUsedOtherDay = otherDaysBankedIds.includes(principleId);
-                        const isCurrentDayPrinciple = principleId === currentDayPrincipleId;
+                        const isPendingOtherDay = !isUsedOtherDay && pendingOtherDayPrincipleIds.includes(principleId);
+                        const isBlocked = isUsedOtherDay || isPendingOtherDay;
                         return (
                           <button
                             key={principleId || i}
-                            onClick={() => !isUsedOtherDay && setSelectedPrinciple(principleId)}
-                            title={isUsedOtherDay ? 'Already used in another day' : ''}
+                            onClick={() => !isBlocked && setSelectedPrinciple(principleId)}
+                            title={
+                              isUsedOtherDay ? 'Already approved in another day' :
+                              isPendingOtherDay ? 'Pending approval on another day — select a different principle' :
+                              isCurrentDay ? 'Currently assigned to this day' :
+                              ''
+                            }
                             style={{
-                              background: isSelected ? 'rgba(77,255,160,.15)' : isUsedOtherDay ? 'rgba(0,0,0,.1)' : 'rgba(0,0,0,.3)',
-                              border: `1px solid ${isSelected ? 'var(--ng,#4dffa0)' : 'var(--ln,#28432f)'}`,
-                              borderRadius: 20,
+                              background: isSelected ? 'var(--gold,#ffd23f)' : isCurrentDay ? 'rgba(69,214,255,.15)' : isUsedOtherDay ? 'rgba(0,0,0,.15)' : isPendingOtherDay ? 'rgba(255,160,50,.08)' : 'rgba(0,0,0,.3)',
+                              border: `1px solid ${isSelected ? 'var(--gold,#ffd23f)' : isCurrentDay ? 'var(--s,#45d6ff)' : isUsedOtherDay ? 'var(--ln,#3d2668)' : isPendingOtherDay ? '#ffa032' : 'var(--ln,#3d2668)'}`,
+                              borderRadius: 4,
                               padding: '6px 12px',
-                              color: isSelected ? 'var(--ng,#4dffa0)' : isUsedOtherDay ? 'rgba(119,183,141,0.3)' : 'var(--tx,#d6ffe0)',
-                              fontFamily: "'VT323', monospace",
-                              fontSize: 15,
-                              cursor: isUsedOtherDay ? 'not-allowed' : 'pointer',
+                              color: isSelected ? '#000' : isCurrentDay ? 'var(--s,#45d6ff)' : isUsedOtherDay ? 'var(--ln,#3d2668)' : isPendingOtherDay ? '#ffa032' : 'var(--mu,#a493c9)',
+                              fontFamily: "'Press Start 2P', monospace",
+                              fontSize: 9,
+                              cursor: isBlocked ? 'not-allowed' : 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: 6,
                               transition: 'all 0.2s',
-                              opacity: isUsedOtherDay ? 0.4 : 1,
+                              opacity: isUsedOtherDay ? 0.4 : isPendingOtherDay ? 0.7 : 1,
                               textDecoration: isUsedOtherDay ? 'line-through' : 'none',
+                              position: 'relative',
                             }}
                           >
-                            <span style={{ color: isSelected ? 'var(--ng,#4dffa0)' : isUsedOtherDay ? 'rgba(119,183,141,0.3)' : 'var(--mu,#77b78d)', fontSize: 10 }}>◈</span> {principleName}
+                            {principleName}
+                            {isPendingOtherDay && (
+                              <span style={{ marginLeft: 5, fontSize: 7, color: '#ffa032' }}>⏳PENDING</span>
+                            )}
                           </button>
                         )
                       })}
-                      {mappedPrinciples.filter((p: any) => !otherDaysBankedIds.includes(p.id || p)).length === 0 && (
+                      {mappedPrinciples.filter((p: any) => !otherDaysBankedIds.includes(p.id || p) && !pendingOtherDayPrincipleIds.includes(p.id || p)).length === 0 && (
                         <span className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#77b78d)', fontStyle: 'italic' }}>
                           No fresh principles left!
                         </span>
