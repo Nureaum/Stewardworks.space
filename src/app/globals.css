@@ -58,17 +58,30 @@ body {
   0%, 100% { opacity: .25; }
   50% { opacity: 1; }
 }
+
 .font-exo {
   font-family: 'Exo', sans-serif;
 }
 
-.font-pixel {
+.font-pixel,
+.font-pixel input,
+.font-pixel textarea,
+.font-pixel select,
+.font-pixel button {
   font-family: 'Press Start 2P', cursive;
   line-height: normal;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
 }
 
-.font-vt323 {
+.font-vt323,
+.font-vt323 input,
+.font-vt323 textarea,
+.font-vt323 select,
+.font-vt323 button {
   font-family: 'VT323', monospace;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
 }
 
 /* Custom Animation Utilities (replacing tailwindcss-animate to fix build error) */

@@ -53,7 +53,7 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
   const libNodeChips = props.libNodeChips || [];
   const libGroups = props.libGroups || [];
   const libBoards = props.libBoards || [];
-  const shelfSub = props.shelfItems ? `${props.shelfItems.length} resources saved for later` : "0 items shelved";
+  const shelfSub = props.shelfItems ? `Bookmarked jobs & workforce development resources` : "0 items shelved";
   const shelfEmpty = props.shelfItems ? props.shelfItems.length === 0 : true;
   const shelfHasCards = props.shelfHasCards || false;
   const shelfCards = props.shelfCards || [];
@@ -904,7 +904,7 @@ return (<>
         <div style={{display: "flex", alignItems: "center", gap: "12px", padding: "16px 18px", background: "#10285e", borderBottom: "4px solid #1c1526"}}>
           <span style={{width: "34px", height: "34px", background: "#ffdd2e", border: "3px solid #1c1526", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", color: "#10285e", flex: "0 0 auto"}}>★</span>
           <div>
-            <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "14px", color: "var(--paper)", textShadow: "2px 2px 0 rgba(255,0,77,.4)"}}>MY SHELF</div>
+            <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "14px", color: "var(--paper)", textShadow: "2px 2px 0 rgba(255,0,77,.4)"}}>My Jobs Shelf</div>
             <div style={{fontSize: "17px", color: "var(--muted)", marginTop: "5px"}}>{shelfSub}</div>
           </div>
         </div>
@@ -1114,8 +1114,10 @@ return (<>
           <div style={{display: "inline-block", marginTop: "10px", padding: "5px 10px", background: "#0f2a60", border: "3px solid #1c1526", fontSize: "17px", color: "#a9c8ff"}}>{popSub}</div>
           <h2 style={{fontFamily: "'Press Start 2P',monospace", fontSize: "19px", lineHeight: "1.5", color: "var(--paper)", margin: "14px 0 0", textShadow: "2px 2px 0 rgba(0,0,0,.5)"}}>{popTitle}</h2>
           {popImages && popImages.length > 0 && (<>
-          <div style={{margin: "18px 0 4px"}}>
-            <img src={typeof popImages[0] === 'string' ? popImages[0] : (popImages[0]?.url || '')} alt="" style={{width: "100%", height: "auto", borderRadius: "8px", border: "4px solid #1c1526"}} />
+          <div style={{margin: "18px 0 4px", display: "flex", flexDirection: "column", gap: "10px"}}>
+            {popImages.map((img: any, idx: number) => (
+              <img key={idx} src={typeof img === 'string' ? img : (img?.url || '')} alt={typeof img === 'string' ? '' : (img?.caption || '')} style={{width: "100%", height: "auto", borderRadius: "8px", border: "4px solid #1c1526"}} />
+            ))}
           </div>
           </>)}
           {(!popImages || popImages.length === 0) && (<>

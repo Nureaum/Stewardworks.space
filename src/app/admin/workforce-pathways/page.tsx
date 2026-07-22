@@ -848,21 +848,37 @@ export default function WorkforcePathwaysAdminPage() {
                             <input 
                               type="file" 
                               accept="image/*" 
+                              multiple
                               onChange={async (e) => {
                                 if (e.target.files && e.target.files.length > 0) {
-                                  const f = e.target.files[0];
-                                  const formData = new FormData();
-                                  formData.append('file', f);
-                                  const res = await uploadImage(formData);
-                                  if (res.url) {
-                                    setEd({ ...ed, photos: [{ url: res.url, caption: f.name }] });
+                                  const existing = ed.photos || [];
+                                  let newPhotos = [...existing];
+                                  for (let fi = 0; fi < e.target.files.length; fi++) {
+                                    const f = e.target.files[fi];
+                                    const formData = new FormData();
+                                    formData.append('file', f);
+                                    const res = await uploadImage(formData);
+                                    if (res.url) {
+                                      const cleanCaption = f.name.replace(/^\d+-/, '').replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ').slice(0, 40);
+                                      // Fill an empty slot if one exists, otherwise add new
+                                      const emptyIdx = newPhotos.findIndex((p: any) => !p.url);
+                                      if (emptyIdx >= 0) {
+                                        newPhotos[emptyIdx] = { url: res.url, caption: cleanCaption };
+                                      } else {
+                                        newPhotos = [...newPhotos, { url: res.url, caption: cleanCaption }];
+                                      }
+                                    }
                                   }
+                                  setEd({ ...ed, photos: newPhotos });
                                 }
                               }} 
                               style={{ display: 'none' }}
                             />
                           </label>
-                          <button type="button" onClick={() => setEd({ ...ed, photos: [{ url: '', caption: '' }] })} style={addBtnStyle}>＋ URL</button>
+                          <button type="button" onClick={() => {
+                            const existing = ed.photos || [];
+                            setEd({ ...ed, photos: [...existing, { url: '', caption: '' }] });
+                          }} style={addBtnStyle}>＋ URL</button>
                         </div>
                       </div>
                       
@@ -876,13 +892,19 @@ export default function WorkforcePathwaysAdminPage() {
                             <div key={i} style={{ display: 'grid', gridTemplateColumns: '76px 1fr auto', gap: '10px', alignItems: 'center', background: '#163a82', border: '3px solid #1c1526', padding: '8px' }}>
                               <div style={{ width: '76px', height: '58px', border: '2px solid #1c1526', overflow: 'hidden', background: 'repeating-linear-gradient(45deg,#163a82 0 8px,#2656a4 8px 16px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {p.url ? (
-                                  <img src={p.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                  <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
                                 ) : (
                                   <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6px', color: '#6f6a88' }}>NO IMG</span>
                                 )}
                               </div>
                               <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '7px' }}>
-                                <input value={p.url || ''} onChange={e => { const newPhotos = [...ed.photos]; newPhotos[i].url = e.target.value; setEd({ ...ed, photos: newPhotos }); }} placeholder="Image URL or uploaded photo" style={smallInputStyle}/>
+                                {p.url && p.url.startsWith('/uploads/') ? (
+                                  <div style={{ ...smallInputStyle, background: '#0d1e4a', color: '#45d4ff', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span>✓ Uploaded</span>
+                                  </div>
+                                ) : (
+                                  <input value={p.url || ''} onChange={e => { const newPhotos = [...ed.photos]; newPhotos[i].url = e.target.value; setEd({ ...ed, photos: newPhotos }); }} placeholder="Image URL or uploaded photo" style={smallInputStyle}/>
+                                )}
                                 <input value={p.caption || ''} onChange={e => { const newPhotos = [...ed.photos]; newPhotos[i].caption = e.target.value; setEd({ ...ed, photos: newPhotos }); }} placeholder="Caption (optional)" style={smallInputStyle}/>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

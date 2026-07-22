@@ -153,11 +153,11 @@ export default function TreasureMap({
         <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu, #a493c9)', marginTop: 8 }}>
           {allDone ? 'All deliverables banked – the portfolio treasure is yours! 📦' : `Embarking on Day ${clampedDays + 1}`}
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 14 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 14 }}>
           <button
             onClick={onChangeChar}
             className="font-pixel"
-            style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--s, #45d6ff)', background: 'none', border: '2px solid var(--s, #45d6ff)', borderRadius: 4, padding: '10px 14px', cursor: 'pointer' }}
+            style={{ fontSize: 'clamp(7px, 1.2vw, 9px)', lineHeight: '1.6', color: 'var(--s, #45d6ff)', background: 'none', border: '2px solid var(--s, #45d6ff)', borderRadius: 4, padding: '9px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             ⇆ CHANGE CHARACTER
           </button>
@@ -165,7 +165,7 @@ export default function TreasureMap({
             <button
               onClick={onOpenWin}
               className="font-pixel"
-              style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--bg, #12081e)', background: 'var(--gold, #ffd23f)', border: 'none', borderRadius: 4, padding: '12px 16px', cursor: 'pointer', boxShadow: '0 0 16px rgba(255,210,63,.5)' }}
+              style={{ fontSize: 'clamp(7px, 1.2vw, 9px)', lineHeight: '1.6', color: 'var(--bg, #12081e)', background: 'var(--gold, #ffd23f)', border: 'none', borderRadius: 4, padding: '9px 12px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px rgba(255,210,63,.4)' }}
             >
               ⛃ OPEN VICTORY SCREEN
             </button>
@@ -210,13 +210,13 @@ export default function TreasureMap({
         {/* START node */}
         <div style={{ position: 'absolute', left: '6%', top: '63%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
           <img src={startIcon} alt="Start" width={40} height={40} style={{ imageRendering: 'pixelated' }} />
-          <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu, #a493c9)', marginTop: 2 }}>START</div>
+          <div className="font-pixel" style={{ fontSize: 'clamp(8px, 1.2vw, 10px)', color: 'var(--mu, #a493c9)', marginTop: 2 }}>START</div>
         </div>
 
         {/* CHIA guardian on the map */}
         <div style={{ position: 'absolute', left: '10%', top: '24%', transform: 'translate(-50%, -100%)', textAlign: 'center', zIndex: 5, pointerEvents: 'none' }}>
           <img src={chiaSvg} alt="Chia" width={46} height={57} style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 3px 0 rgba(0,0,0,.4))' }} />
-          <div className="font-pixel" style={{ fontSize: 7, color: 'var(--ok, #74f0a0)', marginTop: 2 }}>CHIA {chiaPct}%</div>
+          <div className="font-pixel" style={{ fontSize: 'clamp(8px, 1.2vw, 10px)', color: 'var(--ok, #74f0a0)', marginTop: 2 }}>CHIA {chiaPct}%</div>
         </div>
 
         {/* DAY nodes — rounded squares matching HTML prototype */}
@@ -278,8 +278,8 @@ export default function TreasureMap({
                 )}
               </button>
               <div style={{ textAlign: 'center', marginTop: 8, whiteSpace: 'nowrap' }}>
-                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold, #ffd23f)' }}>DAY {day.day_number < 10 ? `0${day.day_number}` : day.day_number}</div>
-                <div style={{ fontSize: 13, color: 'var(--tx, #efe6ff)', maxWidth: 150, whiteSpace: 'normal', lineHeight: 1.15, marginTop: 3 }}>{day.title}</div>
+                <div className="font-pixel" style={{ fontSize: 'clamp(9px, 1.4vw, 12px)', color: 'var(--gold, #ffd23f)' }}>DAY {day.day_number < 10 ? `0${day.day_number}` : day.day_number}</div>
+                <div style={{ fontSize: 'clamp(15px, 1.8vw, 20px)', color: 'var(--tx, #efe6ff)', maxWidth: 200, whiteSpace: 'normal', lineHeight: 1.25, marginTop: 5, fontWeight: 600 }}>{day.title}</div>
               </div>
             </div>
           )
@@ -317,7 +317,7 @@ export default function TreasureMap({
               animation: allDone ? 'floaty 2.4s ease-in-out infinite' : 'none',
             }}
           />
-          <div className="font-pixel" style={{ fontSize: 7, color: 'var(--gold, #ffd23f)', marginTop: 3 }}>PORTFOLIO</div>
+          <div className="font-pixel" style={{ fontSize: 'clamp(8px, 1.2vw, 10px)', color: 'var(--gold, #ffd23f)', marginTop: 3 }}>PORTFOLIO</div>
         </button>
 
         {/* Floating player sprite */}

@@ -23,10 +23,10 @@ export default function ArcadeButton({
 }: ArcadeButtonProps) {
   const baseStyle: React.CSSProperties = {
     fontFamily: "'Press Start 2P', monospace",
-    fontSize: '8px',
+    fontSize: 'clamp(7px, 1.2vw, 9px)',
     lineHeight: '1.6',
     cursor: 'pointer',
-    padding: '9px 10px',
+    padding: '9px 12px',
     borderRadius: '4px',
     border: `2px solid ${color}`,
     background: active ? color : 'transparent',

@@ -59,12 +59,13 @@ export default function JourneyHeader({
           className="font-pixel"
           title="Return to the workshop hub"
           style={{
-            fontSize: 12,
+            fontSize: 'clamp(7px, 1.2vw, 9px)',
+            lineHeight: '1.6',
             color: 'var(--s, #45d6ff)',
             background: 'transparent',
             border: '2px solid var(--s, #45d6ff)',
-            borderRadius: 6,
-            padding: '12px 16px',
+            borderRadius: 4,
+            padding: '9px 12px',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             boxShadow: '0 0 10px rgba(69,214,255,.2)',
@@ -204,10 +205,11 @@ export default function JourneyHeader({
             href={`/hub/ai-lab${cohortId ? '?cohortId=' + cohortId : ''}`}
             className="font-pixel"
             style={{
-              fontSize: 9,
+              fontSize: 'clamp(7px, 1.2vw, 9px)',
+              lineHeight: '1.6',
               cursor: 'pointer',
-              padding: '10px 14px',
-              borderRadius: 5,
+              padding: '9px 12px',
+              borderRadius: 4,
               border: '2px solid var(--ok, #74f0a0)',
               background: 'transparent',
               color: 'var(--ok, #74f0a0)',

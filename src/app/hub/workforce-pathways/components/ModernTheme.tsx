@@ -563,8 +563,15 @@ export default function ModernTheme(props: any) {
           <div style={{display:"inline-block",marginTop:"12px",padding:"6px 12px",borderRadius:"8px",background:"rgba(65,124,152,.12)",font:"700 10px/1 'Courier New',monospace",letterSpacing:".16em",textTransform:"uppercase",color:"var(--blue)"}}>{popSub}</div>
           <h2 style={{fontFamily:"'Baloo 2',cursive",fontWeight:800,fontSize:"34px",lineHeight:1.05,color:"var(--ink)",margin:"10px 0 0"}}>{popTitle}</h2>
           {popImages && popImages.length > 0 ? (
-            <div style={{margin:"18px 0 4px",height:"210px",borderRadius:"12px",border:"1px solid rgba(60,42,24,.2)",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",background:"#241f17"}}>
-              <img src={typeof popImages[0] === 'string' ? popImages[0] : (popImages[0]?.url || '')} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} />
+            <div style={{margin:"18px 0 4px", display:"flex", flexDirection:"column", gap:"12px"}}>
+              {popImages.map((img: any, idx: number) => (
+                <div key={idx} style={{borderRadius:"12px",border:"1px solid rgba(60,42,24,.2)",overflow:"hidden",background:"#241f17"}}>
+                  <img src={typeof img === 'string' ? img : (img?.url || '')} alt={typeof img === 'string' ? '' : (img?.caption || '')} style={{width:"100%",height:"auto",maxHeight:"300px",objectFit:"cover",display:"block"}} />
+                  {typeof img !== 'string' && img?.caption && (
+                    <div style={{padding:"8px 12px",fontSize:"12px",color:"var(--ink2)",background:"rgba(251,242,210,.5)"}}>{img.caption}</div>
+                  )}
+                </div>
+              ))}
             </div>
           ) : (
             <div style={{margin:"18px 0 4px",height:"210px",borderRadius:"12px",border:"1px solid rgba(60,42,24,.2)",background:"repeating-linear-gradient(45deg,#EBDCB4 0 26px,#E2D0A2 26px 52px)",display:"flex",alignItems:"center",justifyContent:"center"}}>

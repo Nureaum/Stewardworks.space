@@ -417,19 +417,24 @@ export async function fetchAllQuizzes() {
 
 export async function saveQuiz(quiz: any) {
   const { pathway_id, stop_id, prompt, pick, result, allow_custom, custom_label, optional, options } = quiz;
-  
+
+  // Since pick, result, and custom_label are missing from the Supabase schema,
+  // we safely pack them into the JSON options array to avoid database errors.
+  const metaOption = { id: '__meta__', pick, result, custom_label };
+  const mergedOptions = [metaOption, ...(options || []).filter((o: any) => o.id !== '__meta__')];
+
   const { data: existing } = await supabase.from('workforce_quizzes')
     .select('id').eq('pathway_id', pathway_id).eq('stop_id', stop_id).maybeSingle();
 
   if (existing) {
     const { data, error } = await supabase.from('workforce_quizzes')
-      .update({ prompt, pick, result, allow_custom, custom_label, optional, options })
+      .update({ prompt, allow_custom, optional, options: mergedOptions })
       .eq('id', existing.id).select().single();
     if (error) { console.error('saveQuiz update error:', error); return { error }; }
     return data;
   } else {
     const { data, error } = await supabase.from('workforce_quizzes')
-      .insert({ pathway_id, stop_id, prompt, pick, result, allow_custom, custom_label, optional, options })
+      .insert({ pathway_id, stop_id, prompt, allow_custom, optional, options: mergedOptions })
       .select().single();
     if (error) { console.error('saveQuiz insert error:', error); return { error }; }
     return data;

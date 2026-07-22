@@ -875,6 +875,66 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
               </div>
             </div>
 
+            {/* Workforce Vault link - only show for AI Industry & Work category */}
+            {currentCat.name === 'AI Industry & Work' && (
+              <div style={{ 
+                marginTop: '18px', 
+                padding: '16px 20px', 
+                background: 'linear-gradient(135deg, #1a3a5c 0%, #0f2744 100%)', 
+                borderRadius: '12px', 
+                border: '2px solid #2a5a8c',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ 
+                    width: '44px', 
+                    height: '44px', 
+                    background: 'linear-gradient(135deg, #ffdd2e, #f0c000)', 
+                    borderRadius: '10px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    fontSize: '22px',
+                    boxShadow: '0 3px 8px rgba(0,0,0,0.2)'
+                  }}>🔐</div>
+                  <div>
+                    <div style={{ color: '#fff', fontWeight: 800, fontSize: '15px', letterSpacing: '-.01em' }}>Workforce Resource Vault</div>
+                    <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', marginTop: '2px' }}>Career resources for Creator & Environmental trails</div>
+                  </div>
+                </div>
+                <Link 
+                  href="/hub/workforce-pathways?node=all" 
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    padding: '11px 20px', 
+                    background: 'linear-gradient(180deg, #ffdd2e, #e8c800)', 
+                    border: 'none', 
+                    borderRadius: '8px', 
+                    color: '#1a3a5c', 
+                    fontFamily: '"Exo", sans-serif', 
+                    fontWeight: 800, 
+                    fontSize: '13px', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '.04em', 
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(255,221,46,0.3)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  className="hover:scale-105"
+                >
+                  Explore Vault
+                  <span>→</span>
+                </Link>
+              </div>
+            )}
+
             {/* type filters */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', margin: '22px 0 4px', alignItems: 'center' }}>
               {typeChips.map(t => (

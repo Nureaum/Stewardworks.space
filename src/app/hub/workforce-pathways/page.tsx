@@ -134,8 +134,12 @@ function WorkforcePathwaysContent() {
         const jbm: Record<string, boolean> = {};
         bmData.forEach((b: any) => {
           if (b.item_id) {
-            bm[b.item_id] = true;
-            jbm[b.item_id] = true;
+            // Separate job bookmarks from resource bookmarks by title prefix
+            if (b.title && b.title.startsWith('Job:')) {
+              jbm[b.item_id] = true;
+            } else {
+              bm[b.item_id] = true;
+            }
           }
         });
         setBookmarks(bm);
@@ -468,10 +472,14 @@ function WorkforcePathwaysContent() {
         rec.nodeId
       );
       
-      // Refetch bookmarks to sync state with database
+      // Refetch bookmarks to sync state with database (only resource bookmarks, not jobs)
       const bmData = await fetchUserBookmarks('workforce');
       const bm: Record<string, boolean> = {};
-      bmData.forEach((b: any) => bm[b.item_id] = true);
+      bmData.forEach((b: any) => {
+        if (b.item_id && !(b.title && b.title.startsWith('Job:'))) {
+          bm[b.item_id] = true;
+        }
+      });
       setBookmarks(bm);
       
       // Show success message
@@ -520,14 +528,14 @@ function WorkforcePathwaysContent() {
         url
       );
       
-      // Refetch to sync
+      // Refetch to sync - only get job bookmarks (title starts with "Job:")
       const bmData = await fetchUserBookmarks('workforce');
       const jbm: Record<string, boolean> = {};
       bmData.forEach((b: any) => {
-        // Check if this is a job bookmark (title starts with "Job:")
-        if (b.item_id) jbm[b.item_id] = true;
+        if (b.item_id && b.title && b.title.startsWith('Job:')) {
+          jbm[b.item_id] = true;
+        }
       });
-      // Only update job bookmarks that are jobs
       setJobBookmarks(jbm);
       
       if (!isBookmarked) {
@@ -673,13 +681,14 @@ function WorkforcePathwaysContent() {
 
   // Compute Quiz Props
   const dbQuizData = dbQuizzes.find(q => q.pathway_id === pathway && q.stop_id === stopId);
+  const quizMeta = dbQuizData?.options?.find((o: any) => o.id === '__meta__') || {};
   
   const popHasQuiz = pathway && stopId ? true : false;
   const quizPrompt = dbQuizData ? dbQuizData.prompt : '';
-  const quizPickLabel = (dbQuizData && dbQuizData.pick) ? dbQuizData.pick : '⚡ YOUR MISSION PICK'; 
-  const rawQuizOptions = dbQuizData && dbQuizData.options ? dbQuizData.options : [];
+  const quizPickLabel = (dbQuizData && (dbQuizData.pick || quizMeta.pick)) ? (dbQuizData.pick || quizMeta.pick) : '⚡ YOUR MISSION PICK'; 
+  const rawQuizOptions = dbQuizData && dbQuizData.options ? dbQuizData.options.filter((o: any) => o.id !== '__meta__') : [];
   const quizAllowCustom = dbQuizData ? dbQuizData.allow_custom : false;
-  const quizCustomLabel = (dbQuizData && dbQuizData.custom_label) ? dbQuizData.custom_label : '…or write your own';
+  const quizCustomLabel = (dbQuizData && (dbQuizData.custom_label || quizMeta.custom_label)) ? (dbQuizData.custom_label || quizMeta.custom_label) : '…or write your own';
 
   const pickKey = `${pathway}.${stopId}`;
   const existingPick = dbUserPicks.find(p => p.pathway_id === pathway && p.stop_id === stopId);
@@ -758,10 +767,12 @@ function WorkforcePathwaysContent() {
   const summitChecklist = currentPathwayStops.map((s, i) => {
     const pk = dbUserPicks.find(p => p.pathway_id === pathway && p.stop_id === s.id);
     const qData = (QUIZZES as any)[pathway || '']?.[s.id] || {};
+    const dbQ = dbQuizzes.find(q => q.pathway_id === pathway && q.stop_id === s.id);
+    const meta = dbQ?.options?.find((o: any) => o.id === '__meta__') || {};
+    const resultLabel = (dbQ && (dbQ.result || meta.result)) ? (dbQ.result || meta.result) : (qData.result || s.name);
     
     let answerText = "";
     if (pk?.option_id) {
-      const dbQ = dbQuizzes.find(q => q.pathway_id === pathway && q.stop_id === s.id);
       const opts = dbQ?.options?.length ? dbQ.options : (qData.options || []);
       const pickedOpt = opts.find((o: any) => o.id === pk.option_id);
       if (pickedOpt) answerText = pickedOpt.label;
@@ -770,12 +781,12 @@ function WorkforcePathwaysContent() {
     }
     
     const hasValue = !!answerText;
-    const optional = !!qData.optional;
+    const optional = dbQ ? !!dbQ.optional : !!qData.optional;
     const color = (theme === 'arcade' && STEP[i]) ? STEP[i] : (s.color || "#6b4a2a");
     
     return {
       name: s.name, 
-      result: qData.result || s.name,
+      result: resultLabel,
       value: hasValue ? answerText : (optional ? "Optional — not set" : "Not chosen yet"),
       mark: s.mark || '◆', 
       done: hasValue, 
@@ -808,10 +819,12 @@ function WorkforcePathwaysContent() {
   const cardStatRows = currentPathwayStops.map((s, i) => {
     const qData = (QUIZZES as any)[pathway || '']?.[s.id] || {};
     const pk = dbUserPicks.find(p => p.pathway_id === pathway && p.stop_id === s.id);
+    const dbQ = dbQuizzes.find(q => q.pathway_id === pathway && q.stop_id === s.id);
+    const meta = dbQ?.options?.find((o: any) => o.id === '__meta__') || {};
+    const resultLabel = (dbQ && (dbQ.result || meta.result)) ? (dbQ.result || meta.result) : (qData.result || s.name);
     
     let answerText = "";
     if (pk?.option_id) {
-      const dbQ = dbQuizzes.find(q => q.pathway_id === pathway && q.stop_id === s.id);
       const opts = dbQ?.options?.length ? dbQ.options : (qData.options || []);
       const pickedOpt = opts.find((o: any) => o.id === pk.option_id);
       if (pickedOpt) answerText = pickedOpt.label;
@@ -824,7 +837,7 @@ function WorkforcePathwaysContent() {
     
     return {
       mark: s.mark || '◆',
-      result: qData.result || s.name,
+      result: resultLabel,
       value: hasValue ? answerText : "—",
       hasValue: hasValue,
       dotStyle: { flex: "0 0 auto", width: "30px", height: "30px", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Press Start 2P',monospace", fontSize: "13px", border: "3px solid #1c1526", background: color, color: "#10285e" },

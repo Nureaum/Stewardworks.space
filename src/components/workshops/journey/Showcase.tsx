@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import type { WorkshopShowcase, WorkshopEngagement } from '@/types/workshops'
 import { getAllGenerations } from '@/app/actions/workshops/engagement'
 import { getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
+import { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 
 /* ── local item shape ── */
 interface ShowcaseItem {
@@ -82,9 +83,12 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
         getStudentShowcaseDeliverables(cohortId)
       ]).then(([engs, delivs]) => {
         const approvedEngs = engs.filter((e: any) => {
+          // Only show approved engagements that requested showcase
+          if (e.status !== 'approved') return false;
           try {
             const data = JSON.parse(e.content || '{}');
-            return data.showcaseVisible === true;
+            // Show if showcaseVisible is true OR if it was requested and approved (legacy items)
+            return data.showcaseVisible === true || data.showcaseRequested === true;
           } catch(err) {
             return false;
           }
@@ -344,15 +348,40 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center',
-                        position: 'relative'
+                        position: 'relative',
+                        overflow: 'hidden'
                       }}
                     >
-                      {item.url && (item.url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || item.url.includes('/storage/v1/object/public/')) ? (
+                      {item.url && isImageUrl(item.url) ? (
                         <img 
                           src={item.url} 
                           alt={item.title}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                         />
+                      ) : item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be')) ? (
+                        <>
+                          <img
+                            src={`https://img.youtube.com/vi/${item.url.includes('youtu.be/') ? item.url.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(item.url.split('?')[1] || '').get('v')}/mqdefault.jpg`}
+                            alt={item.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 14, color: '#fff', marginLeft: 2 }}>▶</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : item.url && item.url.match(/\.(mp4|webm|mov)/i) ? (
+                        <>
+                          <video src={item.url} preload="metadata" muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 14, color: '#fff', marginLeft: 2 }}>▶</span>
+                            </div>
+                          </div>
+                        </>
                       ) : (
                         <span style={{ fontSize: 40, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
                       )}
@@ -503,25 +532,48 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                     </button>
                   </div>
 
-                  {/* Thumbnail */}
+                  {/* Thumbnail / Media Preview */}
                   <div style={{
-                    height: 180,
                     borderRadius: 8,
                     overflow: 'hidden',
                     background: 'linear-gradient(135deg, rgba(255,95,210,0.2), rgba(255,95,210,0.05))',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid var(--ln,#28432f)'
+                    border: '2px solid var(--ln,#28432f)',
+                    position: 'relative',
                   }}>
-                    {studentDetail.url && (studentDetail.url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || studentDetail.url.includes('/storage/v1/object/public/')) ? (
+                    {studentDetail.url && isImageUrl(studentDetail.url) ? (
                       <img 
                         src={studentDetail.url} 
                         alt={studentDetail.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        style={{ width: '100%', maxHeight: 300, objectFit: 'contain', display: 'block' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
+                    ) : studentDetail.url && (studentDetail.url.includes('youtube.com') || studentDetail.url.includes('youtu.be')) ? (
+                      <div style={{ width: '100%', aspectRatio: '16/9' }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${studentDetail.url.includes('youtu.be/') ? studentDetail.url.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(studentDetail.url.split('?')[1] || '').get('v')}`}
+                          style={{ width: '100%', height: '100%', border: 'none' }}
+                          allowFullScreen
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        />
+                      </div>
+                    ) : studentDetail.url && studentDetail.url.match(/\.(mp4|webm|mov)/i) ? (
+                      <video 
+                        src={studentDetail.url} 
+                        controls 
+                        preload="metadata"
+                        style={{ width: '100%', maxHeight: 300, display: 'block' }}
+                      />
+                    ) : studentDetail.url && studentDetail.url.match(/\.(mp3|wav|ogg|aac|flac)/i) ? (
+                      <div style={{ width: '100%', padding: 20 }}>
+                        <audio src={studentDetail.url} controls style={{ width: '100%' }} />
+                      </div>
                     ) : (
-                      <span style={{ fontSize: 60, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
+                      <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                        <span style={{ fontSize: 60, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
+                      </div>
                     )}
                   </div>
 
@@ -650,11 +702,45 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
       }}>
-        {/* type icon placeholder */}
-        <span style={{ fontSize: 38, opacity: .18, color: clr }}>
-          {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : '✎'}
-        </span>
+        {/* Show actual media preview if URL is available */}
+        {item.url && isImageUrl(item.url) ? (
+          <img
+            src={item.url}
+            alt={item.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+        ) : item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be')) ? (
+          <>
+            <img
+              src={`https://img.youtube.com/vi/${item.url.includes('youtu.be/') ? item.url.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(item.url.split('?')[1] || '').get('v')}/mqdefault.jpg`}
+              alt={item.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 16, color: '#fff', marginLeft: 3 }}>▶</span>
+              </div>
+            </div>
+          </>
+        ) : item.url && item.url.match(/\.(mp4|webm|mov)/i) ? (
+          <>
+            <video src={item.url} preload="metadata" muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 16, color: '#fff', marginLeft: 3 }}>▶</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* fallback type icon */
+          <span style={{ fontSize: 38, opacity: .18, color: clr }}>
+            {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : '✎'}
+          </span>
+        )}
 
         {/* type badge */}
         <span className="font-pixel" style={{
@@ -813,57 +899,61 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
           position: 'relative',
         }}
       >
-        {/* header image */}
-        <div style={{
-          height: 150,
-          background: `linear-gradient(135deg,${clr}33,${clr}0a)`,
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <span style={{ fontSize: 52, opacity: .14, color: clr }}>
-            {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : '✎'}
-          </span>
-
-          {/* type badge */}
-          <span className="font-pixel" style={{
-            position: 'absolute',
-            top: 12,
-            left: 12,
-            fontSize: 7,
-            padding: '3px 8px',
-            borderRadius: 4,
-            background: clr,
-            color: '#12081e',
+        {/* header gradient - only show when no embeddable media URL */}
+        {!(item.url && (isImageUrl(item.url) || item.url.includes('youtube.com') || item.url.includes('youtu.be') || item.url.match(/\.(mp4|webm|mov|mp3|wav|ogg|aac|flac)/i))) && (
+          <div style={{
+            height: 150,
+            background: `linear-gradient(135deg,${clr}33,${clr}0a)`,
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
           }}>
-            {TYPE_LABEL[item.type]}
-          </span>
+            <span style={{ fontSize: 52, opacity: .14, color: clr }}>
+              {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : '✎'}
+            </span>
 
-          {/* close btn */}
-          <button
-            onClick={onClose}
-            style={{
+            {/* type badge */}
+            <span className="font-pixel" style={{
               position: 'absolute',
-              top: 10,
-              right: 10,
-              width: 34,
-              height: 34,
-              borderRadius: 6,
-              border: '2px solid var(--ln,#3d2668)',
-              background: 'var(--pn,#241542)',
-              color: 'var(--tx,#efe6ff)',
-              fontSize: 18,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-            }}
-          >
-            ✕
-          </button>
-        </div>
+              top: 12,
+              left: 12,
+              fontSize: 7,
+              padding: '3px 8px',
+              borderRadius: 4,
+              background: clr,
+              color: '#12081e',
+            }}>
+              {TYPE_LABEL[item.type]}
+            </span>
+          </div>
+        )}
+
+        {/* close btn - always visible */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            zIndex: 10,
+            width: 34,
+            height: 34,
+            borderRadius: 6,
+            border: '2px solid var(--ln,#3d2668)',
+            background: 'var(--pn,#241542)',
+            color: 'var(--tx,#efe6ff)',
+            fontSize: 18,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+          }}
+        >
+          ✕
+        </button>
 
         {/* content */}
         <div style={{ padding: '18px 22px 22px' }}>
@@ -890,8 +980,34 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
           </p>
 
           {/* ── type-specific preview ── */}
-          {item.type === 'video' && <VideoPreview clr={clr} />}
-          {item.type === 'audio' && <AudioPreview clr={clr} waveHeights={waveHeights} />}
+          {item.type === 'video' && item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be')) ? (
+            <div style={{ aspectRatio: '16/9', borderRadius: 8, overflow: 'hidden', border: `1px solid ${clr}33`, marginBottom: 4 }}>
+              <iframe
+                src={`https://www.youtube.com/embed/${item.url.includes('youtu.be/') ? item.url.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(item.url.split('?')[1] || '').get('v')}`}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              />
+            </div>
+          ) : item.type === 'video' && item.url && item.url.match(/\.(mp4|webm|mov)/i) ? (
+            <div style={{ borderRadius: 8, overflow: 'hidden', border: `1px solid ${clr}33`, marginBottom: 4 }}>
+              <video src={item.url} controls preload="metadata" style={{ width: '100%', display: 'block' }} />
+            </div>
+          ) : item.type === 'video' && !item.url ? (
+            <VideoPreview clr={clr} />
+          ) : null}
+          {item.type === 'audio' && item.url && item.url.match(/\.(mp3|wav|ogg|aac|flac)/i) ? (
+            <div style={{ borderRadius: 8, border: `1px solid ${clr}33`, padding: 14, marginBottom: 4, background: `linear-gradient(135deg,${clr}12,${clr}04)` }}>
+              <audio src={item.url} controls style={{ width: '100%' }} />
+            </div>
+          ) : item.type === 'audio' ? (
+            <AudioPreview clr={clr} waveHeights={waveHeights} />
+          ) : null}
+          {item.url && isImageUrl(item.url) && (
+            <div style={{ borderRadius: 8, overflow: 'hidden', border: `1px solid ${clr}33`, marginBottom: 4 }}>
+              <img src={item.url} alt={item.title} style={{ width: '100%', maxHeight: 300, objectFit: 'contain', display: 'block', background: 'rgba(0,0,0,.2)' }} />
+            </div>
+          )}
 
           {/* blurb */}
           <p style={{

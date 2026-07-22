@@ -2,6 +2,9 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import '@/app/hub/pilot-workshops/retro-theme.css'
+import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
+import { uploadCreationImage } from '@/app/actions/workshops/engagement'
 import type {
   DayWithSections,
   WorkshopProgress,
@@ -67,7 +70,6 @@ const textareaStyle: React.CSSProperties = {
   ...inputStyle,
   resize: 'vertical' as const,
   lineHeight: 1.4,
-  fontFamily: 'inherit',
 }
 
 // ─── Chia sprite helper ────────────────────────────────────
@@ -137,6 +139,9 @@ export default function AdminConsole({
   const [ncAuthor, setNcAuthor] = useState('')
   const [ncEmail, setNcEmail] = useState('')
   const [ncLink, setNcLink] = useState('')
+  const [ncFileToUpload, setNcFileToUpload] = useState<File | null>(null)
+  const [isUploadingNcFile, setIsUploadingNcFile] = useState(false)
+  const ncFileInputRef = useRef<HTMLInputElement>(null)
   const [ncBlurb, setNcBlurb] = useState('')
   const [ncMeta, setNcMeta] = useState('')
   const [ncPaid, setNcPaid] = useState(true)
@@ -598,13 +603,23 @@ export default function AdminConsole({
     if (!ncTitle.trim()) return
     setIsSaving(true)
     try {
+      // Upload file if selected from device
+      let finalLink = ncLink
+      if (ncFileToUpload) {
+        setIsUploadingNcFile(true)
+        const formData = new FormData()
+        formData.append('file', ncFileToUpload)
+        finalLink = await uploadCreationImage(formData)
+        setIsUploadingNcFile(false)
+      }
+
       if (editingShowcaseId) {
         // Update existing item
         await updateShowcaseItem(editingShowcaseId, {
           title: ncTitle,
           author: ncAuthor || 'Community Contributor',
           type: ncType,
-          url: ncLink || undefined,
+          url: finalLink || undefined,
           blurb: ncBlurb || 'Contributor media.',
           meta: ncMeta || '',
           is_paid: ncPaid,
@@ -617,7 +632,7 @@ export default function AdminConsole({
           title: ncTitle,
           author: ncAuthor || 'Community Contributor',
           type: ncType,
-          url: ncLink || undefined,
+          url: finalLink || undefined,
           blurb: ncBlurb || 'Contributor media.',
           meta: ncMeta || '',
           is_paid: ncPaid,
@@ -655,6 +670,7 @@ export default function AdminConsole({
       setNcAuthor('')
       setNcEmail('')
       setNcLink('')
+      setNcFileToUpload(null)
       setNcBlurb('')
       setNcMeta('')
       
@@ -724,6 +740,7 @@ export default function AdminConsole({
     setNcAuthor('')
     setNcEmail('')
     setNcLink('')
+    setNcFileToUpload(null)
     setNcBlurb('')
     setNcMeta('')
   }
@@ -833,7 +850,7 @@ export default function AdminConsole({
     <button
       onClick={() => {
         if (cameFromAdminPanel) {
-          router.push('/admin/pilot-workshops')
+          router.push('/admin/announcements')
         } else {
           onReturnToGame()
         }
@@ -868,6 +885,17 @@ export default function AdminConsole({
     </button>
   )
 
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(0,0,0,.35)',
+    border: '2px solid var(--ln,#3a3352)',
+    borderRadius: 6,
+    color: 'var(--tx,#e4e0ee)',
+    fontFamily: '"VT323", monospace',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+  }
+
   const rootStyle = {
     maxWidth: 1200,
     margin: '0 auto',
@@ -884,7 +912,7 @@ export default function AdminConsole({
   } as React.CSSProperties
 
   return (
-    <div style={rootStyle}>
+    <div className="font-vt323" style={rootStyle}>
 
       {/* ═══ Console Header ═══ */}
       <div style={{
@@ -993,13 +1021,13 @@ export default function AdminConsole({
               padding: '24px',
               color: 'var(--tx,#e4e0ee)'
             }}>
-              <div className="font-pixel" style={{ fontSize: 10, color: 'var(--gold,#ffd23f)', marginBottom: 20 }}>
+              <div className="font-pixel" style={{ fontSize: 14, color: 'var(--gold,#ffd23f)', marginBottom: 20 }}>
                 ◈ COHORT SETTINGS
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Cohort Name</div>
+                  <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Cohort Name</div>
                   <input
                     defaultValue={cohort?.name || ''}
                     onBlur={e => saveField(() => updateCohort(cohortId, { name: e.target.value }))}
@@ -1008,7 +1036,7 @@ export default function AdminConsole({
                 </div>
                 
                 <div>
-                  <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Description</div>
+                  <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Description</div>
                   <textarea
                     ref={descRef}
                     defaultValue={initialDesc}
@@ -1022,7 +1050,7 @@ export default function AdminConsole({
                 </div>
 
                 <div>
-                  <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Thumbnail Image</div>
+                  <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Thumbnail Image</div>
                   {cohortThumb ? (
                     <div style={{ position: 'relative', display: 'inline-block', border: '2px solid var(--ln,#3d2668)', borderRadius: 8, overflow: 'hidden' }}>
                       <img src={cohortThumb} alt="Thumbnail Preview" style={{ height: 160, objectFit: 'cover' }} />
@@ -1066,7 +1094,7 @@ export default function AdminConsole({
 
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div style={{ flex: 1 }}>
-                    <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Status</div>
+                    <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Status</div>
                     <select
                       defaultValue={cohort?.status || 'draft'}
                       onChange={e => saveField(() => updateCohort(cohortId, { status: e.target.value as any }))}
@@ -1259,7 +1287,7 @@ export default function AdminConsole({
                       onClick={() => { setActiveDayIdx(i); setSelectedEntry(null) }}
                       className="font-pixel"
                       style={{
-                        fontSize: 14,
+                        fontSize: 16,
                         padding: '12px 16px',
                         border: `2px solid ${isActive ? '#ffd23f' : 'var(--ln,#3d2668)'}`,
                         borderRadius: 4,
@@ -1280,7 +1308,7 @@ export default function AdminConsole({
                   onClick={handleAddDay}
                   className="font-pixel"
                   style={{
-                    fontSize: 14,
+                    fontSize: 16,
                     padding: '12px 16px',
                     border: '2px dashed var(--s,#45d6ff)',
                     borderRadius: 4,
@@ -1312,7 +1340,7 @@ export default function AdminConsole({
                     background: 'rgba(0,0,0,.16)',
                     padding: '20px 18px',
                   }}>
-                    <div className="font-pixel" style={{ fontSize: 12, color: 'var(--gold,#ffd23f)', margin: '2px 4px 8px', letterSpacing: 1 }}>
+                    <div className="font-pixel" style={{ fontSize: 16, color: 'var(--gold,#ffd23f)', margin: '2px 4px 10px', letterSpacing: 1 }}>
                       DAY {String(activeDay.day_number).padStart(2, '0')} · WORKSHOP DAY
                     </div>
                     <input
@@ -1321,7 +1349,7 @@ export default function AdminConsole({
                       onBlur={e => handleDayFieldBlur(activeDay.id, 'title', e.target.value)}
                       style={{ ...inputStyle, fontSize: 16, lineHeight: 1.5, marginBottom: 8 }}
                     />
-                    <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Short blurb — map & day header</div>
+                    <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>Short blurb — map & day header</div>
                     <textarea
                       defaultValue={activeDay.content_body || activeDay.blurb || ''}
                       rows={2}
@@ -1329,7 +1357,7 @@ export default function AdminConsole({
                       onBlur={e => handleDayFieldBlur(activeDay.id, 'content_body', e.target.value)}
                       style={{ ...textareaStyle, marginBottom: 12 }}
                     />
-                    <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>
+                    <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', margin: '0 2px 4px' }}>
                       ◈ Level intro — the card shown when a steward enters this day's scene
                     </div>
                     <textarea
@@ -1357,32 +1385,35 @@ export default function AdminConsole({
                           border: '2px solid var(--ln,#3d2668)',
                           borderRadius: 8,
                           background: 'rgba(0,0,0,.28)',
-                          padding: '9px 10px',
-                          marginBottom: 9,
+                          padding: '12px 14px',
+                          marginBottom: 12,
                         }}>
-                          <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="font-pixel" style={{ fontSize: 14, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>◇ SESSION HEADER</span>
-                            <button onClick={() => handleDeleteSection(sec.id, activeDay.id)} style={{ fontSize: 14, color: '#cf9760', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }} title="Delete section">✕</button>
+                            <button onClick={() => handleDeleteSection(sec.id, activeDay.id)} style={{ fontSize: 16, color: '#cf9760', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }} title="Delete section">✕</button>
                           </div>
                           <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
                             <input
+                              className="font-pixel"
                               defaultValue={sec.hour}
                               placeholder="HOUR A"
                               onBlur={e => handleSectionFieldBlur(sec.id, 'hour', e.target.value)}
-                              style={{ ...inputStyle, flex: 1, minWidth: 0, color: 'var(--gold,#ffd23f)', fontSize: 15, padding: 8, letterSpacing: '.5px' }}
+                              style={{ ...inputStyle, flex: 1, minWidth: 0, color: 'var(--gold,#ffd23f)', fontSize: 13, padding: '10px 12px', letterSpacing: '.5px' }}
                             />
                             <input
+                              className="font-retro"
                               defaultValue={sec.duration}
                               placeholder="1 hr"
                               onBlur={e => handleSectionFieldBlur(sec.id, 'duration', e.target.value)}
-                              style={{ ...inputStyle, width: 62, flex: 'none', fontSize: 15, padding: 8, textAlign: 'center' }}
+                              style={{ ...inputStyle, width: 76, flex: 'none', fontSize: 18, padding: '10px 12px', textAlign: 'center' }}
                             />
                           </div>
                           <input
+                            className="font-retro"
                             defaultValue={sec.title}
                             placeholder="Session title…"
                             onBlur={e => handleSectionFieldBlur(sec.id, 'title', e.target.value)}
-                            style={{ ...inputStyle, fontSize: 16, padding: '8px 9px' }}
+                            style={{ ...inputStyle, fontSize: 20, padding: '10px 12px' }}
                           />
                         </div>
 
@@ -1391,6 +1422,7 @@ export default function AdminConsole({
                           <div key={en.id || ei} style={{ display: 'flex', alignItems: 'stretch', gap: 6, marginBottom: 8 }}>
                             <button
                               onClick={() => { setSelectedEntry(en.id); setEditorOpen(true); }}
+                              className="font-retro"
                               style={{
                                 flex: 1,
                                 display: 'flex',
@@ -1402,21 +1434,22 @@ export default function AdminConsole({
                                 background: selectedEntry === en.id ? 'rgba(201,168,95,.1)' : 'rgba(0,0,0,.15)',
                                 cursor: 'pointer',
                                 textAlign: 'left',
+                                fontFamily: '"VT323", monospace',
                               }}
                             >
                               <span className="font-pixel" style={{
-                                fontSize: 12,
+                                fontSize: 16,
                                 color: 'var(--gold,#ffd23f)',
                                 background: 'rgba(0,0,0,.3)',
-                                borderRadius: 4,
-                                padding: '6px 8px',
+                                borderRadius: 6,
+                                padding: '8px 10px',
                                 flex: 'none',
                               }}>
                                 {si + 1}.{ei + 1}
                               </span>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.15 }}>{en.title}</div>
-                                <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu,#a493c9)', marginTop: 5, lineHeight: 1.5 }}>
+                                <div style={{ fontSize: 22, color: 'var(--tx,#efe6ff)', lineHeight: 1.15 }}>{en.title}</div>
+                                <div className="font-pixel" style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginTop: 8, lineHeight: 1.5 }}>
                                   {en.subtitle || en.entry_type}
                                 </div>
                               </div>
@@ -1424,7 +1457,7 @@ export default function AdminConsole({
                             </button>
                             <button
                               onClick={() => handleDeleteEntry(en.id, sec.id)}
-                              style={{ fontSize: 14, color: '#cf9760', background: 'rgba(0,0,0,.2)', border: '1px solid #5a4636', borderRadius: 6, padding: '0 8px', cursor: 'pointer', flex: 'none' }}
+                              style={{ fontSize: 16, color: '#cf9760', background: 'rgba(0,0,0,.2)', border: '1px solid #5a4636', borderRadius: 6, padding: '0 8px', cursor: 'pointer', flex: 'none' }}
                               title="Delete entry"
                             >✕</button>
                           </div>
@@ -1434,15 +1467,15 @@ export default function AdminConsole({
                           onClick={() => handleAddEntry(sec.id)}
                           className="font-pixel"
                           style={{
-                            fontSize: 10,
+                            fontSize: 16,
                             color: 'var(--p,#ff5fd2)',
                             background: 'none',
                             border: '2px dashed var(--p,#ff5fd2)',
                             borderRadius: 6,
-                            padding: '9px 11px',
+                            padding: '12px 14px',
                             cursor: 'pointer',
                             width: '100%',
-                            marginTop: 2,
+                            marginTop: 4,
                           }}
                         >
                           ＋ ADD LESSON SLOT
@@ -1480,11 +1513,11 @@ export default function AdminConsole({
                     gap: 14,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                      <div className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
+                      <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
                         {selEntry ? `SESSION ${selEntry.num}` : 'SELECT A SESSION'}
                       </div>
                       <span className="font-pixel" style={{
-                        fontSize: 7,
+                        fontSize: 10,
                         color: isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)',
                         border: `1px solid ${isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)'}`,
                         borderRadius: 20,
@@ -1714,10 +1747,10 @@ export default function AdminConsole({
                 background: 'rgba(116,240,160,.05)',
                 height: 'fit-content',
               }}>
-                <div className="font-pixel" style={{ fontSize: 9, color: 'var(--ok,#74f0a0)', marginBottom: 13 }}>
+                <div className="font-pixel" style={{ fontSize: 10, color: 'var(--ok,#74f0a0)', marginBottom: 13 }}>
                   {editingShowcaseId ? '✎ EDIT CONTRIBUTOR MEDIA' : '＋ PUBLISH CONTRIBUTOR MEDIA'}
                 </div>
-                <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 7 }}>MEDIA TYPE</div>
+                <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 7 }}>MEDIA TYPE</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                   {['video', 'article', 'audio', 'aigen'].map(t => (
                     <button
@@ -1725,8 +1758,8 @@ export default function AdminConsole({
                       onClick={() => setNcType(t)}
                       className="font-pixel"
                       style={{
-                        fontSize: 14,
-                        padding: '8px 12px',
+                        fontSize: 10,
+                        padding: '8px 14px',
                         border: `2px solid ${ncType === t ? 'var(--ok,#74f0a0)' : 'var(--ln,#3d2668)'}`,
                         borderRadius: 6,
                         background: ncType === t ? 'rgba(116,240,160,.15)' : 'rgba(0,0,0,.3)',
@@ -1738,30 +1771,79 @@ export default function AdminConsole({
                     </button>
                   ))}
                 </div>
-                <input value={ncTitle} onChange={e => setNcTitle(e.target.value)} placeholder="Media title…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
-                <input value={ncAuthor} onChange={e => setNcAuthor(e.target.value)} placeholder="Contributor name…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
+                <input value={ncTitle} onChange={e => setNcTitle(e.target.value)} placeholder="Media title…" style={{ ...inputStyle, fontSize: 15, marginBottom: 9 }} />
+                <input value={ncAuthor} onChange={e => setNcAuthor(e.target.value)} placeholder="Contributor name…" style={{ ...inputStyle, fontSize: 15, marginBottom: 9 }} />
                 <div style={{ marginBottom: 9 }}>
                   <input 
                     value={ncEmail} 
                     onChange={e => setNcEmail(e.target.value)} 
                     placeholder="Contributor email (optional)…" 
                     type="email" 
-                    style={{ ...inputStyle, fontSize: 18, marginBottom: 4 }} 
+                    style={{ ...inputStyle, fontSize: 15, marginBottom: 4 }} 
                   />
-                  <div style={{ fontSize: 12, color: 'var(--s,#8aa6c4)', paddingLeft: 4, lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 13, color: 'var(--s,#8aa6c4)', paddingLeft: 4, lineHeight: 1.3 }}>
                     ✉ When provided, sends an invitation email with guest access
                   </div>
                 </div>
-                <input value={ncLink} onChange={e => setNcLink(e.target.value)} placeholder="Public share link / creation ID…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
-                <input value={ncMeta} onChange={e => setNcMeta(e.target.value)} placeholder="Duration / word count (e.g., 8:24 · Video)…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
+                <div style={{ display: 'flex', gap: 8, marginBottom: 9 }}>
+                  {ncLink.startsWith('blob:') ? (
+                    <div style={{
+                      flex: 1,
+                      ...inputStyle,
+                      fontSize: 15,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '6px 11px',
+                    }}>
+                      {ncFileToUpload?.type.startsWith('image/') ? (
+                        <img src={ncLink} alt="" style={{ height: 28, width: 28, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--ln,#3d2668)' }} />
+                      ) : ncFileToUpload?.type.startsWith('video/') ? (
+                        <span style={{ fontSize: 18 }}>🎬</span>
+                      ) : (
+                        <span style={{ fontSize: 18 }}>🎵</span>
+                      )}
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14 }}>
+                        {ncFileToUpload?.name || 'Uploaded File'}
+                      </span>
+                      <button onClick={() => { setNcLink(''); setNcFileToUpload(null) }} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 14 }}>✕</button>
+                    </div>
+                  ) : (
+                    <input value={ncLink} onChange={e => setNcLink(e.target.value)} placeholder="Public share link / creation ID…" style={{ ...inputStyle, fontSize: 15, flex: 1 }} />
+                  )}
+                  <input type="file" accept="image/*,video/*,audio/*" hidden ref={ncFileInputRef} onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setNcFileToUpload(file)
+                    setNcLink(URL.createObjectURL(file))
+                    if (ncFileInputRef.current) ncFileInputRef.current.value = ''
+                  }} />
+                  <button
+                    onClick={() => ncFileInputRef.current?.click()}
+                    className="font-pixel"
+                    style={{
+                      fontSize: 9,
+                      background: 'transparent',
+                      border: '2px solid var(--s,#45d6ff)',
+                      color: 'var(--s,#45d6ff)',
+                      borderRadius: 4,
+                      padding: '8px 14px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ↑ UPLOAD
+                  </button>
+                </div>
+                <input value={ncMeta} onChange={e => setNcMeta(e.target.value)} placeholder="Duration / word count (e.g., 8:24 · Video)…" style={{ ...inputStyle, fontSize: 15, marginBottom: 9 }} />
                 <textarea 
                   value={ncBlurb} 
                   onChange={e => setNcBlurb(e.target.value)} 
                   placeholder="Description / blurb for students…" 
                   rows={3}
-                  style={{ ...textareaStyle, fontSize: 16, marginBottom: 12 }} 
+                  style={{ ...textareaStyle, fontSize: 15, marginBottom: 12 }} 
                 />
-                <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
+                <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
                   CONTRIBUTOR STATUS · <span style={{ opacity: .75 }}>admin-only, hidden from students</span>
                 </div>
                 <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
@@ -1769,7 +1851,7 @@ export default function AdminConsole({
                     onClick={() => setNcPaid(true)}
                     className="font-pixel"
                     style={{
-                      fontSize: 11,
+                      fontSize: 10,
                       padding: '8px 14px',
                       border: `2px solid ${ncPaid ? 'var(--gold,#c9a85f)' : 'var(--ln,#3d2668)'}`,
                       borderRadius: 6,
@@ -1782,7 +1864,7 @@ export default function AdminConsole({
                     onClick={() => setNcPaid(false)}
                     className="font-pixel"
                     style={{
-                      fontSize: 11,
+                      fontSize: 10,
                       padding: '8px 14px',
                       border: `2px solid ${!ncPaid ? 'var(--ok,#74f0a0)' : 'var(--ln,#3d2668)'}`,
                       borderRadius: 6,
@@ -1792,7 +1874,7 @@ export default function AdminConsole({
                     }}
                   >FREE</button>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', marginBottom: 13, lineHeight: 1.4 }}>
+                <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 13, lineHeight: 1.4 }}>
                   Files into the Steward Library under <span style={{ color: 'var(--s,#45d6ff)' }}>◈ How to Use AI</span> and appears in the student Showcase (no price shown).
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -1802,12 +1884,12 @@ export default function AdminConsole({
                     className="font-pixel"
                     style={{
                       flex: 1,
-                      fontSize: 11,
+                      fontSize: 10,
                       color: 'var(--bg,#12081e)',
                       background: isSaving || !ncTitle.trim() ? 'var(--mu,#a493c9)' : 'var(--ok,#74f0a0)',
                       border: 'none',
                       borderRadius: 4,
-                      padding: '11px 14px',
+                      padding: '12px 14px',
                       cursor: isSaving || !ncTitle.trim() ? 'not-allowed' : 'pointer',
                     }}
                   >
@@ -1818,12 +1900,12 @@ export default function AdminConsole({
                       onClick={handleCancelEdit}
                       className="font-pixel"
                       style={{
-                        fontSize: 11,
+                        fontSize: 10,
                         color: 'var(--mu,#a493c9)',
                         background: 'transparent',
                         border: '2px solid var(--mu,#a493c9)',
                         borderRadius: 4,
-                        padding: '11px 14px',
+                        padding: '12px 14px',
                         cursor: 'pointer',
                       }}
                     >
@@ -1888,20 +1970,45 @@ export default function AdminConsole({
                       alignItems: 'center',
                       gap: 14,
                     }}>
-                      <div style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 4,
-                        background: item.type === 'video' ? '#45d6ff' : item.type === 'article' ? '#ffd23f' : item.type === 'audio' ? '#ff5fd2' : '#74f0a0',
-                        flex: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 14,
-                        color: '#12081e',
-                      }}>
-                        {item.type === 'video' ? '▶' : item.type === 'article' ? '✎' : item.type === 'audio' ? '♫' : '✦'}
-                      </div>
+                      {/* Media thumbnail or type icon */}
+                      {item.url && (isImageUrl(item.url) || item.url.match(/\.(mp4|webm|mov)/i)) ? (
+                        <div style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 6,
+                          overflow: 'hidden',
+                          flex: 'none',
+                          position: 'relative',
+                          background: 'rgba(0,0,0,.3)',
+                          border: '1px solid var(--ln,#3a3352)',
+                        }}>
+                          {isImageUrl(item.url) ? (
+                            <img src={item.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          ) : (
+                            <>
+                              <video src={item.url} preload="metadata" muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: 14, color: '#fff', background: 'rgba(0,0,0,.5)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▶</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 4,
+                          background: item.type === 'video' ? '#45d6ff' : item.type === 'article' ? '#ffd23f' : item.type === 'audio' ? '#ff5fd2' : '#74f0a0',
+                          flex: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 14,
+                          color: '#12081e',
+                        }}>
+                          {item.type === 'video' ? '▶' : item.type === 'article' ? '✎' : item.type === 'audio' ? '♫' : '✦'}
+                        </div>
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 18, color: 'var(--tx,#e4e0ee)', lineHeight: 1.25 }}>{item.title}</div>
                         <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', marginTop: 3 }}>
@@ -2133,7 +2240,18 @@ export default function AdminConsole({
                           
                           {(() => {
                             const rawText = sub.content || sub.submission_text || '';
-                            const isShowcaseRequested = rawText.includes('[SHOWCASE_REQUESTED]');
+                            let isShowcaseRequested = rawText.includes('[SHOWCASE_REQUESTED]');
+                            
+                            // Also check JSON content field for AI Lab submissions
+                            if (!isShowcaseRequested && rawText.startsWith('{')) {
+                              try {
+                                const parsed = JSON.parse(rawText);
+                                if (parsed.showcaseRequested === true) {
+                                  isShowcaseRequested = true;
+                                }
+                              } catch (e) { /* not JSON, ignore */ }
+                            }
+                            
                             let cleanText = rawText.replace('[SHOWCASE_REQUESTED]', '').trim();
                             
                             // Get principle from sub.principle_id (fetched from database)
@@ -2204,7 +2322,10 @@ export default function AdminConsole({
                             cleanText = cleanText.replace(principleMatch[0], '').trim();
                           }
                           
-                          if (!sub.url && !cleanText) return null;
+                          // For deliverables, also check external_video_url
+                          const displayUrl = sub.url || sub.external_video_url || cleanText;
+                          
+                          if (!displayUrl) return null;
 
                           return (
                             <div style={{ 
@@ -2216,24 +2337,13 @@ export default function AdminConsole({
                               lineHeight: 1.3,
                               padding: '8px 0'
                             }}>
-                              {sub.url ? (
-                                (sub.url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || sub.url.includes('/public/content-uploads/')) ? (
-                                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                                    <a href={sub.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                                      <img src={sub.url} alt="Submission" style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 6, objectFit: 'contain', border: '1px solid var(--ln,#3a3352)', background: 'rgba(0,0,0,.3)' }} />
-                                      <div className="font-pixel" style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,.7)', color: 'var(--cy,#45d6ff)', border: '1px solid var(--cy,#45d6ff)', padding: '4px 6px', borderRadius: 4, fontSize: 8, letterSpacing: 1 }}>
-                                        ↗ OPEN
-                                      </div>
-                                    </a>
-                                  </div>
-                                ) : (
-                                  <a href={sub.url} target="_blank" rel="noopener noreferrer" style={{ color: '#45d6ff', textDecoration: 'underline' }}>
-                                    {sub.url} ↗
-                                  </a>
-                                )
-                              ) : (
-                                cleanText
-                              )}
+                              <DeliverableMediaPreview
+                                url={displayUrl}
+                                variant="thumbnail"
+                                theme="dark"
+                                showPreviewButton={true}
+                                maxThumbnailSize={56}
+                              />
                             </div>
                           );
                         })()}
@@ -2443,17 +2553,17 @@ export default function AdminConsole({
           {section === 'progress' && (
             <>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, justifyContent: 'space-between', margin: '0 2px 10px' }}>
-                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>▣ USER PROGRESS</div>
-                <div style={{ fontSize: 13, color: 'var(--mu,#9990ab)' }}>{progressData.length} stewards enrolled</div>
+                <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>▣ USER PROGRESS</div>
+                <div style={{ fontSize: 18, color: 'var(--mu,#9990ab)' }}>{progressData.length} stewards enrolled</div>
               </div>
               <div style={{ border: '2px solid var(--ln,#3a3352)', borderRadius: 9, background: '#201a30', padding: '14px 15px' }}>
-                <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', lineHeight: 1.4, marginBottom: 14, maxWidth: 720 }}>
+                <div style={{ fontSize: 20, color: 'var(--mu,#9990ab)', lineHeight: 1.4, marginBottom: 14, maxWidth: 720 }}>
                   Each steward's journey at a glance — deliverables approved, engagement earned, and their chia companion's growth stage.
                 </div>
 
                 {/* Cohort Selector */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 14, padding: '10px 12px', border: '1px solid var(--ln,#3a3352)', borderRadius: 7, background: 'rgba(0,0,0,.2)' }}>
-                  <span style={{ fontSize: 13, color: 'var(--mu,#9990ab)', whiteSpace: 'nowrap' }}>Cohort:</span>
+                  <span style={{ fontSize: 18, color: 'var(--mu,#9990ab)', whiteSpace: 'nowrap' }}>Cohort:</span>
                   <select
                     value={selectedCohortId}
                     onChange={(e) => { setSelectedCohortId(e.target.value); setProgressPage(1); setProgressSearch(''); }}
@@ -2464,7 +2574,7 @@ export default function AdminConsole({
                       border: '2px solid var(--ln,#3a3352)',
                       borderRadius: 5,
                       color: 'var(--tx,#e4e0ee)',
-                      fontSize: 14,
+                      fontSize: 18,
                       padding: '8px 10px',
                       outline: 'none',
                       cursor: 'pointer',
@@ -2488,7 +2598,7 @@ export default function AdminConsole({
                     value={progressSearch}
                     onChange={(e) => { setProgressSearch(e.target.value); setProgressPage(1); }}
                     placeholder="Search by name or email…"
-                    style={{ width: '100%', background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln,#3a3352)', borderRadius: 6, color: 'var(--tx,#e4e0ee)', fontSize: 15, padding: '10px 13px', outline: 'none' }}
+                    style={{ width: '100%', background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln,#3a3352)', borderRadius: 6, color: 'var(--tx,#e4e0ee)', fontSize: 18, padding: '10px 13px', outline: 'none' }}
                   />
                 </div>
 
@@ -2559,23 +2669,23 @@ export default function AdminConsole({
                                       <span style={{ fontSize: 18 }}>🌱</span>
                                     </div>
                                   )}
-                                  <div className="font-pixel" style={{ fontSize: 6, color: 'var(--gold,#ffd23f)', textAlign: 'center' }}>
+                                  <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', textAlign: 'center' }}>
                                     {stageLabels[chiaStage]}
                                   </div>
                                 </div>
 
                                 {/* Name + progress */}
                                 <div style={{ flex: 1, minWidth: 180 }}>
-                                  <div style={{ fontSize: 16, color: 'var(--tx,#e4e0ee)', fontWeight: 600, marginBottom: 8 }}>
+                                  <div style={{ fontSize: 20, color: 'var(--tx,#e4e0ee)', fontWeight: 600, marginBottom: 8 }}>
                                     {student.name}
-                                    {char?.player_name && <span style={{ fontSize: 13, color: 'var(--mu,#9990ab)', marginLeft: 8 }}>"{char.player_name}"</span>}
+                                    {char?.player_name && <span style={{ fontSize: 16, color: 'var(--mu,#9990ab)', marginLeft: 8 }}>"{char.player_name}"</span>}
                                   </div>
 
                                   {/* Overall progress bar */}
                                   <div style={{ marginBottom: 8 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                      <span style={{ fontSize: 12, color: 'var(--mu,#9990ab)' }}>Overall Progress</span>
-                                      <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)' }}>{student.totalPct}%</span>
+                                      <span style={{ fontSize: 14, color: 'var(--mu,#9990ab)' }}>Overall Progress</span>
+                                      <span className="font-pixel" style={{ fontSize: 10, color: 'var(--gold,#ffd23f)' }}>{student.totalPct}%</span>
                                     </div>
                                     <div style={{ height: 8, background: 'rgba(0,0,0,.4)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--ln,#3a3352)' }}>
                                       <div style={{ height: '100%', width: `${student.totalPct}%`, background: 'linear-gradient(90deg, #4dffa0, #ffd23f)', borderRadius: 4, transition: 'width 0.3s ease' }}></div>
@@ -2586,8 +2696,8 @@ export default function AdminConsole({
                                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                                     <div style={{ flex: 1, minWidth: 120 }}>
                                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                                        <span style={{ fontSize: 11, color: '#ff5fd2' }}>Deliverables</span>
-                                        <span style={{ fontSize: 11, color: 'var(--mu,#9990ab)' }}>{student.approvedDelivs}/3</span>
+                                        <span style={{ fontSize: 13, color: '#ff5fd2' }}>Deliverables</span>
+                                        <span style={{ fontSize: 13, color: 'var(--mu,#9990ab)' }}>{student.approvedDelivs}/3</span>
                                       </div>
                                       <div style={{ height: 5, background: 'rgba(0,0,0,.4)', borderRadius: 3, overflow: 'hidden' }}>
                                         <div style={{ height: '100%', width: `${(student.delivPct / 75) * 100}%`, background: '#ff5fd2', borderRadius: 3 }}></div>
@@ -2595,8 +2705,8 @@ export default function AdminConsole({
                                     </div>
                                     <div style={{ flex: 1, minWidth: 120 }}>
                                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                                        <span style={{ fontSize: 11, color: '#45d6ff' }}>Engagement</span>
-                                        <span style={{ fontSize: 11, color: 'var(--mu,#9990ab)' }}>{student.engPct}/25</span>
+                                        <span style={{ fontSize: 13, color: '#45d6ff' }}>Engagement</span>
+                                        <span style={{ fontSize: 13, color: 'var(--mu,#9990ab)' }}>{student.engPct}/25</span>
                                       </div>
                                       <div style={{ height: 5, background: 'rgba(0,0,0,.4)', borderRadius: 3, overflow: 'hidden' }}>
                                         <div style={{ height: '100%', width: `${(student.engPct / 25) * 100}%`, background: '#45d6ff', borderRadius: 3 }}></div>
@@ -2618,7 +2728,7 @@ export default function AdminConsole({
                                       {chiaStage === 0 ? '🌰' : chiaStage === 1 ? '🌱' : chiaStage === 2 ? '🌿' : '🌳'}
                                     </span>
                                   </div>
-                                  <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#9990ab)', marginTop: 5 }}>
+                                  <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#9990ab)', marginTop: 5 }}>
                                     LVL {chiaLevel}
                                   </div>
                                 </div>
@@ -2877,20 +2987,20 @@ export default function AdminConsole({
                 <option value="deliverable" style={{ fontSize: 14 }}>DELIVERABLE</option>
               </select>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
+                <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
                   SESSION {selEntry.num}
                 </div>
                 <div className="font-pixel" style={{ fontSize: 'clamp(11px,1.7vw,14px)', color: 'var(--tx,#efe6ff)', marginTop: 6, lineHeight: 1.4 }}>
                   {selEntry.title}
                 </div>
               </div>
-              <span className="font-pixel" style={{ fontSize: 7, color: isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)', border: `1px solid ${isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)'}`, borderRadius: 20, padding: '4px 9px', flex: 'none' }}>
+              <span className="font-pixel" style={{ fontSize: 10, color: isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)', border: `1px solid ${isSaving ? 'var(--gold,#c9a85f)' : 'var(--ok,#74f0a0)'}`, borderRadius: 20, padding: '4px 9px', flex: 'none' }}>
                 {isSaving ? '○ SAVING…' : '● SAVES LIVE'}
               </span>
               <button
                 onClick={() => setEditorOpen(false)}
                 className="font-pixel"
-                style={{ fontSize: 9, color: 'var(--tx,#efe6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 5, padding: '9px 12px', cursor: 'pointer', flex: 'none' }}
+                style={{ fontSize: 12, color: 'var(--tx,#efe6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 5, padding: '9px 12px', cursor: 'pointer', flex: 'none' }}
               >✓ SAVE & CLOSE</button>
             </div>
 
@@ -2898,9 +3008,9 @@ export default function AdminConsole({
             <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex' }}>
               {/* LEFT: text content */}
               <div style={{ flex: '3 1 460px', minWidth: 300, padding: 'clamp(18px,2.4vw,28px)', overflow: 'auto' }}>
-                <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>TOPIC TITLE</div>
+                <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>TOPIC TITLE</div>
                 <input defaultValue={selEntry.title} onBlur={e => handleEntryFieldBlur(selEntry.id, 'title', e.target.value)} style={{ ...inputStyle, fontSize: 20, marginBottom: 12 }} />
-                <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBTITLE / SIDEBAR LABEL</div>
+                <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBTITLE / SIDEBAR LABEL</div>
                 <input defaultValue={selEntry.subtitle || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'subtitle', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16 }} />
                 
                 {selEntry.entry_type === 'deliverable' ? (
@@ -2919,7 +3029,7 @@ export default function AdminConsole({
 
                     return (
                       <>
-                        <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>PRINCIPLE APPLIED</div>
+                        <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>PRINCIPLE APPLIED</div>
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={appliedBody}
@@ -2929,7 +3039,7 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>LAB PROCESS</div>
+                        <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>LAB PROCESS</div>
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={labBody}
@@ -2939,7 +3049,7 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>DELIVERABLE GOAL</div>
+                        <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>DELIVERABLE GOAL</div>
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={goalBody}
@@ -2949,7 +3059,7 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        <div className="font-vt323" style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBMISSION PROMPT LABEL</div>
+                        <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBMISSION PROMPT LABEL</div>
                         <input defaultValue={selEntry.submit_label || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'submit_label', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16 }} placeholder="e.g. Paste your story asset link..." />
                       </>
                     )
@@ -3056,7 +3166,7 @@ export default function AdminConsole({
                   ) : (
                     (['photo', 'video', 'audio', 'link'] as const).map(t => (
                       <button key={t} onClick={() => handleAddMedia(selEntry.id, t)} className="font-pixel" style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 'bold',
                         padding: '10px 14px',
                         border: '2px dashed var(--ln,#3d2668)',

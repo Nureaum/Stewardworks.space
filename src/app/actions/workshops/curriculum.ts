@@ -63,7 +63,14 @@ export async function getAILabCurriculum(cohortId?: string) {
           applied,
           lab,
           submit_label,
-          sort_order
+          sort_order,
+          media:workshop_entry_media (
+            id,
+            kind,
+            label,
+            url,
+            sort_order
+          )
         )
       )
     `)
@@ -101,7 +108,13 @@ export async function getAILabCurriculum(cohortId?: string) {
         goal: en.goal,
         applied: en.applied,
         lab: en.lab,
-        submitLabel: en.submit_label
+        submitLabel: en.submit_label,
+        media: ((en as any).media || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((m: any) => ({
+          id: m.id,
+          kind: m.kind,
+          label: m.label,
+          url: m.url
+        }))
       }))
 
       return {

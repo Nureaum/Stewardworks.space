@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { DeliverableReviewCardProps } from '@/types/workshops'
 import { CheckCircle, XCircle, Calendar, User, FileText, Link as LinkIcon, Video, Download, FileIcon, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import DeliverableMediaPreview from '@/components/workshops/DeliverableMediaPreview'
 
 export default function DeliverableReviewCard({
   submission,
@@ -190,8 +191,13 @@ export default function DeliverableReviewCard({
                 <FileText className="w-4 h-4 text-gray-600" />
                 <span className="text-sm font-bold text-gray-700">Link / Content</span>
               </div>
-              <div className="max-h-48 sm:max-h-64 lg:max-h-96 overflow-y-auto text-sm text-gray-700 font-medium leading-relaxed whitespace-pre-wrap">
-                {submission.submission_text}
+              <div className="max-h-48 sm:max-h-64 lg:max-h-96 overflow-y-auto">
+                <DeliverableMediaPreview
+                  url={submission.submission_text}
+                  variant="full"
+                  theme="light"
+                  showPreviewButton={true}
+                />
               </div>
             </div>
           )}

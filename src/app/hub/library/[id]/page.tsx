@@ -12,14 +12,19 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
   const [activeTab, setActiveTab] = useState<'summary' | 'gallery' | 'videos' | 'pdfs' | 'audio'>('summary');
 
   useEffect(() => {
+    console.log('[Library Detail] Fetching resource:', params.id);
     fetch(`/api/public/library-resources/${params.id}?t=${Date.now()}`)
-      .then(res => res.json())
+      .then(res => {
+        console.log('[Library Detail] API response status:', res.status);
+        return res.json();
+      })
       .then(data => {
+        console.log('[Library Detail] API response data:', data);
         setResource(data.resource);
         setLoading(false);
       })
       .catch(err => {
-        console.error(err);
+        console.error('[Library Detail] Fetch error:', err);
         setLoading(false);
       });
   }, [params.id]);
@@ -50,11 +55,45 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
     );
   }
 
-  const images = resource.media?.filter((m: any) => m.media_type === 'image') || [];
-  const videos = resource.media?.filter((m: any) => m.media_type === 'video_link' || m.media_type === 'video') || [];
-  const pdfs = resource.media?.filter((m: any) => m.media_type === 'pdf') || [];
-  const audios = resource.media?.filter((m: any) => m.media_type === 'audio') || [];
-  const links = resource.media?.filter((m: any) => m.media_type === 'link' || m.media_type === 'video_link' || m.media_type === 'external_link') || [];
+  // Debug: Log all media to see what's being fetched
+  console.log('[Library Detail] All media:', resource.media);
+  
+  // Debug: Log each media item's type
+  resource.media?.forEach((m: any, idx: number) => {
+    console.log(`[Library Detail] Media ${idx}: type="${m.media_type}" url="${m.url}"`);
+  });
+  
+  // Helper function to detect if URL is actually an image
+  const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|#|$)/i.test(url || '');
+  const isVideoUrl = (url: string) => /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url || '');
+  
+  const images = resource.media?.filter((m: any) => {
+    const type = m.media_type?.toLowerCase() || '';
+    // Check if it's marked as image OR if it's marked as video but URL is actually an image
+    return type === 'image' || type === 'image_link' || type === 'image_url' || 
+           (type === 'video_link' && isImageUrl(m.url));
+  }) || [];
+  
+  const videos = resource.media?.filter((m: any) => {
+    const type = m.media_type?.toLowerCase() || '';
+    // Only include if marked as video AND URL is actually a video (exclude misclassified images)
+    return (type === 'video_link' || type === 'video' || type === 'video_url') && 
+           !isImageUrl(m.url);
+  }) || [];
+  const pdfs = resource.media?.filter((m: any) => {
+    const type = m.media_type?.toLowerCase() || '';
+    return type === 'pdf';
+  }) || [];
+  const audios = resource.media?.filter((m: any) => {
+    const type = m.media_type?.toLowerCase() || '';
+    return type === 'external_link' || type === 'audio' || type === 'audio_link' || type === 'audio_url';
+  }) || [];
+  const links = resource.media?.filter((m: any) => m.media_type === 'link') || [];
+  
+  // Debug: Log filtered results
+  console.log('[Library Detail] Filtered images:', images);
+  console.log('[Library Detail] Filtered videos:', videos);
+  console.log('[Library Detail] Filtered audios:', audios);
   
   const headerBgUrl = resource.thumbnail_url || (images.length > 0 ? images[0].url : null);
   
@@ -231,6 +270,17 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
                       src={media.url} 
                       alt={media.label || 'Resource Photo'} 
                       className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        console.error('[Gallery] Failed to load image:', media.url);
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          const fallback = document.createElement('div');
+                          fallback.className = 'w-full aspect-[4/3] flex flex-col items-center justify-center bg-gray-100 text-gray-400';
+                          fallback.innerHTML = `<svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><p class="text-xs">Image unavailable</p>`;
+                          parent.insertBefore(fallback, e.currentTarget);
+                        }
+                      }}
                     />
                     {media.label && (
                       <div className="px-5 py-3 bg-white">
@@ -255,18 +305,7 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
             {videos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {videos.map((media: any, idx: number) => (
-                  <div key={media.id || idx} className="rounded-[2rem] overflow-hidden border border-steward-dark/5 shadow-sm bg-black">
-                    <video 
-                      src={media.url} 
-                      controls 
-                      className="w-full aspect-video object-cover"
-                    />
-                    {media.label && (
-                      <div className="px-5 py-3 bg-white">
-                        <p className="text-xs font-bold text-steward-dark/60 truncate">{media.label}</p>
-                      </div>
-                    )}
-                  </div>
+                  <VideoCard key={media.id || idx} media={media} />
                 ))}
               </div>
             ) : (
@@ -318,25 +357,32 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
         {activeTab === 'audio' && (
           <>
             {audios.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {audios.map((audio: any, idx: number) => (
-                  <div key={audio.id || idx} className="flex flex-col bg-white rounded-2xl p-6 border border-steward-dark/5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-4 mb-5">
-                      <div className="w-14 h-14 shrink-0 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-500">
-                        <Music size={24} />
+              <div className="grid grid-cols-1 gap-6">
+                {audios.map((audio: any, idx: number) => {
+                  const isDirectAudio = /\.(mp3|wav|ogg|m4a)(\?|#|$)/i.test(audio.url || '');
+                  return (
+                    <div key={audio.id || idx} className="flex flex-col bg-white rounded-2xl p-6 border border-steward-dark/5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-4 mb-5">
+                        <div className="w-14 h-14 shrink-0 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-500">
+                          <Music size={24} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-steward-dark text-sm truncate">{audio.label || `Audio ${idx + 1}`}</p>
+                          <p className="text-[10px] text-steward-dark/50 font-black uppercase tracking-widest mt-1">Audio {isDirectAudio ? 'File' : 'Link'}</p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-steward-dark text-sm truncate">{audio.label || `Audio ${idx + 1}`}</p>
-                        <p className="text-[10px] text-steward-dark/50 font-black uppercase tracking-widest mt-1">Audio Link</p>
-                      </div>
+                      {isDirectAudio ? (
+                        <audio src={audio.url} controls className="w-full rounded-xl" />
+                      ) : (
+                        <div className="pt-4 border-t border-gray-100">
+                          <a href={audio.url} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 py-3 bg-purple-500 text-white hover:bg-purple-600 text-[11px] font-black uppercase tracking-widest rounded-xl transition-colors">
+                            <Music size={14} /> Listen Now
+                          </a>
+                        </div>
+                      )}
                     </div>
-                    <div className="pt-4 border-t border-gray-100">
-                      <a href={audio.url} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 py-3 bg-purple-500 text-white hover:bg-purple-600 text-[11px] font-black uppercase tracking-widest rounded-xl transition-colors">
-                        <Music size={14} /> Listen Now
-                      </a>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="w-full bg-white rounded-3xl p-12 shadow-sm border border-steward-dark/5 text-center">
@@ -347,6 +393,74 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
           </>
         )}
       </main>
+    </div>
+  );
+}
+
+/* ── VideoCard: handles YouTube, Vimeo, direct video files, and fallback links ── */
+function VideoCard({ media }: { media: any }) {
+  const [videoError, setVideoError] = useState(false);
+  
+  const url = media.url || '';
+  const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+  const isVimeo = url.includes('vimeo.com');
+  const isDirectVideo = /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(url);
+
+  const getYouTubeId = (u: string) => {
+    if (u.includes('youtu.be/')) return u.split('youtu.be/')[1]?.split('?')[0];
+    if (u.includes('youtube.com')) return new URLSearchParams(u.split('?')[1] || '').get('v');
+    return null;
+  };
+
+  return (
+    <div className="rounded-[2rem] overflow-hidden border border-steward-dark/5 shadow-sm bg-black">
+      {isYouTube ? (
+        <div className="aspect-video">
+          <iframe
+            src={`https://www.youtube.com/embed/${getYouTubeId(url)}`}
+            className="w-full h-full border-none"
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          />
+        </div>
+      ) : isVimeo ? (
+        <div className="aspect-video">
+          <iframe
+            src={`https://player.vimeo.com/video/${url.split('/').pop()}`}
+            className="w-full h-full border-none"
+            allowFullScreen
+          />
+        </div>
+      ) : isDirectVideo && !videoError ? (
+        <video
+          src={url}
+          controls
+          preload="metadata"
+          className="w-full aspect-video object-cover"
+          onError={() => setVideoError(true)}
+        />
+      ) : url ? (
+        // Fallback: show as a clickable link with a video icon
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full aspect-video flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 transition-colors"
+        >
+          <Video className="text-white/60" size={40} />
+          <span className="text-white/80 text-sm font-bold px-6 text-center">Click to open video</span>
+          <span className="text-white/40 text-xs font-mono truncate max-w-[80%]">{url}</span>
+        </a>
+      ) : (
+        <div className="w-full aspect-video flex items-center justify-center bg-gray-900">
+          <Video className="text-gray-600" size={40} />
+        </div>
+      )}
+      {media.label && (
+        <div className="px-5 py-3 bg-white">
+          <p className="text-xs font-bold text-steward-dark/60 truncate">{media.label}</p>
+        </div>
+      )}
     </div>
   );
 }

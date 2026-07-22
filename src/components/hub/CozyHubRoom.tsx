@@ -1467,7 +1467,7 @@ export default function CozyHubRoom({
                       if (isDownloadingPDF) return;
                       setIsDownloadingPDF(true);
                       try {
-                        const playerName = user?.fullName || 'Steward';
+                        const playerName = user?.fullName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || 'Steward');
                         const cohortName = selectedCohort.cohortName || 'workshop';
                         
                         // Fetch certificate settings for this cohort
@@ -1494,35 +1494,95 @@ export default function CozyHubRoom({
                           }
                         } catch (e) { /* use defaults */ }
 
-                        const response = await fetch('/api/certificate-pdf', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            playerName,
-                            characterKey: 'steward',
-                            cohortName,
-                            ...certSettings,
-                            deliverables: [
-                              { title: 'DAY 1 DELIVERABLE', url: '' },
-                              { title: 'DAY 2 DELIVERABLE', url: '' },
-                              { title: 'DAY 3 DELIVERABLE', url: '' }
-                            ]
-                          })
+                        // Generate pixel avatar sprite URI
+                        let characterSpriteUri = '';
+                        let charKey = 'quest';
+                        let charAccent = '#ffd23f';
+                        let charGear = 'none';
+                        let charOutfit = 'plain';
+                        try {
+                          const charRes = await fetch(`/api/workshops/${selectedCohortId}/character`);
+                          if (charRes.ok) {
+                            const charData = await charRes.json();
+                            if (charData.character_key) charKey = charData.character_key;
+                            if (charData.accent_color) charAccent = charData.accent_color;
+                            if (charData.gear) charGear = charData.gear;
+                            if (charData.outfit) charOutfit = charData.outfit;
+                          }
+                        } catch (e) { /* use defaults */ }
+                        try {
+                          const { buildSpriteUri } = await import('@/components/workshops/journey/PixelSprite');
+                          characterSpriteUri = buildSpriteUri(charKey, charAccent, { gear: charGear, outfit: charOutfit });
+                        } catch (e) { /* skip sprite if unavailable */ }
+
+                        // Client-side PDF generation (same as VictoryScreen)
+                        const [html2canvasModule, jsPDFModule] = await Promise.all([
+                          import('html2canvas'),
+                          import('jspdf')
+                        ]);
+                        const html2canvas = html2canvasModule.default;
+                        const { jsPDF } = jsPDFModule;
+                        const { buildClientCertHTML } = await import('@/components/workshops/journey/VictoryScreen');
+
+                        const container = document.createElement('div');
+                        container.style.position = 'fixed';
+                        container.style.left = '-9999px';
+                        container.style.top = '0';
+                        container.style.width = '794px';
+                        container.style.zIndex = '-1';
+                        container.innerHTML = buildClientCertHTML({
+                          playerName,
+                          characterKey: charKey || 'quest',
+                          certOrg: certSettings.certOrg,
+                          certFacilitator: certSettings.certFacilitator,
+                          certFacTitle: certSettings.certFacTitle,
+                          certSponsor: certSettings.certSponsor,
+                          certSponsorOrg: certSettings.certSponsorOrg,
+                          certMessage: certSettings.certMessage,
+                          deliverables: [
+                            { title: 'DAY 1 DELIVERABLE', url: '' },
+                            { title: 'DAY 2 DELIVERABLE', url: '' },
+                            { title: 'DAY 3 DELIVERABLE', url: '' }
+                          ],
+                          characterSpriteUri
                         });
+                        document.body.appendChild(container);
 
-                        if (!response.ok) throw new Error('Failed to generate PDF');
+                        await document.fonts.ready;
+                        const images = container.querySelectorAll('img');
+                        await Promise.all(Array.from(images).map(img => 
+                          new Promise<void>((resolve) => {
+                            if (img.complete) { resolve(); return; }
+                            img.onload = () => resolve();
+                            img.onerror = () => resolve();
+                          })
+                        ));
+                        await new Promise(resolve => setTimeout(resolve, 300));
 
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `certificate-${cohortName.replace(/\s+/g, '-')}-${playerName.replace(/\s+/g, '-')}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
+                        const contentHeight = container.scrollHeight || container.offsetHeight || 1123;
+                        const canvas = await html2canvas(container, {
+                          scale: 2,
+                          useCORS: true,
+                          backgroundColor: '#f7f1e0',
+                          width: 794,
+                          height: contentHeight,
+                        });
+                        document.body.removeChild(container);
+
+                        const imgData = canvas.toDataURL('image/png');
+                        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                        const pageWidth = 210;
+                        const pageHeight = 297;
+                        const imgAspect = canvas.width / canvas.height;
+                        let imgW = pageWidth;
+                        let imgH = pageWidth / imgAspect;
+                        if (imgH > pageHeight) { imgH = pageHeight; imgW = pageHeight * imgAspect; }
+                        const xOffset = (pageWidth - imgW) / 2;
+                        pdf.addImage(imgData, 'PNG', xOffset, 0, imgW, imgH);
+                        pdf.save(`certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
                       } catch (err) {
                         console.error('Certificate download error:', err);
+                        alert('Failed to download certificate. Check browser console for details.');
                       } finally {
                         setIsDownloadingPDF(false);
                       }

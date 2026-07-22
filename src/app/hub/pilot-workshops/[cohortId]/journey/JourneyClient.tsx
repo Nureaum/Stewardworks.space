@@ -156,6 +156,7 @@ export default function JourneyClient({
 
   return (
     <div
+      className="font-retro"
       style={{
         minHeight: '100vh',
         width: '100%',

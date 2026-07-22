@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { uploadCreationImage } from '@/app/actions/workshops/engagement';
 import { submitDeliverable } from '@/app/actions/workshops/participants';
+import DeliverableMediaPreview from '@/components/workshops/DeliverableMediaPreview';
 
 function chiaRects(stage: number) {
   const gL='#d9b34d',gM='#c19a33',gD='#9c7a28',eye='#3a2c14',bD='#1c150f',bM='#33281b',gr='#5fa83c',gr2='#8fd85f',fp='#ff5fd2',fy='#ffd23f',fv='#b06bff';
@@ -486,18 +487,17 @@ export default function SubmissionTracker({
                     </div>
                   )}
 
-                  {/* Submitted URL - always show as a link, never embed image */}
+                  {/* Submitted URL - show thumbnail preview instead of raw link */}
                   {getSubmittedUrl() && (
                     <div style={{ marginBottom: 12 }}>
                       <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>DELIVERABLE</div>
-                      <a 
-                        href={getSubmittedUrl().startsWith('http') ? getSubmittedUrl() : `https://${getSubmittedUrl()}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{ fontSize: 16, color: 'var(--cy,#45d6ff)', fontFamily: "'VT323', monospace", wordBreak: 'break-all' }}
-                      >
-                        🔗 {getSubmittedUrl()}
-                      </a>
+                      <DeliverableMediaPreview
+                        url={getSubmittedUrl()}
+                        variant="thumbnail"
+                        theme="dark"
+                        showPreviewButton={true}
+                        maxThumbnailSize={48}
+                      />
                     </div>
                   )}
 

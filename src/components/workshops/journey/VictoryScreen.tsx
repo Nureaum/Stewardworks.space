@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { PixelSprite, buildIconUri } from '@/components/workshops/journey';
 import type { WorkshopCharacter, WorkshopProgressPrinciple, WorkshopDay, WorkshopProgress } from '@/types/workshops';
 import { MAP_ICONS } from './character-data';
 import { getCelebrateProps, getWinSkill, buildCastFx } from './VictoryEffects';
+import { PATHWAYS } from '@/data/workforce-content';
+import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions';
+import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero';
 
-function buildClientCertHTML(opts: any) {
+export function buildClientCertHTML(opts: any) {
   const { playerName, characterKey, certOrg, certFacilitator, certFacTitle,
     certSponsor, certSponsorOrg, certMessage, deliverables, characterSpriteUri } = opts;
 
@@ -16,8 +20,8 @@ function buildClientCertHTML(opts: any) {
   <div style="height:2px;width:130px;background:#c9a24a;margin:18px auto"></div>
   <div style="font-size:42px;font-weight:700;letter-spacing:2px;color:#241a08">Certificate of Completion</div>
   <div style="font-size:17px;color:#5a4626;margin-top:22px;font-style:italic">This certifies that</div>
-  <div style="display:flex;align-items:center;justify-content:center;gap:15px;margin:12px 0 6px;flex-wrap:wrap">
-    ${characterSpriteUri ? `<img src="${characterSpriteUri}" alt="" width="48" height="48" style="image-rendering:pixelated"/>` : ''}
+  <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin:18px 0 6px">
+    ${characterSpriteUri ? `<img src="${characterSpriteUri}" alt="" width="72" height="72" style="image-rendering:pixelated;flex:none"/>` : ''}
     <div style="font-size:36px;font-weight:700;color:#1a1206;border-bottom:2px solid #c9a24a;padding:0 18px 6px">${playerName || 'Student'}</div>
   </div>
   <div style="font-size:13px;color:#8a6a2a;letter-spacing:2px;margin-bottom:22px;text-transform:uppercase">Steward · Certified Steward</div>
@@ -68,6 +72,190 @@ function buildClientCertHTML(opts: any) {
 </div>`;
 }
 
+/** Workforce Pathways Progress Cards - matches Chia page style but with journey dark theme colors */
+function WorkforceProgressCards() {
+  const { user } = useUser();
+  const [picks, setPicks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [arcadeAvatar, setArcadeAvatar] = useState<any>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      Promise.all([
+        fetchUserPicks(user.id),
+        getArcadeAvatar(user.id)
+      ]).then(([picksData, avatarData]) => {
+        setPicks(picksData || []);
+        if (avatarData) setArcadeAvatar(avatarData);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  const getAnswerLabel = (pick: any, pathwayId: string, stopId: string) => {
+    if (pick.custom_answer) return pick.custom_answer;
+    if (pick.option_id) return pick.option_id;
+    return '—';
+  };
+
+  const STEP_COLORS = ['#ff2e8f', '#ff6a2e', '#ffdd2e', '#12f0c0', '#45d4ff', '#d24dff'];
+
+  if (loading) {
+    return (
+      <div style={{ position: 'relative', zIndex: 1, marginTop: 26, textAlign: 'center', padding: 20 }}>
+        <span className="font-pixel" style={{ fontSize: 10, color: 'var(--mu,#a493c9)' }}>Loading pathways...</span>
+      </div>
+    );
+  }
+
+  const charIsHuman = arcadeAvatar && (arcadeAvatar.form === 'fem' || arcadeAvatar.form === 'masc' || arcadeAvatar.form === 'enby');
+  const charSummary = arcadeAvatar
+    ? (charIsHuman
+      ? `${(arcadeAvatar.form || '').toUpperCase()} · ${(arcadeAvatar.hat_type || '').toUpperCase()} · ${(arcadeAvatar.gear || '').toUpperCase()}`
+      : `${(arcadeAvatar.form || '').toUpperCase()} · NO HAT · ${(arcadeAvatar.gear || '').toUpperCase()}`)
+    : 'ENBY · CAP · CREATOR';
+
+  return (
+    <div style={{ position: 'relative', zIndex: 1, marginTop: 26, textAlign: 'left', width: 'calc(100% + 40px)', marginLeft: -20, marginRight: -20 }}>
+      <style>{`
+        @keyframes sw-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @media print {
+          @page { margin: 10mm; }
+          html, body { background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body * { visibility: hidden !important; animation: none !important; transition: none !important; }
+          .run-card, .run-card * { visibility: visible !important; }
+          .run-card { position: fixed !important; left: 0 !important; top: 0 !important; width: 100vw !important; max-width: 100vw !important; margin: 0 !important; padding: 20px !important; box-sizing: border-box !important; box-shadow: none !important; transform: none !important; }
+        }
+      `}</style>
+      <div className="font-pixel" style={{ fontSize: 10, color: 'var(--s,#45d6ff)', letterSpacing: 1, marginBottom: 14 }}>
+        ◇ WORKFORCE PATHWAYS <span style={{ color: 'var(--mu,#a493c9)', fontWeight: 400 }}>Your journey progress</span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {(PATHWAYS as any[]).map((pathway: any) => {
+          const pathwayPicks = picks.filter((p: any) => p.pathway_id === pathway.id);
+          const totalStops = pathway.stops?.length || 6;
+          const completedStops = pathwayPicks.length;
+          const isComplete = completedStops >= 5;
+          const pathwayColor = pathway.id === 'creator' ? '#ff6a2e' : '#45d6ff';
+          const isExpanded = expandedCard === pathway.id;
+          const klassName = pathway.id === 'creator' ? 'THE STORYTELLER' : 'THE STEWARD';
+          const pwAccent = pathway.id === 'creator' ? '#ff7e40' : '#43e97b';
+
+          return (
+            <div key={pathway.id} style={{ background: 'var(--pn,#14211b)', border: '2px solid var(--ln,#3d2668)', borderRadius: 12, padding: '18px 20px' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ width: 8, height: 36, borderRadius: 4, background: pathwayColor }} />
+                <div style={{ flex: 1 }}>
+                  <div className="font-pixel" style={{ fontSize: 9, letterSpacing: 1, color: pathwayColor }}>{pathway.name.toUpperCase()}</div>
+                  <div style={{ fontSize: 15, color: 'var(--tx,#d6ffe0)', marginTop: 3, fontFamily: "'VT323', monospace" }}>
+                    {isComplete ? 'Run complete — pathway card earned!' : `${completedStops} of ${totalStops} stops completed`}
+                  </div>
+                </div>
+                {isComplete && (
+                  <span className="font-pixel" style={{ fontSize: 8, background: pathwayColor, color: '#0e1512', padding: '5px 10px', borderRadius: 14, fontWeight: 700 }}>✓ COMPLETE</span>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,.08)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ width: `${(completedStops / totalStops) * 100}%`, height: '100%', background: pathwayColor, borderRadius: 4, transition: 'width .3s ease' }} />
+                </div>
+                <span className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)' }}>{completedStops}/{totalStops}</span>
+              </div>
+
+              {/* Buttons */}
+              {!isComplete ? (
+                <a href="/hub/workforce-pathways" className="font-pixel" style={{ display: 'inline-block', fontSize: 9, background: pathwayColor, color: '#0e1512', border: 'none', borderRadius: 6, padding: '9px 14px', textDecoration: 'none', letterSpacing: 0.5, fontWeight: 700 }}>
+                  CONTINUE →
+                </a>
+              ) : (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button onClick={() => window.print()} className="font-pixel" style={{ fontSize: 9, background: pathwayColor, color: '#0e1512', border: 'none', borderRadius: 6, padding: '9px 14px', cursor: 'pointer', letterSpacing: 0.5, fontWeight: 700 }}>
+                    🖨 SAVE / PRINT CARD
+                  </button>
+                  <button onClick={() => setExpandedCard(isExpanded ? null : pathway.id)} className="font-pixel" style={{ fontSize: 9, background: 'var(--bg,#12081e)', color: 'var(--tx,#d6ffe0)', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, padding: '7px 14px', cursor: 'pointer', letterSpacing: 0.5, fontWeight: 700 }}>
+                    {isExpanded ? '✕ HIDE CARD' : '🗺 VIEW PATHWAY CARD'}
+                  </button>
+                </div>
+              )}
+
+              {/* Expanded Pathway Card (inline) - same as Chia page */}
+              {isComplete && isExpanded && (
+                <div className="run-card" style={{ position: 'relative', marginTop: 18, maxWidth: 770, background: '#f2f6ff', border: '5px solid #1c1526', boxShadow: '8px 8px 0 rgba(18,12,26,.42)', borderRadius: 12, overflow: 'hidden' }}>
+                  {/* RUN COMPLETE stamp */}
+                  <div style={{ position: 'absolute', top: 78, right: 16, zIndex: 3, padding: '8px 13px', background: '#ff2e8f', color: '#fff', border: '4px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: 11, letterSpacing: '.5px', transform: 'rotate(-14deg)', boxShadow: '3px 3px 0 rgba(18,12,26,.4)' }}>RUN COMPLETE</div>
+
+                  {/* Card Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', background: pwAccent, borderBottom: '5px solid #1c1526' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 15, color: '#10285e', textShadow: '2px 2px 0 rgba(255,255,255,.35)', lineHeight: 1.4 }}>{klassName}</div>
+                      <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#10285e', opacity: .72, marginTop: 8, lineHeight: 1.6 }}>{pathway.name.toUpperCase()} · PATHWAY CARD</div>
+                    </div>
+                    <span style={{ width: 46, height: 46, flex: '0 0 auto', background: '#10285e', color: pwAccent, border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Press Start 2P', monospace", fontSize: 15 }}>{completedStops}</span>
+                  </div>
+
+                  {/* Card Body - Avatar + Picks Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '196px minmax(0,1fr)', gap: 16, padding: '20px 18px' }}>
+                    {/* Left: Avatar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '14px 10px 12px', background: 'linear-gradient(#163a90,#2a55a8)', border: '4px solid #1c1526', boxShadow: 'inset 0 0 0 3px #3a68b8' }}>
+                      <div style={{ flex: 1 }} />
+                      <div style={{ animation: 'sw-float 2s ease-in-out infinite' }}>
+                        <PixelHero
+                          form={arcadeAvatar?.form || 'enby'}
+                          skin={arcadeAvatar?.skin || '#e8b07a'}
+                          outfit={arcadeAvatar?.outfit || '#ff2e8f'}
+                          hairStyle={arcadeAvatar?.hair_style || 'auto'}
+                          hairColor={arcadeAvatar?.hair_color || '#3a2a1a'}
+                          hatColor={arcadeAvatar?.hat_color || '#10285e'}
+                          hatType={arcadeAvatar?.hat_type || 'cap'}
+                          gear={arcadeAvatar?.gear || 'creator'}
+                          style={{ width: '150px', height: '196px', display: 'block' }}
+                        />
+                      </div>
+                      <div style={{ width: 140, height: 10, marginTop: 4, background: 'repeating-linear-gradient(90deg,#c98a3e 0 8px,#a86f2c 8px 16px)', border: '3px solid #1c1526' }} />
+                      <div style={{ marginTop: 12, fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#a9c8ff', textAlign: 'center', lineHeight: 1.9 }}>{charSummary}</div>
+                    </div>
+
+                    {/* Right: Answer rows */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+                      {pathway.stops.map((stop: any, idx: number) => {
+                        const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id);
+                        const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—';
+                        const dotColor = STEP_COLORS[idx % STEP_COLORS.length];
+                        return (
+                          <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: '#fff', border: '3px solid #1c1526', borderRadius: 7 }}>
+                            <span style={{ width: 22, height: 22, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dotColor, color: '#1c1526', border: '2px solid #1c1526', borderRadius: 4, fontFamily: "'Press Start 2P', monospace", fontSize: 8, fontWeight: 700 }}>{pick ? '✦' : '·'}</span>
+                            <span style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{stop.name}</span>
+                              <span style={{ display: 'block', fontFamily: "'VT323', monospace", fontSize: 20, lineHeight: 1.2, color: '#10285e', marginTop: 2 }}>{answerLabel}</span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div style={{ padding: '15px 18px', background: '#10285e', borderTop: '5px solid #1c1526' }}>
+                    <div style={{ fontSize: 14, lineHeight: 1.45, color: '#f2f6ff' }}>Bring this card to AJCC El Centro or your MESA advisor. Ship your first portfolio piece this week.</div>
+                    <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#8f88ad', letterSpacing: '.4px', marginTop: 11, lineHeight: 1.7 }}>STEWARD OS · WORKFORCE DEVELOPMENT · {pathway.name.toUpperCase()} TRAIL</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface VictoryScreenProps {
   character: WorkshopCharacter;
   daysComplete: number;
@@ -108,7 +296,8 @@ export default function VictoryScreen({
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [showCertPreview, setShowCertPreview] = useState(false);
 
-  const playerName = character.player_name || character.character_key.toUpperCase();
+  const { user } = useUser();
+  const playerName = user?.fullName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : character.player_name || character.character_key.toUpperCase());
   const accent = character.accent_color || '#ffd23f';
   const ceb = getCelebrateProps();
   const skill = getWinSkill(character.character_key);
@@ -810,39 +999,8 @@ return (
         </div>
       </div>
 
-      {/* Workforce Pathways Map - embedded */}
-      <div style={{ 
-        position: 'relative', 
-        zIndex: 1, 
-        marginTop: 26, 
-        border: '2px solid var(--s,#45d6ff)', 
-        borderRadius: 14, 
-        overflow: 'hidden',
-        background: 'var(--bg,#12081e)',
-        width: 'calc(100% + 40px)',
-        marginLeft: -20,
-        marginRight: -20,
-        textAlign: 'left'
-      }}>
-        <div style={{ padding: '10px 18px', borderBottom: '2px solid var(--ln,#3d2668)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="font-pixel" style={{ fontSize: 'clamp(10px,1.8vw,13px)', color: 'var(--s,#45d6ff)', letterSpacing: 1 }}>
-            ◇ WORKFORCE ADVENTURE
-          </div>
-          <a href="/hub/workforce-pathways" target="_blank" rel="noopener noreferrer" className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)', textDecoration: 'none', border: '1px solid var(--ln,#3d2668)', borderRadius: 4, padding: '4px 8px' }}>
-            OPEN FULL ↗
-          </a>
-        </div>
-        <iframe 
-          src="/hub/workforce-pathways?path=creator" 
-          style={{ 
-            width: '100%', 
-            height: 650, 
-            border: 'none',
-            display: 'block'
-          }}
-          title="Workforce Pathways Map"
-        />
-      </div>
+      {/* Workforce Pathways Progress - card style */}
+      <WorkforceProgressCards />
 
       {/* Back button */}
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginTop: 22 }}>

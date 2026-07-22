@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
@@ -8,6 +8,8 @@ import { PixelSprite, buildIconUri } from '@/components/workshops/journey'
 import { DEFAULT_CHARACTER } from './character-data'
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content'
 import { fetchUserPicks } from '@/app/admin/workforce-pathways/actions'
+import { uploadCreationImage } from '@/app/actions/workshops/engagement'
+import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 import type {
   WorkshopCharacter,
   DayWithSections,
@@ -111,6 +113,9 @@ export default function Portfolio({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState({ title: '', content: '', url: '' })
   const [assetInput, setAssetInput] = useState('')
+  const [assetFileToUpload, setAssetFileToUpload] = useState<File | null>(null)
+  const [isUploadingAsset, setIsUploadingAsset] = useState(false)
+  const assetFileInputRef = useRef<HTMLInputElement>(null)
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
 
   // Workforce Pathway Picks State
@@ -307,9 +312,42 @@ export default function Portfolio({
   }
 
   function handleAddAsset() {
-    if (!assetInput.trim()) return
-    onAddEngagement('generation', assetInput.trim(), 'link', assetInput.trim())
-    setAssetInput('')
+    if (!assetInput.trim() && !assetFileToUpload) return
+    
+    if (assetFileToUpload) {
+      // Handle file upload
+      setIsUploadingAsset(true)
+      const formData = new FormData()
+      formData.append('file', assetFileToUpload)
+      uploadCreationImage(formData)
+        .then((publicUrl) => {
+          onAddEngagement('generation', assetFileToUpload.name, 'upload', publicUrl)
+          setAssetFileToUpload(null)
+          setAssetInput('')
+        })
+        .catch((err) => {
+          console.error('Failed to upload asset:', err)
+        })
+        .finally(() => {
+          setIsUploadingAsset(false)
+        })
+    } else {
+      onAddEngagement('generation', assetInput.trim(), 'link', assetInput.trim())
+      setAssetInput('')
+    }
+  }
+
+  function handleAssetFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const validTypes = ['image/', 'video/', 'audio/']
+    if (!validTypes.some(t => file.type.startsWith(t))) {
+      alert('Please upload an image, video, or audio file.')
+      return
+    }
+    setAssetFileToUpload(file)
+    setAssetInput(URL.createObjectURL(file))
+    if (assetFileInputRef.current) assetFileInputRef.current.value = ''
   }
 
   /* ── Status badge color helper ── */
@@ -487,18 +525,21 @@ export default function Portfolio({
 
                 <div style={{ width: '100%', borderTop: '1px dashed var(--ln,#3d2668)', paddingTop: 9, marginTop: 2 }}>
                   <div className="font-pixel" style={{ fontSize: 6, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 6 }}>
-                    ✦ DELIVERABLE LINK
+                    ✦ DELIVERABLE
                   </div>
                   {(() => {
                     const submission = submissions.find((s: any) => s.workshop_day_id === day.id);
                     const rawLink = submission?.submission_text || submission?.file_storage_path || submission?.external_video_url || '';
-                    const linkHref = rawLink ? (/^https?:/i.test(rawLink) ? rawLink : 'https://' + rawLink) : '#';
                     
                     if (rawLink) {
                       return (
-                        <a href={linkHref} target="_blank" rel="noreferrer" title="Open deliverable" style={{ display: 'block', fontSize: 13, color: 'var(--s,#45d6ff)', textDecoration: 'none', wordBreak: 'break-all', lineHeight: 1.3 }}>
-                          ⤢ {rawLink}
-                        </a>
+                        <DeliverableMediaPreview
+                          url={rawLink}
+                          variant="thumbnail"
+                          theme="dark"
+                          showPreviewButton={true}
+                          maxThumbnailSize={40}
+                        />
                       );
                     }
                     return (
@@ -795,25 +836,80 @@ export default function Portfolio({
 
           {/* Input row */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            <input
-              type="text"
-              value={assetInput}
-              onChange={e => setAssetInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAddAsset() }}
-              placeholder="Paste link…"
-              style={{
+            {assetInput.startsWith('blob:') ? (
+              <div style={{
                 flex: 1,
                 background: '#1a0e2e',
                 border: '1px solid var(--ln,#3d2668)',
                 borderRadius: 6,
+                padding: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                {assetFileToUpload?.type.startsWith('image/') ? (
+                  <img 
+                    src={assetInput} 
+                    alt="Upload preview" 
+                    style={{ height: 28, width: 28, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--ln,#3d2668)' }} 
+                  />
+                ) : assetFileToUpload?.type.startsWith('video/') ? (
+                  <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>🎬</span>
+                ) : (
+                  <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>🎵</span>
+                )}
+                <div style={{ flex: 1, color: 'var(--tx,#efe6ff)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {assetFileToUpload?.name || 'Uploaded File'}
+                </div>
+                <button
+                  onClick={() => { setAssetInput(''); setAssetFileToUpload(null) }}
+                  style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', padding: 4, fontSize: 14 }}
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={assetInput}
+                onChange={e => setAssetInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddAsset() }}
+                placeholder="Paste link…"
+                style={{
+                  flex: 1,
+                  background: '#1a0e2e',
+                  border: '1px solid var(--ln,#3d2668)',
+                  borderRadius: 6,
+                  padding: '8px 12px',
+                  color: 'var(--tx,#efe6ff)',
+                  fontSize: 13,
+                  outline: 'none',
+                }}
+              />
+            )}
+            <input type="file" accept="image/*,video/*,audio/*" hidden ref={assetFileInputRef} onChange={handleAssetFileChange} />
+            <button
+              onClick={() => assetFileInputRef.current?.click()}
+              disabled={isUploadingAsset}
+              className="font-pixel"
+              style={{
+                background: 'transparent',
+                border: '2px solid var(--s,#45d6ff)',
+                borderRadius: 6,
                 padding: '8px 12px',
-                color: 'var(--tx,#efe6ff)',
-                fontSize: 13,
-                outline: 'none',
+                color: 'var(--s,#45d6ff)',
+                fontSize: 8,
+                cursor: isUploadingAsset ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
-            />
+            >
+              ↑ UPLOAD
+            </button>
             <button
               onClick={handleAddAsset}
+              disabled={isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)}
               className="font-pixel"
               style={{
                 background: 'var(--ok,#74f0a0)',
@@ -822,12 +918,13 @@ export default function Portfolio({
                 padding: '8px 16px',
                 color: '#12081e',
                 fontSize: 9,
-                cursor: 'pointer',
+                cursor: (isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)) ? 'not-allowed' : 'pointer',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
+                opacity: (isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)) ? 0.5 : 1,
               }}
             >
-              ＋ SAVE
+              {isUploadingAsset ? '⏳' : '＋ SAVE'}
             </button>
           </div>
 
@@ -867,8 +964,51 @@ export default function Portfolio({
                   onClick={() => setViewingId(asset.id)}
                   title="Click to view asset"
                 >
-                  {/* Colored thumbnail */}
-                  <div style={{ height: 70, background: grad }} />
+                  {/* Thumbnail - show media preview based on type */}
+                  {asset.url && isImageUrl(asset.url) ? (
+                    <div style={{ height: 70, overflow: 'hidden', position: 'relative', background: 'rgba(0,0,0,.3)' }}>
+                      <img
+                        src={asset.url}
+                        alt={asset.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.style.background = grad; }}
+                      />
+                    </div>
+                  ) : asset.url && (asset.url.includes('youtube.com') || asset.url.includes('youtu.be')) ? (
+                    <div style={{ height: 70, overflow: 'hidden', position: 'relative', background: '#000' }}>
+                      <img
+                        src={`https://img.youtube.com/vi/${asset.url.includes('youtu.be/') ? asset.url.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(asset.url.split('?')[1] || '').get('v')}/mqdefault.jpg`}
+                        alt={asset.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.style.background = grad; }}
+                      />
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 11, color: '#fff', marginLeft: 2 }}>▶</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : asset.url && asset.url.match(/\.(mp3|wav|ogg|aac|flac)/i) ? (
+                    <div style={{ height: 70, background: 'linear-gradient(135deg, #1a0e2e, #3d2668)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: 28 }}>🎵</span>
+                    </div>
+                  ) : asset.url && asset.url.match(/\.(mp4|webm|mov|avi)/i) ? (
+                    <div style={{ height: 70, overflow: 'hidden', position: 'relative', background: '#000' }}>
+                      <video
+                        src={asset.url}
+                        preload="metadata"
+                        muted
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 11, color: '#fff', marginLeft: 2 }}>▶</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ height: 70, background: grad }} />
+                  )}
                   {/* Type tag badge */}
                   <span
                     className="font-pixel"
@@ -1355,9 +1495,13 @@ export default function Portfolio({
     
     setIsDownloadingPDF(true)
     try {
-      const playerName = character.player_name || character.character_key.toUpperCase()
+      const playerName = user?.fullName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) || character.player_name || character.character_key.toUpperCase()
       const characterKey = character.character_key
       const accent = character.accent_color || '#ffd23f'
+      
+      // Fetch latest certificate settings from database
+      const certResponse = await fetch(`/api/workshops/${cohortId}/certificate-settings`)
+      const latestCertSettings = certResponse.ok ? await certResponse.json() : certSettings
       
       // Build character sprite URI
       let characterSpriteUri = ''
@@ -1385,59 +1529,82 @@ export default function Portfolio({
         }
       })
 
-      // Call the certificate PDF API
-      const response = await fetch('/api/certificate-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          playerName,
-          characterKey,
-          cohortName,
-          certOrg: certSettings.certOrg,
-          certFacilitator: certSettings.certFacilitator,
-          certFacTitle: certSettings.certFacTitle,
-          certSponsor: certSettings.certSponsor,
-          certSponsorOrg: certSettings.certSponsorOrg,
-          certMessage: certSettings.certMessage,
-          deliverables: deliverables.length > 0 ? deliverables : [
-            { title: 'DAY 1 DELIVERABLE', url: '' },
-            { title: 'DAY 2 DELIVERABLE', url: '' },
-            { title: 'DAY 3 DELIVERABLE', url: '' }
-          ],
-          characterSpriteUri
+      // Client-side PDF generation using html2canvas + jsPDF (same as VictoryScreen)
+      const [html2canvasModule, jsPDFModule] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ])
+      const html2canvas = html2canvasModule.default
+      const { jsPDF } = jsPDFModule
+
+      // Import the shared buildClientCertHTML function
+      const { buildClientCertHTML } = await import('@/components/workshops/journey/VictoryScreen')
+
+      // Create a hidden container with the certificate HTML
+      const container = document.createElement('div')
+      container.style.position = 'fixed'
+      container.style.left = '-9999px'
+      container.style.top = '0'
+      container.style.width = '794px'
+      container.style.zIndex = '-1'
+      container.innerHTML = buildClientCertHTML({
+        playerName,
+        characterKey,
+        certOrg: latestCertSettings.certOrg || certSettings.certOrg,
+        certFacilitator: latestCertSettings.certFacilitator || certSettings.certFacilitator,
+        certFacTitle: latestCertSettings.certFacTitle || certSettings.certFacTitle,
+        certSponsor: latestCertSettings.certSponsor || certSettings.certSponsor,
+        certSponsorOrg: latestCertSettings.certSponsorOrg || certSettings.certSponsorOrg,
+        certMessage: latestCertSettings.certMessage || certSettings.certMessage,
+        deliverables,
+        characterSpriteUri
+      })
+      document.body.appendChild(container)
+
+      // Wait for fonts and images to load
+      await document.fonts.ready
+      const images = container.querySelectorAll('img')
+      await Promise.all(Array.from(images).map(img => 
+        new Promise<void>((resolve) => {
+          if (img.complete) { resolve(); return }
+          img.onload = () => resolve()
+          img.onerror = () => resolve()
         })
+      ))
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const contentHeight = container.scrollHeight || container.offsetHeight || 1123
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f7f1e0',
+        width: 794,
+        height: contentHeight,
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF')
-      }
+      document.body.removeChild(container)
 
-      const contentType = response.headers.get('content-type') || ''
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageWidth = 210
+      const pageHeight = 297
+      const imgAspect = canvas.width / canvas.height
       
-      if (contentType.includes('text/html')) {
-        // Fallback: open HTML certificate in new window for printing
-        const html = await response.text()
-        const printWindow = window.open('', '_blank')
-        if (printWindow) {
-          printWindow.document.write(html)
-          printWindow.document.close()
-          setTimeout(() => printWindow.print(), 500)
-        }
-      } else {
-        // Download the PDF
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `certificate-${cohortName.replace(/\s+/g, '-')}-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
+      let imgW = pageWidth
+      let imgH = pageWidth / imgAspect
+      
+      if (imgH > pageHeight) {
+        imgH = pageHeight
+        imgW = pageHeight * imgAspect
       }
+      
+      const xOffset = (pageWidth - imgW) / 2
+      pdf.addImage(imgData, 'PNG', xOffset, 0, imgW, imgH)
+      pdf.save(`certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`)
+
     } catch (error) {
       console.error('Error downloading certificate:', error)
-      alert('Failed to download certificate. Please try again.')
+      alert('Failed to download certificate. Check browser console for details.')
     } finally {
       setIsDownloadingPDF(false)
     }

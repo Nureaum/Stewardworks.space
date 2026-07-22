@@ -5,6 +5,7 @@ import type { WorkshopDayEntry, SceneConfig, WorkshopPrinciple, WorkshopProgress
 import { submitDeliverable } from '@/app/actions/workshops/participants'
 import { getEntryMedia } from '@/app/actions/workshops/entry-media'
 import { uploadCreationImage } from '@/app/actions/workshops/engagement'
+import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 
 interface ArtifactReaderProps {
   entry: WorkshopDayEntry & { sectionTitle: string; sectionKey: string; hour: string }
@@ -430,9 +431,13 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         )}
                         {cleanSubmittedUrl && (
                           <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 10, wordBreak: 'break-all' }}>
-                            🔗 <a href={cleanSubmittedUrl.startsWith('http') ? cleanSubmittedUrl : `https://${cleanSubmittedUrl}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--s,#45d6ff)', textDecoration: 'underline' }}>
-                              {cleanSubmittedUrl}
-                            </a>
+                            <DeliverableMediaPreview
+                              url={cleanSubmittedUrl}
+                              variant="thumbnail"
+                              theme="dark"
+                              showPreviewButton={true}
+                              maxThumbnailSize={36}
+                            />
                           </div>
                         )}
 
@@ -493,9 +498,13 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         {/* Show submitted URL/content */}
                         {cleanSubmittedUrl && (
                           <div style={{ fontSize: 16, color: 'var(--tx,#efe6ff)', marginBottom: 10, wordBreak: 'break-all' }}>
-                            🔗 <a href={cleanSubmittedUrl.startsWith('http') ? cleanSubmittedUrl : `https://${cleanSubmittedUrl}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--s,#45d6ff)', textDecoration: 'underline' }}>
-                              {cleanSubmittedUrl}
-                            </a>
+                            <DeliverableMediaPreview
+                              url={cleanSubmittedUrl}
+                              variant="thumbnail"
+                              theme="dark"
+                              showPreviewButton={true}
+                              maxThumbnailSize={48}
+                            />
                           </div>
                         )}
                         
@@ -867,13 +876,16 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                     {m.kind === 'video' && m.url && <video src={m.url} controls style={{ width: '100%', maxWidth: '100%', display: 'block' }} />}
                     {m.kind === 'audio' && m.url && <audio src={m.url} controls style={{ width: '100%', padding: '8px 0' }} />}
                     {m.kind === 'link' && m.url && (() => {
-                      const url = m.url.toLowerCase();
-                      // Check if it's an image link
-                      const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)(\?.*)?$/i.test(url);
+                      // Use the shared isImageUrl helper for better detection
+                      const isImage = isImageUrl(m.url);
                       // Check if it's a YouTube link
                       const ytMatch = m.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]+)/);
                       // Check if it's a Vimeo link
                       const vimeoMatch = m.url.match(/vimeo\.com\/(\d+)/);
+                      // Check if it's a direct video file
+                      const isDirectVideo = /\.(mp4|webm|mov|avi)(\?|#|$)/i.test(m.url);
+                      // Check if it's a direct audio file
+                      const isDirectAudio = /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(m.url);
                       
                       if (isImage) {
                         return (
@@ -915,6 +927,14 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                               title={m.label || 'Video'}
                             />
                           </div>
+                        );
+                      } else if (isDirectVideo) {
+                        return (
+                          <video src={m.url} controls preload="metadata" style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
+                        );
+                      } else if (isDirectAudio) {
+                        return (
+                          <audio src={m.url} controls style={{ width: '100%', padding: '8px 0' }} />
                         );
                       } else {
                         return (

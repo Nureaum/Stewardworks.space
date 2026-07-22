@@ -691,6 +691,22 @@ export async function reviewEngagement(engagementId: string, status: 'approved' 
       throw new Error(`Failed to review engagement: ${engError.message}`)
     }
 
+    // If approved and the engagement requested showcase visibility, update content to make it visible
+    if (status === 'approved' && engagement.content) {
+      try {
+        const contentData = JSON.parse(engagement.content)
+        if (contentData.showcaseRequested === true && contentData.showcaseVisible !== true) {
+          contentData.showcaseVisible = true
+          await supabase
+            .from('workshop_engagement')
+            .update({ content: JSON.stringify(contentData) })
+            .eq('id', engagementId)
+        }
+      } catch (e) {
+        // content is not JSON, skip
+      }
+    }
+
     // Notify the student about the review result
     await createApprovalNotification(
       engagement.profile_id,

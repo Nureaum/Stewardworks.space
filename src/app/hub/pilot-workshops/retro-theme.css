@@ -97,8 +97,8 @@
 .retro-toastin { animation: retro-toastin .3s ease both; }
 
 /* ── Font Classes ─────────────────────────────────── */
-.font-pixel { font-family: 'Press Start 2P', monospace; }
-.font-retro { font-family: 'VT323', monospace; }
+.font-pixel { font-family: 'Press Start 2P', monospace !important; }
+.font-retro { font-family: 'VT323', monospace !important; }
 
 /* ── CRT Scanline Overlay ─────────────────────────── */
 .retro-scanlines {

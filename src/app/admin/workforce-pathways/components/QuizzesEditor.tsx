@@ -24,14 +24,16 @@ export default function QuizzesEditor({ pathways }: { pathways: any[] }) {
   useEffect(() => {
     const dbQ = dbQuizzes.find(q => q.pathway_id === pwTab && q.stop_id === stopTab);
     const staticQ = (QUIZZES as any)[pwTab]?.[stopTab] || {};
+    const meta = dbQ?.options?.find((o: any) => o.id === '__meta__') || {};
+    const cleanDbOptions = dbQ?.options?.filter((o: any) => o.id !== '__meta__');
     
     setPromptVal(dbQ ? (dbQ.prompt || '') : (staticQ.prompt || ''));
-    setPickVal(dbQ ? (dbQ.pick || '') : (staticQ.pick || ''));
-    setResultVal(dbQ ? (dbQ.result || '') : (staticQ.result || ''));
+    setPickVal(dbQ ? (dbQ.pick || meta.pick || '') : (staticQ.pick || ''));
+    setResultVal(dbQ ? (dbQ.result || meta.result || '') : (staticQ.result || ''));
     setAllowCustom(dbQ ? !!dbQ.allow_custom : !!staticQ.allowCustom);
-    setCustomLabel(dbQ ? (dbQ.custom_label || '') : (staticQ.customLabel || ''));
+    setCustomLabel(dbQ ? (dbQ.custom_label || meta.custom_label || '') : (staticQ.customLabel || ''));
     setOptional(dbQ ? !!dbQ.optional : !!staticQ.optional);
-    setOptions(dbQ ? (dbQ.options || []) : (staticQ.options || []));
+    setOptions(dbQ && cleanDbOptions ? cleanDbOptions : (staticQ.options || []));
   }, [pwTab, stopTab, dbQuizzes]);
 
   const pwTabs = [
@@ -70,7 +72,7 @@ export default function QuizzesEditor({ pathways }: { pathways: any[] }) {
   async function handleSave() {
     setIsSaving(true);
     try {
-      await saveQuiz({
+      const res = await saveQuiz({
         pathway_id: pwTab,
         stop_id: stopTab,
         prompt: promptVal,
@@ -81,6 +83,7 @@ export default function QuizzesEditor({ pathways }: { pathways: any[] }) {
         optional,
         options
       });
+      if (res && res.error) throw res.error;
       const data = await fetchAllQuizzes();
       setDbQuizzes(data);
       toast.success('Quiz saved!');
@@ -155,11 +158,11 @@ export default function QuizzesEditor({ pathways }: { pathways: any[] }) {
           </div>
           
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
-            <button onClick={() => setOptional(!optional)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '8px 12px', background: optional ? '#ffdd2e' : 'transparent', color: optional ? '#10285e' : '#8f88ad', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', border: '2px solid #1c1526', borderRadius: '6px' }}>
-              {optional ? '☑ OPTIONAL (MESA)' : '☐ OPTIONAL (MESA)'}
+            <button onClick={() => setOptional(!optional)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '8px 12px', background: optional ? '#10285e' : '#2656a4', color: optional ? '#14f0c8' : '#8f88ad', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', border: '3px solid #1c1526', boxShadow: optional ? '2px 2px 0 rgba(18,12,26,.3)' : 'inset 2px 2px 0 rgba(18,12,26,.3)', borderRadius: '6px' }}>
+              {optional ? 'OPTIONAL ✓' : 'REQUIRED'}
             </button>
-            <button onClick={() => setAllowCustom(!allowCustom)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '8px 12px', background: allowCustom ? '#ffdd2e' : 'transparent', color: allowCustom ? '#10285e' : '#8f88ad', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', border: '2px solid #1c1526', borderRadius: '6px' }}>
-              {allowCustom ? '☑ ALLOW CUSTOM' : '☐ ALLOW CUSTOM'}
+            <button onClick={() => setAllowCustom(!allowCustom)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '8px 12px', background: allowCustom ? '#10285e' : '#2656a4', color: allowCustom ? '#14f0c8' : '#8f88ad', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', border: '3px solid #1c1526', boxShadow: allowCustom ? '2px 2px 0 rgba(18,12,26,.3)' : 'inset 2px 2px 0 rgba(18,12,26,.3)', borderRadius: '6px' }}>
+              {allowCustom ? 'CUSTOM SLOT ✓' : 'NO CUSTOM SLOT'}
             </button>
           </div>
 

@@ -58,6 +58,10 @@ export default function ContentItemEditor({
   const [mediaItems, setMediaItems] = useState<any[]>(initialData?.media || []);
   const [audioUrl, setAudioUrl] = useState("");
   const [audioLabel, setAudioLabel] = useState("");
+  const [galleryUrl, setGalleryUrl] = useState("");
+  const [galleryLabel, setGalleryLabel] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoLabel, setVideoLabel] = useState("");
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<
@@ -168,12 +172,35 @@ export default function ContentItemEditor({
 
   const handleAddAudio = () => {
     if (!audioUrl) return;
+    console.log('[ContentEditor] Adding audio URL:', audioUrl, 'Type: external_link');
     setMediaItems((prev) => [
       ...prev,
       { media_type: "external_link", url: audioUrl, label: audioLabel },
     ]);
     setAudioUrl("");
     setAudioLabel("");
+  };
+
+  const handleAddGalleryUrl = () => {
+    if (!galleryUrl) return;
+    console.log('[ContentEditor] Adding gallery URL:', galleryUrl, 'Type: image');
+    setMediaItems((prev) => [
+      ...prev,
+      { media_type: "image", url: galleryUrl, label: galleryLabel || "Image from URL" },
+    ]);
+    setGalleryUrl("");
+    setGalleryLabel("");
+  };
+
+  const handleAddVideoUrl = () => {
+    if (!videoUrl) return;
+    console.log('[ContentEditor] Adding video URL:', videoUrl, 'Type: video_link');
+    setMediaItems((prev) => [
+      ...prev,
+      { media_type: "video_link", url: videoUrl, label: videoLabel || "Video from URL" },
+    ]);
+    setVideoUrl("");
+    setVideoLabel("");
   };
 
   const removeMedia = (index: number) => {
@@ -225,6 +252,7 @@ export default function ContentItemEditor({
         thumbnail_url: thumbnailUrl || null,
         media: mediaItems,
       };
+      console.log('[ContentEditor] Submitting payload with', mediaItems.length, 'media items:', mediaItems);
       if (categoryId && categoryId !== "__create_new__") payload.category_id = categoryId;
       if (topicInput) payload.topic_label = topicInput;
       if (resourceType) payload.resource_type = resourceType;
@@ -540,6 +568,70 @@ export default function ContentItemEditor({
                   }
                   onChange={handleGalleryUpload}
                 />
+              </div>
+            )}
+
+            {activeTab === "gallery" && (
+              <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
+                <h4 className="text-[10px] font-black uppercase tracking-widest mb-4">
+                  Add Image URL
+                </h4>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Image URL (e.g. https://images.unsplash.com/...)"
+                    value={galleryUrl}
+                    onChange={(e) => setGalleryUrl(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-steward-dark focus:border-transparent outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Label (optional)"
+                    value={galleryLabel}
+                    onChange={(e) => setGalleryLabel(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-steward-dark focus:border-transparent outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddGalleryUrl}
+                    disabled={!galleryUrl}
+                    className="w-full py-2 bg-steward-dark text-white rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-black transition-colors"
+                  >
+                    + Add Image URL
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "videos" && (
+              <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
+                <h4 className="text-[10px] font-black uppercase tracking-widest mb-4">
+                  Add Video URL
+                </h4>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Video URL (YouTube, Vimeo, or direct .mp4)"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-steward-dark focus:border-transparent outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Label (optional)"
+                    value={videoLabel}
+                    onChange={(e) => setVideoLabel(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-steward-dark focus:border-transparent outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddVideoUrl}
+                    disabled={!videoUrl}
+                    className="w-full py-2 bg-steward-dark text-white rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-black transition-colors"
+                  >
+                    + Add Video URL
+                  </button>
+                </div>
               </div>
             )}
 

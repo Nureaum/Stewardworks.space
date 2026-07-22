@@ -108,9 +108,10 @@ export default function LoginPage() {
       });
 
       if (completeSignIn.status === 'complete') {
-        setStatus('success');
         await setActive({ session: completeSignIn.createdSessionId });
-        router.push('/hub');
+        setStatus('success');
+        // Use hard navigation to ensure session is fully recognized by middleware
+        window.location.href = '/hub';
       } else if (completeSignIn.status === 'needs_first_factor') {
         // The password was correct, but the email is unverified!
         // Let's automatically send them a verification link to complete the login.
@@ -229,10 +230,10 @@ export default function LoginPage() {
       });
 
       if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
         setStatus('success');
         setForgotPasswordStep('success');
-        await setActive({ session: result.createdSessionId });
-        router.push('/hub');
+        window.location.href = '/hub';
       } else {
         setStatus('error');
         setErrorMessage('Failed to reset password. Check your code and try again.');

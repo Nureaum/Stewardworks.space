@@ -284,6 +284,117 @@ export default function CurriculumBrowser({
               </div>
             </div>
           )}
+
+          {/* VISUAL MEDIA SECTION - shown for all lessons that have media */}
+          {selectedEntryData.media && selectedEntryData.media.length > 0 && (
+            <div style={{ marginTop: 18, border: '2px solid #28432f', borderRadius: 8, padding: 14, background: 'rgba(0,0,0,.15)' }}>
+              <div className="font-pixel" style={{ fontSize: 8, color: '#45d6ff', marginBottom: 12, letterSpacing: 1 }}>◎ VISUAL MEDIA</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {selectedEntryData.media.map((m: any, mIdx: number) => (
+                  <div key={m.id || mIdx}>
+                    {m.kind === 'photo' && m.url && (
+                      <div style={{ borderRadius: 6, overflow: 'hidden', border: '1px solid #28432f' }}>
+                        <img 
+                          src={m.url} 
+                          alt={m.label || 'Visual media'} 
+                          style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 280, objectFit: 'cover' }} 
+                        />
+                        {m.label && (
+                          <div style={{ padding: '8px 10px', background: '#0e1512', fontSize: 14, color: '#77b78d', fontFamily: "'VT323', monospace" }}>{m.label}</div>
+                        )}
+                      </div>
+                    )}
+                    {m.kind === 'video' && m.url && (
+                      <div style={{ borderRadius: 6, overflow: 'hidden', border: '1px solid #28432f' }}>
+                        {m.url.includes('youtube.com') || m.url.includes('youtu.be') || m.url.includes('vimeo.com') ? (
+                          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                            <iframe 
+                              src={m.url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              title={m.label || 'Video'}
+                            />
+                          </div>
+                        ) : (
+                          <video 
+                            src={m.url} 
+                            controls 
+                            style={{ width: '100%', maxHeight: 280, display: 'block' }}
+                          />
+                        )}
+                        {m.label && (
+                          <div style={{ padding: '8px 10px', background: '#0e1512', fontSize: 14, color: '#77b78d', fontFamily: "'VT323', monospace" }}>{m.label}</div>
+                        )}
+                      </div>
+                    )}
+                    {m.kind === 'audio' && m.url && (
+                      <div style={{ border: '1px solid #28432f', borderRadius: 6, padding: 10, background: '#0e1512' }}>
+                        {m.label && (
+                          <div style={{ fontSize: 14, color: '#77b78d', fontFamily: "'VT323', monospace", marginBottom: 8 }}>{m.label}</div>
+                        )}
+                        <audio src={m.url} controls style={{ width: '100%' }} />
+                      </div>
+                    )}
+                    {m.kind === 'link' && m.url && (
+                      <div style={{ borderRadius: 6, overflow: 'hidden', border: '1px solid #28432f' }}>
+                        {(() => {
+                          const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)(\?.*)?$/i.test(m.url.toLowerCase()) || m.url.includes('images.unsplash.com') || (m.url.includes('supabase') && m.url.includes('/storage/'));
+                          const isYt = m.url.includes('youtube.com') || m.url.includes('youtu.be');
+                          const isVimeo = m.url.includes('vimeo.com');
+                          const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(m.url);
+                          const isAudio = /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(m.url);
+                          
+                          if (isImage) {
+                            return <img src={m.url} alt={m.label || 'Media'} style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 280, objectFit: 'cover' }} />;
+                          } else if (isYt) {
+                            return (
+                              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                                <iframe 
+                                  src={m.url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  title={m.label || 'Video'}
+                                />
+                              </div>
+                            );
+                          } else if (isVimeo) {
+                            const vimeoId = m.url.match(/vimeo\.com\/(\d+)/)?.[1];
+                            return (
+                              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+                                <iframe 
+                                  src={`https://player.vimeo.com/video/${vimeoId}`}
+                                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                                  allowFullScreen
+                                  title={m.label || 'Video'}
+                                />
+                              </div>
+                            );
+                          } else if (isVideo) {
+                            return <video src={m.url} controls style={{ width: '100%', maxHeight: 280, display: 'block' }} />;
+                          } else if (isAudio) {
+                            return <div style={{ padding: 10 }}><audio src={m.url} controls style={{ width: '100%' }} /></div>;
+                          } else {
+                            return (
+                              <div style={{ padding: '8px 10px', background: '#0e1512' }}>
+                                <a href={m.url} target="_blank" rel="noreferrer" style={{ fontSize: 14, color: '#45d6ff', textDecoration: 'underline', wordBreak: 'break-all' }}>
+                                  {m.label || m.url}
+                                </a>
+                              </div>
+                            );
+                          }
+                        })()}
+                        {m.label && !(/\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(m.url)) && (
+                          <div style={{ padding: '8px 10px', background: '#0e1512', fontSize: 14, color: '#77b78d', fontFamily: "'VT323', monospace" }}>{m.label}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
