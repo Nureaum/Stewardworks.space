@@ -229,11 +229,11 @@ export async function addShowcaseItem(cohortId: string, data: {
   const resourceTypeMap: Record<string, string> = {
     'video': 'video',
     'article': 'article',
-    'audio': 'article', // Audio treated as article with external link
+    'audio': 'article',
     'aigen': 'other'
   }
   
-  const mappedType = resourceTypeMap[data.type] || 'other'
+  const mappedType = resourceTypeMap[data.type] || 'video'
   console.log('Step 3: Mapped type:', data.type, '->', mappedType)
   
   // 4. Create the library resource (only if we have a category)
@@ -252,13 +252,38 @@ export async function addShowcaseItem(cohortId: string, data: {
       source_tag: 'contributor',
     }
     
+    // Add external_url if the column exists (some schemas may not have it)
+    if (data.url) {
+      libraryPayload.external_url = data.url
+    }
+    
     console.log('📦 Library payload:', JSON.stringify(libraryPayload, null, 2))
     
-    const { data: libraryResource, error: libraryError } = await supabase
+    let libraryResource: any = null
+    let libraryError: any = null
+    
+    // Try insert with external_url first
+    const result1 = await supabase
       .from('content_items')
       .insert(libraryPayload)
       .select()
       .single()
+    
+    if (result1.error) {
+      // If it fails (possibly due to external_url column not existing), try without it
+      console.log('First insert attempt failed, trying without external_url...')
+      delete libraryPayload.external_url
+      const result2 = await supabase
+        .from('content_items')
+        .insert(libraryPayload)
+        .select()
+        .single()
+      libraryResource = result2.data
+      libraryError = result2.error
+    } else {
+      libraryResource = result1.data
+      libraryError = result1.error
+    }
     
     if (libraryError) {
       console.error('❌ Add library resource FAILED!')
@@ -271,10 +296,30 @@ export async function addShowcaseItem(cohortId: string, data: {
       console.log('✅ Library resource created successfully!')
       console.log('Library resource ID:', libraryResource.id)
       
+      // Try to link the showcase item to the library resource (column may not exist yet)
+      try {
+        await supabase
+          .from('workshop_showcase')
+          .update({ content_item_id: libraryResource.id })
+          .eq('id', item.id)
+      } catch (linkErr) {
+        console.log('Note: content_item_id column may not exist on workshop_showcase yet')
+      }
+      
       // Create media entry for the URL if provided
       if (data.url) {
         console.log('Step 4b: Creating media entry for URL...')
-        const mediaType = data.type === 'video' ? 'video_link' : 'link'
+        // Detect appropriate media type from URL
+        const urlLower = data.url.toLowerCase()
+        let mediaType = 'external_link'
+        if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$|\/)/i.test(urlLower) || urlLower.includes('placehold') || urlLower.includes('/uploads/')) {
+          mediaType = 'image'
+        } else if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be') || urlLower.includes('vimeo.com') || /\.(mp4|webm|mov)/i.test(urlLower)) {
+          mediaType = 'video_link'
+        } else if (/\.(mp3|wav|ogg|m4a|flac|aac)/i.test(urlLower) || urlLower.includes('soundcloud.com')) {
+          mediaType = 'audio_link'
+        }
+        
         const { data: mediaData, error: mediaError } = await supabase
           .from('content_media')
           .insert({

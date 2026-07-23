@@ -30,6 +30,8 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
   const savedRangeRef = useRef<Range | null>(null);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
+  const [showMediaInput, setShowMediaInput] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
 
@@ -114,6 +116,60 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
     setLinkUrl('');
   };
 
+  const handleMediaUrlClick = () => {
+    saveSelection();
+    setMediaUrl('');
+    setShowMediaInput(true);
+  };
+
+  const insertMediaFromUrl = () => {
+    if (!mediaUrl.trim()) return;
+    const url = mediaUrl.trim();
+    const urlLower = url.toLowerCase();
+    
+    let html = '';
+    
+    // Detect image URLs
+    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$|\/)/i.test(urlLower) || urlLower.includes('placehold') || urlLower.includes('wikimedia')) {
+      html = `<img src="${url}" alt="media" style="max-width:100%;border-radius:8px;margin:8px 0;" />`;
+    }
+    // Detect YouTube
+    else if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
+      let videoId = '';
+      if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+      else if (url.includes('youtube.com/watch')) videoId = new URLSearchParams(url.split('?')[1] || '').get('v') || '';
+      if (videoId) {
+        html = `<iframe src="https://www.youtube.com/embed/${videoId}" style="width:100%;aspect-ratio:16/9;border:none;border-radius:8px;margin:8px 0;" allowfullscreen></iframe>`;
+      } else {
+        html = `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+      }
+    }
+    // Detect Vimeo
+    else if (urlLower.includes('vimeo.com')) {
+      const vimeoId = url.split('/').pop()?.split('?')[0] || '';
+      html = `<iframe src="https://player.vimeo.com/video/${vimeoId}" style="width:100%;aspect-ratio:16/9;border:none;border-radius:8px;margin:8px 0;" allowfullscreen></iframe>`;
+    }
+    // Detect direct video files
+    else if (/\.(mp4|webm|mov)(\?|#|$)/i.test(urlLower)) {
+      html = `<video src="${url}" controls preload="metadata" style="width:100%;border-radius:8px;margin:8px 0;"></video>`;
+    }
+    // Detect audio files
+    else if (/\.(mp3|wav|ogg|m4a|flac|aac)(\?|#|$)/i.test(urlLower) || urlLower.includes('soundcloud.com')) {
+      html = `<audio src="${url}" controls style="width:100%;margin:8px 0;"></audio>`;
+    }
+    // Default: insert as a hyperlink
+    else {
+      html = `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+    }
+    
+    restoreSelection();
+    editorRef.current?.focus();
+    document.execCommand('insertHTML', false, html);
+    emit();
+    setShowMediaInput(false);
+    setMediaUrl('');
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -166,6 +222,9 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
           />
           {isUploading ? <span className="animate-spin text-xs">⏳</span> : <Image size={14} />}
         </label>
+        <button type="button" className={btnClass} title="Add media URL (image/video/audio)" onMouseDown={e => { e.preventDefault(); handleMediaUrlClick(); }}>
+          <span className="text-[11px] font-bold">URL</span>
+        </button>
         {isUploading && <span className="text-[11px] text-[#8a7c66] ml-1">Uploading...</span>}
       </div>
 
@@ -187,6 +246,24 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
         </div>
       )}
 
+      {/* Media URL input bar */}
+      {showMediaInput && (
+        <div className="flex items-center gap-2 p-2 border-b border-[#2c8a4a]/20 bg-[#f0f8f2]">
+          <span className="text-[13px] flex-none">🎬</span>
+          <input
+            type="url"
+            value={mediaUrl}
+            onChange={e => setMediaUrl(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); insertMediaFromUrl(); } if (e.key === 'Escape') setShowMediaInput(false); }}
+            placeholder="Paste image, video, or audio URL..."
+            autoFocus
+            className="flex-1 p-1.5 rounded border border-[#2c8a4a]/20 bg-white text-[13px] outline-none focus:border-[#2c8a4a]"
+          />
+          <button type="button" onClick={insertMediaFromUrl} className="px-3 py-1.5 rounded bg-[#2c8a4a] text-white text-[11px] font-bold hover:bg-[#247840]">Embed</button>
+          <button type="button" onClick={() => setShowMediaInput(false)} className="px-2 py-1.5 rounded border border-[#785a32]/20 text-[11px] text-[#5c4f3c] hover:bg-[#f6e5c3]">Cancel</button>
+        </div>
+      )}
+
       {/* Image selected - show delete bar */}
       {selectedImg && (
         <div className="flex items-center gap-2 p-2 border-b border-red-200 bg-red-50">
@@ -205,7 +282,7 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
         onInput={emit}
         onBlur={emit}
         data-placeholder={placeholder || 'Write the announcement members will read…'}
-        className="p-[13px_15px] text-[14px] min-h-[96px] leading-relaxed outline-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-[#9c8d76] [&:empty]:before:pointer-events-none [&_a]:text-[#2c8a4a] [&_a]:underline [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2 [&_img]:cursor-pointer [&_img]:hover:ring-2 [&_img]:hover:ring-red-300"
+        className="p-[13px_15px] text-[14px] min-h-[96px] leading-relaxed outline-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-[#9c8d76] [&:empty]:before:pointer-events-none [&_a]:text-[#2c8a4a] [&_a]:underline [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2 [&_img]:cursor-pointer [&_img]:hover:ring-2 [&_img]:hover:ring-red-300 [&_video]:rounded-lg [&_video]:max-w-full [&_video]:my-2 [&_audio]:w-full [&_audio]:my-2 [&_iframe]:rounded-lg [&_iframe]:max-w-full [&_iframe]:my-2"
       />
     </div>
   );

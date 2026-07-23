@@ -808,10 +808,10 @@ export default function WorkforcePathwaysAdminPage() {
               )}
 
               {editingItem.kind === 'entry' && (() => {
-                const labelStyle = { display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', color: 'var(--muted)', letterSpacing: '.4px', marginBottom: '10px' };
+                const labelStyle = { display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', color: 'var(--muted)', letterSpacing: '.4px', marginBottom: '10px' };
                 const labelStyleFlat = { ...labelStyle, marginBottom: 0 };
-                const inputStyle = { width: '100%', padding: '12px 13px', background: '#10285e', color: '#f2f6ff', border: '3px solid #1c1526', fontFamily: "'VT323', monospace", fontSize: '19px', outline: 'none' };
-                const smallInputStyle = { ...inputStyle, padding: '7px 9px', fontSize: '17px' };
+                const inputStyle = { width: '100%', padding: '13px 14px', background: '#10285e', color: '#f2f6ff', border: '3px solid #1c1526', fontFamily: "'VT323', monospace", fontSize: '21px', outline: 'none' };
+                const smallInputStyle = { ...inputStyle, padding: '9px 11px', fontSize: '19px' };
                 const addBtnStyle = { all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'inline-flex', padding: '6px 10px', background: '#10285e', color: '#14f0c8', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px dashed #45d4ff' } as any;
                 const delBtnStyle = { all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', background: '#1c1526', color: '#ff6a2e', fontFamily: "'Press Start 2P', monospace", fontSize: '8px' } as any;
                 

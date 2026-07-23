@@ -51,9 +51,9 @@ export default function FinaleEditor({ pathways }: { pathways: any[] }) {
     };
   }
 
-  const labelStyle = { display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', color: '#8f88ad', letterSpacing: '.4px', marginBottom: '11px' };
-  const inputStyle = { width: '100%', padding: '11px 12px', background: '#10285e', color: '#f2f6ff', border: '3px solid #1c1526', fontSize: '18px', outline: 'none' };
-  const textareaStyle = { width: '100%', padding: '11px 12px', background: '#10285e', color: '#f2f6ff', border: '3px solid #1c1526', fontFamily: "'VT323', monospace", fontSize: '18px', lineHeight: 1.45, outline: 'none', resize: 'vertical' as any, marginBottom: '16px' };
+  const labelStyle = { display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', color: '#8f88ad', letterSpacing: '.4px', marginBottom: '11px' };
+  const inputStyle = { width: '100%', padding: '13px 14px', background: '#10285e', color: '#f2f6ff', border: '3px solid #1c1526', fontSize: '20px', outline: 'none' };
+  const textareaStyle = { width: '100%', padding: '13px 14px', background: '#10285e', color: '#f2f6ff', border: '3px solid #1c1526', fontFamily: "'VT323', monospace", fontSize: '20px', lineHeight: 1.45, outline: 'none', resize: 'vertical' as any, marginBottom: '16px' };
 
   async function handleSave() {
     setIsSaving(true);

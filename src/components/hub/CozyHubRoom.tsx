@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
 import { getShowcaseItems } from '@/app/actions/workshops/showcase';
@@ -39,7 +39,16 @@ export default function CozyHubRoom({
   onCohortChange
 }: CozyHubRoomProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useUser();
+
+  // Auto-open progress screen if URL has ?screen=progress
+  useEffect(() => {
+    const screenParam = searchParams.get('screen');
+    if (screenParam === 'progress') {
+      setScreen('progress');
+    }
+  }, [searchParams]);
 
   // Prefetch common navigation routes so transitions are near-instant
   useEffect(() => {
@@ -53,7 +62,7 @@ export default function CozyHubRoom({
   const [screen, setScreen] = useState<'hub' | 'monitor' | 'meditation' | 'progress' | 'bridge' | 'loggedout' | 'navigating' | 'announcements' | 'showcase'>('hub');
   const [hovered, setHovered] = useState<string | null>(null);
   const [announcementsSidebarOpen, setAnnouncementsSidebarOpen] = useState(false);
-  const [viewedAnnouncementIds, setViewedAnnouncementIds] = useState<string[]>([]);
+  const [notifTab, setNotifTab] = useState<'announcements' | 'submissions'>('announcements');
   const [expandedAnnouncement, setExpandedAnnouncement] = useState<any>(null);
 
   // Bulletins & Announcements Data
@@ -101,7 +110,7 @@ export default function CozyHubRoom({
   const [medTone, setMedTone] = useState(false);
   const [activeToneId, setActiveToneId] = useState<string | null>(null);
   const [wellnessResources, setWellnessResources] = useState<{slot_key:string;label:string;title:string;description:string}[]>([]);
-  const [wellnessTones, setWellnessTones] = useState<{id:string;name:string;frequency:number;wave_type:string;gain:number}[]>([]);
+  const [wellnessTones, setWellnessTones] = useState<{id:string;name:string;frequency:number;wave_type:string;gain:number;audio_url?:string}[]>([]);
   
   const [lampIndex, setLampIndex] = useState(0);
 
@@ -119,11 +128,11 @@ export default function CozyHubRoom({
   // Fetch wellness resources + tones when meditation screen opens
   useEffect(() => {
     if (screen === 'meditation') {
-      fetch('/api/public/wellness')
+      fetch('/api/public/wellness', { cache: 'no-store' })
         .then(r => r.json())
         .then(data => {
-          if (data.resources?.length) setWellnessResources(data.resources);
-          if (data.tones?.length) setWellnessTones(data.tones);
+          if (data.resources) setWellnessResources(data.resources);
+          if (data.tones) setWellnessTones(data.tones);
         })
         .catch(() => {});
     }
@@ -393,7 +402,7 @@ export default function CozyHubRoom({
   const medTheme1 = () => setMedTheme(1);
   const medTheme2 = () => setMedTheme(2);
   const medTheme3 = () => setMedTheme(3);
-  const playTone = (tone: {id:string;frequency:number;wave_type:string;gain:number}) => {
+  const playTone = (tone: {id:string;frequency:number;wave_type:string;gain:number;audio_url?:string}) => {
     // If clicking the same active tone, stop it
     if (activeToneId === tone.id && medTone) {
       if (_stopToneRef.current) _stopToneRef.current();
@@ -405,6 +414,25 @@ export default function CozyHubRoom({
     if (_stopToneRef.current) _stopToneRef.current();
     
     try {
+      // If tone has an audio file, play that instead of synthesizing
+      if (tone.audio_url) {
+        const audio = new Audio(tone.audio_url);
+        audio.loop = true;
+        audio.volume = tone.gain;
+        audio.play();
+        
+        _stopToneRef.current = () => {
+          audio.pause();
+          audio.currentTime = 0;
+          _stopToneRef.current = null;
+        };
+        
+        setMedTone(true);
+        setActiveToneId(tone.id);
+        return;
+      }
+
+      // Synthesized tone fallback
       // @ts-ignore
       const Ctx = window.AudioContext || window.webkitAudioContext;
       const ctx = new Ctx();
@@ -460,15 +488,20 @@ export default function CozyHubRoom({
     showcase: { show: hovered === 'showcase', enter: () => setHovered('showcase'), click: () => setScreen('showcase') },
     phone: { show: hovered === 'phone', enter: () => setHovered('phone'), click: async () => {
       setAnnouncementsSidebarOpen(true);
-      if (bulletinUpdatedAt) {
-        localStorage.setItem('sw_bulletin_read_at', bulletinUpdatedAt);
-        setHasUnreadBulletin(false);
-      }
+      setNotifTab('announcements');
+      // Mark announcements as read immediately
       if (unreadIds.length > 0) {
         for (const id of unreadIds) {
           await markAnnouncementAsRead(id);
         }
         setUnreadIds([]);
+      }
+      // Mark bulletin as read after a brief delay so user sees the "UPDATED" badge
+      if (bulletinUpdatedAt && hasUnreadBulletin) {
+        setTimeout(() => {
+          localStorage.setItem('sw_bulletin_read_at', bulletinUpdatedAt!);
+          setHasUnreadBulletin(false);
+        }, 2000);
       }
     } }
   };
@@ -562,7 +595,7 @@ export default function CozyHubRoom({
   const isNeon = exitStyle === 'neon';
   const isWood = exitStyle === 'wood';
 
-  const notificationCount = unreadIds.length + personalNotifications.length + (hasUnreadBulletin ? 1 : 0);
+  const notificationCount = unreadIds.length + personalNotifications.filter((n: any) => !n.is_read).length + (hasUnreadBulletin ? 1 : 0);
   const phoneRinging = notificationCount > 0;
   const showPhone = !isAdmin && !isGuest;
   const isLogout = bridgeId === 'logout';
@@ -1222,13 +1255,9 @@ export default function CozyHubRoom({
       <button title="Night Field" style={{"width":"30px","height":"30px","borderRadius":"50%","border":"2px solid rgba(255,255,255,.7)","cursor":"pointer","background":"linear-gradient(140deg,#4A5A6E,#21282E)"}} onClick={medTheme3}></button>
     </div>
 
-    {/*  resources — dynamic from DB, with hardcoded fallback  */}
+    {/*  resources — dynamic from DB  */}
     <div style={{"display":"flex","gap":"12px","flexWrap":"wrap","justifyContent":"center","maxWidth":"680px"}}>
-      {(wellnessResources.length > 0 ? wellnessResources : [
-        { slot_key: 'grounding', label: 'GROUNDING', title: '4-7-8 Breathing', description: 'Inhale 4 · hold 7 · exhale 8.' },
-        { slot_key: 'support', label: 'SUPPORT', title: '988 Lifeline', description: 'Call or text 988 anytime, free & confidential.' },
-        { slot_key: 'text', label: 'TEXT', title: 'Crisis Text Line', description: 'Text HOME to 741741.' },
-      ]).map(r => (
+      {wellnessResources.map(r => (
         <div key={r.slot_key} style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.35)","borderRadius":"12px","padding":"12px 16px","backdropFilter":"blur(6px)","color":"#fff","width":"200px"}}>
           <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","opacity":".7","marginBottom":"4px"}}>{r.label}</div>
           <div style={{"fontSize":"14px","fontWeight":"600"}}>{r.title}</div>
@@ -1846,55 +1875,47 @@ export default function CozyHubRoom({
       
       {/* Scrollable content */}
       <div style={{"flex":"1","overflow":"auto","padding":"18px 20px 30px"}}>
-        {/* Personal Notifications (approvals, etc.) */}
-        { personalNotifications.length > 0 && (
-        <>
-          <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"10px"}}>
-            <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#2E5534"}}>🔔 NEW FOR YOU</span>
-            <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#2E5534"}}>{personalNotifications.length} UNREAD</span>
-          </div>
-          <div style={{"display":"flex","flexDirection":"column","gap":"8px","marginBottom":"22px"}}>
-            { personalNotifications.map((n: any) => (
-              <div key={n.id} style={{"display":"flex","gap":"12px","background":"rgba(46,85,52,.06)","border":"1.5px solid rgba(46,85,52,.15)","borderRadius":"12px","padding":"13px 15px","cursor":"pointer","transition":"opacity .2s"}} onClick={async () => {
-                await markNotificationAsRead(n.id);
-                setPersonalNotifications(prev => prev.filter(p => p.id !== n.id));
-              }}>
-                <div style={{"width":"34px","height":"34px","flex":"none","borderRadius":"10px","background":"rgba(46,85,52,.12)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"15px"}}>{n.title?.includes('approved') ? '✅' : n.title?.includes('revision') ? '❌' : '🔔'}</div>
-                <div style={{"flex":"1","minWidth":"0"}}>
-                  <div style={{"fontWeight":"700","fontSize":"13px","color":"#2E5534","marginBottom":"3px"}}>{n.title}</div>
-                  <div style={{"fontSize":"12.5px","color":"#4a6a4a","lineHeight":"1.4"}}>{n.message}</div>
-                  <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#8a9a8a","marginTop":"4px"}}>{new Date(n.created_at).toLocaleDateString()} · tap to dismiss</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-        )}
-
-        {/* Pinned Bulletin */}
+        {/* Pinned Bulletin - ALWAYS at top */}
         { bulletinText && (
-        <div style={{"background":"#21282E","color":"#FEFAE0","borderRadius":"14px","padding":"16px 18px","marginBottom":"18px","boxShadow":"0 8px 20px rgba(0,0,0,.15)"}}>
-          <div style={{"display":"flex","alignItems":"center","gap":"8px","fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".16em","color":"#FDDD9A","marginBottom":"6px"}}>📌 PINNED BULLETIN</div>
+        <div style={{"background": hasUnreadBulletin ? "linear-gradient(135deg, #2E5534, #21282E)" : "#21282E","color":"#FEFAE0","borderRadius":"14px","padding":"16px 18px","marginBottom":"18px","boxShadow": hasUnreadBulletin ? "0 8px 24px rgba(46,85,52,.3)" : "0 8px 20px rgba(0,0,0,.15)","border": hasUnreadBulletin ? "1.5px solid rgba(46,85,52,.4)" : "none","transition":"all .3s ease"}}>
+          <div style={{"display":"flex","alignItems":"center","gap":"8px","fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".16em","color":"#FDDD9A","marginBottom":"6px"}}>
+            📌 PINNED BULLETIN
+            {hasUnreadBulletin && <span style={{"background":"rgba(46,85,52,.8)","color":"#FEFAE0","padding":"2px 8px","borderRadius":"6px","fontSize":"9px","letterSpacing":".1em","marginLeft":"8px"}}>UPDATED</span>}
+          </div>
           <div style={{"fontSize":"13.5px","lineHeight":"1.5","whiteSpace":"pre-wrap"}}>{bulletinText}</div>
         </div>
         )}
-        
-        {/* Announcements list */}
+
+        {/* Tab buttons: Announcements | Submissions */}
+        <div style={{"display":"flex","gap":"8px","marginBottom":"16px"}}>
+          <button onClick={() => setNotifTab('announcements')} style={{"flex":"1","padding":"10px 12px","borderRadius":"10px","border": notifTab === 'announcements' ? "2px solid #A27532" : "1.5px solid rgba(33,40,46,.12)","background": notifTab === 'announcements' ? "rgba(162,117,50,.08)" : "rgba(33,40,46,.02)","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".1em","fontWeight":"700","color": notifTab === 'announcements' ? "#A27532" : "#8a6a4a","transition":"all .2s","display":"flex","alignItems":"center","justifyContent":"center","gap":"6px"}}>
+            📣 ANNOUNCEMENTS
+            {unreadIds.length > 0 && <span style={{"minWidth":"18px","height":"18px","borderRadius":"999px","background":"#A27532","color":"#fff","fontSize":"10px","fontWeight":"700","display":"flex","alignItems":"center","justifyContent":"center","padding":"0 5px"}}>{unreadIds.length}</span>}
+          </button>
+          <button onClick={() => setNotifTab('submissions')} style={{"flex":"1","padding":"10px 12px","borderRadius":"10px","border": notifTab === 'submissions' ? "2px solid #2E5534" : "1.5px solid rgba(33,40,46,.12)","background": notifTab === 'submissions' ? "rgba(46,85,52,.06)" : "rgba(33,40,46,.02)","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".1em","fontWeight":"700","color": notifTab === 'submissions' ? "#2E5534" : "#8a6a4a","transition":"all .2s","display":"flex","alignItems":"center","justifyContent":"center","gap":"6px"}}>
+            ✓ SUBMISSIONS
+            {personalNotifications.filter((n: any) => !n.is_read).length > 0 && <span style={{"minWidth":"18px","height":"18px","borderRadius":"999px","background":"#2E5534","color":"#fff","fontSize":"10px","fontWeight":"700","display":"flex","alignItems":"center","justifyContent":"center","padding":"0 5px"}}>{personalNotifications.filter((n: any) => !n.is_read).length}</span>}
+          </button>
+        </div>
+
+        {/* ─── ANNOUNCEMENTS TAB ─── */}
+        { notifTab === 'announcements' && (
+        <>
         <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"12px"}}>
           <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#8a5a2e"}}>ANNOUNCEMENTS</span>
           <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#8a5a2e"}}>{announcements.length} TOTAL</span>
         </div>
         
-        { announcements.length === 0 && personalNotifications.length === 0 && (
+        { announcements.length === 0 && (
           <div style={{"textAlign":"center","padding":"40px 20px","color":"#a07a4a","fontSize":"14px"}}>
             <div style={{"fontSize":"32px","marginBottom":"12px"}}>📭</div>
-            No notifications yet.
+            No announcements yet.
           </div>
         )}
         
         <div style={{"display":"flex","flexDirection":"column","gap":"10px"}}>
           { announcements.map((a: any, i: number) => {
-            const isUnread = unreadIds.includes(a.id) || !viewedAnnouncementIds.includes(a.id);
+            const isUnread = unreadIds.includes(a.id);
             // Strip HTML for preview text
             const plainText = a.body?.replace(/<[^>]*>/g, '') || '';
             const preview = plainText.length > 80 ? plainText.slice(0, 80) + '…' : plainText;
@@ -1902,10 +1923,11 @@ export default function CozyHubRoom({
             
             return (
             <div key={a.id || i} 
-              onClick={() => {
+              onClick={async () => {
                 setExpandedAnnouncement(a);
-                if (!viewedAnnouncementIds.includes(a.id)) {
-                  setViewedAnnouncementIds(prev => [...prev, a.id]);
+                if (isUnread) {
+                  setUnreadIds(prev => prev.filter(id => id !== a.id));
+                  await markAnnouncementAsRead(a.id);
                 }
               }}
               style={{"display":"flex","gap":"12px","background": isUnread ? "rgba(219,155,47,.08)" : "rgba(33,40,46,.03)","border": isUnread ? "1.5px solid rgba(219,155,47,.25)" : "1.5px solid rgba(33,40,46,.06)","borderRadius":"12px","padding":"14px 16px","cursor":"pointer","transition":"background .2s"}}>
@@ -1923,6 +1945,51 @@ export default function CozyHubRoom({
             );
           })}
         </div>
+        </>
+        )}
+
+        {/* ─── SUBMISSIONS TAB ─── */}
+        { notifTab === 'submissions' && (
+        <>
+        <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"12px"}}>
+          <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#2E5534"}}>DELIVERABLES & ENGAGEMENT</span>
+          <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#2E5534"}}>{personalNotifications.length} TOTAL</span>
+        </div>
+        
+        { personalNotifications.length === 0 && (
+          <div style={{"textAlign":"center","padding":"40px 20px","color":"#4a6a4a","fontSize":"14px"}}>
+            <div style={{"fontSize":"32px","marginBottom":"12px"}}>📭</div>
+            No submission updates yet. When your deliverables or engagements are reviewed, they&apos;ll appear here.
+          </div>
+        )}
+
+        <div style={{"display":"flex","flexDirection":"column","gap":"8px"}}>
+          { personalNotifications.map((n: any) => (
+            <div key={n.id} style={{"display":"flex","gap":"12px","background": !n.is_read ? "rgba(46,85,52,.06)" : "rgba(33,40,46,.02)","border": !n.is_read ? "1.5px solid rgba(46,85,52,.15)" : "1.5px solid rgba(33,40,46,.08)","borderRadius":"12px","padding":"13px 15px","cursor":"pointer","transition":"background .2s"}} onClick={async () => {
+              if (!n.is_read) {
+                await markNotificationAsRead(n.id);
+                setPersonalNotifications(prev => prev.map(p => p.id === n.id ? {...p, is_read: true} : p));
+              }
+              // Navigate to chia progress screen for deliverable/engagement approvals
+              if (n.type === 'approval' || n.link === '/hub?screen=progress') {
+                setAnnouncementsSidebarOpen(false);
+                setScreen('progress');
+              } else if (n.link) {
+                setAnnouncementsSidebarOpen(false);
+                router.push(n.link);
+              }
+            }}>
+              <div style={{"width":"34px","height":"34px","flex":"none","borderRadius":"10px","background": !n.is_read ? "rgba(46,85,52,.12)" : "rgba(33,40,46,.06)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"15px"}}>{n.title?.includes('approved') ? '✅' : n.title?.includes('revision') ? '❌' : '🔔'}</div>
+              <div style={{"flex":"1","minWidth":"0"}}>
+                <div style={{"fontWeight":"700","fontSize":"13px","color": !n.is_read ? "#2E5534" : "#3a2412","marginBottom":"3px"}}>{n.title}</div>
+                <div style={{"fontSize":"12.5px","color": !n.is_read ? "#4a6a4a" : "#555","lineHeight":"1.4"}}>{n.message}</div>
+                <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#8a9a8a","marginTop":"4px"}}>{new Date(n.created_at).toLocaleDateString()}{!n.is_read && ' · tap to mark read'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
+        )}
       </div>
     </div>
   </>
@@ -2004,10 +2071,10 @@ export default function CozyHubRoom({
           margin: 0,
           lineHeight: 1.5,
         }}>
-          ★ FRIENDS & CONTRIBUTORS SHOWCASE LIBRARY
+          ★ CONTRIBUTORS SHOWCASE LIBRARY
         </h2>
         <p style={{
-          fontSize: 15,
+          fontSize: 14,
           color: 'var(--mu,#a493c9)',
           margin: '8px 0 0',
           lineHeight: 1.55,
@@ -2196,38 +2263,6 @@ export default function CozyHubRoom({
               </div>
             );
           })}
-          
-          {/* ═══ Become a Contributor CTA ═══ */}
-          <div style={{
-            border: '2px dashed var(--p,#ff5fd2)',
-            borderRadius: '8px',
-            background: 'rgba(255,95,210,.05)',
-            minHeight: '220px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            padding: '22px',
-            gap: '10px',
-          }}>
-            <span className="font-pixel" style={{
-              fontSize: '11px',
-              color: 'var(--p,#ff5fd2)',
-              lineHeight: 1.6,
-            }}>
-              ✎ BECOME A CONTRIBUTOR
-            </span>
-            <p style={{
-              fontSize: '14px',
-              color: 'var(--mu,#a493c9)',
-              margin: 0,
-              lineHeight: 1.55,
-            }}>
-              Share your lessons, audio guides, articles, or AI-generated content
-              with the community. All submissions are reviewed by the StewardWorks team.
-            </p>
-          </div>
         </div>
       )}
     </div>

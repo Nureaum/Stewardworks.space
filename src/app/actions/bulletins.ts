@@ -80,12 +80,25 @@ export async function markAnnouncementAsRead(announcementId: string) {
   
   if (!userId) return;
 
+  // Check if already marked as read to avoid duplicate inserts
+  const { data: existing } = await supabase
+    .from('announcement_reads')
+    .select('id')
+    .eq('announcement_id', announcementId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existing) return; // Already read
+
   const { error } = await supabase
     .from('announcement_reads')
     .insert({ announcement_id: announcementId, user_id: userId });
 
-  if (!error) {
-    revalidatePath('/hub');
+  if (error) {
+    // If it's a duplicate key error, ignore it (race condition)
+    if (error.code !== '23505') {
+      console.error('markAnnouncementAsRead error:', error);
+    }
   }
 }
 

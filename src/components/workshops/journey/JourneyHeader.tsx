@@ -53,28 +53,6 @@ export default function JourneyHeader({
           gap: 12,
         }}
       >
-        {/* Left: Hub button */}
-        <button
-          onClick={onHub}
-          className="font-pixel"
-          title="Return to the workshop hub"
-          style={{
-            fontSize: 11,
-            lineHeight: '1.6',
-            color: 'var(--s, #45d6ff)',
-            background: 'transparent',
-            border: '2px solid var(--s, #45d6ff)',
-            borderRadius: 5,
-            padding: '8px 14px',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            boxShadow: '0 0 10px rgba(69,214,255,.2)',
-            flex: 'none',
-          }}
-        >
-          ◄ HUB
-        </button>
-
         {/* Center: Logo + Title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 auto', justifyContent: 'flex-start' }}>
           {/* Pixel cross logo */}

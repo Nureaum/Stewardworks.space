@@ -31,7 +31,7 @@ async function createApprovalNotification(
         user_id: profileId,
         title,
         message,
-        link: '/hub/my-profile',
+        link: '/hub?screen=progress',
         is_read: false,
         type: 'approval'
       })

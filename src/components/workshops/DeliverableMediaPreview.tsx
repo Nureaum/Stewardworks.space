@@ -233,7 +233,7 @@ export default function DeliverableMediaPreview({
           ) : (
             // Generic link or recognized platform - show icon with optional label
             <a
-              href={cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`}
+              href={cleanUrl.startsWith('http') ? cleanUrl : cleanUrl.startsWith('/') ? cleanUrl : `https://${cleanUrl}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -436,7 +436,7 @@ export default function DeliverableMediaPreview({
           </div>
         ) : (
           <a
-            href={cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`}
+            href={cleanUrl.startsWith('http') ? cleanUrl : cleanUrl.startsWith('/') ? cleanUrl : `https://${cleanUrl}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{

@@ -13,7 +13,7 @@ export async function GET() {
         .order('sort_order', { ascending: true }),
       supabase
         .from('wellness_tones')
-        .select('id, name, frequency, wave_type, gain, sort_order')
+        .select('id, name, frequency, wave_type, gain, audio_url, sort_order')
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
     ])

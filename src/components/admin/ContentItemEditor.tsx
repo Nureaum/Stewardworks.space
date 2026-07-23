@@ -67,7 +67,7 @@ export default function ContentItemEditor({
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<
-    "summary" | "gallery" | "videos" | "pdfs" | "audio"
+    "summary" | "gallery" | "videos" | "pdfs" | "audio" | "links"
   >("summary");
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export default function ContentItemEditor({
         file.type.startsWith("video/")
           ? "video_link"
           : file.type.startsWith("audio/")
-            ? "external_link"
+            ? "audio_link"
             : file.type.includes("pdf") ||
                 file.type.includes("document") ||
                 file.type.includes("msword")
@@ -175,10 +175,10 @@ export default function ContentItemEditor({
   const handleAddAudio = () => {
     if (!audioUrl.trim()) return;
     const trimmedUrl = audioUrl.trim();
-    console.log('[ContentEditor] Adding audio URL:', trimmedUrl, 'Type: external_link');
+    console.log('[ContentEditor] Adding audio URL:', trimmedUrl, 'Type: audio_link');
     setMediaItems((prev) => [
       ...prev,
-      { media_type: "external_link", url: trimmedUrl, label: audioLabel.trim() || "" },
+      { media_type: "audio_link", url: trimmedUrl, label: audioLabel.trim() || "" },
     ]);
     setAudioUrl("");
     setAudioLabel("");
@@ -301,7 +301,8 @@ export default function ContentItemEditor({
       gallery: mediaItems.filter(m => m.media_type === "image").length,
       videos: mediaItems.filter(m => m.media_type === "video_link").length,
       pdfs: mediaItems.filter(m => m.media_type === "pdf").length,
-      audio: mediaItems.filter(m => m.media_type === "external_link").length,
+      audio: mediaItems.filter(m => m.media_type === "audio_link" || m.media_type === "audio" || m.media_type === "audio_url").length,
+      links: mediaItems.filter(m => m.media_type === "external_link" || m.media_type === "link").length,
     };
     
     const tabs = [
@@ -310,6 +311,7 @@ export default function ContentItemEditor({
       { id: "videos", label: `Videos${counts.videos > 0 ? ` [${counts.videos}]` : ''}` },
       { id: "pdfs", label: `PDFs${counts.pdfs > 0 ? ` [${counts.pdfs}]` : ''}` },
       { id: "audio", label: `Audio${counts.audio > 0 ? ` [${counts.audio}]` : ''}` },
+      { id: "links", label: `Links${counts.links > 0 ? ` [${counts.links}]` : ''}` },
     ];
     
     return (
@@ -470,7 +472,9 @@ export default function ContentItemEditor({
                 ? "Videos"
                 : activeTab === "pdfs"
                   ? "PDFs & Documents"
-                  : "Audio Files"}
+                  : activeTab === "audio"
+                    ? "Audio Files"
+                    : "External Links"}
           </label>
 
           {(() => {
@@ -484,7 +488,9 @@ export default function ContentItemEditor({
                     if (activeTab === "pdfs")
                       return m.media_type === "pdf";
                     if (activeTab === "audio")
-                      return m.media_type === "external_link";
+                      return m.media_type === "audio_link" || m.media_type === "audio" || m.media_type === "audio_url";
+                    if (activeTab === "links")
+                      return m.media_type === "external_link" || m.media_type === "link";
                     return false;
                   })
                 : mediaItems;
@@ -551,7 +557,7 @@ export default function ContentItemEditor({
                               size={24}
                             />
                             <span className="text-[10px] font-bold text-gray-500 truncate w-full">
-                              {media.label || "Audio/External Link"}
+                              {media.label || "Audio Link"}
                             </span>
                           </div>
                         )}
@@ -573,7 +579,7 @@ export default function ContentItemEditor({
           })()}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {activeTab !== "audio" && (
+            {activeTab !== "audio" && activeTab !== "links" && (
               <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
                 <h4 className="text-[10px] font-black uppercase tracking-widest mb-4">
                   Upload File
@@ -734,6 +740,46 @@ export default function ContentItemEditor({
                     className="w-full py-2 bg-steward-dark text-white rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-black transition-colors"
                   >
                     Add Audio Link
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "links" && (
+              <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
+                <h4 className="text-[10px] font-black uppercase tracking-widest mb-4">
+                  Add External Link
+                </h4>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="URL (e.g. https://example.com/article)"
+                    value={audioUrl}
+                    onChange={(e) => setAudioUrl(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-steward-dark focus:border-transparent outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Label (e.g. Research Paper)"
+                    value={audioLabel}
+                    onChange={(e) => setAudioLabel(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-steward-dark focus:border-transparent outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!audioUrl.trim()) return;
+                      setMediaItems((prev) => [
+                        ...prev,
+                        { media_type: "external_link", url: audioUrl.trim(), label: audioLabel.trim() || "" },
+                      ]);
+                      setAudioUrl("");
+                      setAudioLabel("");
+                    }}
+                    disabled={!audioUrl}
+                    className="w-full py-2 bg-steward-dark text-white rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-50 hover:bg-black transition-colors"
+                  >
+                    + Add Link
                   </button>
                 </div>
               </div>

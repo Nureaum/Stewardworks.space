@@ -389,17 +389,17 @@ export default function Portfolio({
         <div style={{ flex: 1, minWidth: 200 }}>
           <div
             className="font-pixel"
-            style={{ fontSize: 8, color: 'var(--ok,#74f0a0)', letterSpacing: 1, marginBottom: 4 }}
+            style={{ fontSize: 12, color: 'var(--ok,#74f0a0)', letterSpacing: 1, marginBottom: 4 }}
           >
             ❀ MY CHIA GUARDIAN
           </div>
           <div
             className="font-pixel"
-            style={{ fontSize: 'clamp(14px,2vw,20px)', color: '#fff', marginBottom: 6 }}
+            style={{ fontSize: 'clamp(20px,2.5vw,28px)', color: '#fff', marginBottom: 6 }}
           >
             {chiaPct}% GROWN
           </div>
-          <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 10 }}>
+          <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginBottom: 10 }}>
             Stage: {stage}
           </div>
 
@@ -433,11 +433,11 @@ export default function Portfolio({
 
           {/* Legend */}
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ fontSize: 13, color: '#74f0a0' }}>
+            <div style={{ fontSize: 16, color: '#74f0a0' }}>
               <span style={{ marginRight: 6 }}>■</span>
               Deliverables {delivPct}% / 75%
             </div>
-            <div style={{ fontSize: 13, color: '#45d6ff' }}>
+            <div style={{ fontSize: 16, color: '#45d6ff' }}>
               <span style={{ marginRight: 6 }}>■</span>
               Engagement {engPct}% / 25%
             </div>
@@ -457,7 +457,7 @@ export default function Portfolio({
       >
         <div
           className="font-pixel"
-          style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 14 }}
+          style={{ fontSize: 14, color: 'var(--gold,#ffd23f)', marginBottom: 14 }}
         >
           ⛃ MY DELIVERABLES
         </div>
@@ -501,17 +501,17 @@ export default function Portfolio({
                 </div>
                 <div
                   className="font-pixel"
-                  style={{ fontSize: 9, color: 'var(--gold,#ffd23f)' }}
+                  style={{ fontSize: 12, color: 'var(--gold,#ffd23f)' }}
                 >
                   DAY 0{dayNum}
                 </div>
-                <div style={{ fontSize: 13, color: '#fff', textAlign: 'center' }}>
+                <div style={{ fontSize: 16, color: '#fff', textAlign: 'center' }}>
                   {day?.title || `Day ${dayNum}`}
                 </div>
                 <div
                   className="font-pixel"
                   style={{
-                    fontSize: 8,
+                    fontSize: 10,
                     color: pill.color,
                     background: `${pill.color}18`,
                     padding: '4px 10px',
@@ -524,7 +524,7 @@ export default function Portfolio({
                 </div>
 
                 <div style={{ width: '100%', borderTop: '1px dashed var(--ln,#3d2668)', paddingTop: 9, marginTop: 2 }}>
-                  <div className="font-pixel" style={{ fontSize: 6, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 6 }}>
+                  <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 6 }}>
                     ✦ DELIVERABLE
                   </div>
                   {(() => {
@@ -543,7 +543,7 @@ export default function Portfolio({
                       );
                     }
                     return (
-                      <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', opacity: 0.7 }}>
+                      <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', opacity: 0.7 }}>
                         — no link banked yet —
                       </div>
                     );
@@ -552,10 +552,10 @@ export default function Portfolio({
 
                 {prog?.review_note && (
                   <div style={{ width: '100%', borderTop: '1px dashed var(--ln,#3d2668)', paddingTop: 9, marginTop: 9 }}>
-                    <div className="font-pixel" style={{ fontSize: 6, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 6 }}>
+                    <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)', letterSpacing: 1, marginBottom: 6 }}>
                       ✦ INSTRUCTOR NOTE
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, wordWrap: 'break-word' }}>
+                    <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, wordWrap: 'break-word' }}>
                       {prog.review_note}
                     </div>
                   </div>
@@ -580,17 +580,17 @@ export default function Portfolio({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div
             className="font-pixel"
-            style={{ fontSize: 11, color: 'var(--ok,#74f0a0)' }}
+            style={{ fontSize: 14, color: 'var(--ok,#74f0a0)' }}
           >
             ✦ MY ENGAGEMENT
           </div>
-          <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>
+          <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>
             {approvedCount} approved · {pendingCount} pending · {engPct}%/25%
           </div>
         </div>
 
         {/* Description */}
-        <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 6 }}>
+        <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 6 }}>
           Add items to grow your Chia Guardian. Bookmark +1% · Note +1% · Prompt +3% · Asset +2%
         </div>
 
@@ -641,11 +641,11 @@ export default function Portfolio({
               >
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderBottom: '2px solid var(--ln,#3d2668)' }}>
-                  <span className="font-pixel" style={{ fontSize: 10, color: col.color, flex: 'none' }}>{col.icon}</span>
-                  <div className="font-pixel" style={{ flex: 1, minWidth: 0, fontSize: 8, color: col.color, letterSpacing: 0.5 }}>
+                  <span className="font-pixel" style={{ fontSize: 14, color: col.color, flex: 'none' }}>{col.icon}</span>
+                  <div className="font-pixel" style={{ flex: 1, minWidth: 0, fontSize: 11, color: col.color, letterSpacing: 0.5 }}>
                     {col.label}
                   </div>
-                  <span style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>
+                  <span style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>
                     {items.length}
                   </span>
                 </div>
@@ -665,8 +665,8 @@ export default function Portfolio({
                       border: '2px solid var(--ln,#3d2668)',
                       borderRadius: 5,
                       color: 'var(--tx,#efe6ff)',
-                      fontSize: 15,
-                      padding: '9px 10px',
+                      fontSize: 16,
+                      padding: '11px 12px',
                       outline: 'none',
                     }}
                   />
@@ -675,12 +675,12 @@ export default function Portfolio({
                     title={`Add to ${col.label.toLowerCase()}`}
                     className="font-pixel"
                     style={{
-                      fontSize: 11,
+                      fontSize: 14,
                       color: '#12081e',
                       background: col.color,
                       border: 'none',
                       borderRadius: 5,
-                      padding: '0 13px',
+                      padding: '0 15px',
                       cursor: 'pointer',
                       flex: 'none',
                     }}
@@ -692,7 +692,7 @@ export default function Portfolio({
                 {/* Scrollable items list */}
                 <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 240, overflowY: 'auto' }}>
                   {items.length === 0 && (
-                    <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', textAlign: 'center', padding: '9px 0' }}>
+                    <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', textAlign: 'center', padding: '9px 0' }}>
                       No {col.label.toLowerCase()} yet
                     </div>
                   )}
@@ -711,7 +711,7 @@ export default function Portfolio({
                         <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
                           <div
                             style={{
-                              fontSize: 15,
+                              fontSize: 16,
                               color: 'var(--tx,#efe6ff)',
                               lineHeight: 1.25,
                               whiteSpace: 'nowrap',
@@ -721,7 +721,7 @@ export default function Portfolio({
                           >
                             {item.title}
                           </div>
-                          <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginTop: 2 }}>
+                          <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 2 }}>
                             {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[col.kind] || 1}%` : item.status === 'rejected' ? '↩ returned' : '🕒 pending'}
                           </div>
                         </div>
@@ -735,10 +735,10 @@ export default function Portfolio({
                               background: expandedNoteId === item.id ? 'var(--gold,#ffd23f)' : 'rgba(255,210,63,.2)',
                               border: '1px solid var(--gold,#ffd23f)',
                               color: expandedNoteId === item.id ? '#12081e' : 'var(--gold,#ffd23f)',
-                              fontSize: 7,
+                              fontSize: 9,
                               cursor: 'pointer',
                               lineHeight: 1,
-                              padding: '4px 6px',
+                              padding: '5px 8px',
                               borderRadius: 3,
                               letterSpacing: 0.5,
                             }}
@@ -798,10 +798,10 @@ export default function Portfolio({
                       </div>
                       {expandedNoteId === item.id && item.review_note && (
                         <div style={{ padding: '8px 9px', borderTop: '1px dashed var(--ln,#3d2668)', background: 'rgba(255,210,63,.08)' }}>
-                          <div className="font-pixel" style={{ fontSize: 7, color: 'var(--gold,#ffd23f)', letterSpacing: 0.5, marginBottom: 5 }}>
+                          <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', letterSpacing: 0.5, marginBottom: 5 }}>
                             ADMIN NOTE
                           </div>
-                          <div style={{ fontSize: 13, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                          <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, wordBreak: 'break-word' }}>
                             {item.review_note}
                           </div>
                         </div>
@@ -826,11 +826,11 @@ export default function Portfolio({
         >
           <div
             className="font-pixel"
-            style={{ fontSize: 10, color: 'var(--ok,#74f0a0)', marginBottom: 6 }}
+            style={{ fontSize: 12, color: 'var(--ok,#74f0a0)', marginBottom: 6 }}
           >
             ◉ SAVED ASSETS
           </div>
-          <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', marginBottom: 10 }}>
+          <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginBottom: 10 }}>
             Paste a link to an AI-generated image, audio clip, or video to save it here.
           </div>
 
@@ -899,7 +899,7 @@ export default function Portfolio({
                 borderRadius: 6,
                 padding: '8px 12px',
                 color: 'var(--s,#45d6ff)',
-                fontSize: 8,
+                fontSize: 11,
                 cursor: isUploadingAsset ? 'not-allowed' : 'pointer',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
@@ -1086,28 +1086,28 @@ export default function Portfolio({
       {/* Modals for Viewing and Editing */}
       {viewingItem && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setViewingId(null)}>
-          <div style={{ background: '#12081e', border: '2px solid var(--s,#45d6ff)', borderRadius: 12, padding: 24, width: '90%', maxWidth: 500 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div className="font-pixel" style={{ fontSize: 10, color: 'var(--s,#45d6ff)' }}>
+          <div style={{ background: '#12081e', border: '2px solid var(--s,#45d6ff)', borderRadius: 12, padding: 28, width: '90%', maxWidth: 540 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <div className="font-pixel" style={{ fontSize: 14, color: 'var(--s,#45d6ff)' }}>
                 VIEW {viewingItem.kind.toUpperCase()}
               </div>
-              <button onClick={() => setViewingId(null)} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+              <button onClick={() => setViewingId(null)} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 22 }}>✕</button>
             </div>
             
-            <div style={{ fontSize: 18, color: 'var(--tx,#efe6ff)', marginBottom: 12, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{viewingItem.title}</div>
+            <div style={{ fontSize: 22, color: 'var(--tx,#efe6ff)', marginBottom: 14, wordBreak: 'break-word', overflowWrap: 'break-word', fontWeight: 600 }}>{viewingItem.title}</div>
             
             {/* Status */}
-            <div style={{ fontSize: 14, color: viewingItem.status === 'approved' ? 'var(--ok,#74f0a0)' : 'var(--gold,#ffd23f)', marginBottom: 16 }}>
+            <div style={{ fontSize: 17, color: viewingItem.status === 'approved' ? 'var(--ok,#74f0a0)' : 'var(--gold,#ffd23f)', marginBottom: 18 }}>
               {viewingItem.status === 'approved' ? '✓ Approved · counts toward your Chia' : viewingItem.status === 'pending' ? '◔ Pending instructor approval' : viewingItem.status}
             </div>
 
             {/* Review Note */}
             {viewingItem.review_note && (
-              <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 6, background: 'rgba(255,210,63,.12)', borderLeft: '4px solid var(--gold,#ffd23f)' }}>
-                <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', marginBottom: 6 }}>
+              <div style={{ marginBottom: 18, padding: '14px 16px', borderRadius: 6, background: 'rgba(255,210,63,.12)', borderLeft: '4px solid var(--gold,#ffd23f)' }}>
+                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>
                   ▤ TEACHER NOTE:
                 </div>
-                <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>
+                <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
                   {viewingItem.review_note}
                 </div>
               </div>
@@ -1115,16 +1115,30 @@ export default function Portfolio({
             
             {/* For generation/assets: show preview if URL is an image */}
             {viewingItem.kind === 'generation' && viewingItem.url && (
-              <div style={{ marginBottom: 16 }}>
-                {viewingItem.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+              <div style={{ marginBottom: 18 }}>
+                {viewingItem.url.match(/\.(jpg|jpeg|png|gif|webp)(\?|#|$)/i) || viewingItem.url.match(/\/(uploads|images)\//i) ? (
                   <img 
                     src={viewingItem.url} 
                     alt={viewingItem.title} 
                     style={{ 
                       display: 'block', 
                       width: '100%', 
-                      height: 200, 
-                      objectFit: 'cover', 
+                      maxHeight: 300,
+                      objectFit: 'contain', 
+                      borderRadius: 8, 
+                      border: '2px solid var(--ln,#3d2668)',
+                      marginBottom: 10,
+                      background: 'rgba(0,0,0,.3)'
+                    }} 
+                  />
+                ) : viewingItem.url.match(/\.(mp4|webm|mov)(\?|#|$)/i) ? (
+                  <video 
+                    src={viewingItem.url} 
+                    controls 
+                    style={{ 
+                      display: 'block', 
+                      width: '100%', 
+                      maxHeight: 280, 
                       borderRadius: 8, 
                       border: '2px solid var(--ln,#3d2668)',
                       marginBottom: 10 
@@ -1142,20 +1156,20 @@ export default function Portfolio({
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    <span className="font-pixel" style={{ fontSize: 10, color: '#12081e' }}>
-                      {viewingItem.url.match(/\.(mp4|webm|mov)$/i) ? 'VIDEO' : viewingItem.url.match(/\.(mp3|wav|ogg)$/i) ? 'AUDIO' : 'ASSET'}
+                    <span className="font-pixel" style={{ fontSize: 13, color: '#12081e' }}>
+                      {viewingItem.url.match(/\.(mp3|wav|ogg)(\?|#|$)/i) ? 'AUDIO' : 'ASSET'}
                     </span>
                   </div>
                 )}
-                <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>
-                  ◉ {viewingItem.url.match(/\.(mp4|webm|mov)$/i) ? 'VIDEO' : viewingItem.url.match(/\.(mp3|wav|ogg)$/i) ? 'AUDIO' : 'IMAGE'} asset · generated in your workshop tools
+                <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>
+                  ◉ {viewingItem.url.match(/\.(mp4|webm|mov)(\?|#|$)/i) ? 'VIDEO' : viewingItem.url.match(/\.(mp3|wav|ogg)(\?|#|$)/i) ? 'AUDIO' : 'IMAGE'} asset · generated in your workshop tools
                 </div>
               </div>
             )}
             
             {/* For notes and prompts: show content */}
             {viewingItem.content && viewingItem.content !== viewingItem.title && viewingItem.kind !== 'generation' && (
-              <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 16, whiteSpace: 'pre-wrap' }}>{viewingItem.content}</div>
+              <div style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 18, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{viewingItem.content}</div>
             )}
             
             {/* For bookmarks or any item with URL: show clickable link */}
@@ -1167,27 +1181,27 @@ export default function Portfolio({
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: 10, 
+                  gap: 12, 
                   textDecoration: 'none', 
                   border: '2px solid var(--s,#45d6ff)', 
                   borderRadius: 8, 
-                  padding: '12px 14px', 
+                  padding: '14px 16px', 
                   background: 'rgba(255,255,255,0.03)',
-                  marginTop: 16
+                  marginTop: 18
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', wordBreak: 'break-all', overflowWrap: 'break-word', lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 16, color: 'var(--tx,#efe6ff)', wordBreak: 'break-all', overflowWrap: 'break-word', lineHeight: 1.4 }}>
                     {viewingItem.url || viewingItem.title}
                   </div>
                 </div>
-                <span className="font-pixel" style={{ fontSize: 8, color: '#12081e', background: 'var(--s,#45d6ff)', borderRadius: 5, padding: '8px 10px', flexShrink: 0 }}>
+                <span className="font-pixel" style={{ fontSize: 12, color: '#12081e', background: 'var(--s,#45d6ff)', borderRadius: 5, padding: '10px 14px', flexShrink: 0 }}>
                   OPEN ↗
                 </span>
               </a>
             )}
             
-            <div style={{ marginTop: 24, fontSize: 11, color: 'var(--mu,#a493c9)' }}>
+            <div style={{ marginTop: 26, fontSize: 15, color: 'var(--mu,#a493c9)' }}>
               Source: {viewingItem.source || 'My Shelf'} · Status: {viewingItem.status}
             </div>
           </div>
@@ -1196,43 +1210,43 @@ export default function Portfolio({
 
       {editingItem && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEditingId(null)}>
-          <div style={{ background: '#12081e', border: '2px solid var(--gold,#ffd23f)', borderRadius: 12, padding: 24, width: '90%', maxWidth: 500 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div className="font-pixel" style={{ fontSize: 10, color: 'var(--gold,#ffd23f)' }}>
+          <div style={{ background: '#12081e', border: '2px solid var(--gold,#ffd23f)', borderRadius: 12, padding: 28, width: '90%', maxWidth: 540 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <div className="font-pixel" style={{ fontSize: 14, color: 'var(--gold,#ffd23f)' }}>
                 EDIT {editingItem.kind.toUpperCase()}
               </div>
-              <button type="button" onClick={() => setEditingId(null)} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+              <button type="button" onClick={() => setEditingId(null)} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 22 }}>✕</button>
             </div>
             
-            <label style={{ display: 'block', marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>Title / Link</div>
+            <label style={{ display: 'block', marginBottom: 18 }}>
+              <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>Title / Link</div>
               <input 
                 value={editDraft.title}
                 onChange={e => setEditDraft(prev => ({ ...prev, title: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter' && editingItem.kind === 'bookmark') handleSaveEdit(e as any) }}
-                style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '10px 12px', borderRadius: 6, fontSize: 14 }}
+                style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 6, fontSize: 17 }}
               />
             </label>
 
             {editingItem.kind !== 'bookmark' && (
               <label style={{ display: 'block', marginBottom: 24 }}>
-                <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>Notes / Content</div>
+                <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>Notes / Content</div>
                 <textarea 
                   value={editDraft.content}
                   onChange={e => setEditDraft(prev => ({ ...prev, content: e.target.value }))}
-                  style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '10px 12px', borderRadius: 6, fontSize: 14, minHeight: 120, resize: 'vertical' }}
+                  style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 6, fontSize: 17, minHeight: 120, resize: 'vertical' }}
                 />
               </label>
             )}
 
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 14 }}>
               <button 
                 type="button" 
                 onClick={() => {
                   console.log('[Portfolio Modal] CANCEL button clicked')
                   setEditingId(null)
                 }} 
-                style={{ background: 'transparent', border: '1px solid var(--mu,#a493c9)', color: 'var(--mu,#a493c9)', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }} 
+                style={{ background: 'transparent', border: '1px solid var(--mu,#a493c9)', color: 'var(--mu,#a493c9)', padding: '10px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} 
                 className="font-pixel"
               >
                 CANCEL
@@ -1246,7 +1260,7 @@ export default function Portfolio({
                   console.log('[Portfolio Modal] editDraft at click time:', editDraft)
                   handleSaveEdit(e)
                 }} 
-                style={{ background: 'var(--gold,#ffd23f)', border: 'none', color: '#12081e', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }} 
+                style={{ background: 'var(--gold,#ffd23f)', border: 'none', color: '#12081e', padding: '10px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} 
                 className="font-pixel"
               >
                 SAVE CHANGES
@@ -1307,9 +1321,9 @@ export default function Portfolio({
                       return (
                         <div key={stop.id} style={{ background: 'rgba(0,0,0,.25)', border: '2px solid var(--ln,#3d2668)', borderRadius: 10, padding: '14px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-                            <span className="font-pixel" style={{ fontSize: 8, letterSpacing: 1, background: pathwayColor, color: '#12081e', padding: '3px 8px', borderRadius: 20 }}>{stop.name.toUpperCase()}</span>
+                            <span className="font-pixel" style={{ fontSize: 10, letterSpacing: 1, background: pathwayColor, color: '#12081e', padding: '3px 8px', borderRadius: 20 }}>{stop.name.toUpperCase()}</span>
                             {stop.optional && (
-                              <span className="font-pixel" style={{ fontSize: 7, letterSpacing: 0.5, background: 'rgba(255,255,255,.1)', color: 'var(--mu,#a493c9)', padding: '2px 6px', borderRadius: 10 }}>OPTIONAL</span>
+                              <span className="font-pixel" style={{ fontSize: 9, letterSpacing: 0.5, background: 'rgba(255,255,255,.1)', color: 'var(--mu,#a493c9)', padding: '2px 6px', borderRadius: 10 }}>OPTIONAL</span>
                             )}
                           </div>
                           

@@ -627,37 +627,116 @@ export default function EnvironmentalAdminPage() {
                   </div>
                   
                   <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', color: '#21282E', marginBottom: '8px' }}>Main photo</label>
+                    <label style={{ display: 'block', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', color: '#21282E', marginBottom: '8px' }}>Main photo / media</label>
                     {edit.gallery_ids && edit.gallery_ids.length > 0 ? (
                       <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '14px', overflow: 'hidden', border: '1px solid #e9e6dd' }}>
-                        <img src={edit.gallery_ids[0]} alt="Main photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {(() => {
+                          const mainUrl = edit.gallery_ids[0];
+                          const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(mainUrl) || mainUrl.includes('youtube.com') || mainUrl.includes('youtu.be');
+                          const isAudio = /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(mainUrl);
+                          if (isVideo && (mainUrl.includes('youtube.com') || mainUrl.includes('youtu.be'))) {
+                            const vid = mainUrl.includes('youtu.be/') ? mainUrl.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(mainUrl.split('?')[1] || '').get('v');
+                            return <iframe src={`https://www.youtube.com/embed/${vid}`} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen />;
+                          }
+                          if (isVideo) return <video src={mainUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                          if (isAudio) return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f7f5ef' }}><audio src={mainUrl} controls style={{ width: '90%' }} /></div>;
+                          return <img src={mainUrl} alt="Main photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                        })()}
                         {isUploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "800 12px/1 'Exo', sans-serif", color: '#2E5534' }}>Uploading...</div>}
                         <button type="button" onClick={() => removeImage(0)} title="Remove photo" style={{ position: 'absolute', top: '8px', right: '8px', cursor: 'pointer', width: '26px', height: '26px', borderRadius: '999px', border: '1px solid #eadfd7', background: '#fff', color: '#b4675b', font: "700 14px/1 'Exo'", display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,.15)' }}>×</button>
                       </div>
                     ) : (
-                      <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '14px', background: '#f7f5ef', border: '2px dashed #e9e6dd', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6d70', font: "600 13px/1 'Exo', sans-serif" }}>
-                        {isUploading ? 'Uploading...' : 'Drop the main field-note photo here or click to browse'}
-                        <input type="file" accept="image/*" onChange={handleImageUpload} disabled={isUploading} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: isUploading ? 'wait' : 'pointer' }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', width: '100%', height: '120px', borderRadius: '14px', background: '#f7f5ef', border: '2px dashed #e9e6dd', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6d70', font: "600 13px/1 'Exo', sans-serif" }}>
+                          {isUploading ? 'Uploading...' : 'Drop a photo here or click to browse'}
+                          <input type="file" accept="image/*,video/*,audio/*" onChange={handleImageUpload} disabled={isUploading} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: isUploading ? 'wait' : 'pointer' }} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ font: "600 11px/1 'Exo', sans-serif", color: '#6b6d70' }}>or paste URL:</span>
+                          <input
+                            type="text"
+                            placeholder="https://... (image, video, or audio URL)"
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                const val = (e.target as HTMLInputElement).value.trim();
+                                if (val) {
+                                  setEdit({ ...edit, gallery_ids: [...(edit.gallery_ids || []), val] });
+                                  (e.target as HTMLInputElement).value = '';
+                                }
+                              }
+                            }}
+                            style={{ flex: 1, padding: '9px 12px', border: '1px solid #e9e6dd', borderRadius: '9px', background: '#fff', font: "600 13px/1.3 'Exo', sans-serif", color: '#21282E', outline: 'none' }}
+                          />
+                          <button type="button" onClick={e => {
+                            const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                            const val = input.value.trim();
+                            if (val) {
+                              setEdit({ ...edit, gallery_ids: [...(edit.gallery_ids || []), val] });
+                              input.value = '';
+                            }
+                          }} style={{ padding: '8px 12px', borderRadius: '9px', border: '1px solid #e9e6dd', background: '#2E5534', color: '#fff', font: "700 11px/1 'Exo', sans-serif", cursor: 'pointer' }}>Add</button>
+                        </div>
                       </div>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '11px' }}>
-                    <label style={{ display: 'block', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', color: '#21282E' }}>Additional photos</label>
+                    <label style={{ display: 'block', font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', color: '#21282E' }}>Additional photos / media</label>
                     <label style={{ cursor: isUploading ? 'wait' : 'pointer', padding: '6px 11px', borderRadius: '9px', border: '1px solid #e9e6dd', background: isUploading ? '#f7f5ef' : '#fff', color: '#2E5534', font: "800 9px/1 'Exo', sans-serif", letterSpacing: '.08em', textTransform: 'uppercase', opacity: isUploading ? 0.6 : 1 }}>
-                      {isUploading ? 'Uploading...' : '+ Add photo'}
-                      <input type="file" accept="image/*" onChange={handleImageUpload} disabled={isUploading} style={{ display: 'none' }} />
+                      {isUploading ? 'Uploading...' : '+ Upload file'}
+                      <input type="file" accept="image/*,video/*,audio/*" onChange={handleImageUpload} disabled={isUploading} style={{ display: 'none' }} />
                     </label>
                   </div>
                   
+                  {/* URL paste for additional media */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span style={{ font: "600 11px/1 'Exo', sans-serif", color: '#6b6d70', flexShrink: 0 }}>or paste URL:</span>
+                    <input
+                      type="text"
+                      placeholder="https://... (image, video, or audio)"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const val = (e.target as HTMLInputElement).value.trim();
+                          if (val) {
+                            setEdit({ ...edit, gallery_ids: [...(edit.gallery_ids || []), val] });
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }
+                      }}
+                      style={{ flex: 1, padding: '9px 12px', border: '1px solid #e9e6dd', borderRadius: '9px', background: '#fff', font: "600 13px/1.3 'Exo', sans-serif", color: '#21282E', outline: 'none' }}
+                    />
+                    <button type="button" onClick={e => {
+                      const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                      const val = input.value.trim();
+                      if (val) {
+                        setEdit({ ...edit, gallery_ids: [...(edit.gallery_ids || []), val] });
+                        input.value = '';
+                      }
+                    }} style={{ padding: '8px 12px', borderRadius: '9px', border: '1px solid #e9e6dd', background: '#2E5534', color: '#fff', font: "700 11px/1 'Exo', sans-serif", cursor: 'pointer' }}>Add</button>
+                  </div>
+
                   {edit.gallery_ids && edit.gallery_ids.length > 1 && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
-                      {edit.gallery_ids.slice(1).map((url: string, index: number) => (
-                        <div key={index} style={{ position: 'relative', width: '100%', height: '100px', borderRadius: '11px', overflow: 'hidden', border: '1px solid #e9e6dd' }}>
-                          <img src={url} alt={`Additional photo ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          <button type="button" onClick={() => removeImage(index + 1)} title="Remove photo" style={{ position: 'absolute', top: '4px', right: '4px', cursor: 'pointer', width: '22px', height: '22px', borderRadius: '999px', border: '1px solid #eadfd7', background: '#fff', color: '#b4675b', font: "700 13px/1 'Exo'", display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,.15)' }}>×</button>
-                        </div>
-                      ))}
+                      {edit.gallery_ids.slice(1).map((url: string, index: number) => {
+                        const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(url) || url.includes('youtube.com') || url.includes('youtu.be');
+                        const isAudio = /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(url);
+                        return (
+                          <div key={index} style={{ position: 'relative', width: '100%', height: '100px', borderRadius: '11px', overflow: 'hidden', border: '1px solid #e9e6dd' }}>
+                            {isVideo ? (
+                              <div style={{ width: '100%', height: '100%', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ font: "700 11px/1 'Exo', sans-serif", color: '#45d6ff' }}>▶ VIDEO</span>
+                              </div>
+                            ) : isAudio ? (
+                              <div style={{ width: '100%', height: '100%', background: '#f7f5ef', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ font: "700 11px/1 'Exo', sans-serif", color: '#2E5534' }}>♫ AUDIO</span>
+                              </div>
+                            ) : (
+                              <img src={url} alt={`Additional photo ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            )}
+                            <button type="button" onClick={() => removeImage(index + 1)} title="Remove" style={{ position: 'absolute', top: '4px', right: '4px', cursor: 'pointer', width: '22px', height: '22px', borderRadius: '999px', border: '1px solid #eadfd7', background: '#fff', color: '#b4675b', font: "700 13px/1 'Exo'", display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,.15)' }}>×</button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   

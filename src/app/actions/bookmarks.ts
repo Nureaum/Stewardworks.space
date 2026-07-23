@@ -33,14 +33,38 @@ export async function toggleBookmark(itemId: string, itemType: string, resourceT
     }
 
     // Check if bookmark engagement already exists
-    const { data: existing } = await supabase
+    // Handle multiple URL formats: /hub/library/{id}, just {id}, or external URL
+    const urlToCheck = resourceUrl || itemId;
+    let existing = null;
+    
+    const { data: exactMatch } = await supabase
       .from('workshop_engagement')
       .select('id, status')
       .eq('profile_id', profile.id)
       .eq('cohort_id', activeCohort.id)
       .eq('kind', 'bookmark')
-      .eq('url', resourceUrl || itemId)
+      .eq('url', urlToCheck)
       .maybeSingle();
+    
+    existing = exactMatch;
+    
+    // If not found, try alternate formats for backward compatibility
+    if (!existing) {
+      const altUrl = urlToCheck.startsWith('/hub/library/') 
+        ? urlToCheck.replace('/hub/library/', '') 
+        : `/hub/library/${itemId}`;
+      
+      const { data: altMatch } = await supabase
+        .from('workshop_engagement')
+        .select('id, status')
+        .eq('profile_id', profile.id)
+        .eq('cohort_id', activeCohort.id)
+        .eq('kind', 'bookmark')
+        .eq('url', altUrl)
+        .maybeSingle();
+      
+      existing = altMatch;
+    }
 
     if (existing) {
       // Remove bookmark engagement

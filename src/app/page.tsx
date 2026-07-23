@@ -19,27 +19,19 @@ export default function PreHome() {
   const { isLoaded, userId } = useAuth();
   const isAuthenticated = isLoaded && !!userId;
 
-  // Dynamic homepage text — show cached value instantly, then refresh from DB
-  const [heroTitle, setHeroTitle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
-        return cached.homepage_title || '';
-      } catch { return ''; }
-    }
-    return '';
-  });
-  const [heroSubtitle, setHeroSubtitle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
-        return cached.homepage_subtitle || '';
-      } catch { return ''; }
-    }
-    return '';
-  });
+  // Dynamic homepage text — start empty to avoid hydration mismatch,
+  // then hydrate from cache + fetch fresh data
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroSubtitle, setHeroSubtitle] = useState('');
 
   useEffect(() => {
+    // Read cached values from sessionStorage on client mount
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
+      if (cached.homepage_title) setHeroTitle(cached.homepage_title);
+      if (cached.homepage_subtitle) setHeroSubtitle(cached.homepage_subtitle);
+    } catch {}
+
     // Fetch fresh data every time the page mounts — bypasses browser & CDN cache
     fetch('/api/homepage-content', { cache: 'no-store' })
       .then(r => r.json())

@@ -26,19 +26,20 @@ export async function POST(request: Request) {
   if (!authorized || !supabase) return NextResponse.json({ error: 'Unauthorized' }, { status })
 
   const body = await request.json()
-  const { name, frequency, wave_type, gain, sort_order } = body
+  const { name, frequency, wave_type, gain, audio_url, sort_order } = body
 
-  if (!name || !frequency) {
-    return NextResponse.json({ error: 'name and frequency are required' }, { status: 400 })
+  if (!name) {
+    return NextResponse.json({ error: 'name is required' }, { status: 400 })
   }
 
   const { data, error } = await supabase
     .from('wellness_tones')
     .insert({
       name,
-      frequency: Number(frequency),
+      frequency: Number(frequency) || 174,
       wave_type: wave_type || 'sine',
       gain: gain != null ? Number(gain) : 0.05,
+      audio_url: audio_url || null,
       sort_order: sort_order ?? 0,
       updated_by: profileId,
     })
@@ -55,7 +56,7 @@ export async function PUT(request: Request) {
   if (!authorized || !supabase) return NextResponse.json({ error: 'Unauthorized' }, { status })
 
   const body = await request.json()
-  const { id, name, frequency, wave_type, gain, is_active, sort_order } = body
+  const { id, name, frequency, wave_type, gain, audio_url, is_active, sort_order } = body
 
   if (!id) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 })
@@ -69,6 +70,7 @@ export async function PUT(request: Request) {
   if (frequency !== undefined) update.frequency = Number(frequency)
   if (wave_type !== undefined) update.wave_type = wave_type
   if (gain !== undefined) update.gain = Number(gain)
+  if (audio_url !== undefined) update.audio_url = audio_url
   if (is_active !== undefined) update.is_active = is_active
   if (sort_order !== undefined) update.sort_order = sort_order
 

@@ -404,6 +404,7 @@ export async function fetchAllWorkforceEntries() {
   const { data, error } = await supabase
     .from('workforce_entries')
     .select('*')
+    .eq('status', 'published')
     .order('created_at', { ascending: true });
   if (error) { console.error('fetchAllWorkforceEntries error:', error); return []; }
   return data || [];

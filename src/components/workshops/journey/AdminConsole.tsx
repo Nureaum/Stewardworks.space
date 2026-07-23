@@ -62,14 +62,14 @@ const inputStyle: React.CSSProperties = {
   border: '2px solid var(--ln,#3d2668)',
   borderRadius: 4,
   color: 'var(--tx,#efe6ff)',
-  fontSize: 17,
-  padding: '9px 11px',
+  fontSize: 20,
+  padding: '12px 14px',
 }
 
 const textareaStyle: React.CSSProperties = {
   ...inputStyle,
   resize: 'vertical' as const,
-  lineHeight: 1.4,
+  lineHeight: 1.5,
 }
 
 // ─── Chia sprite helper ────────────────────────────────────
@@ -520,10 +520,16 @@ export default function AdminConsole({
     const url = linkInputValue.trim()
     setLinkInputDialog(null)
     setLinkInputValue('')
+    setIsUploadingMedia(true)
+    setUploadingMediaKind(null)
     saveField(async () => {
-      await createEntryMedia(entryId, { kind: 'link', url, label: '' })
-      const updatedMedia = await getEntryMedia(entryId)
-      setEntryMediaList(updatedMedia)
+      try {
+        await createEntryMedia(entryId, { kind: 'link', url, label: '' })
+        const updatedMedia = await getEntryMedia(entryId)
+        setEntryMediaList(updatedMedia)
+      } finally {
+        setIsUploadingMedia(false)
+      }
     })
   }
 
@@ -613,12 +619,38 @@ export default function AdminConsole({
         setIsUploadingNcFile(false)
       }
 
+      // Auto-detect type from URL/file
+      let detectedType = ncType
+      const url = (finalLink || '').toLowerCase()
+      if (url) {
+        const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff|ico)(\?|#|$|\/)/i.test(url) ||
+                        url.includes('/content-uploads/') || url.includes('/uploads/') ||
+                        url.includes('placehold') || url.includes('placeholder') ||
+                        url.match(/\/(jpg|jpeg|png|gif|webp)$/i) ||
+                        (url.includes('supabase') && url.includes('/storage/') && !url.match(/\.(mp4|webm|mov|mp3|wav|ogg|pdf)/i))
+        const isVideo = url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com') || url.includes('loom.com') ||
+                        /\.(mp4|webm|mov|avi|mkv)(\?|#|$|\/)/i.test(url)
+        const isAudio = /\.(mp3|wav|ogg|m4a|flac|aac|wma)(\?|#|$|\/)/i.test(url) ||
+                        url.includes('soundcloud.com') || url.includes('spotify.com')
+        
+        // Priority: video > audio > image (image stored as 'article' in DB, auto-detected on display)
+        if (isVideo) detectedType = 'video'
+        else if (isAudio) detectedType = 'audio'
+        else if (isImage) detectedType = 'article'
+      }
+      // File type detection overrides URL detection (more reliable)
+      if (ncFileToUpload) {
+        if (ncFileToUpload.type.startsWith('image/')) detectedType = 'article'
+        else if (ncFileToUpload.type.startsWith('video/')) detectedType = 'video'
+        else if (ncFileToUpload.type.startsWith('audio/')) detectedType = 'audio'
+      }
+
       if (editingShowcaseId) {
         // Update existing item
         await updateShowcaseItem(editingShowcaseId, {
           title: ncTitle,
           author: ncAuthor || 'Community Contributor',
-          type: ncType,
+          type: detectedType,
           url: finalLink || undefined,
           blurb: ncBlurb || 'Contributor media.',
           meta: ncMeta || '',
@@ -631,7 +663,7 @@ export default function AdminConsole({
         await addShowcaseItem(cohortId, {
           title: ncTitle,
           author: ncAuthor || 'Community Contributor',
-          type: ncType,
+          type: detectedType,
           url: finalLink || undefined,
           blurb: ncBlurb || 'Contributor media.',
           meta: ncMeta || '',
@@ -845,7 +877,7 @@ export default function AdminConsole({
     )
   }
 
-  // ─── Return to Game button ───────────────────────────────
+  // ─── Return to Game button (sidebar) ───────────────────────────────
   const ReturnBtn = ({ wide }: { wide?: boolean }) => (
     <button
       onClick={() => {
@@ -885,14 +917,45 @@ export default function AdminConsole({
     </button>
   )
 
+  // ─── Top-right toggle button ───────────────────────────────
+  const TopRightBtn = () => (
+    <button
+      onClick={() => {
+        if (cameFromAdminPanel) {
+          // Came from admin panel → go to student/game view
+          onReturnToGame()
+        } else {
+          // Came from student toggle → go back to main admin console
+          router.push('/admin/announcements')
+        }
+      }}
+      style={{
+        padding: '11px 14px',
+        borderRadius: 6,
+        border: '2px solid var(--s,#45d6ff)',
+        background: 'transparent',
+        color: 'var(--s,#45d6ff)',
+        whiteSpace: 'nowrap',
+        flex: 'none',
+        boxShadow: '0 0 12px rgba(69,214,255,.25)',
+        cursor: 'pointer',
+        fontFamily: "'Press Start 2P', monospace",
+        fontSize: '8px',
+        lineHeight: '1.6',
+      }}
+    >
+      {cameFromAdminPanel ? '▸ GO TO GAME' : '◂ RETURN TO ADMIN'}
+    </button>
+  )
+
   const inputStyle: React.CSSProperties = {
     background: 'rgba(0,0,0,.35)',
     border: '2px solid var(--ln,#3a3352)',
     borderRadius: 6,
     color: 'var(--tx,#e4e0ee)',
     fontFamily: '"VT323", monospace',
-    fontSize: 18,
-    padding: '10px 12px',
+    fontSize: 22,
+    padding: '12px 14px',
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box',
@@ -945,7 +1008,7 @@ export default function AdminConsole({
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <ReturnBtn />
+          <TopRightBtn />
         </div>
       </div>
 
@@ -1773,15 +1836,15 @@ export default function AdminConsole({
                     </button>
                   ))}
                 </div>
-                <input value={ncTitle} onChange={e => setNcTitle(e.target.value)} placeholder="Media title…" style={{ ...inputStyle, fontSize: 15, marginBottom: 9 }} />
-                <input value={ncAuthor} onChange={e => setNcAuthor(e.target.value)} placeholder="Contributor name…" style={{ ...inputStyle, fontSize: 15, marginBottom: 9 }} />
+                <input value={ncTitle} onChange={e => setNcTitle(e.target.value)} placeholder="Media title…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
+                <input value={ncAuthor} onChange={e => setNcAuthor(e.target.value)} placeholder="Contributor name…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
                 <div style={{ marginBottom: 9 }}>
                   <input 
                     value={ncEmail} 
                     onChange={e => setNcEmail(e.target.value)} 
                     placeholder="Contributor email (optional)…" 
                     type="email" 
-                    style={{ ...inputStyle, fontSize: 15, marginBottom: 4 }} 
+                    style={{ ...inputStyle, fontSize: 18, marginBottom: 4 }} 
                   />
                   <div style={{ fontSize: 13, color: 'var(--s,#8aa6c4)', paddingLeft: 4, lineHeight: 1.3 }}>
                     ✉ When provided, sends an invitation email with guest access
@@ -1792,7 +1855,7 @@ export default function AdminConsole({
                     <div style={{
                       flex: 1,
                       ...inputStyle,
-                      fontSize: 15,
+                      fontSize: 18,
                       display: 'flex',
                       alignItems: 'center',
                       gap: 10,
@@ -1805,13 +1868,13 @@ export default function AdminConsole({
                       ) : (
                         <span style={{ fontSize: 18 }}>🎵</span>
                       )}
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14 }}>
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 16 }}>
                         {ncFileToUpload?.name || 'Uploaded File'}
                       </span>
                       <button onClick={() => { setNcLink(''); setNcFileToUpload(null) }} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 14 }}>✕</button>
                     </div>
                   ) : (
-                    <input value={ncLink} onChange={e => setNcLink(e.target.value)} placeholder="Public share link / creation ID…" style={{ ...inputStyle, fontSize: 15, flex: 1 }} />
+                    <input value={ncLink} onChange={e => setNcLink(e.target.value)} placeholder="Public share link / creation ID…" style={{ ...inputStyle, fontSize: 18, flex: 1 }} />
                   )}
                   <input type="file" accept="image/*,video/*,audio/*" hidden ref={ncFileInputRef} onChange={(e) => {
                     const file = e.target.files?.[0]
@@ -1837,13 +1900,13 @@ export default function AdminConsole({
                     ↑ UPLOAD
                   </button>
                 </div>
-                <input value={ncMeta} onChange={e => setNcMeta(e.target.value)} placeholder="Duration / word count (e.g., 8:24 · Video)…" style={{ ...inputStyle, fontSize: 15, marginBottom: 9 }} />
+                <input value={ncMeta} onChange={e => setNcMeta(e.target.value)} placeholder="Duration / word count (e.g., 8:24 · Video)…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
                 <textarea 
                   value={ncBlurb} 
                   onChange={e => setNcBlurb(e.target.value)} 
                   placeholder="Description / blurb for students…" 
                   rows={3}
-                  style={{ ...textareaStyle, fontSize: 15, marginBottom: 12 }} 
+                  style={{ ...textareaStyle, fontSize: 18, marginBottom: 12 }} 
                 />
                 <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
                   CONTRIBUTOR STATUS · <span style={{ opacity: .75 }}>admin-only, hidden from students</span>
@@ -1929,25 +1992,6 @@ export default function AdminConsole({
                   <div style={{ fontFamily: "'VT323'", fontSize: 15, letterSpacing: 1, color: 'var(--mu,#9990ab)' }}>
                     PUBLISHED · HOW TO USE AI ({(showcaseList || []).length})
                   </div>
-                  {(showcaseList || []).length === 0 && (
-                    <button
-                      onClick={handleSeedShowcase}
-                      disabled={isSaving}
-                      className="font-pixel"
-                      style={{
-                        fontSize: 7,
-                        padding: '6px 10px',
-                        borderRadius: 4,
-                        border: '2px solid var(--ok,#74f0a0)',
-                        background: isSaving ? 'var(--mu,#a493c9)' : 'transparent',
-                        color: isSaving ? '#12081e' : 'var(--ok,#74f0a0)',
-                        cursor: isSaving ? 'not-allowed' : 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {isSaving ? 'SEEDING...' : '+ SEED SAMPLES'}
-                    </button>
-                  )}
                 </div>
                 {(showcaseList || []).length === 0 ? (
                   <div style={{
@@ -2669,23 +2713,23 @@ export default function AdminConsole({
                                       <span style={{ fontSize: 18 }}>🌱</span>
                                     </div>
                                   )}
-                                  <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', textAlign: 'center' }}>
+                                  <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', textAlign: 'center' }}>
                                     {stageLabels[chiaStage]}
                                   </div>
                                 </div>
 
                                 {/* Name + progress */}
                                 <div style={{ flex: 1, minWidth: 180 }}>
-                                  <div style={{ fontSize: 20, color: 'var(--tx,#e4e0ee)', fontWeight: 600, marginBottom: 8 }}>
+                                  <div style={{ fontSize: 22, color: 'var(--tx,#e4e0ee)', fontWeight: 600, marginBottom: 8 }}>
                                     {student.name}
-                                    {char?.player_name && <span style={{ fontSize: 16, color: 'var(--mu,#9990ab)', marginLeft: 8 }}>"{char.player_name}"</span>}
+                                    {char?.player_name && <span style={{ fontSize: 18, color: 'var(--mu,#9990ab)', marginLeft: 8 }}>"{char.player_name}"</span>}
                                   </div>
 
                                   {/* Overall progress bar */}
                                   <div style={{ marginBottom: 8 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                      <span style={{ fontSize: 14, color: 'var(--mu,#9990ab)' }}>Overall Progress</span>
-                                      <span className="font-pixel" style={{ fontSize: 10, color: 'var(--gold,#ffd23f)' }}>{student.totalPct}%</span>
+                                      <span style={{ fontSize: 16, color: 'var(--mu,#9990ab)' }}>Overall Progress</span>
+                                      <span className="font-pixel" style={{ fontSize: 12, color: 'var(--gold,#ffd23f)' }}>{student.totalPct}%</span>
                                     </div>
                                     <div style={{ height: 8, background: 'rgba(0,0,0,.4)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--ln,#3a3352)' }}>
                                       <div style={{ height: '100%', width: `${student.totalPct}%`, background: 'linear-gradient(90deg, #4dffa0, #ffd23f)', borderRadius: 4, transition: 'width 0.3s ease' }}></div>
@@ -2696,8 +2740,8 @@ export default function AdminConsole({
                                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                                     <div style={{ flex: 1, minWidth: 120 }}>
                                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                                        <span style={{ fontSize: 13, color: '#ff5fd2' }}>Deliverables</span>
-                                        <span style={{ fontSize: 13, color: 'var(--mu,#9990ab)' }}>{student.approvedDelivs}/3</span>
+                                        <span style={{ fontSize: 15, color: '#ff5fd2' }}>Deliverables</span>
+                                        <span style={{ fontSize: 15, color: 'var(--mu,#9990ab)' }}>{student.approvedDelivs}/3</span>
                                       </div>
                                       <div style={{ height: 5, background: 'rgba(0,0,0,.4)', borderRadius: 3, overflow: 'hidden' }}>
                                         <div style={{ height: '100%', width: `${(student.delivPct / 75) * 100}%`, background: '#ff5fd2', borderRadius: 3 }}></div>
@@ -2705,8 +2749,8 @@ export default function AdminConsole({
                                     </div>
                                     <div style={{ flex: 1, minWidth: 120 }}>
                                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                                        <span style={{ fontSize: 13, color: '#45d6ff' }}>Engagement</span>
-                                        <span style={{ fontSize: 13, color: 'var(--mu,#9990ab)' }}>{student.engPct}/25</span>
+                                        <span style={{ fontSize: 15, color: '#45d6ff' }}>Engagement</span>
+                                        <span style={{ fontSize: 15, color: 'var(--mu,#9990ab)' }}>{student.engPct}/25</span>
                                       </div>
                                       <div style={{ height: 5, background: 'rgba(0,0,0,.4)', borderRadius: 3, overflow: 'hidden' }}>
                                         <div style={{ height: '100%', width: `${(student.engPct / 25) * 100}%`, background: '#45d6ff', borderRadius: 3 }}></div>
@@ -2728,7 +2772,7 @@ export default function AdminConsole({
                                       {chiaStage === 0 ? '🌰' : chiaStage === 1 ? '🌱' : chiaStage === 2 ? '🌿' : '🌳'}
                                     </span>
                                   </div>
-                                  <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#9990ab)', marginTop: 5 }}>
+                                  <div className="font-pixel" style={{ fontSize: 11, color: 'var(--mu,#9990ab)', marginTop: 5 }}>
                                     LVL {chiaLevel}
                                   </div>
                                 </div>
@@ -3185,7 +3229,7 @@ export default function AdminConsole({
                   />
                   {isUploadingMedia ? (
                     <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', padding: '8px 12px', animation: 'pulse 1.5s infinite' }}>
-                      ⏳ UPLOADING {uploadingMediaKind?.toUpperCase()}...
+                      ⏳ {uploadingMediaKind ? `UPLOADING ${uploadingMediaKind.toUpperCase()}` : 'ADDING LINK'}...
                     </div>
                   ) : (
                     (['photo', 'video', 'audio', 'link'] as const).map(t => (

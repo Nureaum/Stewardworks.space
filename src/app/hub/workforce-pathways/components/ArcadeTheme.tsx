@@ -4,7 +4,7 @@ import PixelHero from "./PixelHero";
 
 
 export default function ArcadeTheme(props: any) {
-const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pwJobCount, onSwitchPathway, otherPwName, pwIntro, atlasIsTrail, pwIsCreator, pwIsEnviro, atlasEdges, atlasNodes, atlasIsBasecamp, jobRows, boardChips, jobFilterChips, jobFilter, popupOpen, popColor: propsPopColor, popMark, popShelf, popStopName, onClosePopup, popBlurb, popEntryCount, popEntryList, popCall, popType, popSub, popTitle, popMedia, popImages, popParas, popFacts, popSrcs, pwTag, suggestOpen, onOpenSuggest, onCloseSuggest, sgDone, sgNotDone, sgTitle, onSgTitle, sgUrl, onSgUrl, sgPathway, onSgPathway, sgType, onSgType, sgStop, onSgStop, sgNote, onSgNote, canSubmit, sgSubmitStyle, onSubmitSuggest, sgSubmitting, isSteward, isExplorer, onRoleExplorer, onRoleSteward, onToggleIntro, introToggleLabel, introExpanded, waypointCount, noteCount, jobCount, showTrailhead, entryIsCrossroads, entryIsMaps, showPathway, creatorTipMeta, enviroTipMeta, mapCards, onPickCreator, onPickEnviro, stop, roleExplorerStyle, roleStewardStyle, pwCards, showOverview, navItems, theme, setTheme, footTag, popEntry, initialAvatar, onSaveAvatar, pw, pwAccent, isAdminUser } = props;
+const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pwJobCount, onSwitchPathway, otherPwName, pwIntro, atlasIsTrail, pwIsCreator, pwIsEnviro, atlasEdges, atlasNodes, atlasIsBasecamp, jobRows, boardChips, jobFilterChips, jobFilter, popupOpen, popColor: propsPopColor, popMark, popShelf, popStopName, onClosePopup, popBlurb, popEntryCount, popEntryList, popCall, popType, popSub, popTitle, popMedia, popImages, popParas, popFacts, popSrcs, pwTag, suggestOpen, onOpenSuggest, onCloseSuggest, sgDone, sgNotDone, sgTitle, onSgTitle, sgUrl, onSgUrl, sgPathway, onSgPathway, sgType, onSgType, sgStop, onSgStop, sgNote, onSgNote, canSubmit, sgSubmitStyle, onSubmitSuggest, sgSubmitting, isSteward, isExplorer, onRoleExplorer, onRoleSteward, onToggleIntro, introToggleLabel, introExpanded, waypointCount, noteCount, jobCount, showTrailhead, entryIsCrossroads, entryIsMaps, showPathway, creatorTipMeta, enviroTipMeta, mapCards, onPickCreator, onPickEnviro, stop, roleExplorerStyle, roleStewardStyle, pwCards, showOverview, navItems, theme, setTheme, footTag, popEntry, initialAvatar, onSaveAvatar, pw, pwAccent, isAdminUser, stopCounts } = props;
 
   
       const showShell = false;
@@ -174,7 +174,7 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
       posStyle: {all: "unset", cursor: "pointer", boxSizing: "border-box", position: "absolute", left: pos[0] + "%", top: pos[1] + "%", transform: "translate(-50%,-50%)", zIndex: 4, display: "flex", flexDirection: "column", alignItems: "center", width: "140px"} as any,
       tileStyle: {position: "relative", zIndex: 2, width: sz + "px", height: sz + "px", display: "flex", alignItems: "center", justifyContent: "center", background: STEP[i], color: STEP_TXT[i], border: "4px solid #1c1526", boxShadow: `4px 4px 0 rgba(18,12,26,.42), 0 0 16px ${STEP[i]}cc`, borderRadius: "8px", fontFamily: "'Press Start 2P',monospace", fontSize: big ? "20px" : "16px"} as any,
       ringStyle: {position: "absolute", left: "50%", top: "50%", width: sz + "px", height: sz + "px", border: "3px solid " + STEP[i], animation: "ar-pulse 1.1s steps(4) infinite"} as any,
-      step: i + 1, name: sp.name, notes: sp.entries ? sp.entries.length : 0,
+      step: i + 1, name: sp.name, notes: (stopCounts && stopCounts[sp.id]) || 0,
       labelStyle: {marginTop: "8px", padding: "5px 7px", background: "#f2f6ff", color: "#10285e", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", lineHeight: 1.5, textAlign: "center", maxWidth: "138px", outline: here ? "3px solid #ffdd2e" : "none", outlineOffset: here ? "2px" : "0"} as any
     };
   });
@@ -191,7 +191,7 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
       onEnter: () => setCharStop(sp.id),
       rowStyle: {all: "unset", cursor: "pointer", boxSizing: "border-box", display: "flex", alignItems: "center", gap: "16px", padding: "12px", background: "#163a82", border: "4px solid #1c1526", boxShadow: "5px 5px 0 rgba(18,12,26,.42)", borderRadius: "10px", textDecoration: "none"} as any,
       tileStyle: {flex: "0 0 auto", width: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center", background: STEP[i], color: STEP_TXT[i], border: "3px solid #1c1526", borderRadius: "6px", fontFamily: "'Press Start 2P',monospace", fontSize: "14px", boxShadow: "2px 2px 0 rgba(18,12,26,.3)"} as any,
-      step: i + 1, name: sp.name, blurb: sp.blurb, notes: sp.entries ? sp.entries.length : 0
+      step: i + 1, name: sp.name, blurb: sp.blurb, notes: (stopCounts && stopCounts[sp.id]) || 0
     };
   });
 

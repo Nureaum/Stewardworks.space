@@ -573,7 +573,7 @@ function WorkforcePathwaysContent() {
   const libGroups = catalog.filter(p => libFilter === "all" || p.id === libFilter).map(p => {
     const pAccent = p.id === 'creator' ? '#ff6a2e' : '#43e97b';
     const stops = p.stops.map((sp: any) => {
-      const spEntries = allEntries.filter(e => e.pathway_id === p.id && e.stop_id === sp.slug);
+      const spEntries = allEntries.filter(e => e.pathway_id === p.id && e.stop_id === (sp.slug || sp.id) && (e.status === 'published' || !e.status));
       const links: any[] = [];
       spEntries.forEach(e => {
         (e.sources || []).forEach((x: any, i: number) => {
@@ -592,23 +592,6 @@ function WorkforcePathwaysContent() {
           links.push({ ...rec, onToggle: () => toggleBookmark(rec) });
         });
       });
-      (sp.entries || []).forEach((e: any) => {
-        (e.src || []).forEach((x: any, i: number) => {
-          const recId = "cat_" + e.id + "_" + i;
-          const url = x[1];
-          const isSaved = !!bookmarks[url];
-          const isSubmitting = isSubmittingBookmark === url;
-          const rec = {
-            id: "cat_" + e.id,
-            label: x[0], url: url, domain: domainOf(url),
-            about: e.s || "", source: e.t || "", type: e.type || "Resource",
-            pathway: p.id, stopName: sp.name, accent: pAccent,
-            nodeId: sp.slug || sp.id,
-            saved: isSaved, bmIcon: isSaved ? "★" : "☆", bmStyle: bmBtnStyle(isSaved, isSubmitting), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
-          };
-          links.push({ ...rec, onToggle: () => toggleBookmark(rec) });
-        });
-      });
       return {
         id: sp.id || sp.slug, name: sp.name, n: links.length, links, accent: pAccent,
         headStyle: { display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 12px', padding: '8px 11px', background: '#0f2a60', borderLeft: '5px solid ' + pAccent, borderRadius: '5px' } as React.CSSProperties,
@@ -619,10 +602,9 @@ function WorkforcePathwaysContent() {
   }).filter((g: any) => g.stops.length > 0);
 
   const libTotal = catalog.reduce((a, p) => a + p.stops.reduce((b: number, sp: any) => {
-    const spEntries = allEntries.filter(e => e.pathway_id === p.id && e.stop_id === sp.slug);
+    const spEntries = allEntries.filter(e => e.pathway_id === p.id && e.stop_id === (sp.slug || sp.id) && (e.status === 'published' || !e.status));
     const dbCount = spEntries.reduce((c: number, e: any) => c + (e.sources || []).length, 0);
-    const catCount = (sp.entries || []).reduce((c: number, e: any) => c + (e.src || []).length, 0);
-    return b + dbCount + catCount;
+    return b + dbCount;
   }, 0), 0);
 
   const qchip = (active: boolean) => (theme === 'arcade' ? {
@@ -640,7 +622,7 @@ function WorkforcePathwaysContent() {
   catalog.forEach(p => {
     const pAccent = p.id === 'creator' ? '#ff6a2e' : '#43e97b';
     p.stops.forEach((sp: any) => {
-      const spEntries = allEntries.filter(e => e.pathway_id === p.id && e.stop_id === sp.slug);
+      const spEntries = allEntries.filter(e => e.pathway_id === p.id && e.stop_id === (sp.slug || sp.id) && (e.status === 'published' || !e.status));
       spEntries.forEach(e => {
         (e.sources || []).forEach((x: any, i: number) => {
           const recId = e.id + "_" + i;
@@ -658,24 +640,24 @@ function WorkforcePathwaysContent() {
           }
         });
       });
-      (sp.entries || []).forEach((e: any) => {
-        (e.src || []).forEach((x: any, i: number) => {
-          const recId = "cat_" + e.id + "_" + i;
-          const url = x[1];
-          if (bookmarks[url]) {  // Check by URL, not recId
-            const isSubmitting = isSubmittingBookmark === url;
-            const rec = {
-              id: recId,
-              label: x[0], url: url, domain: domainOf(url),
-              about: e.s || "", source: e.t || "", type: e.type || "Resource",
-              pathway: p.id, stopName: sp.name, accent: pAccent,
-              saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true, isSubmitting), rowStyle: rowStyleFor(pAccent), trail: p.id === 'creator' ? 'CREATOR' : 'ENVIRO'
-            };
-            shelfItems.push({ ...rec, onToggle: () => toggleBookmark(rec) });
-          }
-        });
-      });
     });
+  });
+  // Add bookmarked jobs to shelf
+  jobs.forEach(j => {
+    const url = j.apply_url;
+    if (jobBookmarks[url]) {
+      const isCreatorJob = j.pathway_id === 'creator';
+      const jobAccent = isCreatorJob ? '#ff6a2e' : '#43e97b';
+      const isSubmitting = isSubmittingJobBookmark === url;
+      const rec = {
+        id: 'job_' + j.id,
+        label: `${j.title} — ${j.organization}`, url: url, domain: domainOf(url),
+        about: j.location || "", source: "Quest Board", type: j.job_type || "Job",
+        pathway: j.pathway_id, stopName: "Jobs", accent: jobAccent,
+        saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true, isSubmitting), rowStyle: rowStyleFor(jobAccent), trail: isCreatorJob ? 'CREATOR' : 'ENVIRO'
+      };
+      shelfItems.push({ ...rec, onToggle: () => toggleJobBookmark({ title: j.title, org: j.organization, url: url }) });
+    }
   });
   const shelfCount = shelfItems.length;
 
@@ -847,7 +829,7 @@ function WorkforcePathwaysContent() {
 
   const onQuizCustomPick = () => handleSavePick('custom', quizCustom);
 
-  const allProps = { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pwJobCount, onSwitchPathway, otherPwName, pwIntro, atlasIsTrail, pwIsCreator, pwIsEnviro, atlasEdges, atlasNodes, atlasIsBasecamp, jobRows, externalBoards, boardChips, jobFilterChips, jobFilter, popupOpen, popColor, popMark, popShelf, popStopName, onClosePopup, popBlurb, popEntryCount, popEntryList, popCall, popType, popSub, popTitle, popMedia, popImages, popParas, popFacts, popSrcs, pwTag, suggestOpen, onOpenSuggest, onCloseSuggest, sgDone, sgNotDone, sgTitle, onSgTitle, sgUrl, onSgUrl, sgPathway, onSgPathway, sgType, onSgType, sgStop, onSgStop, sgNote, onSgNote, canSubmit, sgSubmitStyle, onSubmitSuggest, sgSubmitting, isSteward, isExplorer, onRoleExplorer, onRoleSteward, onToggleIntro, introToggleLabel, introExpanded, waypointCount, noteCount, jobCount, showTrailhead, entryIsCrossroads, entryIsMaps, showPathway, creatorTipMeta, enviroTipMeta, mapCards, onPickCreator, onPickEnviro, stop, roleExplorerStyle, roleStewardStyle, isAdminUser, theme, setTheme, footTag, popEntry, initialAvatar, onSaveAvatar, pw, pwAccent, libGroups, libTotal, libFilterChips, libNodeChips, shelfItems, shelfCount, popHasQuiz, quizPrompt, quizPickLabel, quizOptions, quizAllowCustom, quizCustomLabel, quizCustom, onQuizCustom, onQuizCustomBlur, quizCustomStyle, quizAnswered, quizUnanswered, quizStatusLabel, quizStatusStyle, onQuizClear, quizClearStyle, onQuizToSummit, quizSummitBtnLabel, quizSummitBtnStyle, summitTitle, summitKlass, summitIntro, summitCloser, summitChecklist, runComplete, runClaimed, summitLocked, summitClaimable, summitDone, remainingCount, remainingText, onClaim, onPrintCard, onResetRun, cardStatRows, onQuizCustomPick };
+  const allProps = { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pwJobCount, onSwitchPathway, otherPwName, pwIntro, atlasIsTrail, pwIsCreator, pwIsEnviro, atlasEdges, atlasNodes, atlasIsBasecamp, jobRows, externalBoards, boardChips, jobFilterChips, jobFilter, popupOpen, popColor, popMark, popShelf, popStopName, onClosePopup, popBlurb, popEntryCount, popEntryList, popCall, popType, popSub, popTitle, popMedia, popImages, popParas, popFacts, popSrcs, pwTag, suggestOpen, onOpenSuggest, onCloseSuggest, sgDone, sgNotDone, sgTitle, onSgTitle, sgUrl, onSgUrl, sgPathway, onSgPathway, sgType, onSgType, sgStop, onSgStop, sgNote, onSgNote, canSubmit, sgSubmitStyle, onSubmitSuggest, sgSubmitting, isSteward, isExplorer, onRoleExplorer, onRoleSteward, onToggleIntro, introToggleLabel, introExpanded, waypointCount, noteCount, jobCount, showTrailhead, entryIsCrossroads, entryIsMaps, showPathway, creatorTipMeta, enviroTipMeta, mapCards, onPickCreator, onPickEnviro, stop, roleExplorerStyle, roleStewardStyle, isAdminUser, theme, setTheme, footTag, popEntry, initialAvatar, onSaveAvatar, pw, pwAccent, libGroups, libTotal, libFilterChips, libNodeChips, shelfItems, shelfCount, popHasQuiz, quizPrompt, quizPickLabel, quizOptions, quizAllowCustom, quizCustomLabel, quizCustom, onQuizCustom, onQuizCustomBlur, quizCustomStyle, quizAnswered, quizUnanswered, quizStatusLabel, quizStatusStyle, onQuizClear, quizClearStyle, onQuizToSummit, quizSummitBtnLabel, quizSummitBtnStyle, summitTitle, summitKlass, summitIntro, summitCloser, summitChecklist, runComplete, runClaimed, summitLocked, summitClaimable, summitDone, remainingCount, remainingText, onClaim, onPrintCard, onResetRun, cardStatRows, onQuizCustomPick, stopCounts: counts.stopCounts };
 
   if (!isLoaded || !dataLoaded) {
     return (

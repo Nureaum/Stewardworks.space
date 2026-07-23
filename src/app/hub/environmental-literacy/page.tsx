@@ -420,7 +420,18 @@ export default function EnvironmentalLiteracyPage() {
 
                     {activeEntry.gallery_ids && activeEntry.gallery_ids.length > 0 ? (
                       <div style={{ margin: '20px 0 22px', borderRadius: '14px', overflow: 'hidden', aspectRatio: '16/8', border: '1px solid rgba(60,42,24,.18)', position: 'relative' }}>
-                        <img src={activeEntry.gallery_ids[0]} alt={activeEntry.media || activeEntry.t} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {(() => {
+                          const mainUrl = activeEntry.gallery_ids[0];
+                          const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(mainUrl) || mainUrl.includes('youtube.com') || mainUrl.includes('youtu.be');
+                          const isAudio = /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(mainUrl);
+                          if (isVideo && (mainUrl.includes('youtube.com') || mainUrl.includes('youtu.be'))) {
+                            const vid = mainUrl.includes('youtu.be/') ? mainUrl.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(mainUrl.split('?')[1] || '').get('v');
+                            return <iframe src={`https://www.youtube.com/embed/${vid}`} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen />;
+                          }
+                          if (isVideo) return <video src={mainUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                          if (isAudio) return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'repeating-linear-gradient(45deg,#efe1bd,#efe1bd 11px,#e7d6ac 11px,#e7d6ac 22px)' }}><audio src={mainUrl} controls style={{ width: '80%' }} /></div>;
+                          return <img src={mainUrl} alt={activeEntry.media || activeEntry.t} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                        })()}
                         {activeEntry.media && (
                           <div style={{ position: 'absolute', bottom: '12px', left: '12px', font: "700 10px/1 'Courier New',monospace", letterSpacing: '.14em', textTransform: 'uppercase', color: '#9c8555', background: 'rgba(251,242,210,.9)', backdropFilter: 'blur(4px)', padding: '6px 12px', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>{activeEntry.media}</div>
                         )}
@@ -437,11 +448,21 @@ export default function EnvironmentalLiteracyPage() {
 
                     {activeEntry.gallery_ids && activeEntry.gallery_ids.length > 1 && (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginTop: '24px', marginBottom: '10px' }}>
-                        {activeEntry.gallery_ids.slice(1).map((url: string, i: number) => (
-                          <div key={i} style={{ borderRadius: '12px', overflow: 'hidden', aspectRatio: '4/3', border: '1px solid rgba(60,42,24,.14)' }}>
-                            <img src={url} alt={`Additional photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                        ))}
+                        {activeEntry.gallery_ids.slice(1).map((url: string, i: number) => {
+                          const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(url) || url.includes('youtube.com') || url.includes('youtu.be');
+                          const isAudio = /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(url);
+                          return (
+                            <div key={i} style={{ borderRadius: '12px', overflow: 'hidden', aspectRatio: '4/3', border: '1px solid rgba(60,42,24,.14)' }}>
+                              {isVideo ? (
+                                <video src={url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : isAudio ? (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5edd6' }}><audio src={url} controls style={{ width: '80%' }} /></div>
+                              ) : (
+                                <img src={url} alt={`Additional photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 

@@ -24,11 +24,17 @@ export async function getUnreadNotifications(): Promise<HelpdeskNotification[]> 
     const profileId = await getProfileId()
     const supabase = createServerSupabaseClient()
     
+    // Fetch all recent notifications (both read and unread) so deliverable
+    // approval notifications persist across sessions, similar to announcements.
+    // We fetch notifications from the last 30 days to keep the list manageable.
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    
     const { data, error } = await supabase
       .from('helpdesk_notifications')
       .select('*')
       .eq('user_id', profileId)
-      .eq('is_read', false)
+      .gte('created_at', thirtyDaysAgo.toISOString())
       .order('created_at', { ascending: false })
 
     if (error) throw error

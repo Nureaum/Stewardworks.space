@@ -342,21 +342,59 @@ export default function ClientProfile({
       if (libBookmarks.length === 0) {
         setBookmarkedResources([]);
       } else {
-        const libIds = libBookmarks.map((b: any) => b.item_id);
         const res = await fetch('/api/public/library-resources');
         const data = await res.json();
         if (data.resources) {
-          const matched = data.resources.filter((r: any) => libIds.includes(r.id));
+          // Match bookmarks to resources - handle multiple URL formats:
+          // New format: /hub/library/{uuid}
+          // Legacy format: just the uuid
+          // Older format: external URL
+          const matched = data.resources.filter((r: any) => 
+            libBookmarks.some((b: any) => {
+              const itemId = b.item_id || '';
+              return itemId === r.id || 
+                     itemId === `/hub/library/${r.id}` || 
+                     itemId === r.external_url;
+            })
+          );
+          
+          // For any bookmarks still unmatched, create placeholder cards from engagement data
+          const matchedIds = new Set(matched.map((r: any) => r.id));
+          const stillUnmatched = libBookmarks.filter((b: any) => {
+            const itemId = b.item_id || '';
+            return !matched.some((r: any) => 
+              itemId === r.id || 
+              itemId === `/hub/library/${r.id}` || 
+              itemId === r.external_url
+            );
+          });
+          const placeholders = stillUnmatched.map((b: any) => ({
+            id: b.item_id || b.id,
+            title: b.title || 'Bookmarked Resource',
+            external_url: b.item_id?.startsWith('http') ? b.item_id : '',
+            body: '',
+            category: null,
+            media: [],
+            created_at: new Date().toISOString(),
+            bookmarkStatus: b.status || 'pending',
+            reviewNote: b.review_note || null
+          }));
+          
           // Attach status and review_note from bookmark engagement records
           const withStatus = matched.map((r: any) => {
-            const bookmark = libBookmarks.find((b: any) => b.item_id === r.id);
+            const bookmark = libBookmarks.find((b: any) => {
+              const itemId = b.item_id || '';
+              return itemId === r.id || 
+                     itemId === `/hub/library/${r.id}` || 
+                     itemId === r.external_url;
+            });
             return {
               ...r,
-              bookmarkStatus: bookmark?.status || 'approved', // Default to approved for old bookmarks
+              bookmarkStatus: bookmark?.status || 'approved',
               reviewNote: bookmark?.review_note || null
             };
           });
-          setBookmarkedResources(withStatus);
+          setBookmarkedResources([...withStatus, ...placeholders]);
         }
       }
 
@@ -1172,6 +1210,7 @@ export default function ClientProfile({
                     transition: 'all .2s',
                   }}
                 >
+                  {cat.key !== 'all' && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color, display: 'inline-block', marginRight: '5px', verticalAlign: 'middle' }}></span>}
                   {cat.label} {cat.count > 0 && <span style={{ opacity: 0.7 }}>({cat.count})</span>}
                 </button>
               ))}
@@ -1216,10 +1255,15 @@ export default function ClientProfile({
                     WORKSHOPS <span style={{ background: 'rgba(162,117,50,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{workshopBookmarks.length}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
-                    {workshopBookmarks.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKSHOP', _color: '#A27532', _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source, content: b.content || b.note || '' })}>
+                    {workshopBookmarks.map(b => {
+                      const isStudentShowcase = b.source?.toLowerCase().includes('student');
+                      const isContributor = b.source?.toLowerCase().includes('showcase') && !isStudentShowcase;
+                      const tagLabel = isStudentShowcase ? 'STUDENT SHOWCASE' : isContributor ? 'CONTRIBUTOR' : 'WORKSHOP';
+                      const tagColor = isStudentShowcase ? '#ff5fd2' : isContributor ? '#45d6ff' : '#A27532';
+                      return (
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: tagLabel, _color: tagColor, _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source, content: b.content || b.note || '' })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                          <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#A27532', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>WORKSHOP</span>
+                          <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: tagColor, color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>{tagLabel}</span>
                           {b.status === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
                           {b.status === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.status === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
@@ -1227,7 +1271,8 @@ export default function ClientProfile({
                         <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
                         <div style={{ fontSize: '11px', color: '#A27532', marginTop: '7px' }}>🔖 {b.source}</div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1240,7 +1285,7 @@ export default function ClientProfile({
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
                     {bookmarkedWorkforce.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKFORCE', _color: '#2E5534', _bg: '#EAF2EB', _url: b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, _status: b.bookmarkStatus, _source: b.source || domain(b.url) })}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKFORCE', _color: '#2E5534', _bg: '#EAF2EB', _url: b.url, _vaultUrl: b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, _status: b.bookmarkStatus, _source: b.source || domain(b.url) })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#2E5534', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>VAULT</span>
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
@@ -1576,13 +1621,14 @@ export default function ClientProfile({
         const color = r._color || '#8a5a2e';
         const status = r._status;
         const isGenImage = r._kind === 'GENERATION' && r._isImageUrl && r._url;
+        const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase() : '';
         return (
           <div
             onClick={() => setSelectedResourceItem(null)}
             style={{
               position: 'fixed', inset: 0, zIndex: 10000,
-              background: 'rgba(20,12,4,.72)',
-              backdropFilter: 'blur(6px)',
+              background: 'rgba(20,12,4,.65)',
+              backdropFilter: 'blur(4px)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: 'clamp(12px,4vw,40px)',
               animation: 'fadeIn .18s ease'
@@ -1591,94 +1637,161 @@ export default function ClientProfile({
             <div
               onClick={e => e.stopPropagation()}
               style={{
-                width: '100%', maxWidth: 520,
-                background: r._bg || '#FEFAE0',
-                border: `2px solid ${color}30`,
-                borderRadius: '18px',
-                boxShadow: '0 24px 60px rgba(0,0,0,.28)',
+                width: '100%', maxWidth: 560,
+                background: '#FEFAE0',
+                borderRadius: '4px',
+                boxShadow: '0 24px 60px rgba(0,0,0,.35), 0 0 0 1px rgba(138,90,46,.15)',
                 position: 'relative',
                 maxHeight: '88vh', overflowY: 'auto',
-                animation: 'slideUp .2s ease'
+                animation: 'slideUp .2s ease',
+                overflow: 'hidden'
               }}
             >
+              {/* Top bar - catalog style */}
+              <div style={{ background: '#21282E', padding: '12px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#FEFAE0', fontWeight: 700 }}>
+                  SAVED RESOURCES · {r._kind}
+                </span>
+                {r._source && (
+                  <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', color: 'rgba(254,250,224,.6)' }}>
+                    {r._source}
+                  </span>
+                )}
+              </div>
+
               {/* Image preview for generations */}
               {isGenImage && (
-                <div style={{ width: '100%', height: '220px', overflow: 'hidden', borderRadius: '16px 16px 0 0' }}>
+                <div style={{ width: '100%', maxHeight: '240px', overflow: 'hidden' }}>
                   <img src={r._url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
 
-              <div style={{ padding: 'clamp(22px,4vw,32px)' }}>
-                {/* Close */}
-                <button
-                  onClick={() => setSelectedResourceItem(null)}
-                  style={{
-                    position: 'absolute', top: isGenImage ? 230 : 14, right: 14,
-                    background: 'rgba(0,0,0,.08)', border: `1.5px solid ${color}40`,
-                    color: color, borderRadius: '50%', width: 30, height: 30,
-                    cursor: 'pointer', fontSize: '14px', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', fontWeight: 700,
-                    lineHeight: 1, zIndex: 2
-                  }}
-                >✕</button>
-
-                {/* Badges */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: color, color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>{r._kind}</span>
-                  {r._typeTag && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: 'rgba(0,0,0,.08)', color: '#5a4a3a', padding: '3px 9px', borderRadius: '20px' }}>{r._typeTag}</span>}
-                  {status === 'pending' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 9px', borderRadius: '20px' }}>PENDING</span>}
-                  {status === 'approved' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 9px', borderRadius: '20px' }}>✓ APPROVED</span>}
-                  {status === 'rejected' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>✕ REJECTED</span>}
+              {/* Body content */}
+              <div style={{ padding: '24px 26px 28px' }}>
+                {/* Type badge + status */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '24px', height: '24px', borderRadius: '4px', background: color, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{r._kind?.slice(0,2)}</span>
+                    <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: color, fontWeight: 700 }}>{r._kind}</span>
+                    {r._typeTag && <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: '#8a7c66' }}>{r._typeTag}</span>}
+                  </div>
+                  {dateStr && (
+                    <span style={{ fontFamily: '"Courier New", monospace', fontSize: '9px', color: '#7A2E2E', border: '1.5px solid #7A2E2E', padding: '4px 8px', borderRadius: '3px', letterSpacing: '.06em', transform: 'rotate(-2deg)', opacity: 0.8 }}>
+                      {status === 'approved' ? '✓ ' : status === 'pending' ? '⏳ ' : ''}{dateStr}
+                    </span>
+                  )}
                 </div>
 
                 {/* Title */}
-                <div style={{ fontWeight: 800, color: '#3a2412', fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.3, marginBottom: '14px' }}>
+                <h2 style={{ fontWeight: 800, color: '#21282E', fontSize: 'clamp(22px,3vw,28px)', lineHeight: 1.2, margin: '0 0 12px' }}>
                   {r.title}
-                </div>
+                </h2>
 
-                {/* Divider */}
-                <div style={{ height: '1px', background: `${color}30`, marginBottom: '16px' }} />
+                {/* Category / shelf */}
+                {r.category?.label && (
+                  <div style={{ fontSize: '14px', color: '#5c4f3c', marginBottom: '8px' }}>
+                    Shelf — {r.category.label}
+                  </div>
+                )}
 
                 {/* Content / Description */}
-                {(r.content || r.description || r.note) && (
-                  <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
-                    {r.content || r.description || r.note}
-                  </div>
+                {(r.content || r.description || r.note || r.body) && (
+                  <>
+                    <div style={{ height: '1px', background: 'rgba(138,90,46,.15)', margin: '14px 0' }} />
+                    <div style={{ fontSize: '15px', color: '#3a2412', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                      {r.content || r.description || r.note || (typeof r.body === 'string' && r.body.replace(/<[^>]+>/g, '').trim())}
+                    </div>
+                  </>
                 )}
 
                 {/* Source */}
                 {r._source && (
-                  <div style={{ fontSize: '11px', color: '#7a5a3a', fontFamily: '"DM Mono", monospace', letterSpacing: '.06em', marginBottom: r.reviewNote ? '14px' : '18px' }}>
-                    📌 {r._source}
-                  </div>
+                  <>
+                    <div style={{ height: '1px', background: 'rgba(138,90,46,.15)', margin: '14px 0' }} />
+                    <div style={{ fontSize: '13px', color: '#7a5a3a', fontFamily: '"Courier New", monospace' }}>
+                      Source — {r._source}
+                    </div>
+                  </>
                 )}
 
                 {/* Admin review note */}
                 {r.reviewNote && (
-                  <div style={{ padding: '12px 14px', background: `${color}12`, border: `1px solid ${color}30`, borderRadius: '10px', marginBottom: '18px' }}>
-                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.12em', color: color, marginBottom: '6px' }}>ADMIN NOTE</div>
+                  <div style={{ padding: '12px 14px', background: 'rgba(138,90,46,.05)', border: '1.5px solid rgba(138,90,46,.15)', borderRadius: '6px', marginTop: '16px' }}>
+                    <div style={{ fontFamily: '"Courier New", monospace', fontSize: '9px', letterSpacing: '.12em', color: '#7a5a3a', marginBottom: '5px', fontWeight: 700 }}>ADMIN NOTE</div>
                     <div style={{ fontSize: '13px', lineHeight: 1.5, color: '#3a2412' }}>{r.reviewNote}</div>
                   </div>
                 )}
 
-                {/* View button */}
-                {r._url && (
+                {/* Action buttons */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '22px', flexWrap: 'wrap' }}>
+                  {r._kind === 'WORKFORCE' && r._url && (
+                    <button
+                      onClick={() => window.open(r._url, '_blank')}
+                      style={{
+                        padding: '12px 22px',
+                        background: '#2E5534', color: '#fff', border: 'none',
+                        borderRadius: '8px', fontFamily: '"Exo", sans-serif',
+                        fontSize: '14px', fontWeight: 700,
+                        cursor: 'pointer', 
+                        transition: 'opacity .15s'
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    >
+                      Open Link ↗
+                    </button>
+                  )}
+                  {r._kind === 'WORKFORCE' && r._vaultUrl && (
+                    <button
+                      onClick={() => window.location.href = r._vaultUrl}
+                      style={{
+                        padding: '12px 22px',
+                        background: 'rgba(46,85,52,.12)', color: '#2E5534', border: '1.5px solid rgba(46,85,52,.3)',
+                        borderRadius: '8px', fontFamily: '"Exo", sans-serif',
+                        fontSize: '14px', fontWeight: 700,
+                        cursor: 'pointer', 
+                        transition: 'background .15s'
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(46,85,52,.2)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(46,85,52,.12)')}
+                    >
+                      Open Resources →
+                    </button>
+                  )}
+                  {r._kind !== 'WORKFORCE' && r._url && (
+                    <button
+                      onClick={() => window.open(r._url, '_blank')}
+                      style={{
+                        padding: '12px 22px',
+                        background: '#2E5534', color: '#fff', border: 'none',
+                        borderRadius: '8px', fontFamily: '"Exo", sans-serif',
+                        fontSize: '14px', fontWeight: 700,
+                        cursor: 'pointer', 
+                        transition: 'opacity .15s'
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    >
+                      {r._viewLabel || 'Open Resource ↗'}
+                    </button>
+                  )}
                   <button
-                    onClick={() => window.open(r._url, '_blank')}
+                    onClick={() => setSelectedResourceItem(null)}
                     style={{
-                      width: '100%', padding: '14px 20px',
-                      background: color, color: '#fff', border: 'none',
-                      borderRadius: '10px', fontFamily: '"DM Mono", monospace',
-                      fontSize: '13px', fontWeight: 700, letterSpacing: '.08em',
-                      cursor: 'pointer', boxShadow: `0 4px 14px ${color}40`,
-                      transition: 'opacity .2s'
+                      padding: '12px 22px',
+                      background: 'transparent', color: '#5c4f3c',
+                      border: '1.5px solid rgba(138,90,46,.25)',
+                      borderRadius: '8px', fontFamily: '"Exo", sans-serif',
+                      fontSize: '14px', fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'background .15s'
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(138,90,46,.05)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    {r._viewLabel || 'View →'}
+                    Close
                   </button>
-                )}
+                </div>
               </div>
             </div>
           </div>

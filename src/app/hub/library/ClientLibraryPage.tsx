@@ -97,10 +97,25 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
   useEffect(() => {
     fetchUserBookmarks('library').then(data => {
       const bm: Record<string, boolean> = {};
-      data.forEach((b: any) => bm[b.item_id] = true);
+      data.forEach((b: any) => {
+        const itemId = b.item_id || '';
+        // Handle all URL formats: /hub/library/{uuid}, just uuid, or external URL
+        if (itemId.startsWith('/hub/library/')) {
+          bm[itemId.replace('/hub/library/', '')] = true;
+        } else {
+          bm[itemId] = true;
+        }
+      });
+      // Also match by resource external_url for legacy bookmarks
+      if (resources.length > 0) {
+        data.forEach((b: any) => {
+          const match = resources.find(r => r.external_url === b.item_id || r.id === b.item_id);
+          if (match) bm[match.id] = true;
+        });
+      }
       setBookmarks(bm);
     });
-  }, []);
+  }, [resources]);
 
   const toggleBookmark = async (id: string, e?: React.MouseEvent, resource?: any) => {
     if (e && e.stopPropagation) e.stopPropagation();
@@ -121,14 +136,8 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
         id, 
         'library', 
         res?.title || `Resource ${id}`,
-        res?.url || ''
+        `/hub/library/${id}`
       );
-      
-      // Refetch bookmarks to sync state with database
-      const bmData = await fetchUserBookmarks('library');
-      const bm: Record<string, boolean> = {};
-      bmData.forEach((b: any) => bm[b.item_id] = true);
-      setBookmarks(bm);
       
       // Show success message
       if (!isBookmarked) {
@@ -975,28 +984,28 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
 
                 {/* CARDS MODE */}
                 {listMode === 'cards' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: '13px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '13px' }}>
                     {currentResources.map(r => (
-                      <div key={r.id} onClick={r.onOpen} className="hover:-translate-y-[3px] hover:shadow-[0_12px_20px_-10px_rgba(0,0,0,0.25)]" style={{ position: 'relative', background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderLeft: `5px solid ${r.typeColor}`, borderRadius: '9px', padding: '14px 16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 2px 5px rgba(0,0,0,.05)', transition: 'transform .16s ease,box-shadow .16s ease' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '22px', height: '22px', borderRadius: '4px', background: r.typeColor, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '9.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{r.typeCode}</span>
-                          <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: r.typeColor, fontWeight: 700 }}>{r.typeLabel}</span>
+                      <div key={r.id} onClick={r.onOpen} className="hover:-translate-y-[3px] hover:shadow-[0_12px_20px_-10px_rgba(0,0,0,0.25)]" style={{ position: 'relative', background: '#fff', border: '1px solid rgba(33,40,46,.12)', borderLeft: `5px solid ${r.typeColor}`, borderRadius: '9px', padding: '14px 16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 2px 5px rgba(0,0,0,.05)', transition: 'transform .16s ease,box-shadow .16s ease', overflow: 'hidden', minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0 }}>
+                          <span style={{ width: '22px', height: '22px', borderRadius: '4px', background: r.typeColor, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '9.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{r.typeCode}</span>
+                          <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: r.typeColor, fontWeight: 700, flexShrink: 0 }}>{r.typeLabel}</span>
                           {r.peerReviewed && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: 'linear-gradient(180deg,#e7cd86,#c9a44e)', color: '#3a2a14', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px' }}>✓ Peer-Reviewed</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: 'linear-gradient(180deg,#e7cd86,#c9a44e)', color: '#3a2a14', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px', flexShrink: 0 }}>✓ Peer-Reviewed</span>
                           )}
                           {r.sourceTag && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: r.sourceTag === 'contributor' ? 'linear-gradient(180deg,#5b8dd9,#3a6bc5)' : r.sourceTag === 'student' ? 'linear-gradient(180deg,#6bc5a0,#3da87a)' : r.sourceTag === 'vault' ? 'linear-gradient(180deg,#9b7fd4,#7653b8)' : r.sourceTag === 'partner' ? 'linear-gradient(180deg,#e09050,#c06e30)' : 'linear-gradient(180deg,#6ba8d4,#4088b8)', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px' }}>{r.sourceTag === 'contributor' ? '★' : r.sourceTag === 'student' ? '✎' : r.sourceTag === 'vault' ? '◆' : r.sourceTag === 'partner' ? '⚙' : '⚡'} {r.sourceTag}</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: r.sourceTag === 'contributor' ? '#2E5534' : r.sourceTag === 'student' ? '#3da87a' : r.sourceTag === 'vault' ? '#7653b8' : r.sourceTag === 'partner' ? '#c06e30' : '#4088b8', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', padding: '2px 5px', borderRadius: '3px', whiteSpace: 'nowrap', flexShrink: 0 }}>★ {r.sourceTag}</span>
                           )}
                           <span style={{ flex: 1 }}></span>
                           {r.bookmarked ? (
-                            <button onClick={r.onBookmark} title="Remove bookmark" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E' }}>★</button>
+                            <button onClick={r.onBookmark} title="Remove bookmark" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E', flexShrink: 0 }}>★</button>
                           ) : (
-                            <button onClick={r.onBookmark} title="Bookmark to My Shelf" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: 'rgba(33,40,46,.3)' }}>☆</button>
+                            <button onClick={r.onBookmark} title="Bookmark to My Shelf" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: 'rgba(33,40,46,.3)', flexShrink: 0 }}>☆</button>
                           )}
-                          <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)' }}>{r.source}</span>
+                          <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px', flexShrink: 1 }}>{r.source}</span>
                         </div>
-                        <div style={{ fontSize: '15.5px', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-.01em' }}>{r.title}</div>
-                        <div style={{ fontSize: '12.5px', lineHeight: 1.45, color: 'rgba(33,40,46,.6)' }}>{r.note}</div>
+                        <div style={{ fontSize: '15.5px', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-.01em', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{r.title}</div>
+                        <div style={{ fontSize: '12.5px', lineHeight: 1.45, color: 'rgba(33,40,46,.6)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{r.note}</div>
                       </div>
                     ))}
                   </div>
@@ -1056,7 +1065,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: 'linear-gradient(180deg,#e7cd86,#c9a44e)', color: '#3a2a14', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px' }}>✓ Peer-Reviewed</span>
                             )}
                             {r.sourceTag && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: r.sourceTag === 'contributor' ? 'linear-gradient(180deg,#5b8dd9,#3a6bc5)' : r.sourceTag === 'student' ? 'linear-gradient(180deg,#6bc5a0,#3da87a)' : r.sourceTag === 'vault' ? 'linear-gradient(180deg,#9b7fd4,#7653b8)' : r.sourceTag === 'partner' ? 'linear-gradient(180deg,#e09050,#c06e30)' : 'linear-gradient(180deg,#6ba8d4,#4088b8)', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '8.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 7px', borderRadius: '3px' }}>{r.sourceTag === 'contributor' ? '★' : r.sourceTag === 'student' ? '✎' : r.sourceTag === 'vault' ? '◆' : r.sourceTag === 'partner' ? '⚙' : '⚡'} {r.sourceTag}</span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: r.sourceTag === 'contributor' ? '#2E5534' : r.sourceTag === 'student' ? '#3da87a' : r.sourceTag === 'vault' ? '#7653b8' : r.sourceTag === 'partner' ? '#c06e30' : '#4088b8', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', padding: '2px 5px', borderRadius: '3px', whiteSpace: 'nowrap' }}>★ {r.sourceTag}</span>
                             )}
                             <span style={{ flex: 1 }}></span>
                             <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)' }}>{r.source}</span>

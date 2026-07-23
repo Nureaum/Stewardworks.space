@@ -177,3 +177,23 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(255,210,63,0.7), 0 0 18px rgba(255,210,63,0.5); }
   50% { box-shadow: 0 0 0 6px rgba(255,210,63,0.2), 0 0 30px rgba(255,210,63,0.8); }
 }
+
+
+/* ── Font Size Boost (Portfolio & Journey) ────────── */
+/* Increase base text size for better readability */
+.retro-journey {
+  font-size: 18px;
+}
+
+/* Inputs, textareas, selects get a readable size */
+.retro-journey input,
+.retro-journey textarea,
+.retro-journey select {
+  font-size: 17px !important;
+}
+
+/* Placeholder text */
+.retro-journey input::placeholder,
+.retro-journey textarea::placeholder {
+  font-size: inherit;
+}

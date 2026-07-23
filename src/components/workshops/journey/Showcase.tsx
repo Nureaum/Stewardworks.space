@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import type { WorkshopShowcase, WorkshopEngagement } from '@/types/workshops'
 import { getAllGenerations } from '@/app/actions/workshops/engagement'
 import { getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
@@ -9,7 +9,7 @@ import { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 /* ── local item shape ── */
 interface ShowcaseItem {
   id: string
-  type: 'video' | 'article' | 'audio' | 'aigen'
+  type: 'video' | 'article' | 'audio' | 'aigen' | 'image'
   title: string
   author: string
   meta: string
@@ -18,11 +18,13 @@ interface ShowcaseItem {
   theme: string
   thumb: string
   url?: string
+  contentItemId?: string
 }
 
 /* ── type→color mapping ── */
 const TYPE_COLOR: Record<string, string> = {
   video: '#45d6ff',
+  image: '#C8643F',
   article: '#ffd23f',
   audio: '#ff5fd2',
   aigen: '#74f0a0',
@@ -30,6 +32,7 @@ const TYPE_COLOR: Record<string, string> = {
 
 const TYPE_LABEL: Record<string, string> = {
   video: '▶ VIDEO',
+  image: '📷 IMAGE',
   article: '✎ ARTICLE',
   audio: '♫ AUDIO',
   aigen: '✦ AI GEN',
@@ -44,9 +47,10 @@ interface FilterTab {
 
 const FILTER_TABS: FilterTab[] = [
   { key: 'all', label: 'ALL', typeFilter: null },
-  { key: 'video', label: 'VIDEO LESSONS', typeFilter: 'video' },
+  { key: 'video', label: 'VIDEO', typeFilter: 'video' },
+  { key: 'image', label: 'IMAGES', typeFilter: 'image' },
   { key: 'article', label: 'ARTICLES', typeFilter: 'article' },
-  { key: 'audio', label: 'AUDIO GUIDES', typeFilter: 'audio' },
+  { key: 'audio', label: 'AUDIO', typeFilter: 'audio' },
   { key: 'aigen', label: 'AI GENERATIONS', typeFilter: 'aigen' },
 ]
 
@@ -64,14 +68,18 @@ interface ShowcaseProps {
    Showcase Component
    ═══════════════════════════════════════════════════════════════ */
 export default function Showcase({ showcaseItems = [], engagements = [], onBookmark, cohortId, onlyStudents = false, onlyContributors = false }: ShowcaseProps) {
-  const [viewModeState, setViewModeState] = useState<'contributors' | 'students'>('contributors')
+  const [viewModeState, setViewModeState] = useState('contributors' as 'contributors' | 'students')
   const activeViewMode = onlyStudents ? 'students' : onlyContributors ? 'contributors' : viewModeState
-  const [filter, setFilter] = useState<string>('all')
-  const [preview, setPreview] = useState<string | null>(null)
-  const [studentDetail, setStudentDetail] = useState<any | null>(null)
+  const [filter, setFilter] = useState('all')
+  const [preview, setPreview] = useState(null as string | null)
+  const [studentDetail, setStudentDetail] = useState(null as any | null)
+  
+  // Local bookmark state for immediate UI feedback (persists across re-renders)
+  const [localBookmarks, setLocalBookmarks] = useState(() => new Set() as Set<string>)
+  const localBookmarksRef = useRef(new Set() as Set<string>)
   
   // Student showcase data
-  const [studentItems, setStudentItems] = useState<any[]>([])
+  const [studentItems, setStudentItems] = useState([] as any[])
   const [studentsLoading, setStudentsLoading] = useState(false)
 
   useEffect(() => {
@@ -104,19 +112,42 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
     }
   }, [activeViewMode, cohortId, studentItems.length])
 
-  const allItems = useMemo<ShowcaseItem[]>(() => {
-    const dbItems: ShowcaseItem[] = showcaseItems.map(s => ({
-      id: s.id,
-      type: s.type as any,
-      title: s.title,
-      author: s.author || 'Anonymous',
-      meta: s.meta || (s.is_paid ? 'Paid content' : 'Free content'),
-      paid: s.is_paid,
-      blurb: s.blurb || '',
-      theme: s.theme || 'Community',
-      thumb: '',
-      url: s.url
-    }))
+  const allItems = useMemo(() => {
+    const dbItems: ShowcaseItem[] = showcaseItems.map(s => {
+      // Auto-detect correct type from URL when possible
+      let detectedType = s.type as any;
+      const url = (s.url || '').toLowerCase();
+      if (url) {
+        const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$|\/)/i.test(url) || 
+                        url.includes('/content-uploads/') || url.includes('/uploads/') ||
+                        url.includes('placehold') || url.includes('placeholder') ||
+                        url.match(/\/(jpg|jpeg|png|gif|webp)$/i) ||
+                        (url.includes('supabase') && url.includes('/storage/') && !url.match(/\.(mp4|webm|mov|mp3|wav|ogg|pdf)/i));
+        const isVideo = url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com') || 
+                        /\.(mp4|webm|mov|avi)(\?|#|$|\/)/i.test(url);
+        const isAudio = /\.(mp3|wav|ogg|m4a|flac|aac)(\?|#|$|\/)/i.test(url) || 
+                        url.includes('soundcloud.com') || url.includes('spotify.com');
+        
+        // Priority: video > audio > image
+        if (isVideo) detectedType = 'video';
+        else if (isAudio) detectedType = 'audio';
+        else if (isImage) detectedType = 'image';
+      }
+      
+      return {
+        id: s.id,
+        type: detectedType,
+        title: s.title,
+        author: s.author || 'Anonymous',
+        meta: s.meta || (s.is_paid ? 'Paid content' : 'Free content'),
+        paid: s.is_paid,
+        blurb: s.blurb || '',
+        theme: s.theme || 'Community',
+        thumb: '',
+        url: s.url,
+        contentItemId: (s as any).content_item_id || undefined
+      };
+    })
     return dbItems
   }, [showcaseItems])
 
@@ -185,15 +216,15 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
         boxShadow: '0 0 24px rgba(255,210,63,.08)',
       }}>
         <h2 className="font-pixel" style={{
-          fontSize: 'clamp(12px,1.8vw,18px)',
+          fontSize: 'clamp(11px,1.6vw,15px)',
           color: 'var(--gold,#ffd23f)',
           margin: 0,
           lineHeight: 1.5,
         }}>
-          ★ FRIENDS &amp; CONTRIBUTORS SHOWCASE LIBRARY
+          ★ CONTRIBUTORS SHOWCASE LIBRARY
         </h2>
         <p style={{
-          fontSize: 15,
+          fontSize: 14,
           color: 'var(--mu,#a493c9)',
           margin: '8px 0 0',
           lineHeight: 1.55,
@@ -215,9 +246,9 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
               onClick={() => setFilter(tab.key)}
               className="font-pixel"
               style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                padding: '11px 18px',
+                fontSize: 9,
+                fontWeight: 'normal',
+                padding: '8px 12px',
                 borderRadius: 6,
                 border: `2px solid var(--s,#45d6ff)`,
                 background: active ? 'var(--s,#45d6ff)' : 'transparent',
@@ -248,38 +279,6 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
             onBookmark={() => onBookmark && onBookmark('contrib-' + item.id, item.title, 'Showcase · ' + item.theme, item.url || undefined)}
           />
         ))}
-
-        {/* ═══ Become a Contributor CTA ═══ */}
-        <div style={{
-          border: '2px dashed var(--p,#ff5fd2)',
-          borderRadius: 8,
-          background: 'rgba(255,95,210,.05)',
-          minHeight: 220,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: 22,
-          gap: 10,
-        }}>
-          <span className="font-pixel" style={{
-            fontSize: 11,
-            color: 'var(--p,#ff5fd2)',
-            lineHeight: 1.6,
-          }}>
-            ✎ BECOME A CONTRIBUTOR
-          </span>
-          <p style={{
-            fontSize: 14,
-            color: 'var(--mu,#a493c9)',
-            margin: 0,
-            lineHeight: 1.55,
-          }}>
-            Share your lessons, audio guides, articles, or AI-generated content
-            with the community. All submissions are reviewed by the StewardWorks team.
-          </p>
-        </div>
       </div>
       </>
       )}
@@ -327,7 +326,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
               marginTop: 18
             }}>
               {studentItems.map(item => {
-                const isItemBookmarked = engagements.some(e => e.kind === 'bookmark' && e.title === item.title && e.status !== 'rejected');
+                const isItemBookmarked = localBookmarks.has(item.title) || localBookmarksRef.current.has(item.title) || engagements.some(e => e.kind === 'bookmark' && e.title === item.title && e.status !== 'rejected');
                 return (
                   <div 
                     key={item.id} 
@@ -425,7 +424,18 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          // Optimistic local update - both state and ref for persistence
+                          const newTitle = item.title;
+                          console.log('[DEBUG Showcase] Bookmark clicked:', { id: item.id, title: newTitle, source: item.source, url: item.url });
+                          console.log('[DEBUG Showcase] onBookmark exists:', !!onBookmark);
+                          localBookmarksRef.current.add(newTitle);
+                          setLocalBookmarks(prev => {
+                            const next = new Set(prev);
+                            next.add(newTitle);
+                            return next;
+                          });
                           if (onBookmark) {
+                            console.log('[DEBUG Showcase] Calling onBookmark with:', 'student-' + item.id, newTitle, item.source || 'Student Showcase', item.url);
                             onBookmark('student-' + item.id, item.title, item.source || 'Student Showcase', item.url || undefined);
                           }
                         }}
@@ -435,17 +445,18 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                           width: 28,
                           height: 28,
                           borderRadius: '50%',
-                          border: `2px solid ${isItemBookmarked ? '#ffd23f' : 'var(--ln,#28432f)'}`,
-                          background: isItemBookmarked ? 'rgba(255,210,63,.2)' : 'transparent',
-                          color: isItemBookmarked ? '#ffd23f' : 'var(--mu,#77b78d)',
+                          border: `2px solid ${isItemBookmarked ? '#ffd23f' : 'var(--ln,#3d2668)'}`,
+                          background: isItemBookmarked ? '#ffd23f' : 'transparent',
+                          color: isItemBookmarked ? '#12081e' : 'var(--mu,#a493c9)',
                           cursor: 'pointer',
                           fontSize: 14,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           padding: 0,
-                          boxShadow: isItemBookmarked ? '0 0 8px rgba(255,210,63,.3)' : 'none',
+                          boxShadow: isItemBookmarked ? '0 0 10px rgba(255,210,63,.5)' : 'none',
                           marginTop: 2,
+                          transition: 'all .2s ease',
                         }}
                       >
                         {isItemBookmarked ? '★' : '☆'}
@@ -738,7 +749,7 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
         ) : (
           /* fallback type icon */
           <span style={{ fontSize: 38, opacity: .18, color: clr }}>
-            {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : '✎'}
+            {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : item.type === 'image' ? '📷' : '✎'}
           </span>
         )}
 
@@ -814,9 +825,9 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
             className="font-pixel"
             style={{
               flex: 1,
-              fontSize: 16,
-              fontWeight: 'bold',
-              padding: '7px 10px',
+              fontSize: 9,
+              fontWeight: 'normal',
+              padding: '8px 10px',
               borderRadius: 5,
               border: 'none',
               background: 'var(--s,#45d6ff)',
@@ -911,7 +922,7 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
             overflow: 'hidden',
           }}>
             <span style={{ fontSize: 52, opacity: .14, color: clr }}>
-              {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : '✎'}
+              {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : item.type === 'image' ? '📷' : '✎'}
             </span>
 
             {/* type badge */}
@@ -958,12 +969,12 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
         {/* content */}
         <div style={{ padding: '18px 22px 22px' }}>
           {/* theme tag */}
-          <span style={{ fontSize: 12, color: 'var(--s,#45d6ff)' }}>
+          <span style={{ fontSize: 13, color: 'var(--s,#45d6ff)' }}>
             ◈ Library · {item.theme}
           </span>
 
           <h2 className="font-pixel" style={{
-            fontSize: 13,
+            fontSize: 12,
             color: '#fff',
             margin: '10px 0 4px',
             lineHeight: 1.6,
@@ -1029,7 +1040,7 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
                 className="font-pixel"
                 style={{
                   fontSize: 9,
-                  padding: '10px 18px',
+                  padding: '9px 16px',
                   borderRadius: 6,
                   border: 'none',
                   background: 'var(--s,#45d6ff)',
@@ -1046,14 +1057,30 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
               </a>
             )}
             <button
-              onClick={() => {
-                // Navigate to library with "How to Use AI" category pre-selected
-                window.location.href = '/hub/library?category=how-to-use-ai'
+              onClick={async () => {
+                // Search for the library resource by title and URL
+                try {
+                  const params = new URLSearchParams();
+                  if (item.title) params.set('title', item.title);
+                  if (item.url) params.set('url', item.url);
+                  
+                  const res = await fetch(`/api/public/library-resources/search?${params.toString()}`);
+                  const data = await res.json();
+                  
+                  if (data.id) {
+                    window.open(`/hub/library/${data.id}`, '_blank');
+                  } else {
+                    // Fallback: open the URL directly
+                    window.open(item.url || '/hub/library?category=how-to-use-ai', '_blank');
+                  }
+                } catch {
+                  window.open(item.url || '/hub/library?category=how-to-use-ai', '_blank');
+                }
               }}
               className="font-pixel"
               style={{
                 fontSize: 9,
-                padding: '10px 18px',
+                padding: '9px 16px',
                 borderRadius: 6,
                 border: 'none',
                 background: 'var(--gold,#ffd23f)',
@@ -1070,7 +1097,7 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
               className="font-pixel"
               style={{
                 fontSize: 9,
-                padding: '10px 18px',
+                padding: '9px 16px',
                 borderRadius: 6,
                 border: '2px solid var(--s,#45d6ff)',
                 background: bookmarked ? 'var(--s,#45d6ff)' : 'transparent',

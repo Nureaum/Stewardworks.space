@@ -40,6 +40,7 @@ export async function getEngagements(cohortId: string) {
  * Adds a new engagement item (bookmark, note, prompt, or generation)
  */
 export async function addEngagement(cohortId: string, kind: string, title: string, source?: string, url?: string, content?: string) {
+  console.log('[DEBUG addEngagement] Called with:', { cohortId, kind, title, source, url, content });
   const { userId } = await auth()
   if (!userId) throw new Error('Authentication required')
   
@@ -69,10 +70,11 @@ export async function addEngagement(cohortId: string, kind: string, title: strin
     .single()
   
   if (error) {
-    console.error('Add engagement error:', error)
+    console.error('[DEBUG addEngagement] Insert error:', error)
     throw new Error(`Failed to add engagement: ${error.message}`)
   }
   
+  console.log('[DEBUG addEngagement] Success! Record:', data)
   revalidatePath('/hub/pilot-workshops')
   revalidatePath('/hub/ai-lab')
   revalidatePath('/admin/pilot-workshops')

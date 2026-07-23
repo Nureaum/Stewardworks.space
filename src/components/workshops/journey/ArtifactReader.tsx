@@ -571,7 +571,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   return (
                     <div style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 6, padding: 15, background: 'rgba(0,0,0,.22)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 13 }}>
-                        <div className="font-pixel" style={{ fontSize: 9, color: 'var(--tx,#efe6ff)' }}>
+                        <div className="font-pixel" style={{ fontSize: 11, color: 'var(--tx,#efe6ff)' }}>
                           {isEditMode ? '✎ EDIT SUBMISSION' : '▚ SUBMISSION CONSOLE'}
                         </div>
                         {isEditMode && (
@@ -592,7 +592,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                       </div>
                       
                       {/* Title Input */}
-                      <label className="font-pixel" style={{ fontSize: 8, color: 'var(--ok,#74f0a0)', display: 'block', marginBottom: 7 }}>
+                      <label className="font-pixel" style={{ fontSize: 11, color: 'var(--ok,#74f0a0)', display: 'block', marginBottom: 7 }}>
                         1 · TITLE YOUR DELIVERABLE
                       </label>
                       <input
@@ -606,12 +606,12 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                           background: 'rgba(0,0,0,.4)',
                           border: '2px solid var(--ln,#3d2668)',
                           borderRadius: 4, color: 'var(--tx,#efe6ff)',
-                          fontSize: 16, padding: '10px 12px', marginBottom: 12,
+                          fontSize: 18, padding: '12px 14px', marginBottom: 12,
                         }}
                       />
                       
                       {/* Description Input */}
-                      <label className="font-pixel" style={{ fontSize: 8, color: 'var(--s,#45d6ff)', display: 'block', marginBottom: 7 }}>
+                      <label className="font-pixel" style={{ fontSize: 11, color: 'var(--s,#45d6ff)', display: 'block', marginBottom: 7 }}>
                         2 · DESCRIPTION (OPTIONAL)
                       </label>
                       <textarea
@@ -625,13 +625,13 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                           background: 'rgba(0,0,0,.4)',
                           border: '2px solid var(--ln,#3d2668)',
                           borderRadius: 4, color: 'var(--tx,#efe6ff)',
-                          fontSize: 15, padding: '10px 12px', marginBottom: 12,
+                          fontSize: 18, padding: '12px 14px', marginBottom: 12,
                           resize: 'vertical',
                         }}
                       />
                       
                       {/* URL/Upload Input */}
-                      <label className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', display: 'block', marginBottom: 7 }}>
+                      <label className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', display: 'block', marginBottom: 7 }}>
                         3 · {entry.submit_label || 'YOUR DELIVERABLE LINK OR FILE'}
                       </label>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -674,7 +674,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                               background: 'rgba(0,0,0,.4)',
                               border: '2px solid var(--ln,#3d2668)',
                               borderRadius: 4, color: 'var(--tx,#efe6ff)',
-                              fontSize: 16, padding: '10px 12px',
+                              fontSize: 18, padding: '12px 14px',
                             }}
                           />
                         )}
@@ -697,7 +697,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         </button>
                       </div>
                       
-                      <div className="font-pixel" style={{ fontSize: 8, color: 'var(--p,#ff5fd2)', marginBottom: 9 }}>
+                      <div className="font-pixel" style={{ fontSize: 11, color: 'var(--p,#ff5fd2)', marginBottom: 9 }}>
                         4 · Assign <span style={{ color: 'var(--gold,#ffd23f)' }}>a fresh Steward Principle</span>
                         <span style={{ color: 'var(--mu,#a493c9)', marginLeft: 6 }}>(each principle can only be used once)</span>:
                       </div>

@@ -231,17 +231,20 @@ export default function JourneyClient({
   const submittingRef = React.useRef<Set<string>>(new Set());
 
   const handleBookmark = useCallback(async (key: string, title: string, source: string, url?: string) => {
+    console.log('[DEBUG handleBookmark] Called:', { key, title, source, url });
     // Use the unique key (day.id-entry.id) as the identifier to prevent duplicates across days
-    if (submittingRef.current.has(key)) return;
+    if (submittingRef.current.has(key)) {
+      console.log('[DEBUG handleBookmark] Already submitting, skipping');
+      return;
+    }
     
     // Check for existing bookmark using the URL which contains the unique topic ID
-    // This fixes the bug where lessons with the same title across different days
-    // would all appear bookmarked when only one was actually bookmarked
     const existingBookmark = url 
       ? engagements.find(e => e.kind === 'bookmark' && e.url === url && e.status !== 'rejected')
       : engagements.find(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
     
     if (existingBookmark) {
+      console.log('[DEBUG handleBookmark] Existing bookmark found:', existingBookmark);
       if (existingBookmark.status === 'pending') {
         showToast('Already bookmarked! Pending admin approval.')
       } else if (existingBookmark.status === 'approved') {
@@ -252,9 +255,11 @@ export default function JourneyClient({
       return
     }
     
+    console.log('[DEBUG handleBookmark] No existing bookmark, creating new...');
     submittingRef.current.add(key);
     try {
       await handleAddEngagement('bookmark', title, source, url)
+      console.log('[DEBUG handleBookmark] Success!');
     } finally {
       submittingRef.current.delete(key);
     }

@@ -18,6 +18,7 @@ interface WellnessTone {
   frequency: number;
   wave_type: string;
   gain: number;
+  audio_url?: string;
   is_active: boolean;
   sort_order: number;
 }
@@ -35,10 +36,13 @@ export default function WellnessAdminPage() {
   // New tone form
   const [showAddTone, setShowAddTone] = useState(false);
   const [newTone, setNewTone] = useState({ name: '', frequency: '174', wave_type: 'sine', gain: '0.05' });
+  const [newToneFile, setNewToneFile] = useState<File | null>(null);
+  const [newToneMode, setNewToneMode] = useState<'synthesized' | 'audio'>('audio');
 
   // Editing tone
   const [editingToneId, setEditingToneId] = useState<string | null>(null);
   const [editTone, setEditTone] = useState({ name: '', frequency: '', wave_type: '', gain: '' });
+  const [editToneFile, setEditToneFile] = useState<File | null>(null);
 
   // Audio preview
   const [previewToneId, setPreviewToneId] = useState<string | null>(null);
@@ -92,17 +96,29 @@ export default function WellnessAdminPage() {
 
   // ── Tone CRUD ──
   const addTone = async () => {
-    if (!newTone.name.trim() || !newTone.frequency) return;
+    if (!newTone.name.trim()) return;
+    if (newToneMode === 'synthesized' && !newTone.frequency) return;
+    if (newToneMode === 'audio' && !newToneFile) return;
     setSavingTone('new');
     try {
+      let audio_url = '';
+      if (newToneMode === 'audio' && newToneFile) {
+        const formData = new FormData();
+        formData.append('file', newToneFile);
+        const uploadRes = await fetch('/api/admin/wellness/tones/upload', { method: 'POST', body: formData });
+        if (!uploadRes.ok) throw new Error('Upload failed');
+        const uploadData = await uploadRes.json();
+        audio_url = uploadData.url;
+      }
       const res = await fetch('/api/admin/wellness/tones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newTone.name,
-          frequency: Number(newTone.frequency),
-          wave_type: newTone.wave_type,
-          gain: Number(newTone.gain),
+          frequency: Number(newTone.frequency) || 174,
+          wave_type: newTone.wave_type || 'sine',
+          gain: Number(newTone.gain) || 0.05,
+          audio_url: audio_url || null,
           sort_order: tones.length,
         }),
       });
@@ -110,6 +126,7 @@ export default function WellnessAdminPage() {
       const data = await res.json();
       setTones(prev => [...prev, data.tone]);
       setNewTone({ name: '', frequency: '174', wave_type: 'sine', gain: '0.05' });
+      setNewToneFile(null);
       setShowAddTone(false);
       showMessage('success', 'Tone added!');
     } catch (err) {
@@ -200,6 +217,20 @@ export default function WellnessAdminPage() {
     }
 
     try {
+      // If tone has audio_url, preview with Audio element
+      if (tone.audio_url) {
+        const audio = new Audio(tone.audio_url);
+        audio.volume = tone.gain;
+        audio.play();
+        
+        const stop = () => { audio.pause(); audio.currentTime = 0; };
+        setPreviewToneId(tone.id);
+        setPreviewStop(() => stop);
+        setTimeout(() => { stop(); setPreviewToneId(null); setPreviewStop(null); }, 5000);
+        return;
+      }
+
+      // Synthesized tone preview
       // @ts-ignore
       const Ctx = window.AudioContext || window.webkitAudioContext;
       const ctx = new Ctx();
@@ -371,49 +402,88 @@ export default function WellnessAdminPage() {
         {showAddTone && (
           <div className="bg-[#FBF4E1] rounded-xl border border-[#e8dcc4]/60 p-5 mb-4 animate-in slide-in-from-top-2 fade-in duration-200">
             <div className="font-mono text-[10px] tracking-[0.2em] text-[#b89a5a] mb-3">NEW TONE</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            
+            {/* Mode toggle */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setNewToneMode('audio')}
+                className={`px-4 py-2 rounded-lg text-[12px] font-bold border transition-colors ${newToneMode === 'audio' ? 'bg-[#2a1f14] text-[#FEFAE0] border-[#2a1f14]' : 'bg-white text-[#6a5a3a] border-[#d8c8a4] hover:bg-[#f5edd5]'}`}
+              >
+                🎵 Upload Audio File
+              </button>
+              <button
+                onClick={() => setNewToneMode('synthesized')}
+                className={`px-4 py-2 rounded-lg text-[12px] font-bold border transition-colors ${newToneMode === 'synthesized' ? 'bg-[#2a1f14] text-[#FEFAE0] border-[#2a1f14]' : 'bg-white text-[#6a5a3a] border-[#d8c8a4] hover:bg-[#f5edd5]'}`}
+              >
+                〰️ Synthesized Wave
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-[11px] font-bold text-[#6a5a3a] uppercase tracking-wide mb-1">Name</label>
                 <input
                   type="text"
                   value={newTone.name}
                   onChange={e => setNewTone(p => ({ ...p, name: e.target.value }))}
-                  placeholder="e.g. Ocean Hum"
+                  placeholder="e.g. Ocean Waves"
                   className="w-full px-3 py-2 rounded-lg border border-[#d8c8a4] bg-white text-[14px] text-[#2a1f14] focus:outline-none focus:ring-2 focus:ring-[#e2b54a]/40"
                 />
               </div>
-              <div>
-                <label className="block text-[11px] font-bold text-[#6a5a3a] uppercase tracking-wide mb-1">Frequency (Hz)</label>
-                <input
-                  type="number"
-                  value={newTone.frequency}
-                  onChange={e => setNewTone(p => ({ ...p, frequency: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-[#d8c8a4] bg-white text-[14px] text-[#2a1f14] focus:outline-none focus:ring-2 focus:ring-[#e2b54a]/40"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-[#6a5a3a] uppercase tracking-wide mb-1">Wave Type</label>
-                <select
-                  value={newTone.wave_type}
-                  onChange={e => setNewTone(p => ({ ...p, wave_type: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-[#d8c8a4] bg-white text-[14px] text-[#2a1f14] focus:outline-none focus:ring-2 focus:ring-[#e2b54a]/40"
-                >
-                  {WAVE_TYPES.map(w => <option key={w} value={w}>{w}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-[#6a5a3a] uppercase tracking-wide mb-1">Gain (0–1)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="1"
-                  value={newTone.gain}
-                  onChange={e => setNewTone(p => ({ ...p, gain: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-[#d8c8a4] bg-white text-[14px] text-[#2a1f14] focus:outline-none focus:ring-2 focus:ring-[#e2b54a]/40"
-                />
-              </div>
+              
+              {newToneMode === 'audio' ? (
+                <div>
+                  <label className="block text-[11px] font-bold text-[#6a5a3a] uppercase tracking-wide mb-1">Audio File (MP3, WAV, OGG)</label>
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={e => setNewToneFile(e.target.files?.[0] || null)}
+                    className="w-full px-3 py-1.5 rounded-lg border border-[#d8c8a4] bg-white text-[13px] text-[#2a1f14] file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[11px] file:font-bold file:bg-[#e2b54a]/20 file:text-[#8a6a2a] hover:file:bg-[#e2b54a]/30"
+                  />
+                  {newToneFile && <div className="text-[11px] text-[#6a5a3a] mt-1">Selected: {newToneFile.name}</div>}
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6a5a3a] uppercase tracking-wide mb-1">Frequency (Hz)</label>
+                    <input
+                      type="number"
+                      value={newTone.frequency}
+                      onChange={e => setNewTone(p => ({ ...p, frequency: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-lg border border-[#d8c8a4] bg-white text-[14px] text-[#2a1f14] focus:outline-none focus:ring-2 focus:ring-[#e2b54a]/40"
+                    />
+                  </div>
+                </>
+              )}
             </div>
+
+            {newToneMode === 'synthesized' && (
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#6a5a3a] uppercase tracking-wide mb-1">Wave Type</label>
+                  <select
+                    value={newTone.wave_type}
+                    onChange={e => setNewTone(p => ({ ...p, wave_type: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-[#d8c8a4] bg-white text-[14px] text-[#2a1f14] focus:outline-none focus:ring-2 focus:ring-[#e2b54a]/40"
+                  >
+                    {WAVE_TYPES.map(w => <option key={w} value={w}>{w}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#6a5a3a] uppercase tracking-wide mb-1">Gain (0–1)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={newTone.gain}
+                    onChange={e => setNewTone(p => ({ ...p, gain: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border border-[#d8c8a4] bg-white text-[14px] text-[#2a1f14] focus:outline-none focus:ring-2 focus:ring-[#e2b54a]/40"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <button
                 onClick={addTone}
@@ -424,7 +494,7 @@ export default function WellnessAdminPage() {
                 Create
               </button>
               <button
-                onClick={() => setShowAddTone(false)}
+                onClick={() => { setShowAddTone(false); setNewToneFile(null); }}
                 className="px-4 py-2 rounded-lg border border-[#d8c8a4] text-[#8a7a5a] font-bold text-[12px] hover:bg-[#f5edd5]"
               >
                 Cancel
@@ -502,15 +572,15 @@ export default function WellnessAdminPage() {
                       <span className="font-semibold text-[#2a1f14]">{tone.name}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-mono tracking-wider text-[#b89a5a] block">FREQUENCY</span>
-                      <span className="text-[#4a3a2a]">{tone.frequency} Hz</span>
+                      <span className="text-[10px] font-mono tracking-wider text-[#b89a5a] block">TYPE</span>
+                      <span className="text-[#4a3a2a]">{tone.audio_url ? '🎵 Audio File' : `〰️ ${tone.wave_type} ${tone.frequency}Hz`}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-mono tracking-wider text-[#b89a5a] block">WAVE</span>
-                      <span className="text-[#4a3a2a]">{tone.wave_type}</span>
+                      <span className="text-[10px] font-mono tracking-wider text-[#b89a5a] block">{tone.audio_url ? 'FILE' : 'GAIN'}</span>
+                      <span className="text-[#4a3a2a] truncate block max-w-[140px]">{tone.audio_url ? tone.audio_url.split('/').pop() : tone.gain}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-mono tracking-wider text-[#b89a5a] block">GAIN</span>
+                      <span className="text-[10px] font-mono tracking-wider text-[#b89a5a] block">VOLUME</span>
                       <span className="text-[#4a3a2a]">{tone.gain}</span>
                     </div>
                   </div>

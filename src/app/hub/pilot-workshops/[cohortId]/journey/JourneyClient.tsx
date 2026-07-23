@@ -105,11 +105,14 @@ export default function JourneyClient({
 
   // Handlers
   const handleAddEngagement = async (kind: string, title: string, source: string, url?: string) => {
+    console.log('[DEBUG] handleAddEngagement called:', { kind, title, source, url, cohortId });
     try {
       const res = await addEngagement(cohortId, kind, title, source, url)
+      console.log('[DEBUG] addEngagement response:', res);
       setEngagements(prev => [res, ...prev])
       setToast('Added to Portfolio')
     } catch (e: any) {
+      console.error('[DEBUG] addEngagement ERROR:', e);
       setToast('Error adding item')
     }
   }
@@ -398,7 +401,10 @@ export default function JourneyClient({
                 showcaseItems={showcaseItems}
                 engagements={engagements}
                 cohortId={cohortId}
-                onBookmark={(key, title, source) => handleAddEngagement('bookmark', title, source)}
+                onBookmark={(key, title, source, url) => {
+                  console.log('[DEBUG JourneyClient] onBookmark received:', { key, title, source, url });
+                  handleAddEngagement('bookmark', title, source, url);
+                }}
                 onlyContributors={true}
               />
             </div>
@@ -410,7 +416,10 @@ export default function JourneyClient({
                 showcaseItems={showcaseItems}
                 engagements={engagements}
                 cohortId={cohortId}
-                onBookmark={(key, title, source) => handleAddEngagement('bookmark', title, source)}
+                onBookmark={(key, title, source, url) => {
+                  console.log('[DEBUG JourneyClient] onBookmark received:', { key, title, source, url });
+                  handleAddEngagement('bookmark', title, source, url);
+                }}
                 onlyStudents={true}
               />
             </div>
