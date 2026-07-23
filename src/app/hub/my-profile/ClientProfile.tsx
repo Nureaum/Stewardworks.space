@@ -1365,20 +1365,21 @@ export default function ClientProfile({
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: '12px', marginBottom: '30px' }}>
             {generations.map(g => {
-              // Check if URL is an image based on extension or try to detect
-              const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)/i;
-              const isImageUrl = g.url && imageExtensions.test(g.url);
+              // Check if URL is an image based on extension (allow query params) or path patterns
+              const isImageUrl = g.url && (
+                /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?|#|$)/i.test(g.url) ||
+                /\/(uploads|images|content-uploads)\//i.test(g.url) ||
+                (g.url.includes('supabase') && g.url.includes('/storage/') && !/\.(mp4|webm|mov|mp3|wav|ogg)/i.test(g.url))
+              );
               
               // Derive type tag from URL
-              const typeTag = g.url?.match(/\.(mp4|webm|mov)/i)
-                ? 'VIDEO'
-                : g.url?.match(/\.(mp3|wav|ogg)/i)
-                  ? 'AUDIO'
-                  : isImageUrl ? 'IMAGE' : 'LINK';
+              const isVideo = g.url && /\.(mp4|webm|mov)(\?|#|$)/i.test(g.url);
+              const isAudio = g.url && /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(g.url);
+              const typeTag = isVideo ? 'VIDEO' : isAudio ? 'AUDIO' : isImageUrl ? 'IMAGE' : 'LINK';
               
               return (
-                <div key={g.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '0', boxShadow: '0 8px 18px rgba(0,0,0,.06)', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...g, _kind: 'GENERATION', _color: '#45d6ff', _bg: '#FEFAE0', _url: g.url, _status: g.status, _source: g.source, _typeTag: typeTag, _isImageUrl: isImageUrl })}>
-                  {/* Image Preview - Full width at top */}
+                <div key={g.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '0', boxShadow: '0 8px 18px rgba(0,0,0,.06)', overflow: 'hidden', cursor: 'pointer', minWidth: 0 }} onClick={() => setSelectedResourceItem({ ...g, _kind: 'GENERATION', _color: '#45d6ff', _bg: '#FEFAE0', _url: g.url, _status: g.status, _source: g.source, _typeTag: typeTag, _isImageUrl: isImageUrl })}>
+                  {/* Media Preview - Full width at top */}
                   {isImageUrl && g.url && (
                     <div style={{ width: '100%', height: '180px', overflow: 'hidden', background: 'linear-gradient(135deg,rgba(69,214,255,.08),rgba(116,240,160,.08))', position: 'relative' }}>
                       <img 
@@ -1394,9 +1395,24 @@ export default function ClientProfile({
                       />
                     </div>
                   )}
+                  {isVideo && g.url && (
+                    <div style={{ width: '100%', height: '180px', overflow: 'hidden', background: '#1a1a2e', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <video src={g.url} preload="metadata" muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '18px', color: '#fff', marginLeft: 3 }}>▶</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {isAudio && g.url && (
+                    <div style={{ width: '100%', height: '80px', overflow: 'hidden', background: 'linear-gradient(135deg,rgba(116,240,160,.1),rgba(69,214,255,.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+                      <audio src={g.url} controls style={{ width: '90%' }} />
+                    </div>
+                  )}
                   
                   {/* Content Padding */}
-                  <div style={{ padding: '15px 16px' }}>
+                  <div style={{ padding: '15px 16px', minWidth: 0 }}>
                     {/* Badges */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                       <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: 'linear-gradient(135deg,#45d6ff,#74f0a0)', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>GENERATION</span>
@@ -1411,8 +1427,8 @@ export default function ClientProfile({
                       )}
                     </div>
                     
-                    {/* Title */}
-                    <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '7px' }}>{g.title}</div>
+                    {/* Title - truncated */}
+                    <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '7px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.title}</div>
                     
                     {/* Type & Source */}
                     <div style={{ fontSize: '11px', color: '#7a5a3a', marginBottom: '10px' }}>
@@ -1423,15 +1439,16 @@ export default function ClientProfile({
                       {' · '}{g.source}
                     </div>
                     
-                    {/* Link Display - if not an image, show the link */}
-                    {!isImageUrl && g.url && (
-                      <div style={{ padding: '10px', background: 'rgba(69,214,255,.06)', border: '1px solid rgba(69,214,255,.15)', borderRadius: '6px', marginBottom: '10px' }}>
+                    {/* Link Display - if not a recognized media, show the link */}
+                    {!isImageUrl && !isVideo && !isAudio && g.url && (
+                      <div style={{ padding: '10px', background: 'rgba(69,214,255,.06)', border: '1px solid rgba(69,214,255,.15)', borderRadius: '6px', marginBottom: '10px', overflow: 'hidden' }}>
                         <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.1em', color: '#417C98', marginBottom: '4px' }}>SUBMITTED LINK</div>
                         <a 
                           href={g.url} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          style={{ fontSize: '12px', color: '#45d6ff', wordBreak: 'break-all', lineHeight: 1.4, textDecoration: 'none' }}
+                          onClick={e => e.stopPropagation()}
+                          style={{ fontSize: '12px', color: '#45d6ff', wordBreak: 'break-all', lineHeight: 1.4, textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                           className="hover:underline"
                         >
                           {g.url}
