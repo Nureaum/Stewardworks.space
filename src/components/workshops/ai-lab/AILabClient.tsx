@@ -81,7 +81,13 @@ export default function AILabClient({
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#b7ab8c', fontFamily: "'VT323', monospace", display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'clamp(8px,2.5vw,34px)', color: '#d6ffe0', '--bg':'#0e1512','--pn':'#14211b','--ln':'#28432f','--ng':'#4dffa0','--sy':'#ffd23f','--tx':'#d6ffe0','--mu':'#77b78d','--pk':'#ff5fd2','--cy':'#45d6ff' } as React.CSSProperties}>
+    <div className="min-h-screen ai-lab-page" style={{ background: '#b7ab8c', fontFamily: "'VT323', monospace", display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'clamp(8px,2.5vw,34px)', color: '#d6ffe0', '--bg':'#0e1512','--pn':'#14211b','--ln':'#28432f','--ng':'#4dffa0','--sy':'#ffd23f','--tx':'#d6ffe0','--mu':'#77b78d','--pk':'#ff5fd2','--cy':'#45d6ff' } as React.CSSProperties}>
+      <style>{`
+        .ai-lab-page .font-pixel { font-size: 10px !important; }
+        .ai-lab-page input, .ai-lab-page textarea, .ai-lab-page select { font-size: 18px !important; padding: 12px 14px !important; }
+        .ai-lab-page input::placeholder, .ai-lab-page textarea::placeholder { font-size: 16px !important; }
+        .ai-lab-page [data-day-tile] .font-pixel { font-size: 9px !important; }
+      `}</style>
       <div style={{ width: '100%', maxWidth: 1240, border: '12px solid #d8ccb0', background: '#efe7d6', borderRadius: 20, padding: 10, boxShadow: '0 24px 60px rgba(40,50,30,.35),inset 0 2px 0 rgba(255,255,255,.6),inset 0 -3px 0 rgba(0,0,0,.12)' }}>
         
         {/* OS Title Bar */}

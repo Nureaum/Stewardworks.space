@@ -413,7 +413,7 @@ export default function SubmissionTracker({
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start' }}>
             {/* Left: 3-Day Deliverable Map */}
             <div style={{ flex: '1 1 200px', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 4 }}>
+              <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#77b78d)', marginBottom: 4 }}>
                 {daysToMap.length}-DAY DELIVERABLE MAP
               </div>
               
@@ -425,25 +425,27 @@ export default function SubmissionTracker({
                 return (
                   <div 
                     key={d} 
+                    data-day-tile="true"
                     onClick={() => !isLocked && onChangeDay && onChangeDay(d)}
                     style={{ 
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center',
+                      alignItems: 'flex-start',
                       border: `2px solid ${isActive ? 'var(--sy,#ffd23f)' : 'var(--ln,#28432f)'}`, 
                       borderRadius: 8, 
-                      padding: '12px 14px',
+                      padding: '14px 14px',
                       background: isActive ? 'rgba(255,210,63,.08)' : 'rgba(0,0,0,.2)',
                       opacity: isLocked ? 0.4 : 1,
                       cursor: isLocked ? 'not-allowed' : (onChangeDay ? 'pointer' : 'default'),
                       transition: 'all 0.15s',
+                      gap: 10,
                     }}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div className="font-pixel" style={{ fontSize: 10, color: isActive ? 'var(--sy,#ffd23f)' : 'var(--tx,#d6ffe0)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
+                      <div className="font-pixel" style={{ fontSize: 9, color: isActive ? 'var(--sy,#ffd23f)' : 'var(--tx,#d6ffe0)', lineHeight: 1.3 }}>
                         DAY 0{d}
                       </div>
-                      <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)' }}>
+                      <div style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: 'var(--mu,#77b78d)', lineHeight: 1.3 }}>
                         {dayTitles[idx]}
                       </div>
                     </div>
@@ -453,7 +455,10 @@ export default function SubmissionTracker({
                       borderRadius: 12,
                       background: isActive ? 'var(--sy,#ffd23f)' : 'transparent',
                       color: isActive ? 'var(--bg,#0e1512)' : 'var(--tx,#d6ffe0)',
-                      border: `1px solid ${isActive ? 'var(--sy,#ffd23f)' : 'var(--ln,#28432f)'}`
+                      border: `1px solid ${isActive ? 'var(--sy,#ffd23f)' : 'var(--ln,#28432f)'}`,
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                      marginTop: 2,
                     }}>
                       {isBanked ? '✓ BANKED' : (isActive ? 'ACTIVE' : isLocked ? '🔒 LOCKED' : 'QUEUED')}
                     </div>
