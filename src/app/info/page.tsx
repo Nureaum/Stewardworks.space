@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
 import { getSystemBulletins } from '@/app/actions/bulletins';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import ContactFormModal from '@/components/ContactFormModal';
 
 export default function InfoPage() {
   const { t } = useLanguage();
@@ -14,6 +15,7 @@ export default function InfoPage() {
   const [contactPhone, setContactPhone] = useState('');
   const [contactAddress, setContactAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [showContactForm, setShowContactForm] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -159,13 +161,13 @@ export default function InfoPage() {
               {/* Contact Button */}
               {contactEmail && (
                 <div className="mt-8 pt-6 border-t border-steward-gold/10">
-                  <a 
-                    href={`mailto:${contactEmail}`}
+                  <button 
+                    onClick={() => setShowContactForm(true)}
                     className="inline-flex items-center gap-3 px-8 py-4 bg-steward-green text-white font-bold rounded-full hover:bg-steward-orange transition-all shadow-lg text-lg"
                   >
                     <Mail size={20} />
                     Send us an Email
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
@@ -184,6 +186,12 @@ export default function InfoPage() {
 
       {/* Footer spacer */}
       <div className="h-16" />
+
+      {/* Contact Form Modal */}
+      <ContactFormModal 
+        isOpen={showContactForm} 
+        onClose={() => setShowContactForm(false)} 
+      />
     </main>
   );
 }
