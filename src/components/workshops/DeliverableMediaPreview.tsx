@@ -14,6 +14,9 @@ interface DeliverableMediaPreviewProps {
 export function isImageUrl(url: string): boolean {
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.ico']
   const lowerUrl = url.toLowerCase()
+  // Exclude known video/audio extensions first
+  const nonImageExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a']
+  if (nonImageExtensions.some(ext => lowerUrl.includes(ext))) return false
   // Check for common image file extensions (even with query params)
   if (imageExtensions.some(ext => {
     const idx = lowerUrl.indexOf(ext)
@@ -22,7 +25,7 @@ export function isImageUrl(url: string): boolean {
     const afterExt = lowerUrl[idx + ext.length]
     return !afterExt || afterExt === '?' || afterExt === '#' || afterExt === '&'
   })) return true
-  // Common image hosting services
+  // Common image hosting services (only if not video/audio)
   if (lowerUrl.includes('supabase') && lowerUrl.includes('/storage/')) return true
   if (lowerUrl.includes('/content-uploads/')) return true
   if (lowerUrl.includes('/uploads/')) return true
@@ -62,7 +65,13 @@ function isVideoUrl(url: string): boolean {
 // Helper to detect direct video file URLs
 function isDirectVideoUrl(url: string): boolean {
   const lowerUrl = url.toLowerCase()
-  return /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(lowerUrl)
+  return /\.(mp4|webm|mov|avi|mkv)(\?|#|$)/i.test(lowerUrl) || (lowerUrl.includes('supabase') && lowerUrl.includes('/storage/') && /\.(mp4|webm|mov|avi|mkv)/i.test(lowerUrl))
+}
+
+// Helper to detect direct audio file URLs
+function isDirectAudioUrl(url: string): boolean {
+  const lowerUrl = url.toLowerCase()
+  return /\.(mp3|wav|ogg|aac|flac|m4a)(\?|#|$)/i.test(lowerUrl) || (lowerUrl.includes('supabase') && lowerUrl.includes('/storage/') && /\.(mp3|wav|ogg|aac|flac|m4a)/i.test(lowerUrl))
 }
 
 // Get YouTube embed URL
@@ -112,6 +121,7 @@ export default function DeliverableMediaPreview({
   const isImage = isImageUrl(cleanUrl)
   const isVideo = isVideoUrl(cleanUrl)
   const isDirectVideo = isDirectVideoUrl(cleanUrl)
+  const isDirectAudio = isDirectAudioUrl(cleanUrl)
   const ytThumb = isVideo ? getYouTubeThumbnail(cleanUrl) : null
   const platform = isCreationPlatformUrl(cleanUrl)
   // Only try as image if it passes the known image detection — don't guess for random URLs
@@ -229,6 +239,19 @@ export default function DeliverableMediaPreview({
                   <span style={{ fontSize: 11, color: '#fff', marginLeft: 2 }}>▶</span>
                 </div>
               </div>
+            </div>
+          ) : isDirectAudio ? (
+            <div style={{ 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: maxThumbnailSize, height: maxThumbnailSize,
+              borderRadius: 6,
+              background: theme === 'dark' ? 'linear-gradient(135deg, #1a0e2e, #3d2668)' : '#f0f0ff',
+              border: theme === 'dark' ? '2px solid var(--ln,#3d2668)' : '2px solid #e5e7eb',
+              cursor: showPreviewButton ? 'pointer' : 'default',
+            }}
+              onClick={() => showPreviewButton && setShowFullPreview(true)}
+            >
+              <span style={{ fontSize: 20 }}>🎵</span>
             </div>
           ) : (
             // Generic link or recognized platform - show icon with optional label

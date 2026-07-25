@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import '@/app/hub/pilot-workshops/retro-theme.css'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
-import { uploadCreationImage } from '@/app/actions/workshops/engagement'
+import { uploadCreationImage, getAllGenerations } from '@/app/actions/workshops/engagement'
 import type {
   DayWithSections,
   WorkshopProgress,
@@ -18,7 +18,8 @@ import {
   getPendingEngagements,
   reviewEngagement,
   getParticipantsProgress,
-  getCohortCharacters
+  getCohortCharacters,
+  getAllEngagementsHistory
 } from '@/app/actions/workshops/admin-reviews'
 import { PixelSprite } from '@/components/workshops/journey'
 import { updateWorkshopDay, createWorkshopDay } from '@/app/actions/workshops/workshop-days'
@@ -28,7 +29,7 @@ import { createEntry, updateEntry, deleteEntry } from '@/app/actions/workshops/e
 import RichEditor from './RichEditor'
 import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia } from '@/app/actions/workshops/entry-media'
 import { createPrinciple, updatePrinciple, deletePrinciple } from '@/app/actions/workshops/principles'
-import { addShowcaseItem, updateShowcaseItem, deleteShowcaseItem, getShowcaseItems, seedShowcaseItems } from '@/app/actions/workshops/showcase'
+import { addShowcaseItem, updateShowcaseItem, deleteShowcaseItem, getShowcaseItems, seedShowcaseItems, getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
 import { getPlatforms, createPlatform, deletePlatform } from '@/app/actions/workshops/admin'
 import ConfirmDialog from './ConfirmDialog'
 import RetroToast from './RetroToast'
@@ -147,6 +148,14 @@ export default function AdminConsole({
   const [ncPaid, setNcPaid] = useState(true)
   const [showcaseList, setShowcaseList] = useState<WorkshopShowcase[]>([])
   const [editingShowcaseId, setEditingShowcaseId] = useState<string | null>(null)
+  const [showcaseSubTab, setShowcaseSubTab] = useState<'contributor' | 'student'>('contributor')
+  const [studentShowcaseItems, setStudentShowcaseItems] = useState<any[]>([])
+  const [isLoadingStudentShowcase, setIsLoadingStudentShowcase] = useState(false)
+  const [editingStudentItem, setEditingStudentItem] = useState<any | null>(null)
+  const [editStudentTitle, setEditStudentTitle] = useState('')
+  const [editStudentDescription, setEditStudentDescription] = useState('')
+  const [editStudentUrl, setEditStudentUrl] = useState('')
+  const [togglingItemId, setTogglingItemId] = useState<string | null>(null)
 
   // Approvals state
   const [approvalView, setApprovalView] = useState<'log' | 'steward'>('log')
@@ -155,6 +164,9 @@ export default function AdminConsole({
   const [isLoadingApprovals, setIsLoadingApprovals] = useState(false)
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
   const [participantsProgress, setParticipantsProgress] = useState<any[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyItems, setHistoryItems] = useState<any[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [reviewingIds, setReviewingIds] = useState<Record<string, 'approving' | 'rejecting'>>({})
   // Platforms state
   const [platformsData, setPlatformsData] = useState<{ id: string; name: string; url: string; is_default: boolean }[]>([])
@@ -1032,7 +1044,7 @@ export default function AdminConsole({
             <NavBtn id="cohort" icon="◈" label="Cohort Editing" />
             <NavBtn id="approvals" icon="☑" label="Approvals" count={pendingSubmissions?.length || 0} />
             <NavBtn id="progress" icon="▣" label="User Progress" count={participantsProgress?.length || 0} />
-            <NavBtn id="contributors" icon="❀" label="Contributors" count={showcaseList?.length || 0} />
+            <NavBtn id="contributors" icon="❀" label="Showcase" count={showcaseList?.length || 0} />
             <NavBtn id="ailabs" icon="⚡" label="AI Labs" />
           </div>
           <div style={{ borderTop: '2px solid var(--ln,#3d2668)', margin: '14px 2px 0', paddingTop: 14 }}>
@@ -1803,6 +1815,147 @@ export default function AdminConsole({
 
           {/* ═══════════════ CONTRIBUTORS ═══════════════ */}
           {section === 'contributors' && (
+            <div>
+              {/* Sub-tab toggle: Contributor / Student */}
+              <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 7, padding: 3, background: '#181324', marginBottom: 18, width: 'fit-content' }}>
+                <button
+                  onClick={() => setShowcaseSubTab('contributor')}
+                  className="font-pixel"
+                  style={{ fontSize: 9, padding: '9px 16px', border: 'none', borderRadius: 5, background: showcaseSubTab === 'contributor' ? 'var(--ok,#74f0a0)' : 'transparent', color: showcaseSubTab === 'contributor' ? '#12081e' : 'var(--tx,#e4e0ee)', cursor: 'pointer' }}
+                >❀ CONTRIBUTOR</button>
+                <button
+                  onClick={async () => {
+                    setShowcaseSubTab('student');
+                    if (studentShowcaseItems.length === 0) {
+                      setIsLoadingStudentShowcase(true);
+                      try {
+                        const [engs, delivs] = await Promise.all([
+                          getAllGenerations(cohortId),
+                          getStudentShowcaseDeliverables(cohortId)
+                        ]);
+                        // Show ALL student generations (approved ones with showcase request, plus pending ones)
+                        const showcaseEngs = engs.filter((e: any) => {
+                          try {
+                            const data = JSON.parse(e.content || '{}');
+                            return data.showcaseRequested === true || data.showcaseVisible === true;
+                          } catch { return false; }
+                        });
+                        setStudentShowcaseItems([...showcaseEngs, ...delivs]);
+                      } catch (e) {
+                        console.error('Failed to load student showcase', e);
+                      } finally {
+                        setIsLoadingStudentShowcase(false);
+                      }
+                    }
+                  }}
+                  className="font-pixel"
+                  style={{ fontSize: 9, padding: '9px 16px', border: 'none', borderRadius: 5, background: showcaseSubTab === 'student' ? '#ff5fd2' : 'transparent', color: showcaseSubTab === 'student' ? '#12081e' : 'var(--tx,#e4e0ee)', cursor: 'pointer' }}
+                >★ STUDENT</button>
+              </div>
+
+              {/* Student Showcase Tab */}
+              {showcaseSubTab === 'student' && (
+                <div style={{ border: '2px solid #ff5fd2', borderRadius: 12, padding: 24, background: 'rgba(255,95,210,.03)' }}>
+                  <div className="font-pixel" style={{ fontSize: 14, color: '#ff5fd2', marginBottom: 18 }}>★ STUDENT SHOWCASE ITEMS</div>
+                  {isLoadingStudentShowcase ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: 'var(--mu,#9990ab)' }}>Loading student showcase...</div>
+                  ) : studentShowcaseItems.length === 0 ? (
+                    <div style={{ border: '2px dashed rgba(255,95,210,.3)', borderRadius: 8, padding: 20, textAlign: 'center', color: 'var(--mu,#9990ab)', fontSize: 16 }}>
+                      No student showcase submissions yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {studentShowcaseItems.map((item: any) => {
+                        const isVisible = (() => { try { const d = JSON.parse(item.content || '{}'); return d.showcaseVisible === true; } catch { return false; } })();
+                        const isFormSubmission = item.source === 'Student Showcase';
+                        const statusColor = item.status === 'approved' ? '#74f0a0' : item.status === 'rejected' ? '#ff8a4a' : '#ffd23f';
+                        return (
+                          <div key={item.id} style={{ border: '1.5px solid var(--ln,#3a3352)', borderRadius: 10, padding: '18px 20px', background: 'rgba(255,255,255,.02)', display: 'flex', gap: 16, alignItems: 'center' }}>
+                            {/* Thumbnail */}
+                            <div style={{ width: 72, height: 72, flex: 'none', borderRadius: 8, overflow: 'hidden', background: 'rgba(255,95,210,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                              {item.url && isImageUrl(item.url) ? (
+                                <img src={item.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                              ) : item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be')) ? (
+                                <>
+                                  <img src={`https://img.youtube.com/vi/${item.url.includes('youtu.be/') ? item.url.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(item.url.split('?')[1] || '').get('v')}/mqdefault.jpg`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <span style={{ fontSize: 10, color: '#fff', marginLeft: 2 }}>▶</span>
+                                    </div>
+                                  </div>
+                                </>
+                              ) : item.url && /\.(mp4|webm|mov)/i.test(item.url) ? (
+                                <>
+                                  <video src={item.url} preload="metadata" muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <span style={{ fontSize: 10, color: '#fff', marginLeft: 2 }}>▶</span>
+                                    </div>
+                                  </div>
+                                </>
+                              ) : item.url && /\.(mp3|wav|ogg|aac|flac)/i.test(item.url) ? (
+                                <span style={{ fontSize: 24, color: '#ff5fd2' }}>♫</span>
+                              ) : item.url ? (
+                                <span style={{ fontSize: 20, color: '#45d6ff' }}>🔗</span>
+                              ) : (
+                                <span style={{ fontSize: 28, color: '#ff5fd2', opacity: 0.5 }}>✦</span>
+                              )}
+                            </div>
+                            {/* Info */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 18, color: 'var(--tx,#e4e0ee)', fontWeight: 700, marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
+                              <div style={{ fontSize: 15, color: 'var(--mu,#9990ab)' }}>
+                                {item.profiles?.full_name || 'Student'} · {item.source || item.kind || 'Generation'}
+                              </div>
+                              <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span className="font-pixel" style={{ fontSize: 9, padding: '4px 10px', borderRadius: 5, background: `${statusColor}22`, color: statusColor, border: `1px solid ${statusColor}44` }}>
+                                  {(item.status || 'pending').toUpperCase()}
+                                </span>
+                                {isFormSubmission && (
+                                  <span className="font-pixel" style={{ fontSize: 9, padding: '4px 10px', borderRadius: 5, background: 'rgba(255,95,210,.15)', color: '#ff5fd2', border: '1px solid rgba(255,95,210,.3)' }}>
+                                    SUBMITTED
+                                  </span>
+                                )}
+                                {!isFormSubmission && (
+                                  <span className="font-pixel" style={{ fontSize: 9, padding: '4px 10px', borderRadius: 5, background: 'rgba(153,144,171,.1)', color: '#9990ab', border: '1px solid rgba(153,144,171,.3)' }}>
+                                    AUTO
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: 10, flex: 'none', alignItems: 'center' }}>
+                              {/* Toggle switch */}
+                              <div
+                                onClick={async () => {
+                                  if (togglingItemId) return;
+                                  setTogglingItemId(item.id);
+                                  try {
+                                    const { updateEngagement } = await import('@/app/actions/workshops/engagement');
+                                    const parsed = JSON.parse(item.content || '{}');
+                                    parsed.showcaseVisible = !isVisible;
+                                    await updateEngagement(item.id, { content: JSON.stringify(parsed) });
+                                    setStudentShowcaseItems(prev => prev.map(s => s.id === item.id ? { ...s, content: JSON.stringify(parsed) } : s));
+                                  } catch (e) { console.error(e); }
+                                  finally { setTogglingItemId(null); }
+                                }}
+                                style={{ width: 44, height: 24, borderRadius: 12, background: togglingItemId === item.id ? '#9990ab' : isVisible ? '#74f0a0' : '#3a3352', cursor: togglingItemId === item.id ? 'wait' : 'pointer', position: 'relative', transition: 'background .2s', border: '1.5px solid ' + (isVisible ? 'rgba(116,240,160,.5)' : 'rgba(153,144,171,.3)'), opacity: togglingItemId === item.id ? 0.6 : 1 }}
+                                title={togglingItemId === item.id ? 'Saving...' : isVisible ? 'Visible — click to hide' : 'Hidden — click to show'}
+                              >
+                                <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: isVisible ? 22 : 2, transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Edit Student Showcase Modal - removed */}
+                </div>
+              )}
+
+              {/* Contributor Showcase Tab (original content) */}
+              {showcaseSubTab === 'contributor' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 18, alignItems: 'start' }}>
               {/* Publish form */}
               <div style={{
@@ -2099,6 +2252,8 @@ export default function AdminConsole({
                 )}
               </div>
             </div>
+              )}
+            </div>
           )}
 
           {/* ═══════════════ APPROVALS ═══════════════ */}
@@ -2113,7 +2268,7 @@ export default function AdminConsole({
               gap: 20,
             }}>
               {/* Header */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 12, justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ minWidth: 0 }}>
                   <div className="font-pixel" style={{ fontSize: 13, color: 'var(--tx,#e4e0ee)', letterSpacing: 1 }}>
                     ☑ APPROVALS
@@ -2122,7 +2277,39 @@ export default function AdminConsole({
                     Grow each learner's Chia Guardian. <span style={{ color: '#c9a85f' }}>Deliverables</span> add 25% (max 75%); <span style={{ color: '#86b89a' }}>engagement</span> adds 1–3% (max 25%). Read the queue as a <strong>log</strong> or by <strong>steward</strong>.
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 9, flex: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={async () => {
+                      setShowHistory(true);
+                      if (historyItems.length === 0) {
+                        setIsLoadingHistory(true);
+                        try {
+                          const [allSubs, allEngs] = await Promise.all([
+                            getSubmissionsForReview(cohortId, 'all'),
+                            getAllEngagementsHistory(cohortId)
+                          ]);
+                          const merged = [...allSubs, ...allEngs].sort(
+                            (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
+                          );
+                          setHistoryItems(merged);
+                        } catch (e) {
+                          console.error('Failed to load history', e);
+                        } finally {
+                          setIsLoadingHistory(false);
+                        }
+                      }
+                    }}
+                    style={{
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: '8px',
+                      padding: '8px 14px',
+                      border: showHistory ? '2px solid #ff5fd2' : '2px solid var(--ln,#3a3352)',
+                      borderRadius: 7,
+                      background: showHistory ? '#ff5fd2' : '#181324',
+                      color: showHistory ? '#12081e' : 'var(--tx,#e4e0ee)',
+                      cursor: 'pointer',
+                    }}
+                  >⏱ HISTORY</button>
                   <span style={{
                     fontFamily: "'VT323'",
                     fontSize: 18,
@@ -2134,28 +2321,28 @@ export default function AdminConsole({
                   }}>{pendingSubmissions.length} PENDING</span>
                   <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 7, padding: 3, background: '#181324' }}>
                     <button
-                      onClick={() => setApprovalView('log')}
+                      onClick={() => { setShowHistory(false); setApprovalView('log'); }}
                       style={{
                         fontFamily: "'Press Start 2P', monospace",
                         fontSize: '8px',
                         padding: '8px 12px',
                         border: 'none',
                         borderRadius: 5,
-                        background: approvalView === 'log' ? 'var(--gold,#ffd23f)' : 'transparent',
-                        color: approvalView === 'log' ? '#12081e' : 'var(--tx,#e4e0ee)',
+                        background: !showHistory && approvalView === 'log' ? 'var(--gold,#ffd23f)' : 'transparent',
+                        color: !showHistory && approvalView === 'log' ? '#12081e' : 'var(--tx,#e4e0ee)',
                         cursor: 'pointer',
                       }}
                     >▤ LOG</button>
                     <button
-                      onClick={() => setApprovalView('steward')}
+                      onClick={() => { setShowHistory(false); setApprovalView('steward'); }}
                       style={{
                         fontFamily: "'Press Start 2P', monospace",
                         fontSize: '8px',
                         padding: '8px 12px',
                         border: 'none',
                         borderRadius: 5,
-                        background: approvalView === 'steward' ? 'var(--gold,#ffd23f)' : 'transparent',
-                        color: approvalView === 'steward' ? '#12081e' : 'var(--tx,#e4e0ee)',
+                        background: !showHistory && approvalView === 'steward' ? 'var(--gold,#ffd23f)' : 'transparent',
+                        color: !showHistory && approvalView === 'steward' ? '#12081e' : 'var(--tx,#e4e0ee)',
                         cursor: 'pointer',
                       }}
                     >◱ BY STEWARD</button>
@@ -2174,9 +2361,9 @@ export default function AdminConsole({
                 padding: '12px 0',
               }}>
                 {[
-                  { id: 'all', label: 'ALL', color: 'var(--tx,#e4e0ee)', count: pendingSubmissions.length },
-                  { id: 'deliverables', label: 'DELIVERABLES', color: 'var(--gold,#c9a85f)', count: pendingSubmissions.filter(s => !!s.workshop_day_id).length },
-                  { id: 'engagement', label: 'ENGAGEMENT', color: 'var(--ok,#86b89a)', count: pendingSubmissions.filter(s => !s.workshop_day_id).length }
+                  { id: 'all', label: 'ALL', color: 'var(--tx,#e4e0ee)', count: showHistory ? historyItems.length : pendingSubmissions.length },
+                  { id: 'deliverables', label: 'DELIVERABLES', color: 'var(--gold,#c9a85f)', count: showHistory ? historyItems.filter(s => !!s.workshop_day_id).length : pendingSubmissions.filter(s => !!s.workshop_day_id).length },
+                  { id: 'engagement', label: 'ENGAGEMENT', color: 'var(--ok,#86b89a)', count: showHistory ? historyItems.filter(s => !s.workshop_day_id).length : pendingSubmissions.filter(s => !s.workshop_day_id).length }
                 ].map(f => {
                   const active = approvalFilter === f.id
                   return (
@@ -2203,7 +2390,86 @@ export default function AdminConsole({
               </div>
 
               {/* Approvals List or Empty State */}
-              {isLoadingApprovals ? (
+              {showHistory ? (
+                /* ═══ HISTORY VIEW ═══ */
+                isLoadingHistory ? (
+                  <div style={{ padding: 20, textAlign: 'center', color: 'var(--mu,#9990ab)' }}>Loading history...</div>
+                ) : historyItems.length === 0 ? (
+                  <div style={{ border: '2px dashed var(--ln,#3a3352)', borderRadius: 8, padding: 16, textAlign: 'center', fontSize: 15, color: 'var(--mu,#9990ab)' }}>
+                    No history items found.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {historyItems.filter(item => {
+                      if (approvalFilter === 'deliverables') return !!item.workshop_day_id
+                      if (approvalFilter === 'engagement') return !item.workshop_day_id
+                      return true
+                    }).map(item => {
+                      const isDeliverable = !!item.workshop_day_id
+                      const statusColor = item.deliverable_status === 'approved' ? '#74f0a0' : item.deliverable_status === 'rejected' ? '#ff8a4a' : item.deliverable_status === 'pending' ? '#ffd23f' : '#9990ab'
+                      const statusLabel = (item.deliverable_status || 'unknown').toUpperCase()
+                      return (
+                        <div key={item.id} style={{ border: '1.5px solid var(--ln,#3a3352)', borderRadius: 10, padding: '18px 20px', background: 'rgba(255,255,255,.02)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                                <span className="font-pixel" style={{ fontSize: 9, padding: '4px 10px', borderRadius: 5, background: isDeliverable ? 'rgba(201,168,95,.2)' : 'rgba(134,184,154,.2)', color: isDeliverable ? '#c9a85f' : '#86b89a', border: `1px solid ${isDeliverable ? 'rgba(201,168,95,.3)' : 'rgba(134,184,154,.3)'}` }}>
+                                  {isDeliverable ? 'DELIVERABLE' : 'ENGAGEMENT'}
+                                </span>
+                                <span className="font-pixel" style={{ fontSize: 9, padding: '4px 10px', borderRadius: 5, background: `${statusColor}22`, color: statusColor, border: `1px solid ${statusColor}44` }}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 18, color: 'var(--tx,#e4e0ee)', fontWeight: 700, marginBottom: 6 }}>{item.title || item.day_title || 'Untitled'}</div>
+                              <div style={{ fontSize: 15, color: 'var(--mu,#9990ab)' }}>
+                                {item.participant_name} · {item.source || (isDeliverable ? 'Workshop' : item.kind)} · {new Date(item.submitted_at).toLocaleDateString()}
+                              </div>
+                              {item.review_note && (
+                                <div style={{ marginTop: 8, fontSize: 14, color: '#a493c9', fontStyle: 'italic' }}>Note: {item.review_note}</div>
+                              )}
+                            </div>
+                            {/* Status change buttons */}
+                            <div style={{ display: 'flex', gap: 8, flex: 'none', alignItems: 'center' }}>
+                              {item.deliverable_status !== 'approved' && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      if (isDeliverable) {
+                                        await reviewDeliverable(item.progress_id || item.id, 'approved', reviewNotes[item.id]);
+                                      } else {
+                                        await reviewEngagement(item.id, 'approved', reviewNotes[item.id]);
+                                      }
+                                      setHistoryItems(prev => prev.map(h => h.id === item.id ? { ...h, deliverable_status: 'approved' } : h));
+                                    } catch (e) { console.error(e); }
+                                  }}
+                                  className="font-pixel"
+                                  style={{ fontSize: 9, padding: '9px 14px', background: 'rgba(116,240,160,.15)', color: '#74f0a0', border: '1.5px solid rgba(116,240,160,.4)', borderRadius: 6, cursor: 'pointer' }}
+                                >✓ APPROVE</button>
+                              )}
+                              {item.deliverable_status !== 'rejected' && item.deliverable_status !== 'pending' && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      if (isDeliverable) {
+                                        await reviewDeliverable(item.progress_id || item.id, 'rejected', reviewNotes[item.id]);
+                                      } else {
+                                        await reviewEngagement(item.id, 'rejected', reviewNotes[item.id]);
+                                      }
+                                      setHistoryItems(prev => prev.map(h => h.id === item.id ? { ...h, deliverable_status: 'rejected' } : h));
+                                    } catch (e) { console.error(e); }
+                                  }}
+                                  className="font-pixel"
+                                  style={{ fontSize: 9, padding: '9px 14px', background: 'rgba(255,138,74,.1)', color: '#ff8a4a', border: '1.5px solid rgba(255,138,74,.4)', borderRadius: 6, cursor: 'pointer' }}
+                                >↩ RETURN</button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              ) : isLoadingApprovals ? (
                 <div style={{ padding: 20, textAlign: 'center', color: 'var(--mu,#9990ab)' }}>Loading approvals...</div>
               ) : pendingSubmissions.length === 0 ? (
                 <div style={{

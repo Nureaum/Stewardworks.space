@@ -51,7 +51,7 @@ async function createApprovalNotification(
  */
 export async function getSubmissionsForReview(
   cohortId?: string,
-  status?: 'submitted' | 'approved' | 'rejected'
+  status?: 'submitted' | 'approved' | 'rejected' | 'all'
 ): Promise<SubmissionWithMetadata[]> {
   try {
     const { userId } = await auth()
@@ -104,7 +104,10 @@ export async function getSubmissionsForReview(
       `)
 
     // Filter by status if provided
-    if (status) {
+    if (status === 'all') {
+      // History mode: show everything EXCEPT not_submitted (those are just unlocked days with no work)
+      query = query.in('deliverable_status', ['submitted', 'approved', 'rejected'])
+    } else if (status) {
       query = query.eq('deliverable_status', status)
     } else {
       // Default to showing submitted and rejected (not approved or not_submitted)
@@ -289,6 +292,87 @@ export async function getPendingEngagements(
   } catch (error) {
     if (error instanceof Error) throw error
     throw new Error('An unexpected error occurred while fetching pending engagements')
+  }
+}
+
+
+/**
+ * Gets ALL engagement items for admin history (all statuses)
+ */
+export async function getAllEngagementsHistory(
+  cohortId?: string
+): Promise<any[]> {
+  try {
+    const { userId } = await auth()
+    if (!userId) throw new Error('Authentication required')
+
+    const supabase = createServerSupabaseClient()
+    
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('clerk_user_id', userId)
+      .single()
+    
+    if (profileError || !profile) throw new Error('Profile not found')
+    if (!['admin', 'super_admin'].includes(profile.role)) throw new Error('Admin access required')
+
+    let query = supabase
+      .from('workshop_engagement')
+      .select(`
+        id,
+        cohort_id,
+        profile_id,
+        kind,
+        title,
+        source,
+        url,
+        content,
+        status,
+        created_at,
+        reviewed_at,
+        review_note,
+        profiles!workshop_engagement_profile_id_fkey(
+          id,
+          full_name,
+          email
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (cohortId) {
+      query = query.eq('cohort_id', cohortId)
+    }
+
+    const { data: engagements, error } = await query
+
+    if (error) {
+      console.error('Get all engagements history error:', error)
+      throw new Error(`Failed to fetch engagements history: ${error.message}`)
+    }
+
+    if (!engagements) return []
+
+    return engagements.map((eng: any) => ({
+      id: eng.id,
+      workshop_day_id: null,
+      profile_id: eng.profile_id,
+      title: eng.title,
+      kind: eng.kind,
+      source: eng.source,
+      url: eng.url,
+      submission_text: eng.content || eng.url || eng.title,
+      submitted_at: eng.created_at,
+      reviewed_at: eng.reviewed_at,
+      review_note: eng.review_note,
+      participant_name: eng.profiles?.full_name || eng.profiles?.email || 'Unknown',
+      participant_email: eng.profiles?.email || '',
+      deliverable_status: eng.status,
+    }))
+
+  } catch (error) {
+    if (error instanceof Error) throw error
+    throw new Error('An unexpected error occurred while fetching engagements history')
   }
 }
 

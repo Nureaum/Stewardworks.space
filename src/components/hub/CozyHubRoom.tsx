@@ -1515,7 +1515,10 @@ export default function CozyHubRoom({
                         try { const charRes = await fetch(`/api/workshops/${selectedCohortId}/character`); if (charRes.ok) { const charData = await charRes.json(); if (charData.character_key) charKey = charData.character_key; if (charData.accent_color) charAccent = charData.accent_color; if (charData.gear) charGear = charData.gear; if (charData.outfit) charOutfit = charData.outfit; } } catch (e) {}
                         try { const { buildSpriteUri } = await import('@/components/workshops/journey/PixelSprite'); characterSpriteUri = buildSpriteUri(charKey, charAccent, { gear: charGear, outfit: charOutfit }); } catch (e) {}
                         const { buildClientCertHTML } = await import('@/components/workshops/journey/VictoryScreen');
-                        const html = buildClientCertHTML({ playerName, characterKey: charKey, certOrg: certSettings.certOrg, certFacilitator: certSettings.certFacilitator, certFacTitle: certSettings.certFacTitle, certSponsor: certSettings.certSponsor, certSponsorOrg: certSettings.certSponsorOrg, certMessage: certSettings.certMessage, cohortName, deliverables: [{ title: 'DAY 1 DELIVERABLE', url: '' }, { title: 'DAY 2 DELIVERABLE', url: '' }, { title: 'DAY 3 DELIVERABLE', url: '' }], characterSpriteUri });
+                        // Fetch user's actual submission titles
+                        let deliverables = [{ title: 'DAY 1 DELIVERABLE', url: '' }, { title: 'DAY 2 DELIVERABLE', url: '' }, { title: 'DAY 3 DELIVERABLE', url: '' }];
+                        try { const subRes = await fetch(`/api/workshops/${selectedCohortId}/submissions`); if (subRes.ok) { const subData = await subRes.json(); if (subData.submissions && subData.submissions.length > 0) { deliverables = subData.submissions.slice(0, 3).map((s: any, idx: number) => ({ title: (s.title || s.day_title || `DAY ${idx + 1} DELIVERABLE`).toUpperCase(), url: '' })); } } } catch (e) {}
+                        const html = buildClientCertHTML({ playerName, characterKey: charKey, certOrg: certSettings.certOrg, certFacilitator: certSettings.certFacilitator, certFacTitle: certSettings.certFacTitle, certSponsor: certSettings.certSponsor, certSponsorOrg: certSettings.certSponsorOrg, certMessage: certSettings.certMessage, cohortName, deliverables, characterSpriteUri });
                         setCertPreviewHtml(html);
                         setShowCertPreview(true);
                       } catch (err) {
@@ -1945,9 +1948,25 @@ export default function CozyHubRoom({
         {/* ─── ANNOUNCEMENTS TAB ─── */}
         { notifTab === 'announcements' && (
         <>
-        <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"12px"}}>
-          <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#8a5a2e"}}>ANNOUNCEMENTS</span>
-          <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#8a5a2e"}}>{announcements.length} TOTAL</span>
+        <div style={{"display":"flex","justifyContent":"space-between","alignItems":"center","marginBottom":"12px"}}>
+          <div>
+            <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#8a5a2e"}}>ANNOUNCEMENTS</span>
+            <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#8a5a2e","marginLeft":"8px"}}>{announcements.length} TOTAL</span>
+          </div>
+          {unreadIds.length > 0 && (
+            <button
+              onClick={async () => {
+                const idsToMark = [...unreadIds];
+                setUnreadIds([]);
+                for (const id of idsToMark) {
+                  await markAnnouncementAsRead(id);
+                }
+              }}
+              style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#A27532","background":"rgba(162,117,50,.1)","border":"1px solid rgba(162,117,50,.25)","borderRadius":"6px","padding":"4px 10px","cursor":"pointer","transition":"background .2s"}}
+            >
+              mark all as read
+            </button>
+          )}
         </div>
         
         { announcements.length === 0 && (

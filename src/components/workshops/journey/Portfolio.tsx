@@ -116,6 +116,9 @@ export default function Portfolio({
   const [assetFileToUpload, setAssetFileToUpload] = useState<File | null>(null)
   const [isUploadingAsset, setIsUploadingAsset] = useState(false)
   const assetFileInputRef = useRef<HTMLInputElement>(null)
+  const [bookmarkFileToUpload, setBookmarkFileToUpload] = useState<File | null>(null)
+  const [isUploadingBookmark, setIsUploadingBookmark] = useState(false)
+  const bookmarkFileInputRef = useRef<HTMLInputElement>(null)
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
 
   // Workforce Pathway Picks State
@@ -306,9 +309,34 @@ export default function Portfolio({
   /* ── Handler helpers ── */
   function handleAddShelf(kind: string) {
     const st = inputState[kind]
+    if (!st || !st.value.trim() && !bookmarkFileToUpload) return
+    if (kind === 'bookmark' && bookmarkFileToUpload) {
+      // Handle file upload for bookmark
+      setIsUploadingBookmark(true)
+      const formData = new FormData()
+      formData.append('file', bookmarkFileToUpload)
+      uploadCreationImage(formData)
+        .then((publicUrl) => {
+          onAddEngagement('bookmark', bookmarkFileToUpload!.name, 'upload', publicUrl)
+          setBookmarkFileToUpload(null)
+          if (st) st.set('')
+        })
+        .catch(err => console.error('Bookmark upload failed:', err))
+        .finally(() => setIsUploadingBookmark(false))
+      return
+    }
     if (!st || !st.value.trim()) return
     onAddEngagement(kind, st.value.trim(), 'manual')
     st.set('')
+  }
+
+  function handleBookmarkFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBookmarkFileToUpload(file)
+    const st = inputState['bookmark']
+    if (st) st.set(file.name)
+    if (bookmarkFileInputRef.current) bookmarkFileInputRef.current.value = ''
   }
 
   function handleAddAsset() {
@@ -433,11 +461,11 @@ export default function Portfolio({
 
           {/* Legend */}
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ fontSize: 16, color: '#74f0a0' }}>
+            <div style={{ fontSize: 18, color: '#74f0a0' }}>
               <span style={{ marginRight: 6 }}>■</span>
               Deliverables {delivPct}% / 75%
             </div>
-            <div style={{ fontSize: 16, color: '#45d6ff' }}>
+            <div style={{ fontSize: 18, color: '#45d6ff' }}>
               <span style={{ marginRight: 6 }}>■</span>
               Engagement {engPct}% / 25%
             </div>
@@ -528,22 +556,46 @@ export default function Portfolio({
                     ✦ DELIVERABLE
                   </div>
                   {(() => {
-                    const submission = submissions.find((s: any) => s.workshop_day_id === day.id);
-                    const rawLink = submission?.submission_text || submission?.file_storage_path || submission?.external_video_url || '';
+                    // Get all submissions for this day, pick the latest one with a URL
+                    const allDaySubs = submissions.filter((s: any) => s.workshop_day_id === day?.id);
+                    // Try to find one with a URL first
+                    const subWithUrl = allDaySubs.find((s: any) => s.submission_text || s.external_video_url || s.file_storage_path);
+                    const submission = subWithUrl || allDaySubs[0] || null;
                     
-                    if (rawLink) {
+                    let rawLink = '';
+                    if (submission) {
+                      rawLink = submission.external_video_url || submission.submission_text || submission.file_storage_path || '';
+                      rawLink = rawLink.replace(/^\[SHOWCASE_REQUESTED\]\s*/, '').trim();
+                    }
+                    
+                    if (rawLink && rawLink.length > 5) {
                       return (
-                        <DeliverableMediaPreview
-                          url={rawLink}
-                          variant="thumbnail"
-                          theme="dark"
-                          showPreviewButton={true}
-                          maxThumbnailSize={40}
-                        />
+                        <div>
+                          <DeliverableMediaPreview
+                            url={rawLink}
+                            variant="thumbnail"
+                            theme="dark"
+                            showPreviewButton={true}
+                            maxThumbnailSize={40}
+                          />
+                          {submission?.title && submission.title !== rawLink && (
+                            <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {submission.title}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    // Show title or placeholder
+                    if (submission?.title) {
+                      return (
+                        <div style={{ fontSize: 13, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                          {submission.title}
+                        </div>
                       );
                     }
                     return (
-                      <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', opacity: 0.7 }}>
+                      <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', opacity: 0.7 }}>
                         — no link banked yet —
                       </div>
                     );
@@ -584,13 +636,13 @@ export default function Portfolio({
           >
             ✦ MY ENGAGEMENT
           </div>
-          <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>
+          <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)' }}>
             {approvedCount} approved · {pendingCount} pending · {engPct}%/25%
           </div>
         </div>
 
         {/* Description */}
-        <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 6 }}>
+        <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginTop: 6 }}>
           Add items to grow your Chia Guardian. Bookmark +1% · Note +1% · Prompt +3% · Asset +2%
         </div>
 
@@ -641,11 +693,11 @@ export default function Portfolio({
               >
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderBottom: '2px solid var(--ln,#3d2668)' }}>
-                  <span className="font-pixel" style={{ fontSize: 14, color: col.color, flex: 'none' }}>{col.icon}</span>
-                  <div className="font-pixel" style={{ flex: 1, minWidth: 0, fontSize: 11, color: col.color, letterSpacing: 0.5 }}>
+                  <span className="font-pixel" style={{ fontSize: 16, color: col.color, flex: 'none' }}>{col.icon}</span>
+                  <div className="font-pixel" style={{ flex: 1, minWidth: 0, fontSize: 12, color: col.color, letterSpacing: 0.5 }}>
                     {col.label}
                   </div>
-                  <span style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>
+                  <span style={{ fontSize: 18, color: 'var(--mu,#a493c9)' }}>
                     {items.length}
                   </span>
                 </div>
@@ -670,6 +722,30 @@ export default function Portfolio({
                       outline: 'none',
                     }}
                   />
+                  {col.kind === 'bookmark' && (
+                    <>
+                      <input type="file" accept="image/*,video/*,audio/*" hidden ref={bookmarkFileInputRef} onChange={handleBookmarkFileChange} />
+                      <button
+                        onClick={() => bookmarkFileInputRef.current?.click()}
+                        disabled={isUploadingBookmark}
+                        title="Upload file"
+                        className="font-pixel"
+                        style={{
+                          fontSize: 10,
+                          color: 'var(--s,#45d6ff)',
+                          background: 'transparent',
+                          border: '2px solid var(--s,#45d6ff)',
+                          borderRadius: 5,
+                          padding: '0 10px',
+                          cursor: isUploadingBookmark ? 'wait' : 'pointer',
+                          flex: 'none',
+                          opacity: isUploadingBookmark ? 0.5 : 1,
+                        }}
+                      >
+                        ↑
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={() => handleAddShelf(col.kind)}
                     title={`Add to ${col.label.toLowerCase()}`}
@@ -692,7 +768,7 @@ export default function Portfolio({
                 {/* Scrollable items list */}
                 <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 240, overflowY: 'auto' }}>
                   {items.length === 0 && (
-                    <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', textAlign: 'center', padding: '9px 0' }}>
+                    <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', textAlign: 'center', padding: '9px 0' }}>
                       No {col.label.toLowerCase()} yet
                     </div>
                   )}
@@ -711,7 +787,7 @@ export default function Portfolio({
                         <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
                           <div
                             style={{
-                              fontSize: 16,
+                              fontSize: 18,
                               color: 'var(--tx,#efe6ff)',
                               lineHeight: 1.25,
                               whiteSpace: 'nowrap',
@@ -721,7 +797,7 @@ export default function Portfolio({
                           >
                             {item.title}
                           </div>
-                          <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 2 }}>
+                          <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 2 }}>
                             {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[col.kind] || 1}%` : item.status === 'rejected' ? '↩ returned' : '🕒 pending'}
                           </div>
                         </div>
@@ -1113,10 +1189,10 @@ export default function Portfolio({
               </div>
             )}
             
-            {/* For generation/assets: show preview if URL is an image */}
-            {viewingItem.kind === 'generation' && viewingItem.url && (
+            {/* For generation/assets and bookmarks: show preview if URL is media */}
+            {viewingItem.url && (
               <div style={{ marginBottom: 18 }}>
-                {viewingItem.url.match(/\.(jpg|jpeg|png|gif|webp)(\?|#|$)/i) || viewingItem.url.match(/\/(uploads|images)\//i) ? (
+                {isImageUrl(viewingItem.url) ? (
                   <img 
                     src={viewingItem.url} 
                     alt={viewingItem.title} 
@@ -1131,7 +1207,7 @@ export default function Portfolio({
                       background: 'rgba(0,0,0,.3)'
                     }} 
                   />
-                ) : viewingItem.url.match(/\.(mp4|webm|mov)(\?|#|$)/i) ? (
+                ) : viewingItem.url.match(/\.(mp4|webm|mov)/i) || (viewingItem.url.includes('supabase') && viewingItem.url.match(/\.(mp4|webm|mov)/i)) ? (
                   <video 
                     src={viewingItem.url} 
                     controls 
@@ -1144,7 +1220,26 @@ export default function Portfolio({
                       marginBottom: 10 
                     }} 
                   />
-                ) : (
+                ) : viewingItem.url.match(/\.(mp3|wav|ogg|aac|flac|m4a)/i) ? (
+                  <audio 
+                    src={viewingItem.url} 
+                    controls 
+                    style={{ width: '100%', marginBottom: 10 }} 
+                  />
+                ) : (viewingItem.url.includes('youtube.com') || viewingItem.url.includes('youtu.be')) ? (
+                  <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: '2px solid var(--ln,#3d2668)', marginBottom: 10 }}>
+                    <img 
+                      src={`https://img.youtube.com/vi/${viewingItem.url.includes('youtu.be/') ? viewingItem.url.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(viewingItem.url.split('?')[1] || '').get('v')}/mqdefault.jpg`}
+                      alt="YouTube"
+                      style={{ width: '100%', height: 200, objectFit: 'cover' }}
+                    />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 22, color: '#fff', marginLeft: 4 }}>▶</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : viewingItem.kind === 'generation' ? (
                   <div style={{ 
                     width: '100%', 
                     height: 120, 
@@ -1156,14 +1251,14 @@ export default function Portfolio({
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    <span className="font-pixel" style={{ fontSize: 13, color: '#12081e' }}>
-                      {viewingItem.url.match(/\.(mp3|wav|ogg)(\?|#|$)/i) ? 'AUDIO' : 'ASSET'}
-                    </span>
+                    <span className="font-pixel" style={{ fontSize: 13, color: '#12081e' }}>ASSET</span>
+                  </div>
+                ) : null}
+                {viewingItem.kind === 'generation' && (
+                  <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>
+                    ◉ {viewingItem.url.match(/\.(mp4|webm|mov)/i) ? 'VIDEO' : viewingItem.url.match(/\.(mp3|wav|ogg)/i) ? 'AUDIO' : 'IMAGE'} asset · generated in your workshop tools
                   </div>
                 )}
-                <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>
-                  ◉ {viewingItem.url.match(/\.(mp4|webm|mov)(\?|#|$)/i) ? 'VIDEO' : viewingItem.url.match(/\.(mp3|wav|ogg)(\?|#|$)/i) ? 'AUDIO' : 'IMAGE'} asset · generated in your workshop tools
-                </div>
               </div>
             )}
             
@@ -1327,11 +1422,11 @@ export default function Portfolio({
                             )}
                           </div>
                           
-                          <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', marginBottom: 8, lineHeight: 1.4 }}>
+                          <div style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 8, lineHeight: 1.4 }}>
                             {quizData?.prompt || 'Your answer'}
                           </div>
                           
-                          <div style={{ fontWeight: 700, color: 'var(--tx,#efe6ff)', fontSize: 15, lineHeight: 1.3, padding: '10px 12px', background: 'rgba(255,255,255,.05)', borderRadius: 8, border: '1px solid var(--ln,#3d2668)' }}>
+                          <div style={{ fontWeight: 700, color: 'var(--tx,#efe6ff)', fontSize: 17, lineHeight: 1.3, padding: '10px 12px', background: 'rgba(255,255,255,.05)', borderRadius: 8, border: '1px solid var(--ln,#3d2668)' }}>
                             {answerLabel}
                           </div>
                         </div>
@@ -1368,8 +1463,8 @@ export default function Portfolio({
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg,#2E5534,#4a8a5a)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📜</div>
               <div>
-                <div style={{ fontWeight: 700, color: 'var(--ok,#74f0a0)', fontSize: 17 }}>Congratulations!</div>
-                <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--ok,#74f0a0)', fontSize: 22 }}>Congratulations!</div>
+                <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)' }}>
                   You&apos;ve completed all 3 deliverables in {cohortName} and earned your certificate.
                 </div>
               </div>

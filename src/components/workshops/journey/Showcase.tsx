@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import type { WorkshopShowcase, WorkshopEngagement } from '@/types/workshops'
-import { getAllGenerations } from '@/app/actions/workshops/engagement'
+import { getAllGenerations, addEngagement, uploadCreationImage } from '@/app/actions/workshops/engagement'
 import { getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
 import { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 
@@ -82,6 +82,16 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
   const [studentItems, setStudentItems] = useState([] as any[])
   const [studentsLoading, setStudentsLoading] = useState(false)
 
+  // Add Showcase form state
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addTitle, setAddTitle] = useState('')
+  const [addDescription, setAddDescription] = useState('')
+  const [addUrl, setAddUrl] = useState('')
+  const [addFile, setAddFile] = useState<File | null>(null)
+  const [addFilePreview, setAddFilePreview] = useState<string | null>(null)
+  const [addSubmitting, setAddSubmitting] = useState(false)
+  const addFileInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     if (activeViewMode === 'students' && cohortId && studentItems.length === 0) {
       setStudentsLoading(true)
@@ -95,6 +105,8 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
           if (e.status !== 'approved') return false;
           try {
             const data = JSON.parse(e.content || '{}');
+            // If admin explicitly set showcaseVisible to false, hide it
+            if (data.showcaseVisible === false) return false;
             // Show if showcaseVisible is true OR if it was requested and approved (legacy items)
             return data.showcaseVisible === true || data.showcaseRequested === true;
           } catch(err) {
@@ -111,6 +123,59 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
       });
     }
   }, [activeViewMode, cohortId, studentItems.length])
+
+  // Handle file selection for showcase upload
+  const handleAddFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAddFile(file)
+    setAddUrl('') // clear URL if file selected
+    // Generate preview
+    const url = URL.createObjectURL(file)
+    setAddFilePreview(url)
+  }
+
+  // Detect media type from URL
+  const detectMediaType = (url: string) => {
+    const lower = url.toLowerCase()
+    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$)/i.test(lower)) return 'image'
+    if (/\.(mp4|webm|mov)(\?|#|$)/i.test(lower) || lower.includes('youtube.com') || lower.includes('youtu.be')) return 'video'
+    if (/\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(lower)) return 'audio'
+    return 'link'
+  }
+
+  // Submit showcase item
+  const handleAddShowcaseSubmit = async () => {
+    if (!addTitle.trim() || !cohortId) return
+    if (!addUrl && !addFile) return
+    setAddSubmitting(true)
+    try {
+      let finalUrl = addUrl
+      // Upload file if provided
+      if (addFile) {
+        const formData = new FormData()
+        formData.append('file', addFile)
+        const uploadedUrl = await uploadCreationImage(formData)
+        finalUrl = uploadedUrl
+      }
+      // Submit as engagement with showcaseRequested flag
+      const content = JSON.stringify({ showcaseRequested: true, description: addDescription })
+      await addEngagement(cohortId, 'generation', addTitle, 'Student Showcase', finalUrl, content)
+      // Reset form
+      setAddTitle('')
+      setAddDescription('')
+      setAddUrl('')
+      setAddFile(null)
+      setAddFilePreview(null)
+      setShowAddForm(false)
+      // Force reload student items
+      setStudentItems([])
+    } catch (err) {
+      console.error('Failed to submit showcase:', err)
+    } finally {
+      setAddSubmitting(false)
+    }
+  }
 
   const allItems = useMemo(() => {
     const dbItems: ShowcaseItem[] = showcaseItems.map(s => {
@@ -293,23 +358,98 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
             background: 'linear-gradient(180deg,rgba(255,95,210,.07),rgba(255,95,210,.02))',
             boxShadow: '0 0 24px rgba(255,95,210,.08)',
           }}>
-            <h2 className="font-pixel" style={{
-              fontSize: 'clamp(12px,1.8vw,18px)',
-              color: '#ff5fd2',
-              margin: 0,
-              lineHeight: 1.5,
-            }}>
-              ★ STUDENT SHOWCASE LIBRARY
-            </h2>
-            <p style={{
-              fontSize: 15,
-              color: 'var(--mu,#a493c9)',
-              margin: '8px 0 0',
-              lineHeight: 1.55,
-            }}>
-              Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <div>
+                <h2 className="font-pixel" style={{
+                  fontSize: 'clamp(12px,1.8vw,18px)',
+                  color: '#ff5fd2',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}>
+                  ★ STUDENT SHOWCASE LIBRARY
+                </h2>
+                <p style={{
+                  fontSize: 15,
+                  color: 'var(--mu,#a493c9)',
+                  margin: '8px 0 0',
+                  lineHeight: 1.55,
+                }}>
+                  Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="font-pixel"
+                style={{ flex: 'none', fontSize: 9, padding: '10px 16px', background: '#ff5fd2', color: '#0e1512', border: 'none', borderRadius: 8, cursor: 'pointer', letterSpacing: '.5px', whiteSpace: 'nowrap' }}
+              >
+                + ADD SHOWCASE
+              </button>
+            </div>
           </div>
+
+          {/* ═══ Add Showcase Modal ═══ */}
+          {showAddForm && (
+            <div onClick={() => setShowAddForm(false)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(6,12,9,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+              <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 500, background: 'var(--bg,#12081e)', border: '2px solid #ff5fd2', borderRadius: 14, padding: 'clamp(20px,3vw,32px)', maxHeight: '85vh', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <h3 className="font-pixel" style={{ fontSize: 12, color: '#ff5fd2', margin: 0 }}>+ ADD TO SHOWCASE</h3>
+                  <button onClick={() => setShowAddForm(false)} style={{ background: 'none', border: '1.5px solid rgba(255,95,210,.3)', borderRadius: '50%', width: 28, height: 28, color: '#ff5fd2', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                </div>
+
+                {/* Title */}
+                <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>TITLE *</label>
+                <input value={addTitle} onChange={e => setAddTitle(e.target.value)} placeholder="My AI creation title" style={{ width: '100%', padding: '10px 12px', fontSize: 14, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', marginBottom: 16, fontFamily: 'inherit' }} />
+
+                {/* Description */}
+                <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>DESCRIPTION</label>
+                <textarea value={addDescription} onChange={e => setAddDescription(e.target.value)} placeholder="Describe your creation..." rows={3} style={{ width: '100%', padding: '10px 12px', fontSize: 14, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', marginBottom: 16, fontFamily: 'inherit', resize: 'vertical' }} />
+
+                {/* URL or Upload */}
+                <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>MEDIA (URL OR UPLOAD) *</label>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  <input value={addUrl} onChange={e => { setAddUrl(e.target.value); setAddFile(null); setAddFilePreview(null); }} placeholder="Paste URL (image, video, audio)" style={{ flex: 1, padding: '10px 12px', fontSize: 13, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', fontFamily: "'DM Mono',monospace" }} />
+                  <button onClick={() => addFileInputRef.current?.click()} className="font-pixel" style={{ flex: 'none', fontSize: 8, padding: '10px 14px', background: 'rgba(255,95,210,.15)', color: '#ff5fd2', border: '1.5px solid rgba(255,95,210,.3)', borderRadius: 8, cursor: 'pointer' }}>↑ UPLOAD</button>
+                  <input ref={addFileInputRef} type="file" accept="image/*,video/*,audio/*" style={{ display: 'none' }} onChange={handleAddFileChange} />
+                </div>
+
+                {/* Media Preview */}
+                {(addFilePreview || addUrl) && (() => {
+                  const previewUrl = addFilePreview || addUrl
+                  const type = addFile ? (addFile.type.startsWith('image') ? 'image' : addFile.type.startsWith('video') ? 'video' : addFile.type.startsWith('audio') ? 'audio' : 'link') : detectMediaType(addUrl)
+                  return (
+                    <div style={{ marginBottom: 16, border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, overflow: 'hidden', background: 'var(--pn,#14211b)' }}>
+                      {type === 'image' && <img src={previewUrl} alt="Preview" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />}
+                      {type === 'video' && (
+                        addUrl.includes('youtube.com') || addUrl.includes('youtu.be') ? (
+                          <img src={`https://img.youtube.com/vi/${addUrl.includes('youtu.be/') ? addUrl.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(addUrl.split('?')[1] || '').get('v')}/mqdefault.jpg`} alt="Video thumbnail" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />
+                        ) : (
+                          <video src={previewUrl} controls preload="metadata" style={{ width: '100%', maxHeight: 200 }} />
+                        )
+                      )}
+                      {type === 'audio' && <audio src={previewUrl} controls style={{ width: '100%', padding: 12 }} />}
+                      {type === 'link' && <div style={{ padding: 12, fontSize: 12, color: 'var(--mu,#a493c9)', fontFamily: "'DM Mono',monospace", wordBreak: 'break-all' }}>🔗 {previewUrl}</div>}
+                      <div style={{ padding: '6px 12px', fontSize: 10, color: '#ff5fd2', fontFamily: "'DM Mono',monospace", borderTop: '1px solid var(--ln,#28432f)' }}>
+                        {addFile ? `📎 ${addFile.name}` : `DETECTED: ${type.toUpperCase()}`}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Submit */}
+                <button
+                  onClick={handleAddShowcaseSubmit}
+                  disabled={addSubmitting || !addTitle.trim() || (!addUrl && !addFile)}
+                  className="font-pixel"
+                  style={{ width: '100%', fontSize: 10, padding: '14px 20px', background: addSubmitting || !addTitle.trim() || (!addUrl && !addFile) ? '#4a3a5a' : '#ff5fd2', color: '#0e1512', border: 'none', borderRadius: 8, cursor: addSubmitting ? 'wait' : 'pointer', letterSpacing: '.5px', opacity: (!addTitle.trim() || (!addUrl && !addFile)) ? 0.5 : 1 }}
+                >
+                  {addSubmitting ? '⏳ SUBMITTING...' : '✦ SUBMIT FOR APPROVAL'}
+                </button>
+                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--mu,#a493c9)', textAlign: 'center', lineHeight: 1.4 }}>
+                  Your submission will appear here after admin approval.
+                </div>
+              </div>
+            </div>
+          )}
 
           {studentsLoading ? (
             <div className="p-8 text-center font-pixel" style={{ color: '#ff5fd2', marginTop: 40 }}>LOADING SHOWCASE...</div>
@@ -407,7 +547,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                             color: '#4dffa0',
                             border: '1px solid rgba(77,255,160,.3)'
                           }}>
-                            {item.source || 'EDEN'}
+                            {(item.source || 'EDEN').replace(/student showcase/i, 'SHOWCASE').toUpperCase()}
                           </span>
                         </div>
                         

@@ -175,13 +175,27 @@ export async function updateEngagement(engagementId: string, updates: { title?: 
   
   // Only update the provided fields, do NOT reset status
   console.log('[Server] Updating engagement in database...')
-  const { data, error } = await supabase
+  
+  // Check if user is admin — admins can update any engagement (e.g. toggling showcase visibility)
+  const { data: fullProfile } = await supabase
+    .from('profiles')
+    .select('id, role')
+    .eq('clerk_user_id', userId)
+    .single()
+  
+  const isAdmin = fullProfile && ['admin', 'super_admin'].includes(fullProfile.role)
+  
+  let query = supabase
     .from('workshop_engagement')
     .update(updates)
     .eq('id', engagementId)
-    .eq('profile_id', profile.id) // Security check
-    .select()
-    .single()
+  
+  // Only restrict to own profile if not admin
+  if (!isAdmin) {
+    query = query.eq('profile_id', profile.id)
+  }
+  
+  const { data, error } = await query.select().single()
   
   console.log('[Server] Update result:', data)
   console.log('[Server] Update error:', error)
