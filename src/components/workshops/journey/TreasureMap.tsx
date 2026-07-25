@@ -18,6 +18,7 @@ interface TreasureMapProps {
   onOpenWin: () => void
   onOpenDay: (dayNum: number) => void
   onOpenPortfolio: () => void
+  userRole?: string
 }
 
 const NODES = [
@@ -109,6 +110,7 @@ export default function TreasureMap({
   onOpenWin,
   onOpenDay,
   onOpenPortfolio,
+  userRole = 'participant',
 }: TreasureMapProps) {
   const [mounted, setMounted] = useState(false)
   const [mapTarget, setMapTarget] = useState<number | null>(null)
@@ -223,7 +225,8 @@ export default function TreasureMap({
         {days.map((day, i) => {
           const isDone = i < clampedDays
           const isCurrent = i === clampedDays && !allDone
-          const isLocked = i > clampedDays
+          // Guests see all days unlocked (no deliverable requirement)
+          const isLocked = userRole === 'guest' ? false : i > clampedDays
           const nodePos = NODES[i + 1]
           const ring = isDone ? 'var(--ok, #74f0a0)' : isCurrent ? 'var(--p, #ff5fd2)' : 'var(--mu, #a493c9)'
 
@@ -372,26 +375,31 @@ export default function TreasureMap({
       {/* ── Dashboard panels ── */}
       <div style={{ maxWidth: 1000, margin: '14px auto 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
 
-        {/* Chia Guardian */}
+        {/* Chia Guardian — for guests show engagement only */}
         <div style={{ border: '2px solid var(--ok, #74f0a0)', borderRadius: 6, padding: '14px 16px', background: 'var(--pn, #241542)', display: 'flex', gap: 14, alignItems: 'center', boxShadow: '0 0 18px rgba(116,240,160,.1)' }}>
           <img src={chiaSvg} alt="Chia" width={64} height={80} style={{ imageRendering: 'pixelated', flex: 'none', filter: 'drop-shadow(0 3px 0 rgba(0,0,0,.4))' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="font-pixel" style={{ fontSize: 10, color: 'var(--ok, #74f0a0)', marginBottom: 9, lineHeight: 1.5 }}>
-              ❀ CHIA GUARDIAN · {chiaPct}%
+              ❀ CHIA GUARDIAN · {userRole === 'guest' ? `${chiaEngPct}%` : `${chiaPct}%`}
             </div>
             <div style={{ height: 16, background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln, #3d2668)', borderRadius: 3, overflow: 'hidden', display: 'flex' }}>
-              <div style={{ width: `${chiaDelivPct}%`, height: '100%', background: 'var(--gold, #ffd23f)', transition: 'width 0.5s' }} />
+              {userRole !== 'guest' && (
+                <div style={{ width: `${chiaDelivPct}%`, height: '100%', background: 'var(--gold, #ffd23f)', transition: 'width 0.5s' }} />
+              )}
               <div style={{ width: `${chiaEngPct}%`, height: '100%', background: 'var(--ok, #74f0a0)', transition: 'width 0.5s' }} />
             </div>
             <div style={{ fontSize: 18, color: 'var(--tx, #efe6ff)', marginTop: 8 }}>{stageLabel}</div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 4, fontSize: 15 }}>
-              <span style={{ color: 'var(--gold, #ffd23f)' }}>■ Deliverables {chiaDelivPct}%</span>
+              {userRole !== 'guest' && (
+                <span style={{ color: 'var(--gold, #ffd23f)' }}>■ Deliverables {chiaDelivPct}%</span>
+              )}
               <span style={{ color: 'var(--ok, #74f0a0)' }}>■ Engagement {chiaEngPct}%</span>
             </div>
           </div>
         </div>
 
-        {/* Journey Progress */}
+        {/* Journey Progress — hidden for guests (tracks deliverable submissions) */}
+        {userRole !== 'guest' && (
         <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 6, padding: '14px 16px', background: 'var(--pn, #241542)' }}>
           <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu, #a493c9)', marginBottom: 10 }}>JOURNEY PROGRESS</div>
           <div style={{ height: 16, background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln, #3d2668)', borderRadius: 3, overflow: 'hidden' }}>
@@ -401,8 +409,10 @@ export default function TreasureMap({
             {clampedDays} of 3 deliverables banked · {principlesCount} Steward Principles collected
           </div>
         </div>
+        )}
 
-        {/* Principles Banked */}
+        {/* Principles Banked — hidden for guests */}
+        {userRole !== 'guest' && (
         <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 6, padding: '14px 16px', background: 'var(--pn, #241542)' }}>
           <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu, #a493c9)', marginBottom: 10 }}>PRINCIPLES BANKED</div>
           {bankedPrinciples.length > 0 ? (
@@ -422,6 +432,7 @@ export default function TreasureMap({
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   )

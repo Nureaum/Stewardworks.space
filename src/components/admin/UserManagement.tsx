@@ -151,13 +151,12 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
     }
   };
 
-  const handleRoleChange = async (userId: string, currentRole: string, email: string) => {
+  const handleRoleChange = async (userId: string, newRole: string, email: string) => {
     if (!isMainAdmin) {
       alert("Only the Main Admin can change user roles.");
       return;
     }
     
-    const newRole = currentRole === 'admin' ? 'participant' : 'admin';
     try {
       setUpdatingId(userId);
       const res = await fetch('/api/admin/users', {
@@ -278,7 +277,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
             {filteredUsers.map((u) => {
               const currentRole = u.role || 'participant';
               const isAdmin = currentRole === 'admin' || currentRole === 'super_admin';
-              const isUpdating = updatingId === u.id;
+              const isUpdating = updatingId === u.clerk_user_id;
               const isUserMainAdmin = currentRole === 'super_admin';
               const canEditRole = isMainAdmin && !isUserMainAdmin;
               
@@ -316,14 +315,20 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
                     <div className="flex items-center gap-2 justify-end">
                       {canEditRole ? (
                         <>
-                          <button
-                            onClick={() => handleRoleChange(u.clerk_user_id, currentRole, u.email)}
-                            disabled={isUpdating}
-                            className={`font-mono text-[10px] uppercase tracking-[0.12em] px-[16px] py-[8px] rounded-[8px] border transition-all ${isAdmin ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-[#7a5a1e] border-[#efd9a8] hover:bg-[#fbf5e6]'} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
-                          >
-                            {isUpdating && <Loader2 size={12} className="animate-spin" />}
-                            {isAdmin ? 'Revoke Admin' : 'Make Admin'}
-                          </button>
+                          <div className="relative flex items-center">
+                            {isUpdating && <Loader2 size={12} className="animate-spin absolute -left-5 text-[#7a5a1e]" />}
+                            <select
+                              value={currentRole}
+                              onChange={(e) => handleRoleChange(u.clerk_user_id, e.target.value, u.email)}
+                              disabled={isUpdating}
+                              className={`font-mono text-[10px] uppercase tracking-[0.12em] px-[12px] py-[6px] rounded-[8px] border transition-all ${isAdmin ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-[#7a5a1e] border-[#efd9a8] hover:bg-[#fbf5e6]'} disabled:opacity-50 disabled:cursor-not-allowed bg-transparent outline-none cursor-pointer appearance-none`}
+                            >
+                              <option value="participant">Participant</option>
+                              <option value="guest">Guest</option>
+                              <option value="admin">Admin</option>
+                              <option value="super_admin">Superadmin</option>
+                            </select>
+                          </div>
                           <button
                             onClick={() => setDeleteTarget(u)}
                             className="font-mono text-[10px] uppercase tracking-[0.12em] px-[10px] py-[8px] rounded-[8px] border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-700 transition-all flex items-center gap-1"

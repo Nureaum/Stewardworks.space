@@ -47,6 +47,7 @@ interface JourneyClientProps {
   showcaseItems: WorkshopShowcase[]
   isAdmin: boolean
   profileId: string
+  userRole?: string
   initialTab?: JourneyTab
   initialRole?: Role
   initialSection?: string
@@ -67,6 +68,7 @@ export default function JourneyClient({
   showcaseItems,
   isAdmin,
   profileId,
+  userRole = 'participant',
   initialTab = 'journey',
   initialRole = 'student',
   initialSection,
@@ -461,6 +463,7 @@ export default function JourneyClient({
                     }
                   }}
                   onOpenList={() => setScreen('day')}
+                  userRole={userRole}
                 />
               ) : screen === 'day' ? (
                 <JourneyDayList
@@ -489,6 +492,7 @@ export default function JourneyClient({
                         setTimeout(() => setVictoryVisible(true), 800)
                       }
                     }}
+                    userRole={userRole}
                 />
               ) : (
                 <TreasureMap
@@ -515,6 +519,7 @@ export default function JourneyClient({
                     setScreen('scene')
                   }}
                   onOpenPortfolio={() => setTab('portfolio')}
+                  userRole={userRole}
                 />
               )}
             </div>
@@ -535,6 +540,7 @@ export default function JourneyClient({
               cohortId={cohortId}
               cohortName={cohortName}
               userId={profileId}
+              userRole={userRole}
             />
           )}
 

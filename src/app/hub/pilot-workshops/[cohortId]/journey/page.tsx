@@ -160,6 +160,7 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       submissions={submissions || []}
       isAdmin={isAdmin}
       profileId={profile.id}
+      userRole={profile.role}
       initialTab={(searchParams?.tab as any) || 'journey'}
       initialRole={(searchParams?.mode as any) || 'student'}
       initialSection={searchParams?.section}

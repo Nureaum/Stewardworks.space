@@ -33,6 +33,7 @@ interface PortfolioProps {
   cohortId: string
   cohortName: string
   userId?: string
+  userRole?: string
 }
 
 /* ── Helpers ── */
@@ -100,6 +101,7 @@ export default function Portfolio({
   cohortId,
   cohortName,
   userId,
+  userRole = 'participant',
 }: PortfolioProps) {
   /* ── Clerk user for workforce picks ── */
   const { user } = useUser()
@@ -425,7 +427,7 @@ export default function Portfolio({
             className="font-pixel"
             style={{ fontSize: 'clamp(20px,2.5vw,28px)', color: '#fff', marginBottom: 6 }}
           >
-            {chiaPct}% GROWN
+            {userRole === 'guest' ? engPct : chiaPct}% GROWN
           </div>
           <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginBottom: 10 }}>
             Stage: {stage}
@@ -441,6 +443,7 @@ export default function Portfolio({
               display: 'flex',
             }}
           >
+            {userRole !== 'guest' && (
             <div
               style={{
                 width: `${delivPct}%`,
@@ -449,6 +452,7 @@ export default function Portfolio({
                 transition: 'width .4s ease',
               }}
             />
+            )}
             <div
               style={{
                 width: `${engPct}%`,
@@ -461,10 +465,12 @@ export default function Portfolio({
 
           {/* Legend */}
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {userRole !== 'guest' && (
             <div style={{ fontSize: 18, color: '#74f0a0' }}>
               <span style={{ marginRight: 6 }}>■</span>
               Deliverables {delivPct}% / 75%
             </div>
+            )}
             <div style={{ fontSize: 18, color: '#45d6ff' }}>
               <span style={{ marginRight: 6 }}>■</span>
               Engagement {engPct}% / 25%
@@ -473,7 +479,8 @@ export default function Portfolio({
         </div>
       </div>
 
-      {/* ── Section B: My Deliverables ── */}
+      {/* ── Section B: My Deliverables (hidden for guests) ── */}
+      {userRole !== 'guest' && (
       <div
         style={{
           border: '2px solid var(--gold,#ffd23f)',
@@ -617,6 +624,7 @@ export default function Portfolio({
           })}
         </div>
       </div>
+      )}
 
       {/* ── Section C: My Engagement ── */}
       <div
@@ -1440,7 +1448,8 @@ export default function Portfolio({
         )}
       </div>
 
-      {/* ── Section E: Certificate ── */}
+      {/* ── Section E: Certificate (hidden for guests) ── */}
+      {userRole !== 'guest' && (
       <div
         style={{
           border: '2px solid var(--ok,#74f0a0)',
@@ -1500,9 +1509,10 @@ export default function Portfolio({
           </div>
         )}
       </div>
+      )}
 
       {/* Certificate Preview Modal */}
-      {showCertPreview && (
+      {showCertPreview && userRole !== 'guest' && (
         <div 
           onClick={() => setShowCertPreview(false)} 
           style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(8,4,16,.92)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(12px,3vw,40px)', overflow: 'auto' }}

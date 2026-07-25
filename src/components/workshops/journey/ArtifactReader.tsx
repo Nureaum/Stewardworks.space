@@ -23,6 +23,7 @@ interface ArtifactReaderProps {
   onDeliverableSubmitted?: (msg: string, shouldOpenVictory?: boolean) => void
   onClose?: () => void
   inline?: boolean
+  userRole?: string
 }
 
 /* Section accent color */
@@ -47,7 +48,7 @@ function relicUri(type: string, accent: string): string {
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='72' height='60' viewBox='0 0 72 60' shape-rendering='crispEdges'>${relic}</svg>`)}`
 }
 
-export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], allBankedPrinciples = [], currentDayPrincipleId: propCurrentDayPrincipleId, progressRows = [], submissions = [], onDeliverableSubmitted, onClose, inline }: ArtifactReaderProps) {
+export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], allBankedPrinciples = [], currentDayPrincipleId: propCurrentDayPrincipleId, progressRows = [], submissions = [], onDeliverableSubmitted, onClose, inline, userRole = 'participant' }: ArtifactReaderProps) {
   const readerAccent = secColor(entry.sectionKey)
   const iconSrc = relicUri(entry.entry_type, accent)
   const actLabel = scene?.label || `ACT ${dayNumber}`
@@ -352,8 +353,8 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
               </div>
             )}
 
-            {/* ── Deliverable type ── */}
-            {isDeliverable && (
+            {/* ── Deliverable type (hidden for guests) ── */}
+            {isDeliverable && userRole !== 'guest' && (
               <div>
                 {/* Goal */}
                 {entry.goal && (

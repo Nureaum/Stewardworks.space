@@ -319,11 +319,6 @@ export default function CozyHubRoom({
   const setWood = () => setExit('wood');
 
   const open = (d: any) => {
-    // If guest, only allow permitted bridges: profile, library, logout, env, community, wellness (meditation)
-    if (isGuest && d.id !== 'profile' && d.id !== 'library' && d.id !== 'logout' && d.id !== 'env' && d.id !== 'community' && d.id !== 'wellness' && d.kind !== 'meditation') {
-      return;
-    }
-
     if (d.kind === 'monitor') return setScreen('monitor');
     if (d.kind === 'meditation') return setScreen('meditation');
     if (d.kind === 'progress') return setScreen('progress');
@@ -344,11 +339,6 @@ export default function CozyHubRoom({
   
   const goHub = () => { pauseMed(); setScreen('hub'); setBridgeId(null); setHovered(null); }
   const openBridge = (id: string) => { 
-    // If guest, only allow permitted bridges: profile, library, logout, env, community
-    if (isGuest && id !== 'profile' && id !== 'library' && id !== 'logout' && id !== 'env' && id !== 'community') {
-      return;
-    }
-    
     // Check if AI Labs or Pilot Works requires onboarding
     const requiresOnboarding = id === 'pilot' || id === 'ailab';
     if (requiresOnboarding && onboardingCompleted === false) {
@@ -599,7 +589,7 @@ export default function CozyHubRoom({
 
   const notificationCount = unreadIds.length + personalNotifications.filter((n: any) => !n.is_read).length + (hasUnreadBulletin ? 1 : 0);
   const phoneRinging = notificationCount > 0;
-  const showPhone = !isAdmin && !isGuest;
+  const showPhone = !isAdmin;
   const isLogout = bridgeId === 'logout';
   const isLink = bridgeId !== 'logout';
 
@@ -859,9 +849,8 @@ export default function CozyHubRoom({
     {/*  ============ DESK OBJECTS ============  */}
 
     {/*  LAMP (Help Desk) — iridescent dome  */}
-    {/*  For guests: visible but not interactive (no cursor, no hover, no click)  */}
-    <div style={{"position":"absolute","left":"64px","bottom":"126px","width":"172px","height":"212px","zIndex":"9","cursor": isGuest ? "default" : "pointer","transition":"transform .28s ease,filter .28s ease","pointerEvents": isGuest ? "none" : "auto"}} className={isGuest ? "" : "sw-hover-5"} onMouseEnter={isGuest ? undefined : o.helpdesk.enter} onMouseLeave={isGuest ? undefined : leave} onClick={isGuest ? undefined : o.helpdesk.click}>
-      { !isGuest && o.helpdesk.show && (
+    <div style={{"position":"absolute","left":"64px","bottom":"126px","width":"172px","height":"212px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease","pointerEvents":"auto"}} className="sw-hover-5" onMouseEnter={o.helpdesk.enter} onMouseLeave={leave} onClick={o.helpdesk.click}>
+      { o.helpdesk.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Help Desk<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
       {/*  glass dome  */}
@@ -874,10 +863,6 @@ export default function CozyHubRoom({
       {/*  chrome base  */}
       <div style={{"position":"absolute","left":"50%","bottom":"8px","width":"120px","height":"30px","transform":"translateX(-50%)","borderRadius":"50%","background":"linear-gradient(180deg,#e7e9ee,#aab0bd 55%,#7d8595)","boxShadow":"0 8px 14px rgba(0,0,0,.3),inset 0 2px 3px rgba(255,255,255,.8)"}}></div>
       <div style={{"position":"absolute","left":"50%","bottom":"22px","width":"120px","height":"16px","transform":"translateX(-50%)","borderRadius":"50%","background":"linear-gradient(180deg,#cdd2dc,#9aa1ae)"}}></div>
-      {/*  "MEMBERS ONLY" label for guests  */}
-      { isGuest && (
-        <div style={{"position":"absolute","left":"50%","bottom":"42px","transform":"translateX(-50%)","fontFamily":"'DM Mono',monospace","fontSize":"8px","letterSpacing":".12em","color":"rgba(255,255,255,.85)","textShadow":"0 1px 3px rgba(0,0,0,.6)","whiteSpace":"nowrap","pointerEvents":"none"}}>MEMBERS ONLY</div>
-      )}
     </div>
 
     {/*  ZEN WATER FOUNTAIN (Wellness & Meditation)  */}
@@ -916,7 +901,6 @@ export default function CozyHubRoom({
     </div>
 
     {/*  STATUE + CHIA (Progress & Generations)  */}
-    { !isGuest && (
     <div style={{"position":"absolute","left":"392px","bottom":"128px","width":"108px","height":"226px","zIndex":"9","cursor":"pointer","transition":"transform .28s ease,filter .28s ease"}} className="sw-hover-7" onMouseEnter={o.progress.enter} onMouseLeave={leave} onClick={o.progress.click}>
       { o.progress.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Progress &amp; Generations<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
@@ -1032,12 +1016,10 @@ export default function CozyHubRoom({
         );
       })()}
     </div>
-    )}
 
     {/*  MONITOR (Workshops · AI Lab · Workforce)  */}
-    {/*  For guests: visible but not interactive (no cursor, no hover, no click)  */}
-    <div style={{"position":"absolute","left":"524px","bottom":"140px","width":"330px","height":"248px","zIndex":"7","cursor": isGuest ? "default" : "pointer","transition":"transform .28s ease,filter .28s ease", "pointerEvents": isGuest ? "none" : "auto"}} className={isGuest ? "" : "sw-hover-8"} onMouseEnter={isGuest ? undefined : o.monitor.enter} onMouseLeave={isGuest ? undefined : leave} onClick={isGuest ? undefined : o.monitor.click}>
-      { !isGuest && o.monitor.show && (
+    <div style={{"position":"absolute","left":"524px","bottom":"140px","width":"330px","height":"248px","zIndex":"7","cursor":"pointer","transition":"transform .28s ease,filter .28s ease", "pointerEvents":"auto"}} className="sw-hover-8" onMouseEnter={o.monitor.enter} onMouseLeave={leave} onClick={o.monitor.click}>
+      { o.monitor.show && (
 <><div style={{"position":"absolute","left":"50%","top":"-10px","transform":"translate(-50%,-100%)","background":"#21282E","color":"#FEFAE0","fontFamily":"'DM Mono',monospace","fontSize":"12px","letterSpacing":".05em","padding":"6px 12px","borderRadius":"8px","whiteSpace":"nowrap","boxShadow":"0 8px 18px rgba(0,0,0,.35)","zIndex":"40","pointerEvents":"none","animation":"sw-label .18s ease"}}>Workshops · AI Lab · Workforce<span style={{"position":"absolute","left":"50%","bottom":"-5px","transform":"translateX(-50%) rotate(45deg)","width":"10px","height":"10px","background":"#21282E"}}></span></div></>
 )}
       {/*  stand  */}
@@ -1064,7 +1046,7 @@ export default function CozyHubRoom({
           {/*  bottom label  */}
           <div style={{"position":"absolute","left":"0","right":"0","bottom":"13px","textAlign":"center"}}>
             <div style={{"fontFamily":"'DM Mono',monospace","fontWeight":"400","fontSize":"11px","color":"#fff","letterSpacing":".08em","textShadow":"0 1px 4px rgba(0,0,0,.5)"}}>Stewardworks AI Labs</div>
-            <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".18em","color":"rgba(255,255,255,.85)","marginTop":"3px","textShadow":"0 1px 3px rgba(0,0,0,.4)"}}>{isGuest ? "MEMBERS ONLY" : "CLICK TO ENTER"}</div>
+            <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","letterSpacing":".18em","color":"rgba(255,255,255,.85)","marginTop":"3px","textShadow":"0 1px 3px rgba(0,0,0,.4)"}}>CLICK TO ENTER</div>
           </div>
           {/*  glare  */}
           <div style={{"position":"absolute","top":"-10%","left":"-20%","width":"60%","height":"140%","background":"linear-gradient(120deg,rgba(255,255,255,.22),transparent 60%)","transform":"rotate(8deg)","pointerEvents":"none"}}></div>
@@ -1298,17 +1280,19 @@ export default function CozyHubRoom({
         <div style={{"flex":"1","minWidth":"280px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.12)","borderRadius":"16px","padding":"22px","boxShadow":"0 12px 26px rgba(0,0,0,.08)"}}>
           <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"14px"}}>
             <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".18em","color":"#8a5a2e"}}>OVERALL PROGRESS</span>
-            <span style={{"fontSize":"32px","fontWeight":"700","color":"#3a2412"}}>{progressPct}</span>
+            <span style={{"fontSize":"32px","fontWeight":"700","color":"#3a2412"}}>{isGuest ? `${globalEngagement || 0}%` : progressPct}</span>
           </div>
           <div style={{"height":"18px","background":"rgba(33,40,46,.08)","borderRadius":"10px","overflow":"hidden","marginBottom":"18px"}}>
-            <div style={progressBarStyle}></div>
+            <div style={isGuest ? { width: `${globalEngagement || 0}%`, height: '100%', background: 'linear-gradient(90deg, #417C98, #5aA0C0)', borderRadius: '10px', transition: 'width 0.6s ease' } : progressBarStyle}></div>
           </div>
           {/* Deliverables + Engagement breakdown */}
           <div style={{"display":"flex","gap":"10px","marginBottom":"12px"}}>
+            {!isGuest && (
             <div style={{"flex":"1","background":"rgba(46,85,52,.1)","borderRadius":"11px","padding":"12px 14px"}}>
               <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".12em","color":"#2E5534"}}>DELIVERABLES</div>
               <div style={{"fontSize":"22px","fontWeight":"700","color":"#2E5534","marginTop":"3px"}}>{Math.min(progress - (globalEngagement || 0), 75)}% <span style={{"fontSize":"12px","fontWeight":"400","color":"#6b8a6f"}}>/ 75%</span></div>
             </div>
+            )}
             <div style={{"flex":"1","background":"rgba(65,124,152,.1)","borderRadius":"11px","padding":"12px 14px"}}>
               <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".12em","color":"#356074"}}>ENGAGEMENT</div>
               <div style={{"fontSize":"22px","fontWeight":"700","color":"#356074","marginTop":"3px"}}>{globalEngagement || 0}% <span style={{"fontSize":"12px","fontWeight":"400","color":"#6a8a9a"}}>/ 25%</span></div>
@@ -1475,8 +1459,8 @@ export default function CozyHubRoom({
         </div>
       </div>
 
-      {/* CERTIFICATE SECTION - based on selected cohort only */}
-      {cohortProgress && cohortProgress.length > 0 && selectedCohortId && (() => {
+      {/* CERTIFICATE SECTION - based on selected cohort only (hidden for guests) */}
+      {!isGuest && cohortProgress && cohortProgress.length > 0 && selectedCohortId && (() => {
         const selectedCohort = cohortProgress.find(c => c.cohortId === selectedCohortId);
         if (!selectedCohort) return null;
         const isCertEligible = selectedCohort.deliverables.percentage >= 75;

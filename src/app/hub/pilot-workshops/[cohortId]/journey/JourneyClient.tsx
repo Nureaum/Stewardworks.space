@@ -45,6 +45,7 @@ interface JourneyClientProps {
   showcaseItems: WorkshopShowcase[]
   isAdmin: boolean
   profileId: string
+  userRole?: string
   initialTab?: JourneyTab
   initialRole?: Role
 }
@@ -64,6 +65,7 @@ export default function JourneyClient({
   showcaseItems,
   isAdmin,
   profileId,
+  userRole = 'participant',
   initialTab = 'journey',
   initialRole = 'student',
 }: JourneyClientProps) {
@@ -91,7 +93,9 @@ export default function JourneyClient({
   ).length
 
   // Auto-show victory screen ONE TIME when 75% (3 approved) is first reached
+  // Guests cannot complete deliverables so they never see victory
   React.useEffect(() => {
+    if (userRole === 'guest') return;
     if (daysComplete >= 3 && character) {
       const key = `stewardworks.victory.seen.${cohortId}`
       try {
@@ -287,7 +291,7 @@ export default function JourneyClient({
         <div style={{ flex: 1, overflowY: 'auto', position: 'relative', zIndex: 5 }}>
           {role === 'student' && tab === 'journey' && (
             <>
-              {victoryVisible && character ? (
+              {victoryVisible && character && userRole !== 'guest' ? (
                 <VictoryScreen
                   character={character}
                   daysComplete={daysComplete}
@@ -352,6 +356,7 @@ export default function JourneyClient({
                     }
                   }}
                   onOpenPortfolio={() => setTab('portfolio')}
+                  userRole={userRole}
                 />
               ) : screen === 'scene' && character && activeDayIndex !== null ? (
                 <JourneyScene
@@ -372,6 +377,7 @@ export default function JourneyClient({
                     router.refresh()
                   }}
                   onOpenList={() => setToast('Day list not yet implemented')}
+                  userRole={userRole}
                 />
               ) : null}
             </>
@@ -392,6 +398,7 @@ export default function JourneyClient({
                 cohortId={cohortId}
                 cohortName={cohortName}
                 userId={profileId}
+                userRole={userRole}
               />
             </div>
           )}

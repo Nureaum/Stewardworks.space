@@ -26,6 +26,7 @@ interface JourneyDayListProps {
   allBankedPrinciples?: any[]     // submitted+approved, for pending detection in the picker
   submissions?: any[]
   onDeliverableSubmitted?: (msg: string, shouldOpenVictory?: boolean) => void
+  userRole?: string
 }
 
 function secColor(a: string) {
@@ -51,7 +52,8 @@ export default function JourneyDayList({
   bankedPrinciples = [],
   allBankedPrinciples = [],
   submissions = [],
-  onDeliverableSubmitted
+  onDeliverableSubmitted,
+  userRole = 'participant'
 }: JourneyDayListProps) {
   // Get all entries flat
   const allEntries = day.sections?.flatMap(s => s.entries?.map(e => ({
@@ -101,7 +103,8 @@ export default function JourneyDayList({
           <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexWrap: 'wrap' }}>
             {days.map((d) => {
               const isActive = d.day_number === activeDay;
-              const isLocked = d.day_number > daysComplete + 1;
+              // Guests can access all days freely (no deliverable requirement)
+              const isLocked = userRole === 'guest' ? false : d.day_number > daysComplete + 1;
               return (
                 <button
                   key={d.id}
@@ -173,7 +176,7 @@ export default function JourneyDayList({
                               <div className="font-pixel" style={{ fontSize: 10, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {it.title}
                               </div>
-                              <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {it.subtitle || it.entry_type}
                               </div>
                             </div>
@@ -241,6 +244,7 @@ export default function JourneyDayList({
               submissions={submissions}
               allBankedPrinciples={allBankedPrinciples}
               onDeliverableSubmitted={onDeliverableSubmitted}
+              userRole={userRole}
             />
           ) : (
             <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--mu,#a493c9)', fontSize: 15 }}>

@@ -65,7 +65,8 @@ export default function SubmissionTracker({
   bankedPrincipleIds = [],
   allBankedPrinciples = [],
   progressRows = [],
-  onChangeDay
+  onChangeDay,
+  userRole = 'participant'
 }: { 
   day: number, 
   dayId?: string, 
@@ -79,8 +80,12 @@ export default function SubmissionTracker({
   bankedPrincipleIds?: string[],
   allBankedPrinciples?: { progress_id: string; principle_id: string }[],
   progressRows?: any[],
-  onChangeDay?: (day: number) => void
+  onChangeDay?: (day: number) => void,
+  userRole?: string
 }) {
+  // Guests cannot submit deliverables - hide this entire component
+  if (userRole === 'guest') return null;
+
   const [minimized, setMinimized] = useState(false);
   const [selectedPrinciple, setSelectedPrinciple] = useState('');
   const [submissionUrl, setSubmissionUrl] = useState('');

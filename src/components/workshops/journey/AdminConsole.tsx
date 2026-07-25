@@ -63,8 +63,8 @@ const inputStyle: React.CSSProperties = {
   border: '2px solid var(--ln,#3d2668)',
   borderRadius: 4,
   color: 'var(--tx,#efe6ff)',
-  fontSize: 20,
-  padding: '12px 14px',
+  fontSize: 24,
+  padding: '14px 16px',
 }
 
 const textareaStyle: React.CSSProperties = {
@@ -859,10 +859,10 @@ export default function AdminConsole({
           width: '100%',
           boxSizing: 'border-box',
           fontFamily: "'Press Start 2P', monospace",
-          fontSize: '9px',
+          fontSize: '11px',
           lineHeight: '1.6',
           cursor: 'pointer',
-          padding: '9px 14px',
+          padding: '11px 16px',
           borderRadius: '8px',
           border: `2px solid ${active ? col : '#3d2668'}`,
           background: active ? col : 'rgba(0,0,0,.25)',
@@ -875,7 +875,7 @@ export default function AdminConsole({
         {count !== undefined && (
           <span style={{
             fontFamily: "'Press Start 2P', monospace",
-            fontSize: '7px',
+            fontSize: '9px',
             padding: '4px 6px',
             borderRadius: '4px',
             flex: 'none',
@@ -3099,8 +3099,8 @@ export default function AdminConsole({
           {section === 'ailabs' && (
             <>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, justifyContent: 'space-between', margin: '0 2px 10px' }}>
-                <div className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>◱ EMBEDDED PLATFORMS</div>
-                <div style={{ fontSize: 13, color: 'var(--mu,#9990ab)' }}>Students switch between these in the Lab sandbox</div>
+                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>◱ EMBEDDED PLATFORMS</div>
+                <div style={{ fontSize: 15, color: 'var(--mu,#9990ab)' }}>Students switch between these in the Lab sandbox</div>
               </div>
               <div style={{ border: '2px solid var(--ln,#3a3352)', borderRadius: 9, background: '#201a30', padding: '14px 15px' }}>
                 <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', lineHeight: 1.4, marginBottom: 12, maxWidth: 720 }}>

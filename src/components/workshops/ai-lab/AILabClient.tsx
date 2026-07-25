@@ -278,6 +278,7 @@ export default function AILabClient({
                       allBankedPrinciples={bankedPrinciples}
                       progressRows={dashboard?.filter((d: any) => d.progress).map((d: any) => ({ ...d.progress, workshop_day_id: d.day_id || d.id })) || []}
                       onChangeDay={(d) => { setDay(d); setActiveEntry(null); }}
+                      userRole={userRole}
                     />
                   </div>
                 )}
