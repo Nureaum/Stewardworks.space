@@ -61,9 +61,15 @@ export async function POST(req: Request) {
     // Check if the user is a visitor/guest based on their invitation metadata
     const roleFromMetadata = public_metadata?.role as string | undefined;
     
-    console.log(`[Webhook] Processing ${eventType} for user ${clerkUserId}`)
-    console.log(`[Webhook] Role from metadata:`, roleFromMetadata)
+    console.log(`[Webhook] ====== PROCESSING ${eventType} ======`)
+    console.log(`[Webhook] User ID: ${clerkUserId}`)
+    console.log(`[Webhook] Email: ${email}`)
+    console.log(`[Webhook] Role from public_metadata:`, roleFromMetadata)
     console.log(`[Webhook] Full public_metadata:`, JSON.stringify(public_metadata, null, 2))
+    console.log(`[Webhook] Full unsafe_metadata:`, JSON.stringify(unsafe_metadata, null, 2))
+    console.log(`[Webhook] Full evt.data keys:`, Object.keys(evt.data))
+    console.log(`[Webhook] evt.data.external_accounts:`, JSON.stringify((evt.data as any).external_accounts, null, 2))
+    console.log(`[Webhook] evt.data.created_at:`, (evt.data as any).created_at)
 
     // Build the upsert payload
     const upsertPayload: any = {
@@ -93,6 +99,19 @@ export async function POST(req: Request) {
       // For new users without invitation metadata, set default role as 'participant'
       upsertPayload.role = 'participant';
       console.log(`[Webhook] Setting role to 'participant' for regular signup ${clerkUserId}`)
+    } else if (eventType === 'user.updated' && roleFromMetadata === 'guest') {
+      // Handle case where invitation metadata arrives after user.created (race condition)
+      // Only update to guest if user currently has participant role (don't overwrite admin)
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('clerk_user_id', clerkUserId)
+        .single()
+      
+      if (existingProfile?.role === 'participant') {
+        upsertPayload.role = 'guest';
+        console.log(`[Webhook] Updating role from participant to 'guest' for invited user ${clerkUserId} (user.updated)`)
+      }
     }
     
     console.log(`[Webhook] Upsert payload:`, JSON.stringify(upsertPayload, null, 2))

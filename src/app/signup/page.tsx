@@ -52,7 +52,9 @@ export default function SignupPage() {
     }
   }, []);
 
-  // Check if this is an invitation signup
+  // Check if this is an invitation signup and capture the ticket
+  const [invitationTicket, setInvitationTicket] = useState<string | null>(null);
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -61,26 +63,54 @@ export default function SignupPage() {
 
       if (clerkTicket && clerkStatus === 'sign_up') {
         setIsInvitation(true);
+        setInvitationTicket(clerkTicket);
+        // Persist invitation state in sessionStorage in case user navigates away (e.g., to terms page)
+        sessionStorage.setItem('invitation_ticket', clerkTicket);
+        sessionStorage.setItem('is_invitation', 'true');
+      } else {
+        // Restore from sessionStorage if user navigated back
+        const savedTicket = sessionStorage.getItem('invitation_ticket');
+        const savedIsInvitation = sessionStorage.getItem('is_invitation');
+        if (savedTicket && savedIsInvitation === 'true') {
+          setIsInvitation(true);
+          setInvitationTicket(savedTicket);
+          console.log('[Signup] Restored invitation state from sessionStorage');
+        }
       }
     }
   }, []);
 
   useEffect(() => {
-    if (isSignedIn) {
+    if (isSignedIn && !isInvitation) {
       router.push('/hub');
     }
-  }, [isSignedIn, router]);
+  }, [isSignedIn, router, isInvitation]);
 
   useEffect(() => {
     const cleanupStaleSessions = async () => {
-      if (isLoaded && !isSignedIn && signUp?.status === undefined) {
+      if (!isLoaded) return;
+      
+      // For invitation signups, always sign out any existing session first
+      // This handles the case where stale cookies exist from a previous session
+      if (isInvitation && isSignedIn) {
+        console.log('[Signup] Invitation signup detected with active session - signing out first');
+        try {
+          await signOut?.();
+        } catch (e) {
+          console.log('[Signup] Signout during invitation cleanup failed (ok):', e);
+        }
+        return;
+      }
+      
+      // General cleanup: sign out stale sessions that aren't fully active
+      if (!isSignedIn && signUp?.status === undefined) {
         try {
           await signOut?.();
         } catch (e) {}
       }
     };
     cleanupStaleSessions();
-  }, [isLoaded]);
+  }, [isLoaded, isInvitation, isSignedIn]);
 
   const handleTermsNavigation = () => {
     sessionStorage.setItem('signup_form', JSON.stringify({
@@ -108,9 +138,22 @@ export default function SignupPage() {
     setErrorMessage('');
 
     try {
+      // Always sign out any existing session before creating a new signup
+      // This prevents "session_exists" errors, especially for invitation signups
       if (isSignedIn) {
+        console.log('[Signup] Signing out existing session before signup...');
         await signOut();
         await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Also try signOut even if isSignedIn is false - stale cookies may exist
+      if (isInvitation) {
+        try {
+          await signOut?.();
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (e) {
+          // Ignore - may not have a session
+        }
       }
 
       const signUpParams: any = {
@@ -126,12 +169,68 @@ export default function SignupPage() {
         }
       };
 
-      await signUp.create(signUpParams);
+      // Pass the invitation ticket so Clerk links this signup to the invitation
+      // This ensures publicMetadata (role: 'guest') is copied to the new user
+      if (invitationTicket) {
+        signUpParams.ticket = invitationTicket;
+      }
+
+      console.log('[Signup] DEBUG - isInvitation:', isInvitation);
+      console.log('[Signup] DEBUG - invitationTicket:', invitationTicket);
+      console.log('[Signup] DEBUG - signUpParams:', JSON.stringify(signUpParams, null, 2));
+
+      const result = await signUp.create(signUpParams);
+      
+      console.log('[Signup] DEBUG - signUp.create result status:', result?.status);
+      console.log('[Signup] DEBUG - signUp.create result verifications:', result?.verifications);
+      console.log('[Signup] DEBUG - signUp.create full result:', JSON.stringify(result, null, 2));
+
+      // When using a ticket, Clerk may auto-complete the signup (email already verified via invitation)
+      if (result?.status === 'complete' && result?.createdSessionId) {
+        console.log('[Signup] DEBUG - Ticket signup auto-completed! Session:', result.createdSessionId);
+        
+        // Activate the session immediately
+        await setActive({ session: result.createdSessionId });
+        console.log('[Signup] DEBUG - Session activated');
+        
+        // If this is an invitation, set guest role immediately
+        if (isInvitation) {
+          console.log('[Signup] DEBUG - Setting guest role after ticket signup...');
+          try {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for session to stabilize
+            const roleRes = await fetch('/api/auth/set-visitor-role', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ isInvitation: true }),
+            });
+            const roleData = await roleRes.json();
+            console.log('[Signup] DEBUG - set-visitor-role response:', roleRes.status, roleData);
+          } catch (roleErr) {
+            console.error('[Signup] DEBUG - set-visitor-role error:', roleErr);
+          }
+        }
+        
+        // Clear sessionStorage
+        sessionStorage.removeItem('signup_form');
+        sessionStorage.removeItem('terms_signature');
+        sessionStorage.removeItem('terms_accepted_at');
+        
+        setStatus('success');
+        setTimeout(() => { window.location.href = '/hub/my-profile'; }, 1500);
+        return; // Don't proceed to email verification
+      }
 
       await signUp.prepareEmailAddressVerification({
         strategy: "email_link",
         redirectUrl: `${window.location.origin}/verify?type=signup${isInvitation ? '&invitation=true' : ''}`
       });
+
+      // If this is an invitation signup but email verification is still required,
+      // persist the invitation flag so the verify page can pick it up
+      if (isInvitation) {
+        sessionStorage.setItem('is_invitation', 'true');
+        console.log('[Signup] DEBUG - Persisted invitation flag for verify page');
+      }
 
       // Clear sessionStorage data after successful account creation
       sessionStorage.removeItem('signup_form');
@@ -161,6 +260,12 @@ export default function SignupPage() {
               terms_signature: sessionStorage.getItem('terms_signature'),
             }
           };
+          
+          // Pass the invitation ticket on retry as well
+          if (invitationTicket) {
+            retryParams.ticket = invitationTicket;
+          }
+          
           await signUp.create(retryParams);
           await signUp.prepareEmailAddressVerification({
             strategy: "email_link",

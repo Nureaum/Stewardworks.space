@@ -33,14 +33,48 @@ export async function GET() {
       const firstName = user?.firstName || ''
       const lastName = user?.lastName || ''
       const phone = user?.unsafeMetadata?.phone as string | undefined
+      
+      // Check Clerk publicMetadata for role (set by invitation system)
+      const roleFromMetadata = user?.publicMetadata?.role as string | undefined
+      console.log('[Profile Auto-Create] User publicMetadata:', JSON.stringify(user?.publicMetadata))
+      console.log('[Profile Auto-Create] Role from metadata:', roleFromMetadata)
 
-      const newProfile = {
+      // If no role in metadata, check Clerk invitations to see if this user was invited as guest
+      let resolvedRole: string | undefined = roleFromMetadata
+      if (!resolvedRole && email) {
+        try {
+          const { clerkClient: getClerkClient } = await import('@clerk/nextjs/server')
+          const client = await getClerkClient()
+          const invitations = await client.invitations.getInvitationList()
+          const matchingInvite = invitations.data.find(
+            (inv: any) => inv.emailAddress === email && inv.publicMetadata?.role === 'guest'
+          )
+          if (matchingInvite) {
+            resolvedRole = 'guest'
+            console.log('[Profile Auto-Create] ✅ Found matching invitation - setting guest role')
+            // Also update Clerk publicMetadata so future checks work
+            await client.users.updateUserMetadata(userId, {
+              publicMetadata: { role: 'guest' }
+            })
+          }
+        } catch (inviteCheckErr) {
+          console.error('[Profile Auto-Create] Error checking invitations:', inviteCheckErr)
+        }
+      }
+
+      const newProfile: any = {
         clerk_user_id: userId,
         email: email || '',
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`.trim(),
         phone: phone || '',
+      }
+
+      // If user was invited as guest, set role explicitly
+      if (resolvedRole === 'guest') {
+        newProfile.role = 'guest'
+        console.log('[Profile Auto-Create] Setting role to guest')
       }
 
       const { data: createdData, error: createError } = await supabase

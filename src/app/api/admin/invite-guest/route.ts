@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
 
     const client = await clerkClient()
     
+    console.log('[InviteGuest] Creating invitation for:', email);
+    console.log('[InviteGuest] Redirect URL:', `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/signup`);
+    
     // Create an invitation in Clerk for the guest/visitor
     const invitation = await client.invitations.createInvitation({
       emailAddress: email,
@@ -46,6 +49,11 @@ export async function POST(request: NextRequest) {
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/signup`,
       ignoreExisting: true,
     })
+
+    console.log('[InviteGuest] ✅ Invitation created successfully');
+    console.log('[InviteGuest] Invitation ID:', invitation.id);
+    console.log('[InviteGuest] Invitation publicMetadata:', JSON.stringify(invitation.publicMetadata));
+    console.log('[InviteGuest] Invitation status:', invitation.status);
 
     return NextResponse.json({ success: true, invitation })
   } catch (err: any) {

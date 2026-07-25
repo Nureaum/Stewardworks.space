@@ -1989,15 +1989,15 @@ export default function AdminConsole({
                     </button>
                   ))}
                 </div>
-                <input value={ncTitle} onChange={e => setNcTitle(e.target.value)} placeholder="Media title…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
-                <input value={ncAuthor} onChange={e => setNcAuthor(e.target.value)} placeholder="Contributor name…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
+                <input value={ncTitle} onChange={e => setNcTitle(e.target.value)} placeholder="Media title…" style={{ ...inputStyle, fontSize: 22, marginBottom: 9 }} />
+                <input value={ncAuthor} onChange={e => setNcAuthor(e.target.value)} placeholder="Contributor name…" style={{ ...inputStyle, fontSize: 22, marginBottom: 9 }} />
                 <div style={{ marginBottom: 9 }}>
                   <input 
                     value={ncEmail} 
                     onChange={e => setNcEmail(e.target.value)} 
                     placeholder="Contributor email (optional)…" 
                     type="email" 
-                    style={{ ...inputStyle, fontSize: 18, marginBottom: 4 }} 
+                    style={{ ...inputStyle, fontSize: 22, marginBottom: 4 }} 
                   />
                   <div style={{ fontSize: 13, color: 'var(--s,#8aa6c4)', paddingLeft: 4, lineHeight: 1.3 }}>
                     ✉ When provided, sends an invitation email with guest access
@@ -2008,7 +2008,7 @@ export default function AdminConsole({
                     <div style={{
                       flex: 1,
                       ...inputStyle,
-                      fontSize: 18,
+                      fontSize: 22,
                       display: 'flex',
                       alignItems: 'center',
                       gap: 10,
@@ -2027,7 +2027,7 @@ export default function AdminConsole({
                       <button onClick={() => { setNcLink(''); setNcFileToUpload(null) }} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 14 }}>✕</button>
                     </div>
                   ) : (
-                    <input value={ncLink} onChange={e => setNcLink(e.target.value)} placeholder="Public share link / creation ID…" style={{ ...inputStyle, fontSize: 18, flex: 1 }} />
+                    <input value={ncLink} onChange={e => setNcLink(e.target.value)} placeholder="Public share link / creation ID…" style={{ ...inputStyle, fontSize: 22, flex: 1 }} />
                   )}
                   <input type="file" accept="image/*,video/*,audio/*" hidden ref={ncFileInputRef} onChange={(e) => {
                     const file = e.target.files?.[0]
@@ -2053,13 +2053,13 @@ export default function AdminConsole({
                     ↑ UPLOAD
                   </button>
                 </div>
-                <input value={ncMeta} onChange={e => setNcMeta(e.target.value)} placeholder="Duration / word count (e.g., 8:24 · Video)…" style={{ ...inputStyle, fontSize: 18, marginBottom: 9 }} />
+                <input value={ncMeta} onChange={e => setNcMeta(e.target.value)} placeholder="Duration / word count (e.g., 8:24 · Video)…" style={{ ...inputStyle, fontSize: 22, marginBottom: 9 }} />
                 <textarea 
                   value={ncBlurb} 
                   onChange={e => setNcBlurb(e.target.value)} 
                   placeholder="Description / blurb for students…" 
                   rows={3}
-                  style={{ ...textareaStyle, fontSize: 18, marginBottom: 12 }} 
+                  style={{ ...textareaStyle, fontSize: 22, marginBottom: 12 }} 
                 />
                 <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
                   CONTRIBUTOR STATUS · <span style={{ opacity: .75 }}>admin-only, hidden from students</span>
