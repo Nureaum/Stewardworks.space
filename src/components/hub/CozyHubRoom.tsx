@@ -7,7 +7,7 @@ import { useUser } from '@clerk/nextjs';
 import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
 import { getShowcaseItems } from '@/app/actions/workshops/showcase';
 import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions';
-import { getUnreadNotifications, markNotificationAsRead } from '@/app/actions/notificationActions';
+import { getUnreadNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/app/actions/notificationActions';
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
 import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero';
 import type { CohortProgress } from '@/app/api/workshops/progress/route';
@@ -80,6 +80,8 @@ export default function CozyHubRoom({
   // Certificate state
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [showCertPreview, setShowCertPreview] = useState(false);
+  const [certPreviewHtml, setCertPreviewHtml] = useState<string>('');
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   
   // Workforce Pathway state
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([]);
@@ -1502,6 +1504,33 @@ export default function CozyHubRoom({
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <button
                     onClick={async () => {
+                      if (isGeneratingPreview || isDownloadingPDF) return;
+                      setIsGeneratingPreview(true);
+                      try {
+                        const playerName = user?.fullName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.firstName || 'Steward');
+                        const cohortName = selectedCohort.cohortName || 'workshop';
+                        let certSettings = { certOrg: 'StewardWorks', certFacilitator: 'Marisol Vega', certFacTitle: 'Program Director', certSponsor: 'Dr. Jane Smith', certSponsorOrg: 'SDSU Research Foundation', certMessage: '' };
+                        try { const certRes = await fetch(`/api/workshops/${selectedCohortId}/certificate-settings`); if (certRes.ok) { const settings = await certRes.json(); certSettings = { ...certSettings, ...settings }; } } catch (e) {}
+                        let charKey = 'quest', charAccent = '#ffd23f', charGear = 'none', charOutfit = 'plain', characterSpriteUri = '';
+                        try { const charRes = await fetch(`/api/workshops/${selectedCohortId}/character`); if (charRes.ok) { const charData = await charRes.json(); if (charData.character_key) charKey = charData.character_key; if (charData.accent_color) charAccent = charData.accent_color; if (charData.gear) charGear = charData.gear; if (charData.outfit) charOutfit = charData.outfit; } } catch (e) {}
+                        try { const { buildSpriteUri } = await import('@/components/workshops/journey/PixelSprite'); characterSpriteUri = buildSpriteUri(charKey, charAccent, { gear: charGear, outfit: charOutfit }); } catch (e) {}
+                        const { buildClientCertHTML } = await import('@/components/workshops/journey/VictoryScreen');
+                        const html = buildClientCertHTML({ playerName, characterKey: charKey, certOrg: certSettings.certOrg, certFacilitator: certSettings.certFacilitator, certFacTitle: certSettings.certFacTitle, certSponsor: certSettings.certSponsor, certSponsorOrg: certSettings.certSponsorOrg, certMessage: certSettings.certMessage, cohortName, deliverables: [{ title: 'DAY 1 DELIVERABLE', url: '' }, { title: 'DAY 2 DELIVERABLE', url: '' }, { title: 'DAY 3 DELIVERABLE', url: '' }], characterSpriteUri });
+                        setCertPreviewHtml(html);
+                        setShowCertPreview(true);
+                      } catch (err) {
+                        console.error('Preview error:', err);
+                      } finally {
+                        setIsGeneratingPreview(false);
+                      }
+                    }}
+                    disabled={isGeneratingPreview || isDownloadingPDF}
+                    style={{ background: 'transparent', color: '#2E5534', border: '2px solid #2E5534', borderRadius: '10px', padding: '11px 20px', cursor: isGeneratingPreview || isDownloadingPDF ? 'wait' : 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px', letterSpacing: '.06em', fontWeight: 700, opacity: (isGeneratingPreview || isDownloadingPDF) ? 0.6 : 1 }}
+                  >
+                    {isGeneratingPreview ? '⏳ PREPARING...' : '◆ PREVIEW CERTIFICATE'}
+                  </button>
+                  <button
+                    onClick={async () => {
                       if (isDownloadingPDF) return;
                       setIsDownloadingPDF(true);
                       try {
@@ -1577,11 +1606,26 @@ export default function CozyHubRoom({
                           certSponsor: certSettings.certSponsor,
                           certSponsorOrg: certSettings.certSponsorOrg,
                           certMessage: certSettings.certMessage,
-                          deliverables: [
-                            { title: 'DAY 1 DELIVERABLE', url: '' },
-                            { title: 'DAY 2 DELIVERABLE', url: '' },
-                            { title: 'DAY 3 DELIVERABLE', url: '' }
-                          ],
+                          deliverables: await (async () => {
+                            // Fetch user's actual submission titles for this cohort
+                            try {
+                              const subRes = await fetch(`/api/workshops/${selectedCohortId}/submissions`);
+                              if (subRes.ok) {
+                                const subData = await subRes.json();
+                                if (subData.submissions && subData.submissions.length > 0) {
+                                  return subData.submissions.slice(0, 3).map((s: any, idx: number) => ({
+                                    title: (s.title || s.day_title || `DAY ${idx + 1} DELIVERABLE`).toUpperCase(),
+                                    url: ''
+                                  }));
+                                }
+                              }
+                            } catch (e) { /* fall through to defaults */ }
+                            return [
+                              { title: 'DAY 1 DELIVERABLE', url: '' },
+                              { title: 'DAY 2 DELIVERABLE', url: '' },
+                              { title: 'DAY 3 DELIVERABLE', url: '' }
+                            ];
+                          })(),
                           characterSpriteUri
                         });
                         document.body.appendChild(container);
@@ -1628,7 +1672,7 @@ export default function CozyHubRoom({
                     disabled={isDownloadingPDF}
                     style={{ background: '#FEFAE0', color: '#2E5534', border: '2px solid #2E5534', borderRadius: '10px', padding: '11px 20px', cursor: isDownloadingPDF ? 'wait' : 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px', letterSpacing: '.06em', fontWeight: 700, opacity: isDownloadingPDF ? 0.6 : 1 }}
                   >
-                    {isDownloadingPDF ? '⏳ DOWNLOADING...' : '◆ VIEW & DOWNLOAD CERTIFICATE'}
+                    {isDownloadingPDF ? '⏳ DOWNLOADING...' : '⛊ DOWNLOAD CERTIFICATE'}
                   </button>
                 </div>
               </div>
@@ -1951,9 +1995,22 @@ export default function CozyHubRoom({
         {/* ─── SUBMISSIONS TAB ─── */}
         { notifTab === 'submissions' && (
         <>
-        <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"12px"}}>
-          <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#2E5534"}}>DELIVERABLES & ENGAGEMENT</span>
-          <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#2E5534"}}>{personalNotifications.length} TOTAL</span>
+        <div style={{"display":"flex","justifyContent":"space-between","alignItems":"center","marginBottom":"12px"}}>
+          <div>
+            <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".18em","color":"#2E5534"}}>DELIVERABLES & ENGAGEMENT</span>
+            <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","color":"#2E5534","marginLeft":"8px"}}>{personalNotifications.length} TOTAL</span>
+          </div>
+          {personalNotifications.filter((n: any) => !n.is_read).length > 0 && (
+            <button
+              onClick={async () => {
+                setPersonalNotifications(prev => prev.map(n => ({...n, is_read: true})));
+                await markAllNotificationsAsRead();
+              }}
+              style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#2E5534","background":"rgba(46,85,52,.1)","border":"1px solid rgba(46,85,52,.2)","borderRadius":"6px","padding":"4px 10px","cursor":"pointer","transition":"background .2s"}}
+            >
+              mark all as read
+            </button>
+          )}
         </div>
         
         { personalNotifications.length === 0 && (
@@ -1965,13 +2022,20 @@ export default function CozyHubRoom({
 
         <div style={{"display":"flex","flexDirection":"column","gap":"8px"}}>
           { personalNotifications.map((n: any) => (
-            <div key={n.id} style={{"display":"flex","gap":"12px","background": !n.is_read ? "rgba(46,85,52,.06)" : "rgba(33,40,46,.02)","border": !n.is_read ? "1.5px solid rgba(46,85,52,.15)" : "1.5px solid rgba(33,40,46,.08)","borderRadius":"12px","padding":"13px 15px","cursor":"pointer","transition":"background .2s"}} onClick={async () => {
+            <div key={n.id} style={{"display":"flex","gap":"12px","background": !n.is_read ? "rgba(46,85,52,.06)" : "rgba(33,40,46,.02)","border": !n.is_read ? "1.5px solid rgba(46,85,52,.15)" : "1.5px solid rgba(33,40,46,.08)","borderRadius":"12px","padding":"13px 15px","cursor":"pointer","transition":"background .2s","overflow":"hidden"}} onClick={async () => {
+              // Mark as read when clicking the notification
               if (!n.is_read) {
-                await markNotificationAsRead(n.id);
                 setPersonalNotifications(prev => prev.map(p => p.id === n.id ? {...p, is_read: true} : p));
+                await markNotificationAsRead(n.id);
               }
-              // Navigate to chia progress screen for deliverable/engagement approvals
-              if (n.type === 'approval' || n.link === '/hub?screen=progress') {
+              // Navigate based on notification type:
+              // Engagement approvals → profile page
+              // Deliverable approvals → chia progress screen
+              if (n.title?.toLowerCase().includes('engagement')) {
+                setAnnouncementsSidebarOpen(false);
+                setScreen('navigating');
+                router.push('/hub/my-profile');
+              } else if (n.title?.toLowerCase().includes('deliverable') || n.type === 'approval' || n.link === '/hub?screen=progress') {
                 setAnnouncementsSidebarOpen(false);
                 setScreen('progress');
               } else if (n.link) {
@@ -1980,10 +2044,24 @@ export default function CozyHubRoom({
               }
             }}>
               <div style={{"width":"34px","height":"34px","flex":"none","borderRadius":"10px","background": !n.is_read ? "rgba(46,85,52,.12)" : "rgba(33,40,46,.06)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"15px"}}>{n.title?.includes('approved') ? '✅' : n.title?.includes('revision') ? '❌' : '🔔'}</div>
-              <div style={{"flex":"1","minWidth":"0"}}>
+              <div style={{"flex":"1","minWidth":"0","overflow":"hidden"}}>
                 <div style={{"fontWeight":"700","fontSize":"13px","color": !n.is_read ? "#2E5534" : "#3a2412","marginBottom":"3px"}}>{n.title}</div>
-                <div style={{"fontSize":"12.5px","color": !n.is_read ? "#4a6a4a" : "#555","lineHeight":"1.4"}}>{n.message}</div>
-                <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#8a9a8a","marginTop":"4px"}}>{new Date(n.created_at).toLocaleDateString()}{!n.is_read && ' · tap to mark read'}</div>
+                <div style={{"fontSize":"12.5px","color": !n.is_read ? "#4a6a4a" : "#555","lineHeight":"1.4","wordBreak":"break-word","overflowWrap":"break-word"}}>{n.message}</div>
+                <div style={{"display":"flex","alignItems":"center","gap":"8px","marginTop":"6px","flexWrap":"wrap"}}>
+                  <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#8a9a8a"}}>{new Date(n.created_at).toLocaleDateString()}</span>
+                  {!n.is_read && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await markNotificationAsRead(n.id);
+                        setPersonalNotifications(prev => prev.map(p => p.id === n.id ? {...p, is_read: true} : p));
+                      }}
+                      style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#2E5534","background":"rgba(46,85,52,.1)","border":"1px solid rgba(46,85,52,.2)","borderRadius":"6px","padding":"2px 8px","cursor":"pointer","transition":"background .2s"}}
+                    >
+                      mark as read
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -2267,6 +2345,28 @@ export default function CozyHubRoom({
       )}
     </div>
   </div>
+  )}
+
+  {showCertPreview && (
+    <div 
+      onClick={() => setShowCertPreview(false)} 
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(8,4,16,.92)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(12px,3vw,40px)', overflow: 'auto' }}
+    >
+      <div 
+        onClick={e => e.stopPropagation()} 
+        style={{ width: '100%', maxWidth: 760, maxHeight: '94vh', overflow: 'auto', background: '#f7f1e0', border: '3px solid #b58a2e', borderRadius: 5, boxShadow: '0 0 0 9px #f8f0da, 0 0 0 11px #c9a24a, 0 30px 70px rgba(0,0,0,.6)', position: 'relative', color: '#3a2c14', fontFamily: "Georgia, 'Times New Roman', serif" }}
+      >
+        <button 
+          onClick={() => setShowCertPreview(false)} 
+          title="Close certificate" 
+          className="font-pixel"
+          style={{ position: 'absolute', top: 10, right: 10, fontSize: 9, color: '#8a6a2a', background: 'rgba(0,0,0,.05)', border: '2px solid #c9a24a', borderRadius: 4, padding: '7px 9px', cursor: 'pointer', zIndex: 3 }}
+        >
+          ✕
+        </button>
+        <div dangerouslySetInnerHTML={{ __html: certPreviewHtml }} />
+      </div>
+    </div>
   )}
 
 </div>

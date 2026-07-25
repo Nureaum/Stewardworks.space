@@ -1,22 +1,38 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
-import { writeFile } from 'fs/promises';
-import path from 'path';
 
 export async function uploadImage(formData: FormData) {
   const file = formData.get('file') as File;
   if (!file) return { error: 'No file provided' };
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const sb = createClient(supabaseUrl, supabaseKey);
+
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
   const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
-  const filepath = path.join(process.cwd(), 'public/uploads', filename);
+  const filePath = `workforce/${filename}`;
 
-  await writeFile(filepath, buffer);
-  
-  return { url: `/uploads/${filename}` };
+  const { error: uploadError } = await sb.storage
+    .from('content-uploads')
+    .upload(filePath, buffer, {
+      contentType: file.type,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    console.error('Upload error:', uploadError);
+    return { error: `Upload failed: ${uploadError.message}` };
+  }
+
+  const { data: urlData } = sb.storage
+    .from('content-uploads')
+    .getPublicUrl(filePath);
+
+  return { url: urlData.publicUrl };
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';

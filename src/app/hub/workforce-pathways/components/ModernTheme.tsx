@@ -819,7 +819,7 @@ export default function ModernTheme(props: any) {
         <button onClick={onBackLibrary} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--wood-d)", color: "#fff", fontFamily: "'Courier New',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "1px solid rgba(60,42,24,.15)", borderRadius: "10px"}}>◀ Back</button>
         <div style={{flex: "1"}}></div>
         <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
-          {libFilterChips.map((c: any, i: number) => (<React.Fragment key={i}><button onClick={c.onPick} style={c.style}>{c.label}</button></React.Fragment>))}
+          <button style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--blue)", color: "var(--ink)", fontFamily: "'Courier New',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "1px solid rgba(60,42,24,.2)", borderRadius: "10px", fontWeight: "bold"}}>QUEST BOARD</button>
         </div>
       </div>
 
@@ -833,9 +833,18 @@ export default function ModernTheme(props: any) {
         </div>
       </div>
 
-      <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "16px"}}>
-        <span style={{fontFamily: "'Courier New',monospace", fontSize: "7px", color: "var(--ink2)", letterSpacing: ".4px", marginRight: "4px"}}>FILTER NODE</span>
-        {libNodeChips.map((c: any, i: number) => (<React.Fragment key={i}><button onClick={c.onPick} style={c.style}>{c.label}</button></React.Fragment>))}
+      <div style={{border: "1px solid rgba(60,42,24,.15)", boxShadow: "0 12px 30px -10px rgba(36,31,23,.15)", borderRadius: "16px", background: "#fff", marginBottom: "20px", padding: "16px 18px"}}>
+        <div style={{fontFamily: "'Courier New',monospace", fontSize: "10px", color: "var(--ink)", marginBottom: "16px", letterSpacing: ".1em", fontWeight: "bold"}}>FILTER VAULT</div>
+        
+        <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "12px"}}>
+          <span style={{fontFamily: "'Courier New',monospace", fontSize: "7px", color: "var(--ink2)", letterSpacing: ".4px", marginRight: "4px", width: "80px"}}>TRAIL</span>
+          {libFilterChips.map((c: any, i: number) => (<React.Fragment key={i}><button onClick={c.onPick} style={c.style}>{c.label}</button></React.Fragment>))}
+        </div>
+
+        <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+          <span style={{fontFamily: "'Courier New',monospace", fontSize: "7px", color: "var(--ink2)", letterSpacing: ".4px", marginRight: "4px", width: "80px"}}>NODE</span>
+          {libNodeChips.map((c: any, i: number) => (<React.Fragment key={i}><button onClick={c.onPick} style={c.style}>{c.label}</button></React.Fragment>))}
+        </div>
       </div>
 
       <div style={{display: "flex", flexDirection: "column", gap: "16px"}}>

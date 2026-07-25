@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { PixelSprite, buildIconUri } from '@/components/workshops/journey';
-import type { WorkshopCharacter, WorkshopProgressPrinciple, WorkshopDay, WorkshopProgress } from '@/types/workshops';
+import type { WorkshopCharacter, WorkshopProgressPrinciple, WorkshopDay, WorkshopProgress, WorkshopPrinciple } from '@/types/workshops';
 import { MAP_ICONS } from './character-data';
 import { getCelebrateProps, getWinSkill, buildCastFx } from './VictoryEffects';
 import { PATHWAYS } from '@/data/workforce-content';
@@ -151,8 +151,8 @@ function WorkforceProgressCards() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <div style={{ width: 8, height: 36, borderRadius: 4, background: pathwayColor }} />
                 <div style={{ flex: 1 }}>
-                  <div className="font-pixel" style={{ fontSize: 9, letterSpacing: 1, color: pathwayColor }}>{pathway.name.toUpperCase()}</div>
-                  <div style={{ fontSize: 15, color: 'var(--tx,#d6ffe0)', marginTop: 3, fontFamily: "'VT323', monospace" }}>
+                  <div className="font-pixel" style={{ fontSize: 12, letterSpacing: 1, color: pathwayColor }}>{pathway.name.toUpperCase()}</div>
+                  <div style={{ fontSize: 20, color: 'var(--tx,#d6ffe0)', marginTop: 3, fontFamily: "'VT323', monospace" }}>
                     {isComplete ? 'Run complete — pathway card earned!' : `${completedStops} of ${totalStops} stops completed`}
                   </div>
                 </div>
@@ -266,6 +266,7 @@ interface VictoryScreenProps {
   cohortId: string;
   engagementPct?: number;
   submissions?: any[];
+  principles?: WorkshopPrinciple[];
   onBack: () => void;
   onViewPortfolio: () => void;
 }
@@ -280,6 +281,7 @@ export default function VictoryScreen({
   cohortId,
   engagementPct = 0,
   submissions = [],
+  principles = [],
   onBack,
   onViewPortfolio,
 }: VictoryScreenProps) {
@@ -737,7 +739,7 @@ return (
               onClick={handleCastSkill}
               className="font-pixel"
               style={{ 
-                fontSize: 14, 
+                fontSize: 10, 
                 color: 'var(--bg,#12081e)', 
                 background: 'var(--gold,#ffd23f)', 
                 border: 'none', 
@@ -877,11 +879,11 @@ return (
               }}>
                 {/* Day tag */}
                 <div style={{ flex: 'none', width: 74 }}>
-                  <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)' }}>
+                  <div className="font-pixel" style={{ fontSize: 10, color: 'var(--gold,#ffd23f)' }}>
                     DAY {String(day.day_number).padStart(2, '0')}
                   </div>
                   <div className="font-pixel" style={{ 
-                    fontSize: 6, 
+                    fontSize: 8, 
                     color: 'var(--ok,#74f0a0)', 
                     marginTop: 6, 
                     letterSpacing: 0.5 
@@ -893,7 +895,7 @@ return (
                 {/* Day content */}
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ 
-                    fontSize: 17, 
+                    fontSize: 20, 
                     color: 'var(--tx,#efe6ff)', 
                     lineHeight: 1.25, 
                     marginBottom: 4 
@@ -901,7 +903,7 @@ return (
                     {dayTitles[idx]}
                   </div>
                   <div style={{ 
-                    fontSize: 14, 
+                    fontSize: 18, 
                     color: 'var(--mu,#a493c9)', 
                     lineHeight: 1.35, 
                     marginBottom: 7 
@@ -924,13 +926,13 @@ return (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {dayPrinciple && (
                       <span style={{ 
-                        fontSize: 13, 
+                        fontSize: 15, 
                         color: 'var(--ok,#74f0a0)', 
                         border: '1px solid var(--ok,#74f0a0)', 
                         borderRadius: 20, 
                         padding: '1px 9px' 
                       }}>
-                        ◈ {dayPrinciple.principle_id}
+                        ◈ {principles.find(p => p.id === dayPrinciple.principle_id)?.name || dayPrinciple.principle_id}
                       </span>
                     )}
                   </div>
@@ -941,20 +943,20 @@ return (
         </div>
 
         {/* Portfolio actions */}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '0 18px 16px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '0 18px 16px', justifyContent: 'center' }}>
           <button 
             onClick={onViewPortfolio}
             className="font-pixel"
             style={{ 
-              fontSize: 16, 
+              fontSize: 9, 
               fontWeight: 'bold',
               color: 'var(--bg,#12081e)', 
               background: 'var(--ok,#74f0a0)', 
               border: 'none', 
-              borderRadius: 6, 
-              padding: '18px 28px', 
+              borderRadius: 5, 
+              padding: '10px 18px', 
               cursor: 'pointer', 
-              boxShadow: '0 4px 0 #2b9c64' 
+              boxShadow: '0 3px 0 #2b9c64' 
             }}
           >
             ❀ VIEW FULL PORTFOLIO
@@ -963,13 +965,13 @@ return (
             onClick={() => setShowCertPreview(true)}
             className="font-pixel"
             style={{ 
-              fontSize: 16, 
+              fontSize: 9, 
               fontWeight: 'bold',
               color: 'var(--gold,#ffd23f)', 
               background: 'transparent', 
               border: '2px solid var(--gold,#ffd23f)', 
-              borderRadius: 6, 
-              padding: '18px 28px', 
+              borderRadius: 5, 
+              padding: '10px 18px', 
               cursor: 'pointer', 
               transition: 'all 0.2s'
             }}
@@ -981,15 +983,15 @@ return (
             disabled={isDownloadingPDF}
             className="font-pixel"
             style={{ 
-              fontSize: 16, 
+              fontSize: 9, 
               fontWeight: 'bold',
               color: 'var(--bg,#12081e)', 
               background: isDownloadingPDF ? '#9c7a28' : 'var(--gold,#ffd23f)', 
               border: 'none', 
-              borderRadius: 6, 
-              padding: '18px 28px', 
+              borderRadius: 5, 
+              padding: '10px 18px', 
               cursor: isDownloadingPDF ? 'wait' : 'pointer', 
-              boxShadow: '0 4px 0 #c99020',
+              boxShadow: '0 3px 0 #c99020',
               opacity: isDownloadingPDF ? 0.7 : 1,
               transition: 'all 0.2s'
             }}
@@ -1008,7 +1010,7 @@ return (
           onClick={onBack}
           className="font-pixel"
           style={{ 
-            fontSize: 14, 
+            fontSize: 10, 
             color: 'var(--s,#45d6ff)', 
             background: 'none', 
             border: '2px solid var(--s,#45d6ff)', 

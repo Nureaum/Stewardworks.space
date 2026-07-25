@@ -93,7 +93,14 @@ export default function AILabClient({
         {/* OS Title Bar */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '5px 10px 9px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-            <div className="font-pixel" style={{ fontSize: 9, letterSpacing: 1, color: '#7a805c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>STEWARD OS · AI LABS WORKBENCH</div>
+            <button
+              onClick={() => router.push('/hub')}
+              className="font-pixel"
+              style={{ fontSize: 10, color: '#6f7e5e', textDecoration: 'none', border: '2px solid #b9ac86', borderRadius: 5, padding: '6px 8px', whiteSpace: 'nowrap', background: 'transparent', cursor: 'pointer' }}
+            >
+              ◄ HUB
+            </button>
+            <div className="font-pixel" style={{ fontSize: 11, letterSpacing: 1, color: '#7a805c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>STEWARD OS · AI LABS WORKBENCH</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 'none' }}>
             {(userRole === 'admin' || userRole === 'super_admin') && (
@@ -101,7 +108,7 @@ export default function AILabClient({
               <button
                 onClick={() => {/* already on student view */}}
                 className="font-pixel"
-                style={{ fontSize: 8, padding: '8px 11px', border: 'none', cursor: 'pointer', background: '#173026', color: '#4dffa0' }}
+                style={{ fontSize: 10, padding: '8px 11px', border: 'none', cursor: 'pointer', background: '#173026', color: '#4dffa0' }}
               >
                 ▸ STUDENT
               </button>
@@ -114,19 +121,12 @@ export default function AILabClient({
                   }
                 }}
                 className="font-pixel"
-                style={{ fontSize: 8, padding: '8px 11px', border: 'none', cursor: 'pointer', background: 'transparent', color: '#8a9a7f' }}
+                style={{ fontSize: 10, padding: '8px 11px', border: 'none', cursor: 'pointer', background: 'transparent', color: '#8a9a7f' }}
               >
                 ⚙ ADMIN
               </button>
             </div>
             )}
-            <button
-              onClick={() => router.push('/hub')}
-              className="font-pixel"
-              style={{ fontSize: 8, color: '#6f7e5e', textDecoration: 'none', border: '2px solid #b9ac86', borderRadius: 5, padding: '6px 8px', whiteSpace: 'nowrap', background: 'transparent', cursor: 'pointer' }}
-            >
-              ◄ HUB
-            </button>
             <div style={{ display: 'flex', gap: 7 }}>
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e06a5a' }}></span>
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e0b84a' }}></span>
@@ -149,7 +149,7 @@ export default function AILabClient({
                   <button 
                     onClick={() => router.push(cohortId ? `/hub/pilot-workshops/${cohortId}/journey` : '/hub/pilot-workshops')}
                     className="font-pixel"
-                    style={{ fontSize: 8, color: '#4dffa0', textDecoration: 'none', background: 'rgba(77,255,160,.08)', border: '2px solid #4dffa0', borderRadius: 7, padding: '11px 13px', whiteSpace: 'nowrap', boxShadow: '0 0 12px rgba(77,255,160,.15)', cursor: 'pointer' }}
+                    style={{ fontSize: 10, color: '#4dffa0', textDecoration: 'none', background: 'rgba(77,255,160,.08)', border: '2px solid #4dffa0', borderRadius: 7, padding: '11px 13px', whiteSpace: 'nowrap', boxShadow: '0 0 12px rgba(77,255,160,.15)', cursor: 'pointer' }}
                   >
                     ◄ BACK TO WORKSHOP
                   </button>
@@ -174,7 +174,7 @@ export default function AILabClient({
                         }}
                         className="font-pixel"
                         style={{
-                          fontSize: 8, cursor: 'pointer', padding: '11px 14px', borderRadius: 7,
+                          fontSize: 10, cursor: 'pointer', padding: '11px 14px', borderRadius: 7,
                           border: `2px solid ${studentView === tab.id ? tab.col : '#28432f'}`,
                           background: studentView === tab.id ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.2)',
                           color: studentView === tab.id ? tab.col : '#77b78d',
@@ -190,7 +190,7 @@ export default function AILabClient({
 
                 {studentView === 'lab' && (
                   <div>
-                    <LabHeader day={day} profilePct={profilePct} chiaStage={chiaStage} userCharacter={userCharacter} />
+                    <LabHeader day={day} profilePct={profilePct} chiaStage={chiaStage} userCharacter={userCharacter} daysComplete={daysComplete} bankedPrinciplesCount={bankedPrinciples.length} totalPrinciples={principles.length} />
                     
                     {/* Session control bar */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -198,18 +198,18 @@ export default function AILabClient({
                         onClick={() => setCurriculumVisible(!curriculumVisible)}
                         title="Show or hide the curriculum browser"
                         className="font-pixel"
-                        style={{ fontSize: 9, color: '#4dffa0', background: 'rgba(77,255,160,.08)', border: '2px solid #4dffa0', borderRadius: 6, padding: '11px 13px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px rgba(77,255,160,.18)' }}
+                        style={{ fontSize: 11, color: '#4dffa0', background: 'rgba(77,255,160,.08)', border: '2px solid #4dffa0', borderRadius: 6, padding: '11px 13px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px rgba(77,255,160,.18)' }}
                       >
                         {curriculumVisible ? '◧ HIDE CURRICULUM' : '◱ SHOW CURRICULUM'}
                       </button>
-                      <div className="font-pixel" style={{ fontSize: 9, color: '#ffd23f', lineHeight: 1.5, minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div className="font-pixel" style={{ fontSize: 11, color: '#ffd23f', lineHeight: 1.5, minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {initialCurriculum[day]?.title || `DAY 0${day}`}
                       </div>
                       <button 
                         onClick={() => setSandboxVisible(!sandboxVisible)}
                         title="Show or hide the generation sandbox"
                         className="font-pixel"
-                        style={{ fontSize: 9, color: '#ff5fd2', background: 'rgba(255,95,210,.08)', border: '2px solid #ff5fd2', borderRadius: 6, padding: '11px 13px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px rgba(255,95,210,.18)' }}
+                        style={{ fontSize: 11, color: '#ff5fd2', background: 'rgba(255,95,210,.08)', border: '2px solid #ff5fd2', borderRadius: 6, padding: '11px 13px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px rgba(255,95,210,.18)' }}
                       >
                         {sandboxVisible ? '◧ HIDE SANDBOX' : '◱ SHOW SANDBOX'}
                       </button>

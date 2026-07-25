@@ -427,7 +427,7 @@ return (<>
       </>)}
       {isExplorer && (<>
       <button onClick={onOpenLibrary} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#d24dff", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>≡ Vault</button>
-      <button onClick={onOpenShelf} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>★ My Shelf · {shelfCount}</button>
+      <button onClick={onOpenShelf} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>★ My Jobs Shelf · {shelfCount}</button>
       <button onClick={onOpenSuggest} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ff6a2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>＋ Suggest</button>
       </>)}
       {isSteward && (<>
@@ -802,14 +802,28 @@ return (<>
           <div style={{fontSize: "17px", color: "var(--muted)", marginTop: "7px", lineHeight: "1.35"}}>The big regional &amp; national boards the stewards keep an eye on. Save a search on each and check weekly — government postings close fast.</div>
         </div>
         {boardRows.map((b: any, i: number) => (<React.Fragment key={i}>
-          <a href={b.url} target="_blank" rel="noopener" style={{display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "14px", alignItems: "center", padding: "15px 18px", borderBottom: "3px solid #10285e", textDecoration: "none", background: "#163a82"}}>
-            <span style={{width: "36px", height: "36px", background: "#45d4ff", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", color: "#10285e", flex: "0 0 auto"}}>↗</span>
-            <div style={{minWidth: "0"}}>
+          <div style={{display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "14px", alignItems: "center", padding: "15px 18px", borderBottom: "3px solid #10285e", background: "#163a82"}}>
+            <button 
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); b.onToggleBookmark && b.onToggleBookmark(); }}
+              style={{
+                all: "unset", cursor: b.isSubmitting ? "wait" : "pointer", boxSizing: "border-box",
+                width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center",
+                background: b.isBookmarked ? "#ffdd2e" : "#2656a4", color: b.isBookmarked ? "#10285e" : "#8f88ad",
+                fontSize: "18px", border: "3px solid #1c1526", boxShadow: "2px 2px 0 rgba(18,12,26,.4)", borderRadius: "7px",
+                flex: "0 0 auto"
+              } as any}
+              title={b.isBookmarked ? "Remove bookmark" : "Bookmark this board"}
+            >
+              {b.bmIcon}
+            </button>
+            <a href={b.url} target="_blank" rel="noopener" style={{minWidth: "0", textDecoration: "none"}}>
               <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "var(--paper)", lineHeight: "1.5"}}>{b.label}</div>
               <div style={{fontSize: "17px", lineHeight: "1.3", color: "var(--muted)", marginTop: "6px"}}>{b.desc}</div>
-            </div>
-            <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "#45d4ff", flex: "0 0 auto"}}>OPEN ↗</div>
-          </a>
+            </a>
+            <a href={b.url} target="_blank" rel="noopener" style={{textAlign: "right", flex: "0 0 auto", textDecoration: "none"}}>
+              <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "#45d4ff"}}>OPEN ↗</div>
+            </a>
+          </div>
         </React.Fragment>))}
         </>)}
       </div>
@@ -823,7 +837,7 @@ return (<>
         <button onClick={onBackLibrary} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--panel)", color: "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>◀ Back</button>
         <div style={{flex: "1"}}></div>
         <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
-          {libFilterChips.map((c: any, i: number) => (<React.Fragment key={i}><button onClick={c.onPick} style={c.style}>{c.label}</button></React.Fragment>))}
+          <button style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "#ff6a2e", color: "#1c1526", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>QUEST BOARD</button>
         </div>
       </div>
 
@@ -837,9 +851,18 @@ return (<>
         </div>
       </div>
 
-      <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "16px"}}>
-        <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "var(--muted)", letterSpacing: ".4px", marginRight: "4px"}}>FILTER NODE</span>
-        {libNodeChips.map((c: any, i: number) => (<React.Fragment key={i}><button onClick={c.onPick} style={c.style}>{c.label}</button></React.Fragment>))}
+      <div style={{border: "4px solid #1c1526", boxShadow: "5px 5px 0 rgba(18,12,26,.42)", borderRadius: "9px", background: "#163a82", marginBottom: "20px", padding: "16px 18px"}}>
+        <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "var(--paper)", marginBottom: "16px", textShadow: "1px 1px 0 rgba(0,0,0,.5)"}}>FILTER VAULT</div>
+        
+        <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "12px"}}>
+          <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "var(--muted)", letterSpacing: ".4px", marginRight: "4px", width: "80px"}}>TRAIL</span>
+          {libFilterChips.map((c: any, i: number) => (<React.Fragment key={i}><button onClick={c.onPick} style={c.style}>{c.label}</button></React.Fragment>))}
+        </div>
+
+        <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+          <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "var(--muted)", letterSpacing: ".4px", marginRight: "4px", width: "80px"}}>NODE</span>
+          {libNodeChips.map((c: any, i: number) => (<React.Fragment key={i}><button onClick={c.onPick} style={c.style}>{c.label}</button></React.Fragment>))}
+        </div>
       </div>
 
       <div style={{display: "flex", flexDirection: "column", gap: "16px"}}>
@@ -860,7 +883,7 @@ return (<>
                   <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
                     {s.links.map((l: any, i: number) => (<React.Fragment key={i}>
                       <div style={l.rowStyle}>
-                        <button onClick={l.onToggle} title="Bookmark to My Shelf" style={l.bmStyle}>{l.bmIcon}</button>
+                        <button onClick={l.onToggle} title="Bookmark to My Jobs Shelf" style={l.bmStyle}>{l.bmIcon}</button>
                         <a href={l.url} target="_blank" rel="noopener" style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "3px", textDecoration: "none"}}>
                           <span style={{fontFamily: "'VT323',monospace", fontSize: "23px", lineHeight: "1.1", color: "var(--paper)"}}>{l.label}</span>
                           <span style={{fontSize: "16px", lineHeight: "1.3", color: "#b7d2f5"}}>{l.about}</span>
@@ -960,7 +983,7 @@ return (<>
       <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
         {shelfItems.map((l: any, i: number) => (<React.Fragment key={i}>
           <div style={l.rowStyle}>
-            <button onClick={l.onToggle} title="Remove from My Shelf" style={l.bmStyle}>{l.bmIcon}</button>
+            <button onClick={l.onToggle} title="Remove from My Jobs Shelf" style={l.bmStyle}>{l.bmIcon}</button>
             <a href={l.url} target="_blank" rel="noopener" style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "3px", textDecoration: "none"}}>
               <span style={{fontFamily: "'VT323',monospace", fontSize: "23px", lineHeight: "1.1", color: "var(--paper)"}}>{l.label}</span>
               <span style={{fontSize: "16px", lineHeight: "1.3", color: "#b7d2f5"}}>{l.about}</span>

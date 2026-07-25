@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { fetchUserBookmarks } from '@/app/actions/bookmarks';
 import { fetchAllWorkforceEntries, fetchUserPicks } from '@/app/admin/workforce-pathways/actions';
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
-import { addEngagement } from '@/app/actions/workshops/engagement';
+import { addEngagement, updateEngagement, removeEngagement } from '@/app/actions/workshops/engagement';
 import RetroToast from '@/components/workshops/journey/RetroToast';
 import { PixelSprite } from '@/components/workshops/journey';
 import type { CohortProgressData } from './page';
@@ -78,6 +78,15 @@ export default function ClientProfile({
   // Inline Edit State
   const [isUploading, setIsUploading] = useState(false);
   const [editingField, setEditingField] = useState<'dream_job' | 'learning_style' | 'full_name' | 'why_here' | 'community_serve' | null>(null);
+
+  // Edit/Delete state for notes and generations
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [editNoteTitle, setEditNoteTitle] = useState('');
+  const [editNoteContent, setEditNoteContent] = useState('');
+  const [isEditingGeneration, setIsEditingGeneration] = useState(false);
+  const [editGenTitle, setEditGenTitle] = useState('');
+  const [editGenUrl, setEditGenUrl] = useState('');
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
   const [tempValue, setTempValue] = useState('');
   const [tempMultiValue, setTempMultiValue] = useState<string[]>([]);
   const [otherValue, setOtherValue] = useState('');
@@ -517,6 +526,66 @@ export default function ClientProfile({
       loadWorkshopData();
     }
   }, [activeCohortId, loadWorkshopData]);
+
+  // Edit/Delete handlers for notes and generations
+  const handleDeleteEngagement = async (id: string, kind: 'note' | 'prompt' | 'generation') => {
+    setIsDeletingItem(true);
+    try {
+      await removeEngagement(id);
+      // Remove from local state
+      if (kind === 'note') {
+        setNotes(prev => prev.filter(n => n.id !== id));
+      } else if (kind === 'prompt') {
+        setPrompts(prev => prev.filter(p => p.id !== id));
+      } else if (kind === 'generation') {
+        setGenerations(prev => prev.filter(g => g.id !== id));
+      }
+      // Close popups
+      setSelectedNoteItem(null);
+      setSelectedResourceItem(null);
+      setIsEditingNote(false);
+      setIsEditingGeneration(false);
+      // Reload to get updated engagement percentage
+      await loadProfile();
+      setToast(`🗑️ ${kind.charAt(0).toUpperCase() + kind.slice(1)} deleted`);
+    } catch (err) {
+      console.error('Failed to delete engagement:', err);
+      setToast('❌ Failed to delete');
+    } finally {
+      setIsDeletingItem(false);
+    }
+  };
+
+  const handleUpdateNote = async (id: string) => {
+    if (!editNoteTitle.trim()) return;
+    try {
+      await updateEngagement(id, { title: editNoteTitle, content: editNoteContent });
+      // Update local state
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, title: editNoteTitle, content: editNoteContent } : n));
+      setPrompts(prev => prev.map(p => p.id === id ? { ...p, title: editNoteTitle, content: editNoteContent } : p));
+      setIsEditingNote(false);
+      setSelectedNoteItem(null);
+      setToast('✏️ Updated successfully');
+    } catch (err) {
+      console.error('Failed to update note:', err);
+      setToast('❌ Failed to update');
+    }
+  };
+
+  const handleUpdateGeneration = async (id: string) => {
+    if (!editGenTitle.trim()) return;
+    try {
+      await updateEngagement(id, { title: editGenTitle, url: editGenUrl });
+      // Update local state
+      setGenerations(prev => prev.map(g => g.id === id ? { ...g, title: editGenTitle, url: editGenUrl } : g));
+      setIsEditingGeneration(false);
+      setSelectedResourceItem(null);
+      setToast('✏️ Generation updated');
+    } catch (err) {
+      console.error('Failed to update generation:', err);
+      setToast('❌ Failed to update');
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -1554,7 +1623,7 @@ export default function ClientProfile({
       {/* Note / Prompt Detail Popup */}
       {selectedNoteItem && (
         <div
-          onClick={() => setSelectedNoteItem(null)}
+          onClick={() => { setSelectedNoteItem(null); setIsEditingNote(false); }}
           style={{
             position: 'fixed', inset: 0, zIndex: 10000,
             background: 'rgba(20,12,4,.72)',
@@ -1580,7 +1649,7 @@ export default function ClientProfile({
           >
             {/* Close */}
             <button
-              onClick={() => setSelectedNoteItem(null)}
+              onClick={() => { setSelectedNoteItem(null); setIsEditingNote(false); }}
               style={{
                 position: 'absolute', top: 14, right: 14,
                 background: 'rgba(162,117,50,.1)', border: '1.5px solid rgba(162,117,50,.3)',
@@ -1603,30 +1672,68 @@ export default function ClientProfile({
               {selectedNoteItem.status === 'rejected' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>✕ REJECTED</span>}
             </div>
 
-            {/* Title */}
-            <div style={{ fontWeight: 800, color: '#3a2412', fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.3, marginBottom: '14px' }}>
-              {selectedNoteItem.title}
-            </div>
+            {isEditingNote ? (
+              <>
+                {/* Edit mode */}
+                <input
+                  value={editNoteTitle}
+                  onChange={e => setEditNoteTitle(e.target.value)}
+                  placeholder="Title"
+                  style={{ width: '100%', padding: '10px 12px', fontSize: '16px', fontWeight: 700, color: '#3a2412', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', background: '#fff', marginBottom: '12px', fontFamily: 'inherit' }}
+                />
+                <textarea
+                  value={editNoteContent}
+                  onChange={e => setEditNoteContent(e.target.value)}
+                  placeholder="Content"
+                  rows={6}
+                  style={{ width: '100%', padding: '10px 12px', fontSize: '14px', color: '#4a3822', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', background: '#fff', marginBottom: '14px', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.6 }}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => handleUpdateNote(selectedNoteItem.id)} style={{ padding: '10px 18px', background: '#2E5534', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '12px', cursor: 'pointer' }}>Save</button>
+                  <button onClick={() => setIsEditingNote(false)} style={{ padding: '10px 18px', background: 'transparent', color: '#5c4f3c', border: '1.5px solid rgba(138,90,46,.25)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Title */}
+                <div style={{ fontWeight: 800, color: '#3a2412', fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.3, marginBottom: '14px' }}>
+                  {selectedNoteItem.title}
+                </div>
 
-            {/* Divider */}
-            <div style={{ height: '1px', background: 'rgba(162,117,50,.18)', marginBottom: '16px' }} />
+                {/* Divider */}
+                <div style={{ height: '1px', background: 'rgba(162,117,50,.18)', marginBottom: '16px' }} />
 
-            {/* Full content */}
-            <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '18px' }}>
-              {selectedNoteItem.content}
-            </div>
+                {/* Full content */}
+                <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '18px' }}>
+                  {selectedNoteItem.content}
+                </div>
 
-            {/* Source */}
-            <div style={{ fontSize: '11px', color: '#7a5a3a', fontFamily: '"DM Mono", monospace', letterSpacing: '.06em', marginBottom: selectedNoteItem.reviewNote ? '14px' : 0 }}>
-              {selectedNoteItem.itemType === 'note' ? '📝' : '⌘'} {selectedNoteItem.source}
-            </div>
+                {/* Source */}
+                <div style={{ fontSize: '11px', color: '#7a5a3a', fontFamily: '"DM Mono", monospace', letterSpacing: '.06em', marginBottom: selectedNoteItem.reviewNote ? '14px' : 0 }}>
+                  {selectedNoteItem.itemType === 'note' ? '📝' : '⌘'} {selectedNoteItem.source}
+                </div>
 
-            {/* Admin review note */}
-            {selectedNoteItem.reviewNote && (
-              <div style={{ padding: '12px 14px', background: 'rgba(162,117,50,.08)', border: '1px solid rgba(162,117,50,.22)', borderRadius: '10px' }}>
-                <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.12em', color: '#8a5a2e', marginBottom: '6px' }}>ADMIN NOTE</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: '#3a2412' }}>{selectedNoteItem.reviewNote}</div>
-              </div>
+                {/* Admin review note */}
+                {selectedNoteItem.reviewNote && (
+                  <div style={{ padding: '12px 14px', background: 'rgba(162,117,50,.08)', border: '1px solid rgba(162,117,50,.22)', borderRadius: '10px', marginBottom: '16px' }}>
+                    <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.12em', color: '#8a5a2e', marginBottom: '6px' }}>ADMIN NOTE</div>
+                    <div style={{ fontSize: '13px', lineHeight: 1.5, color: '#3a2412' }}>{selectedNoteItem.reviewNote}</div>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => { setEditNoteTitle(selectedNoteItem.title); setEditNoteContent(selectedNoteItem.content || ''); setIsEditingNote(true); }}
+                    style={{ padding: '9px 16px', background: 'rgba(162,117,50,.1)', color: '#8a5a2e', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: 'pointer' }}
+                  >✏️ Edit</button>
+                  <button
+                    onClick={() => handleDeleteEngagement(selectedNoteItem.id, selectedNoteItem.itemType)}
+                    disabled={isDeletingItem}
+                    style={{ padding: '9px 16px', background: 'rgba(200,50,50,.08)', color: '#c03030', border: '1.5px solid rgba(200,50,50,.3)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: isDeletingItem ? 'wait' : 'pointer', opacity: isDeletingItem ? 0.6 : 1 }}
+                  >{isDeletingItem ? '⏳' : '🗑️'} Delete</button>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -1641,7 +1748,7 @@ export default function ClientProfile({
         const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase() : '';
         return (
           <div
-            onClick={() => setSelectedResourceItem(null)}
+            onClick={() => { setSelectedResourceItem(null); setIsEditingGeneration(false); }}
             style={{
               position: 'fixed', inset: 0, zIndex: 10000,
               background: 'rgba(20,12,4,.65)',
@@ -1700,9 +1807,25 @@ export default function ClientProfile({
                 </div>
 
                 {/* Title */}
-                <h2 style={{ fontWeight: 800, color: '#21282E', fontSize: 'clamp(22px,3vw,28px)', lineHeight: 1.2, margin: '0 0 12px' }}>
-                  {r.title}
-                </h2>
+                {isEditingGeneration && r._kind === 'GENERATION' ? (
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '10px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '6px' }}>ASSET URL</label>
+                    <input
+                      value={editGenUrl}
+                      onChange={e => { setEditGenUrl(e.target.value); setEditGenTitle(e.target.value); }}
+                      placeholder="https://..."
+                      style={{ width: '100%', padding: '10px 12px', fontSize: '13px', color: '#4a3822', border: '1.5px solid rgba(138,90,46,.3)', borderRadius: '8px', background: '#fff', marginBottom: '12px', fontFamily: '"DM Mono", monospace', wordBreak: 'break-all' }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => handleUpdateGeneration(r.id)} style={{ padding: '10px 18px', background: '#2E5534', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '12px', cursor: 'pointer' }}>Save</button>
+                      <button onClick={() => setIsEditingGeneration(false)} style={{ padding: '10px 18px', background: 'transparent', color: '#5c4f3c', border: '1.5px solid rgba(138,90,46,.25)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <h2 style={{ fontWeight: 800, color: '#21282E', fontSize: 'clamp(14px,2.5vw,20px)', lineHeight: 1.3, margin: '0 0 12px', wordBreak: 'break-all', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
+                    {r.title}
+                  </h2>
+                )}
 
                 {/* Category / shelf */}
                 {r.category?.label && (
@@ -1792,8 +1915,57 @@ export default function ClientProfile({
                       {r._viewLabel || 'Open Resource ↗'}
                     </button>
                   )}
+                  {r._kind === 'GENERATION' && (
+                    <button
+                      onClick={() => { setEditGenTitle(r.title); setEditGenUrl(r._url || r.url || ''); setIsEditingGeneration(true); }}
+                      style={{
+                        padding: '12px 22px',
+                        background: 'rgba(162,117,50,.1)', color: '#8a5a2e',
+                        border: '1.5px solid rgba(162,117,50,.3)',
+                        borderRadius: '8px', fontFamily: '"Exo", sans-serif',
+                        fontSize: '14px', fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
+                  {r._kind === 'GENERATION' && (
+                    <button
+                      onClick={() => handleDeleteEngagement(r.id, 'generation')}
+                      disabled={isDeletingItem}
+                      style={{
+                        padding: '12px 22px',
+                        background: 'rgba(200,50,50,.08)', color: '#c03030',
+                        border: '1.5px solid rgba(200,50,50,.3)',
+                        borderRadius: '8px', fontFamily: '"Exo", sans-serif',
+                        fontSize: '14px', fontWeight: 600,
+                        cursor: isDeletingItem ? 'wait' : 'pointer',
+                        opacity: isDeletingItem ? 0.6 : 1
+                      }}
+                    >
+                      {isDeletingItem ? '⏳' : '🗑️'} Delete
+                    </button>
+                  )}
+                  {(r._kind === 'LIBRARY' || r._kind === 'WORKFORCE' || r._kind === 'JOB' || r._kind === 'ENVIRONMENTAL' || r._kind === 'BOOKMARK' || r._kind === 'SHOWCASE') && r.id && (
+                    <button
+                      onClick={() => handleDeleteEngagement(r.id, 'note')}
+                      disabled={isDeletingItem}
+                      style={{
+                        padding: '12px 22px',
+                        background: 'rgba(200,50,50,.08)', color: '#c03030',
+                        border: '1.5px solid rgba(200,50,50,.3)',
+                        borderRadius: '8px', fontFamily: '"Exo", sans-serif',
+                        fontSize: '14px', fontWeight: 600,
+                        cursor: isDeletingItem ? 'wait' : 'pointer',
+                        opacity: isDeletingItem ? 0.6 : 1
+                      }}
+                    >
+                      {isDeletingItem ? '⏳' : '☆'} Unbookmark
+                    </button>
+                  )}
                   <button
-                    onClick={() => setSelectedResourceItem(null)}
+                    onClick={() => { setSelectedResourceItem(null); setIsEditingGeneration(false); }}
                     style={{
                       padding: '12px 22px',
                       background: 'transparent', color: '#5c4f3c',

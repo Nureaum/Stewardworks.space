@@ -43,7 +43,7 @@ function TermsContent() {
       <section>
         <h3 className="text-lg font-bold text-steward-blue mb-3">4. Account Security</h3>
         <p className="text-sm leading-relaxed">
-          You are responsible for maintaining the confidentiality of your login credentials and for all activity under your account. Notify us promptly at nureaum@proton.me if you suspect unauthorized access. Please provide accurate information when creating your account — program eligibility and reporting depend on it.
+          You are responsible for maintaining the confidentiality of your login credentials and for all activity under your account. Notify us promptly at info@stewardworks.space if you suspect unauthorized access. Please provide accurate information when creating your account — program eligibility and reporting depend on it.
         </p>
       </section>
 
@@ -120,7 +120,7 @@ function TermsContent() {
           <li>Opt out of the sale of personal information — we do not sell personal information, so no opt-out action is needed.</li>
         </ul>
         <p className="text-sm leading-relaxed mt-3">
-          To exercise these rights, contact nureaum@proton.me. We will respond within the timeframe required by law.
+          To exercise these rights, contact info@stewardworks.space. We will respond within the timeframe required by law.
         </p>
       </section>
 
@@ -163,7 +163,7 @@ function TermsContent() {
         <ul className="list-disc pl-5 text-sm space-y-1 opacity-90">
           <li>You may only create an account or participate with the involvement of a parent/guardian or authorized program facilitator, who must complete a separate consent process before your participation begins;</li>
           <li>We limit the collection of personal information from minors to what is necessary for program administration and reporting;</li>
-          <li>A parent or guardian may request review or deletion of a minor's information (subject to grant retention terms in Section 5) by contacting nureaum@proton.me.</li>
+          <li>A parent or guardian may request review or deletion of a minor's information (subject to grant retention terms in Section 5) by contacting info@stewardworks.space.</li>
         </ul>
       </section>
 
@@ -212,7 +212,7 @@ function TermsContent() {
       <section>
         <h3 className="text-lg font-bold text-steward-blue mb-3">19. Contact</h3>
         <p className="text-sm leading-relaxed">
-          Questions about this notice, your data, or the program can be directed to: <strong>Nureaum</strong> — nureaum@proton.me
+          Questions about this notice, your data, or the program can be directed to: <strong>Nureaum</strong> — info@stewardworks.space
         </p>
       </section>
     </div>

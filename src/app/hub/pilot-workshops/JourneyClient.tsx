@@ -406,6 +406,7 @@ export default function JourneyClient({
                   character={character}
                   daysComplete={approvedDaysCount}
                   principlesCount={bankedPrinciples.length}
+                  principles={principles}
                   bankedPrinciples={bankedPrinciples}
                   days={days}
                   progressRows={progressRows}

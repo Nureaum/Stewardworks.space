@@ -100,8 +100,10 @@ function WorkforcePathwaysContent() {
   const [libNode, setLibNode] = useState('all');
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
   const [jobBookmarks, setJobBookmarks] = useState<Record<string, boolean>>({});
+  const [boardBookmarks, setBoardBookmarks] = useState<Record<string, boolean>>({});
   const [isSubmittingJobBookmark, setIsSubmittingJobBookmark] = useState<string | null>(null);
   const [isSubmittingBookmark, setIsSubmittingBookmark] = useState<string | null>(null);
+  const [isSubmittingBoardBookmark, setIsSubmittingBoardBookmark] = useState<string | null>(null);
   const [initialAvatar, setInitialAvatar] = useState<any>(null);
 
   const [dbQuizzes, setDbQuizzes] = useState<any[]>([]);
@@ -132,11 +134,14 @@ function WorkforcePathwaysContent() {
         }
         const bm: Record<string, boolean> = {};
         const jbm: Record<string, boolean> = {};
+        const bbm: Record<string, boolean> = {};
         bmData.forEach((b: any) => {
           if (b.item_id) {
             // Separate job bookmarks from resource bookmarks by title prefix
             if (b.title && b.title.startsWith('Job:')) {
               jbm[b.item_id] = true;
+            } else if (b.title && b.title.startsWith('Board:')) {
+              bbm[b.item_id] = true;
             } else {
               bm[b.item_id] = true;
             }
@@ -144,6 +149,7 @@ function WorkforcePathwaysContent() {
         });
         setBookmarks(bm);
         setJobBookmarks(jbm);
+        setBoardBookmarks(bbm);
         setDbUserPicks(picksData || []);
         setDataLoaded(true);
       });
@@ -311,12 +317,20 @@ function WorkforcePathwaysContent() {
 
   const activePathwayId = pathway === 'creator' ? 'creator' : 'enviro';
   const boardRows = externalBoards.map((b: any) => ({
-    label: b.label, url: b.url, desc: b.description
+    label: b.label, url: b.url, desc: b.description,
+    isBookmarked: !!boardBookmarks[b.url],
+    isSubmitting: isSubmittingBoardBookmark === b.url,
+    bmIcon: isSubmittingBoardBookmark === b.url ? '⏳' : (boardBookmarks[b.url] ? '★' : '☆'),
+    onToggleBookmark: () => toggleBoardBookmark({ label: b.label, url: b.url })
   }));
   const boardChips = externalBoards.map(b => ({
     label: b.label,
     url: b.url,
-    desc: b.description
+    desc: b.description,
+    isBookmarked: !!boardBookmarks[b.url],
+    isSubmitting: isSubmittingBoardBookmark === b.url,
+    bmIcon: isSubmittingBoardBookmark === b.url ? '⏳' : (boardBookmarks[b.url] ? '★' : '☆'),
+    onToggleBookmark: () => toggleBoardBookmark({ label: b.label, url: b.url })
   }));
   const footTag = pw ? pw.tag : "*Content Creator Resource · *Environmental Career Resource";
   
@@ -557,6 +571,60 @@ function WorkforcePathwaysContent() {
     }
   };
 
+  const toggleBoardBookmark = async (board: any) => {
+    const url = board.url;
+    if (!url) return;
+    
+    if (isSubmittingBoardBookmark === url) return;
+    setIsSubmittingBoardBookmark(url);
+    
+    const isBookmarked = !!boardBookmarks[url];
+    
+    // Optimistic update
+    setBoardBookmarks(prev => {
+      const next = { ...prev };
+      if (next[url]) delete next[url];
+      else next[url] = true;
+      return next;
+    });
+
+    try {
+      await toggleDbBookmark(
+        url,
+        'workforce',
+        `Board: ${board.label}`,
+        url
+      );
+      
+      // Refetch to sync - only get board bookmarks (title starts with "Board:")
+      const bmData = await fetchUserBookmarks('workforce');
+      const bbm: Record<string, boolean> = {};
+      bmData.forEach((b: any) => {
+        if (b.item_id && b.title && b.title.startsWith('Board:')) {
+          bbm[b.item_id] = true;
+        }
+      });
+      setBoardBookmarks(bbm);
+      
+      if (!isBookmarked) {
+        toast.success('Board bookmark submitted! Awaiting admin approval.', { id: `board-bm-${url}`, position: 'bottom-center' });
+      } else {
+        toast.success('Board bookmark removed.', { id: `board-bm-${url}`, position: 'bottom-center' });
+      }
+    } catch (err) {
+      toast.error('Failed to save board bookmark.', { id: `board-bm-error-${url}`, position: 'bottom-center' });
+      // Revert
+      setBoardBookmarks(prev => {
+        const next = { ...prev };
+        if (isBookmarked) next[url] = true;
+        else delete next[url];
+        return next;
+      });
+    } finally {
+      setIsSubmittingBoardBookmark(null);
+    }
+  };
+
   const bmBtnStyle = (on: boolean, isSubmitting: boolean = false) => ({
     all: 'unset', cursor: isSubmitting ? 'wait' : 'pointer', boxSizing: 'border-box', flex: '0 0 auto', width: '34px', height: '34px',
     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', border: '3px solid #1c1526',
@@ -657,6 +725,21 @@ function WorkforcePathwaysContent() {
         saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true, isSubmitting), rowStyle: rowStyleFor(jobAccent), trail: isCreatorJob ? 'CREATOR' : 'ENVIRO'
       };
       shelfItems.push({ ...rec, onToggle: () => toggleJobBookmark({ title: j.title, org: j.organization, url: url }) });
+    }
+  });
+  // Add bookmarked external boards to shelf
+  externalBoards.forEach((b: any) => {
+    const url = b.url;
+    if (boardBookmarks[url]) {
+      const isSubmitting = isSubmittingBoardBookmark === url;
+      const rec = {
+        id: 'board_' + (b.id || url),
+        label: b.label, url: url, domain: domainOf(url),
+        about: b.description || "", source: "External Boards", type: "Board",
+        pathway: 'enviro', stopName: "Boards", accent: '#45d4ff',
+        saved: true, bmIcon: "★", bmStyle: bmBtnStyle(true, isSubmitting), rowStyle: rowStyleFor('#45d4ff'), trail: 'ENVIRO'
+      };
+      shelfItems.push({ ...rec, onToggle: () => toggleBoardBookmark({ label: b.label, url: url }) });
     }
   });
   const shelfCount = shelfItems.length;

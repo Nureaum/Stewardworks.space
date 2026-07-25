@@ -162,6 +162,9 @@ export default function SubmissionTracker({
     return bp?.principle_id || null;
   })();
 
+  const currentPrinciple = currentDayPrincipleId ? mappedPrinciples.find((p: any) => (p.id || p) === currentDayPrincipleId) : null;
+  const currentPrincipleName = currentPrinciple ? (currentPrinciple.name || currentPrinciple.title || currentPrinciple) : null;
+
   // IDs from APPROVED progress on OTHER days — these get struck-through
   const approvedOtherDayProgressIds = progressRows
     .filter((p: any) => p.workshop_day_id !== dayId && p.deliverable_status === 'approved')
@@ -475,7 +478,8 @@ export default function SubmissionTracker({
 
               {/* Show submitted view if already submitted and not in edit mode */}
               {isAlreadySubmitted && !isEditMode ? (
-                /* Submitted View */
+                <>
+                {/* Submitted View */}
                 <div style={{ 
                   border: `2px solid ${isApproved ? 'var(--ng,#4dffa0)' : 'var(--sy,#ffd23f)'}`, 
                   borderRadius: 8, 
@@ -508,7 +512,7 @@ export default function SubmissionTracker({
                   {localSubmission?.description && (
                     <div style={{ marginBottom: 12 }}>
                       <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>DESCRIPTION</div>
-                      <div style={{ fontSize: 15, color: 'var(--mu,#77b78d)', fontFamily: "'VT323', monospace", lineHeight: 1.4 }}>
+                      <div style={{ fontSize: 15, color: 'var(--tx,#d6ffe0)', fontFamily: "'VT323', monospace", lineHeight: 1.4 }}>
                         {localSubmission.description}
                       </div>
                     </div>
@@ -546,6 +550,28 @@ export default function SubmissionTracker({
                     </button>
                   </div>
                 </div>
+                
+                {/* Principle shown outside the card */}
+                {currentPrincipleName && (
+                  <div style={{ marginTop: 4 }}>
+                    <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>
+                      ◈ APPLIED PRINCIPLE
+                    </div>
+                    <div style={{ 
+                      display: 'inline-flex',
+                      background: 'rgba(69,214,255,.15)',
+                      border: '1px solid var(--cy,#45d6ff)',
+                      borderRadius: 4,
+                      padding: '6px 12px',
+                      color: 'var(--cy,#45d6ff)',
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: 9,
+                    }}>
+                      {currentPrincipleName}
+                    </div>
+                  </div>
+                )}
+                </>
               ) : (
                 /* Submission Form */
                 <>

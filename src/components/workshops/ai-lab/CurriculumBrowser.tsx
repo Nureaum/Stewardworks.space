@@ -128,12 +128,12 @@ export default function CurriculumBrowser({
     <div style={{ border: '2px solid #28432f', borderRadius: 10, background: '#14211b', overflow: 'hidden', flex: '1 1 330px', minWidth: 290, display: 'flex', flexDirection: 'column', maxHeight: 'clamp(560px,74vh,820px)' }}>
       {/* Header bar / tabs */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#0e1512', borderBottom: '2px solid #28432f' }}>
-        <div className="font-pixel" style={{ fontSize: 8, color: '#4dffa0', letterSpacing: 1 }}>◱ CURRICULUM BROWSER</div>
+        <div className="font-pixel" style={{ fontSize: 10, color: '#4dffa0', letterSpacing: 1 }}>◱ CURRICULUM BROWSER</div>
         <button 
           onClick={onToggleVisibility}
           title="Hide the browser to expand the Eden bench"
           className="font-pixel"
-          style={{ fontSize: 9, color: '#77b78d', background: 'rgba(0,0,0,.3)', border: '2px solid #28432f', borderRadius: 5, padding: '8px 9px', cursor: 'pointer', flex: 'none' }}
+          style={{ fontSize: 11, color: '#77b78d', background: 'rgba(0,0,0,.3)', border: '2px solid #28432f', borderRadius: 5, padding: '8px 9px', cursor: 'pointer', flex: 'none' }}
         >
           ◧
         </button>
@@ -156,7 +156,7 @@ export default function CurriculumBrowser({
                 }}
                 className="font-pixel"
                 style={{
-                  flex: 1, padding: '10px 6px', fontSize: 8, borderRadius: 6, whiteSpace: 'nowrap',
+                  flex: 1, padding: '10px 6px', fontSize: 10, borderRadius: 6, whiteSpace: 'nowrap',
                   cursor: isLocked ? 'not-allowed' : 'pointer',
                   opacity: isLocked ? 0.4 : 1,
                   background: d === day ? '#ff5fd2' : 'transparent',
@@ -174,12 +174,12 @@ export default function CurriculumBrowser({
       
       {!activeEntry || !selectedEntryData ? (
         <div style={{ flex: 1, padding: '14px 14px 16px', overflowY: 'auto' }}>
-          <div className="font-pixel" style={{ fontSize: 10, color: '#ffd23f', lineHeight: 1.5, margin: '2px 2px 7px' }}>DAY 0{day} · {currentDayData.title}</div>
-          <div style={{ fontSize: 16, color: '#77b78d', lineHeight: 1.35, marginBottom: 15, fontFamily: "'VT323', monospace" }}>{currentDayData.blurb}</div>
+          <div className="font-pixel" style={{ fontSize: 12, color: '#ffd23f', lineHeight: 1.5, margin: '2px 2px 7px' }}>DAY 0{day} · {currentDayData.title}</div>
+          <div style={{ fontSize: 18, color: '#77b78d', lineHeight: 1.35, marginBottom: 15, fontFamily: "'VT323', monospace" }}>{currentDayData.blurb}</div>
           
           {currentDayData.sessions.map((sec, idx) => (
             <div key={idx} style={{ marginBottom: 16 }}>
-              <div className="font-pixel" style={{ fontSize: 8, color: '#0e1512', background: sec.color, padding: '6px 8px', borderRadius: 4, display: 'inline-block', marginBottom: 10 }}>
+              <div className="font-pixel" style={{ fontSize: 10, color: '#0e1512', background: sec.color, padding: '6px 8px', borderRadius: 4, display: 'inline-block', marginBottom: 10 }}>
                 {sec.hour} · {sec.title} · {sec.dur}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -192,12 +192,12 @@ export default function CurriculumBrowser({
                       onClick={() => onSelectEntry(en.title)}
                       style={{ flex: 1, display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,.2)', border: '1px solid #28432f', borderRadius: 8, padding: 12, cursor: 'pointer', textAlign: 'left' }}
                     >
-                      <span className="font-pixel" style={{ fontSize: 8, color: '#0e1512', background: sec.color, width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>{eIdx + 1}</span>
+                      <span className="font-pixel" style={{ fontSize: 10, color: '#0e1512', background: sec.color, width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>{eIdx + 1}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 17, color: '#d6ffe0', lineHeight: 1.15, fontFamily: "'VT323', monospace" }}>{en.title}</div>
-                        <div className="font-pixel" style={{ fontSize: 7, color: '#77b78d', marginTop: 5, lineHeight: 1.5 }}>{en.sub}</div>
+                        <div className="font-pixel" style={{ fontSize: 9, color: '#d6ffe0', lineHeight: 1.35, letterSpacing: 0.5 }}>{en.title}</div>
+                        <div style={{ fontSize: 17, color: '#77b78d', marginTop: 5, lineHeight: 1.5, fontFamily: "'VT323', monospace" }}>{en.sub}</div>
                       </div>
-                      <span className="font-pixel" style={{ fontSize: 10, color: '#4dffa0' }}>›</span>
+                      <span className="font-pixel" style={{ fontSize: 12, color: '#4dffa0' }}>›</span>
                     </button>
                     <button 
                       onClick={() => handleBookmark(entryKey, en.title)}
@@ -227,14 +227,14 @@ export default function CurriculumBrowser({
         </div>
       ) : (
         <div style={{ flex: 1, padding: '13px 14px 18px', overflowY: 'auto' }}>
-          <button onClick={() => onSelectEntry(null)} className="font-pixel" style={{ fontSize: 8, color: '#4dffa0', background: 'transparent', border: '2px solid #28432f', borderRadius: 5, padding: '8px 10px', cursor: 'pointer', marginBottom: 13 }}>‹ ALL SESSIONS</button>
+          <button onClick={() => onSelectEntry(null)} className="font-pixel" style={{ fontSize: 10, color: '#4dffa0', background: 'transparent', border: '2px solid #28432f', borderRadius: 5, padding: '8px 10px', cursor: 'pointer', marginBottom: 13 }}>‹ ALL SESSIONS</button>
           
-          <div style={{ fontFamily: "'Press Start 2P'", fontSize: 7, color: '#77b78d', letterSpacing: 1, lineHeight: 1.6, marginBottom: 11 }}>
+          <div style={{ fontFamily: "'Press Start 2P'", fontSize: 9, color: '#77b78d', letterSpacing: 1, lineHeight: 1.6, marginBottom: 11 }}>
             DAY 0{day} · {selectedSessionHour}
           </div>
           
-          <div style={{ fontFamily: "'Press Start 2P'", fontSize: 6, color: '#0e1512', background: selectedSessionColor, borderRadius: 3, padding: '4px 6px', display: 'inline-block' }}>{selectedSessionHour}</div>
-          <div style={{ fontFamily: "'Press Start 2P'", fontSize: 13, color: '#d6ffe0', lineHeight: 1.5, margin: '13px 0 15px' }}>{selectedEntryData.title}</div>
+          <div style={{ fontFamily: "'Press Start 2P'", fontSize: 8, color: '#0e1512', background: selectedSessionColor, borderRadius: 3, padding: '4px 6px', display: 'inline-block' }}>{selectedSessionHour}</div>
+          <div style={{ fontFamily: "'Press Start 2P'", fontSize: 15, color: '#d6ffe0', lineHeight: 1.5, margin: '13px 0 15px' }}>{selectedEntryData.title}</div>
           
           {selectedEntryData.type === 'text' && (
             <div style={{ fontSize: 18, color: '#d6ffe0', lineHeight: 1.5, fontFamily: "'VT323', monospace" }} dangerouslySetInnerHTML={{ __html: selectedEntryData.body || '' }} />
@@ -271,16 +271,16 @@ export default function CurriculumBrowser({
           {selectedEntryData.type === 'deliverable' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ border: '1px solid #28432f', borderRadius: 8, padding: 14 }}>
-                <div className="font-pixel" style={{ fontSize: 8, color: '#ff5fd2', marginBottom: 10 }}>◈ PRINCIPLE APPLIED</div>
-                <p style={{ fontSize: 17, color: '#d6ffe0', lineHeight: 1.4, fontFamily: "'VT323', monospace", margin: 0 }}>{selectedEntryData.applied}</p>
+                <div className="font-pixel" style={{ fontSize: 10, color: '#ff5fd2', marginBottom: 10 }}>◈ PRINCIPLE APPLIED</div>
+                <p style={{ fontSize: 19, color: '#d6ffe0', lineHeight: 1.4, fontFamily: "'VT323', monospace", margin: 0 }}>{selectedEntryData.applied}</p>
               </div>
               <div style={{ border: '1px solid #28432f', borderRadius: 8, padding: 14 }}>
-                <div className="font-pixel" style={{ fontSize: 8, color: '#45d6ff', marginBottom: 10 }}>□ LAB PROCESS</div>
-                <p style={{ fontSize: 17, color: '#d6ffe0', lineHeight: 1.4, fontFamily: "'VT323', monospace", margin: 0 }}>{selectedEntryData.lab}</p>
+                <div className="font-pixel" style={{ fontSize: 10, color: '#45d6ff', marginBottom: 10 }}>□ LAB PROCESS</div>
+                <p style={{ fontSize: 19, color: '#d6ffe0', lineHeight: 1.4, fontFamily: "'VT323', monospace", margin: 0 }}>{selectedEntryData.lab}</p>
               </div>
               <div style={{ border: '1px solid #28432f', borderRadius: 8, padding: 14 }}>
-                <div className="font-pixel" style={{ fontSize: 8, color: '#4dffa0', marginBottom: 10 }}>▚ DELIVERABLE GOAL</div>
-                <p style={{ fontSize: 17, color: '#d6ffe0', lineHeight: 1.4, fontFamily: "'VT323', monospace", margin: 0 }}>{selectedEntryData.goal}</p>
+                <div className="font-pixel" style={{ fontSize: 10, color: '#4dffa0', marginBottom: 10 }}>▚ DELIVERABLE GOAL</div>
+                <p style={{ fontSize: 19, color: '#d6ffe0', lineHeight: 1.4, fontFamily: "'VT323', monospace", margin: 0 }}>{selectedEntryData.goal}</p>
               </div>
             </div>
           )}

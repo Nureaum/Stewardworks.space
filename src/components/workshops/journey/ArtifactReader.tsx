@@ -241,7 +241,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
           <div style={{ flex: inline ? 'none' : '3 1 430px', minWidth: inline ? 'auto' : 280, maxWidth: '100%', padding: 'clamp(18px,2.6vw,30px)', overflow: 'hidden' }}>
             {/* Subtitle */}
             {entry.subtitle && (
-              <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 16, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 20, lineHeight: 1.4 }}>
                 {entry.subtitle}
               </div>
             )}

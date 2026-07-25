@@ -26,10 +26,14 @@ export default function ContactFormModal({ isOpen, onClose }: ContactFormModalPr
       setResult(response);
 
       if (response.success) {
-        // Clear form on success
+        // Clear form and close modal after a brief delay so user sees success message
         setName('');
         setEmail('');
         setMessage('');
+        setTimeout(() => {
+          setResult(null);
+          onClose();
+        }, 2000);
       }
 
       // Log debug info to console for admin visibility

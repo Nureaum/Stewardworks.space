@@ -13,7 +13,7 @@ const PRINCIPLE_TIPS = [
   "Consent over Convenience: Just because you can scrape, generate, or remix doesn't mean you should. Ask first. Credit always.",
 ];
 
-export default function LabHeader({ day, profilePct, chiaStage, userCharacter }: { day: number, profilePct: number, chiaStage: number, userCharacter?: any }) {
+export default function LabHeader({ day, profilePct, chiaStage, userCharacter, daysComplete = 0, bankedPrinciplesCount = 0, totalPrinciples = 6 }: { day: number, profilePct: number, chiaStage: number, userCharacter?: any, daysComplete?: number, bankedPrinciplesCount?: number, totalPrinciples?: number }) {
   const [tipIndex, setTipIndex] = useState(0);
   const [tipKey, setTipKey] = useState(0);
   
@@ -35,7 +35,7 @@ export default function LabHeader({ day, profilePct, chiaStage, userCharacter }:
         <div className="font-pixel" style={{ fontSize: 10, color: '#ffd23f', textShadow: '0 0 8px rgba(255,210,63,.4)', lineHeight: 1.5 }}>⚙ GENERATION LAB · LV.{day}</div>
         <div style={{ fontSize: 17, color: '#d6ffe0', marginTop: 8, fontFamily: "'VT323', monospace", textTransform: 'uppercase' }}>{playerName}</div>
         <div style={{ fontSize: 14, color: '#4dffa0', marginTop: 1, fontFamily: "'VT323', monospace", textTransform: 'uppercase' }}>❒ {playerGear}</div>
-        <div style={{ fontSize: 13, color: '#77b78d', marginTop: 4, fontFamily: "'VT323', monospace" }}>3/3 banked · 6 principles</div>
+        <div style={{ fontSize: 13, color: '#77b78d', marginTop: 4, fontFamily: "'VT323', monospace" }}>{daysComplete}/3 banked · {totalPrinciples} principles</div>
       </div>
 
       {/* Interactive mascot - center */}

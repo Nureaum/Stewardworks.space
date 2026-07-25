@@ -376,15 +376,15 @@ export default function TreasureMap({
         <div style={{ border: '2px solid var(--ok, #74f0a0)', borderRadius: 6, padding: '14px 16px', background: 'var(--pn, #241542)', display: 'flex', gap: 14, alignItems: 'center', boxShadow: '0 0 18px rgba(116,240,160,.1)' }}>
           <img src={chiaSvg} alt="Chia" width={64} height={80} style={{ imageRendering: 'pixelated', flex: 'none', filter: 'drop-shadow(0 3px 0 rgba(0,0,0,.4))' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="font-pixel" style={{ fontSize: 8, color: 'var(--ok, #74f0a0)', marginBottom: 9, lineHeight: 1.5 }}>
+            <div className="font-pixel" style={{ fontSize: 10, color: 'var(--ok, #74f0a0)', marginBottom: 9, lineHeight: 1.5 }}>
               ❀ CHIA GUARDIAN · {chiaPct}%
             </div>
             <div style={{ height: 16, background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln, #3d2668)', borderRadius: 3, overflow: 'hidden', display: 'flex' }}>
               <div style={{ width: `${chiaDelivPct}%`, height: '100%', background: 'var(--gold, #ffd23f)', transition: 'width 0.5s' }} />
               <div style={{ width: `${chiaEngPct}%`, height: '100%', background: 'var(--ok, #74f0a0)', transition: 'width 0.5s' }} />
             </div>
-            <div style={{ fontSize: 15, color: 'var(--tx, #efe6ff)', marginTop: 8 }}>{stageLabel}</div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 4, fontSize: 13 }}>
+            <div style={{ fontSize: 18, color: 'var(--tx, #efe6ff)', marginTop: 8 }}>{stageLabel}</div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 4, fontSize: 15 }}>
               <span style={{ color: 'var(--gold, #ffd23f)' }}>■ Deliverables {chiaDelivPct}%</span>
               <span style={{ color: 'var(--ok, #74f0a0)' }}>■ Engagement {chiaEngPct}%</span>
             </div>
@@ -393,31 +393,31 @@ export default function TreasureMap({
 
         {/* Journey Progress */}
         <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 6, padding: '14px 16px', background: 'var(--pn, #241542)' }}>
-          <div className="font-pixel" style={{ fontSize: 8, color: 'var(--mu, #a493c9)', marginBottom: 10 }}>JOURNEY PROGRESS</div>
+          <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu, #a493c9)', marginBottom: 10 }}>JOURNEY PROGRESS</div>
           <div style={{ height: 16, background: 'rgba(0,0,0,.4)', border: '2px solid var(--ln, #3d2668)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ width: `${(clampedDays / 3) * 100}%`, height: '100%', background: 'linear-gradient(90deg, var(--p, #ff5fd2), var(--gold, #ffd23f))', transition: 'width 0.8s ease-out' }} />
           </div>
-          <div style={{ fontSize: 16, color: 'var(--tx, #efe6ff)', marginTop: 8 }}>
+          <div style={{ fontSize: 18, color: 'var(--tx, #efe6ff)', marginTop: 8 }}>
             {clampedDays} of 3 deliverables banked · {principlesCount} Steward Principles collected
           </div>
         </div>
 
         {/* Principles Banked */}
         <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 6, padding: '14px 16px', background: 'var(--pn, #241542)' }}>
-          <div className="font-pixel" style={{ fontSize: 8, color: 'var(--mu, #a493c9)', marginBottom: 10 }}>PRINCIPLES BANKED</div>
+          <div className="font-pixel" style={{ fontSize: 10, color: 'var(--mu, #a493c9)', marginBottom: 10 }}>PRINCIPLES BANKED</div>
           {bankedPrinciples.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {bankedPrinciples.map((bp) => {
                 const principle = principles.find(p => p.id === bp.principle_id);
                 return (
-                  <span key={bp.id} style={{ fontSize: 14, color: 'var(--ok, #74f0a0)', border: '1px solid var(--ok, #74f0a0)', borderRadius: 20, padding: '2px 10px' }}>
+                  <span key={bp.id} style={{ fontSize: 16, color: 'var(--ok, #74f0a0)', border: '1px solid var(--ok, #74f0a0)', borderRadius: 20, padding: '4px 12px' }}>
                     ◈ {principle ? principle.name : bp.principle_id}
                   </span>
                 )
               })}
             </div>
           ) : (
-            <div style={{ fontSize: 16, color: 'var(--mu, #a493c9)' }}>
+            <div style={{ fontSize: 18, color: 'var(--mu, #a493c9)' }}>
               None yet — each day&apos;s submission banks a fresh, unrepeatable principle.
             </div>
           )}
