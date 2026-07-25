@@ -83,8 +83,6 @@ export default function SubmissionTracker({
   onChangeDay?: (day: number) => void,
   userRole?: string
 }) {
-  // Guests cannot submit deliverables - hide this entire component
-  if (userRole === 'guest') return null;
 
   const [minimized, setMinimized] = useState(false);
   const [selectedPrinciple, setSelectedPrinciple] = useState('');
@@ -128,6 +126,9 @@ export default function SubmissionTracker({
     if (!localSubmission) return '';
     return localSubmission.external_video_url || localSubmission.submission_text || '';
   };
+
+  // Guests cannot submit deliverables - hide this entire component
+  if (userRole === 'guest') return null;
 
   if (!days || days.length === 0) {
     return (
