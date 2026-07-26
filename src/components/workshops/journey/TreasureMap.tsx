@@ -163,7 +163,7 @@ export default function TreasureMap({
           >
             ⇆ CHANGE CHARACTER
           </button>
-          {allDone && (
+          {allDone && userRole !== 'guest' && (
             <button
               onClick={onOpenWin}
               className="font-pixel"

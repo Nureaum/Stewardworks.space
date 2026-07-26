@@ -166,6 +166,7 @@ export default function JourneyClient({
 
   // Auto-show victory screen ONE TIME when 75% (3 approved) is first reached
   React.useEffect(() => {
+    if (userRole === 'guest') return;
     if (approvedDaysCount >= 3 && character) {
       const key = `stewardworks.victory.seen.${cohortId}`
       try {
@@ -403,7 +404,7 @@ export default function JourneyClient({
                 padding: 40,
               }}
             >
-              {victoryVisible && character ? (
+              {victoryVisible && character && userRole !== 'guest' ? (
                 <VictoryScreen
                   character={character}
                   daysComplete={approvedDaysCount}
@@ -457,7 +458,7 @@ export default function JourneyClient({
                   onDeliverableSubmitted={(msg, shouldOpenVictory) => {
                     showToast(msg)
                     router.refresh()
-                    if (shouldOpenVictory) {
+                    if (shouldOpenVictory && userRole !== 'guest') {
                       // Automatically open victory screen when all 3 days are complete
                       setTimeout(() => setVictoryVisible(true), 800)
                     }
@@ -488,7 +489,7 @@ export default function JourneyClient({
                     onDeliverableSubmitted={(msg, shouldOpenVictory) => {
                       showToast(msg)
                       router.refresh()
-                      if (shouldOpenVictory) {
+                      if (shouldOpenVictory && userRole !== 'guest') {
                         setTimeout(() => setVictoryVisible(true), 800)
                       }
                     }}
@@ -553,7 +554,7 @@ export default function JourneyClient({
                 cohortId={cohortId}
                 onBookmark={handleBookmark}
                 onlyContributors={true}
-              />
+              isAdmin={isAdmin} />
             </div>
           )}
 
@@ -566,7 +567,7 @@ export default function JourneyClient({
                 cohortId={cohortId}
                 onBookmark={handleBookmark}
                 onlyStudents={true}
-              />
+              isAdmin={isAdmin} />
             </div>
           )}
 

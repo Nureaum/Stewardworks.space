@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead, markAllAnnouncementsAsRead } from '@/app/actions/bulletins';
 import { getShowcaseItems } from '@/app/actions/workshops/showcase';
-import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions';
+import { fetchUserPicks, getArcadeAvatar, fetchAllQuizzes } from '@/app/admin/workforce-pathways/actions';
 import { getUnreadNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/app/actions/notificationActions';
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
 import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero';
@@ -71,6 +71,7 @@ export default function CozyHubRoom({
   const [unreadIds, setUnreadIds] = useState<string[]>([]);
   const [bulletinText, setBulletinText] = useState('');
   const [hasUnreadBulletin, setHasUnreadBulletin] = useState(false);
+  const [dbQuizzes, setDbQuizzes] = useState<any[]>([]);
   const [bulletinUpdatedAt, setBulletinUpdatedAt] = useState<string | null>(null);
   const [personalNotifications, setPersonalNotifications] = useState<any[]>([]);
   // Bookmarks & Engagements Data
@@ -115,6 +116,7 @@ export default function CozyHubRoom({
   const [wellnessResources, setWellnessResources] = useState<{slot_key:string;label:string;title:string;description:string}[]>([]);
   const [wellnessTones, setWellnessTones] = useState<{id:string;name:string;frequency:number;wave_type:string;gain:number;audio_url?:string}[]>([]);
   const [customMedTime, setCustomMedTime] = useState('');
+  const [customMedLoading, setCustomMedLoading] = useState(false);
   
   const [lampIndex, setLampIndex] = useState(0);
 
@@ -284,6 +286,11 @@ export default function CozyHubRoom({
       }).finally(() => {
         setLoadingWorkforcePicks(false);
       });
+      fetchAllQuizzes().then((quizzes) => {
+        setDbQuizzes(quizzes || []);
+      }).catch((err) => {
+        console.error('Failed to load quizzes:', err);
+      });
       // Also fetch arcade avatar for pathway card display
       if (!arcadeAvatar) {
         getArcadeAvatar(user.id).then((data) => {
@@ -394,9 +401,17 @@ export default function CozyHubRoom({
   const handleCustomMed = (e: React.FormEvent) => {
     e.preventDefault();
     const mins = parseInt(customMedTime);
-    if (!isNaN(mins) && mins > 0) {
+    if (!isNaN(mins) && mins > 0 && !customMedLoading) {
+      setCustomMedLoading(true);
+      // Apply the new timer value
       setMed(mins * 60);
-      setCustomMedTime('');
+      // Keep loading until React flushes the display update (two animation frames)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setCustomMedLoading(false);
+          setCustomMedTime('');
+        });
+      });
     }
   };
   const medToggle = toggleMed;
@@ -1211,23 +1226,60 @@ export default function CozyHubRoom({
         .sw-med-input::-webkit-outer-spin-button,
         .sw-med-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .sw-med-input[type=number] { -moz-appearance: textfield; }
-        .sw-med-btn:hover { background: rgba(255,255,255,0.1) !important; }
+        .sw-med-btn:hover:not(:disabled) { background: rgba(255,255,255,0.12) !important; }
+        @keyframes sw-med-spin { to { transform: rotate(360deg); } }
       `}</style>
       <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"9px","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={med1}>1 min</button>
       <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"9px","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={med5}>5 min</button>
       <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"9px","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={med10}>10 min</button>
-      <form onSubmit={handleCustomMed} style={{"display":"flex","alignItems":"center","background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"9px","backdropFilter":"blur(6px)","overflow":"hidden"}}>
+      <form onSubmit={handleCustomMed} style={{"display":"flex","alignItems":"center","background": customMedLoading ? "rgba(255,255,255,.25)" : "rgba(255,255,255,.16)","border": customMedLoading ? "1px solid rgba(255,255,255,.7)" : "1px solid rgba(255,255,255,.4)","borderRadius":"9px","backdropFilter":"blur(6px)","overflow":"hidden","transition":"background .2s, border .2s"}}>
         <input 
           className="sw-med-input"
           type="number" 
           value={customMedTime} 
           onChange={(e) => setCustomMedTime(e.target.value)} 
-          placeholder="Custom min" 
-          style={{"background":"transparent","border":"none","padding":"8px 12px","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","width":"90px","outline":"none","textAlign":"center"}}
+          placeholder="min" 
+          disabled={customMedLoading}
+          style={{"background":"transparent","border":"none","padding":"8px 12px","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","width":"72px","outline":"none","textAlign":"center","opacity": customMedLoading ? 0.5 : 1}}
           min="1"
         />
         <div style={{"width":"1px","height":"20px","background":"rgba(255,255,255,.3)"}}></div>
-        <button type="submit" className="sw-med-btn" style={{"background":"transparent","border":"none","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","fontWeight":"600","transition":"background .2s"}}>Set</button>
+        <button
+          type="submit"
+          className="sw-med-btn"
+          disabled={customMedLoading || !customMedTime}
+          style={{
+            background: customMedLoading ? "rgba(255,255,255,.15)" : "transparent",
+            border: "none",
+            padding: "8px 14px",
+            cursor: customMedLoading ? "wait" : "pointer",
+            fontFamily: "'DM Mono',monospace",
+            fontSize: "12px",
+            color: "#fff",
+            fontWeight: "600",
+            transition: "background .2s",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            opacity: !customMedTime && !customMedLoading ? 0.5 : 1,
+          }}
+        >
+          {customMedLoading ? (
+            <>
+              <span style={{
+                display: "inline-block",
+                width: "11px",
+                height: "11px",
+                border: "2px solid rgba(255,255,255,.3)",
+                borderTopColor: "#fff",
+                borderRadius: "50%",
+                animation: "sw-med-spin .65s linear infinite",
+                flexShrink: 0,
+              }} />
+              Setting
+            </>
+          ) : "Set"}
+        </button>
       </form>
     </div>
     {/*  play controls  */}
@@ -1847,11 +1899,17 @@ export default function CozyHubRoom({
                                 const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id);
                                 const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—';
                                 const dotColor = STEP_COLORS[idx % STEP_COLORS.length];
+                                
+                                const qData = (QUIZZES as any)[pathway.id]?.[stop.id] || {};
+                                const dbQ = dbQuizzes.find(q => q.pathway_id === pathway.id && q.stop_id === stop.id);
+                                const meta = dbQ?.options?.find((o: any) => o.id === '__meta__') || {};
+                                const resultLabel = (dbQ && (dbQ.result || meta.result)) ? (dbQ.result || meta.result) : (qData.result || stop.name);
+
                                 return (
                                   <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '9px 11px', background: '#fff', border: '3px solid #1c1526', borderRadius: '7px' }}>
                                     <span style={{ width: '22px', height: '22px', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dotColor, color: '#1c1526', border: '2px solid #1c1526', borderRadius: '4px', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '8px', fontWeight: 700 }}>{pick ? '✦' : '·'}</span>
                                     <span style={{ flex: 1, minWidth: 0 }}>
-                                      <span style={{ display: 'block', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '7px', color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{stop.name}</span>
+                                      <span style={{ display: 'block', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '7px', color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{resultLabel}</span>
                                       <span style={{ display: 'block', fontFamily: "'VT323', 'DM Mono', monospace", fontSize: '20px', lineHeight: 1.2, color: '#10285e', marginTop: '2px' }}>{answerLabel}</span>
                                     </span>
                                   </div>

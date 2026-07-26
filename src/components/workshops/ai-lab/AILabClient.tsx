@@ -307,7 +307,7 @@ export default function AILabClient({
                         toast.error(`Failed to bookmark "${title}"`, { position: 'bottom-center', id: `bookmark-error-${key}` });
                       }
                     }}
-                  />
+                  isAdmin={userRole === 'admin' || userRole === 'super_admin'} />
                 )}
             
             </div>

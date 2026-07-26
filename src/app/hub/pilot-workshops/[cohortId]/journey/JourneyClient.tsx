@@ -414,6 +414,7 @@ export default function JourneyClient({
                   handleAddEngagement('bookmark', title, source, url);
                 }}
                 onlyContributors={true}
+                isAdmin={isAdmin}
               />
             </div>
           )}
@@ -429,6 +430,7 @@ export default function JourneyClient({
                   handleAddEngagement('bookmark', title, source, url);
                 }}
                 onlyStudents={true}
+                isAdmin={isAdmin}
               />
             </div>
           )}

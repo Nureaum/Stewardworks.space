@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react'
 import type { WorkshopShowcase, WorkshopEngagement } from '@/types/workshops'
 import { getAllGenerations, addEngagement, uploadCreationImage } from '@/app/actions/workshops/engagement'
 import { getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
+import { getShowcaseSettings, updateShowcaseSettings } from '@/app/actions/workshops/showcase_settings'
 import { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 
 /* ── local item shape ── */
@@ -62,12 +63,13 @@ interface ShowcaseProps {
   cohortId?: string
   onlyStudents?: boolean
   onlyContributors?: boolean
+  isAdmin?: boolean
 }
 
 /* ═══════════════════════════════════════════════════════════════
    Showcase Component
    ═══════════════════════════════════════════════════════════════ */
-export default function Showcase({ showcaseItems = [], engagements = [], onBookmark, cohortId, onlyStudents = false, onlyContributors = false }: ShowcaseProps) {
+export default function Showcase({ showcaseItems = [], engagements = [], onBookmark, cohortId, onlyStudents = false, onlyContributors = false, isAdmin = false }: ShowcaseProps) {
   const [viewModeState, setViewModeState] = useState('contributors' as 'contributors' | 'students')
   const activeViewMode = onlyStudents ? 'students' : onlyContributors ? 'contributors' : viewModeState
   const [filter, setFilter] = useState('all')
@@ -81,6 +83,43 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
   // Student showcase data
   const [studentItems, setStudentItems] = useState([] as any[])
   const [studentsLoading, setStudentsLoading] = useState(false)
+
+  const [settings, setSettings] = useState({
+    contributors_title: '★ CONTRIBUTORS SHOWCASE LIBRARY',
+    contributors_description: 'Curated lessons, articles, audio guides, and AI-generated packs from community contributors, partner educators, and the StewardWorks AI Lab. Bookmark items to your desk for quick reference during workshops.',
+    student_title: '★ STUDENT SHOWCASE LIBRARY',
+    student_description: 'Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.'
+  })
+  const [showSettingsForm, setShowSettingsForm] = useState(false)
+  const [editSettings, setEditSettings] = useState(settings)
+  const [savingSettings, setSavingSettings] = useState(false)
+
+  useEffect(() => {
+    getShowcaseSettings().then(data => {
+      if (data) {
+        setSettings({
+          contributors_title: data.contributors_title || '★ CONTRIBUTORS SHOWCASE LIBRARY',
+          contributors_description: data.contributors_description || 'Curated lessons, articles, audio guides, and AI-generated packs from community contributors, partner educators, and the StewardWorks AI Lab. Bookmark items to your desk for quick reference during workshops.',
+          student_title: data.student_title || '★ STUDENT SHOWCASE LIBRARY',
+          student_description: data.student_description || 'Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.'
+        })
+      }
+    }).catch(err => console.error('Failed to load settings', err))
+  }, [])
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true)
+    try {
+      await updateShowcaseSettings(editSettings)
+      setSettings(editSettings)
+      setShowSettingsForm(false)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
 
   // Add Showcase form state
   const [showAddForm, setShowAddForm] = useState(false)
@@ -311,25 +350,36 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
         background: 'linear-gradient(180deg,rgba(255,210,63,.07),rgba(255,210,63,.02))',
         boxShadow: '0 0 24px rgba(255,210,63,.08)',
       }}>
-        <h2 className="font-pixel" style={{
-          fontSize: 'clamp(11px,1.6vw,15px)',
-          color: 'var(--gold,#ffd23f)',
-          margin: 0,
-          lineHeight: 1.5,
-        }}>
-          ★ CONTRIBUTORS SHOWCASE LIBRARY
-        </h2>
-        <p style={{
-          fontSize: 14,
-          color: 'var(--mu,#a493c9)',
-          margin: '8px 0 0',
-          lineHeight: 1.55,
-        }}>
-          Curated lessons, articles, audio guides, and AI-generated packs from community
-          contributors, partner educators, and the StewardWorks AI Lab.
-          Bookmark items to your desk for quick reference during workshops.
-        </p>
-      </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            <div>
+              <h2 className="font-pixel" style={{
+                fontSize: 'clamp(11px,1.6vw,15px)',
+                color: 'var(--gold,#ffd23f)',
+                margin: 0,
+                lineHeight: 1.5,
+              }}>
+                {settings.contributors_title}
+              </h2>
+              <p style={{
+                fontSize: 16,
+                color: 'var(--mu,#a493c9)',
+                margin: '8px 0 0',
+                lineHeight: 1.55,
+              }}>
+                {settings.contributors_description}
+              </p>
+            </div>
+            {isAdmin && (
+              <button
+                onClick={() => { setEditSettings(settings); setShowSettingsForm(true); }}
+                className="font-pixel"
+                style={{ flex: 'none', fontSize: 9, padding: '10px 16px', background: 'transparent', color: 'var(--gold,#ffd23f)', border: '2px solid var(--gold,#ffd23f)', borderRadius: 8, cursor: 'pointer', letterSpacing: '.5px' }}
+              >
+                ✎ EDIT
+              </button>
+            )}
+          </div>
+        </div>
 
       {/* ═══ Filter Tabs ═══ */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '18px 0' }}>
@@ -397,24 +447,35 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                   margin: 0,
                   lineHeight: 1.5,
                 }}>
-                  ★ STUDENT SHOWCASE LIBRARY
+                  {settings.student_title}
                 </h2>
                 <p style={{
-                  fontSize: 15,
+                  fontSize: 18,
                   color: 'var(--mu,#a493c9)',
                   margin: '8px 0 0',
                   lineHeight: 1.55,
                 }}>
-                  Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.
+                  {settings.student_description}
                 </p>
               </div>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="font-pixel"
-                style={{ flex: 'none', fontSize: 9, padding: '10px 16px', background: '#ff5fd2', color: '#0e1512', border: 'none', borderRadius: 8, cursor: 'pointer', letterSpacing: '.5px', whiteSpace: 'nowrap' }}
-              >
-                + ADD SHOWCASE
-              </button>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {isAdmin && (
+                  <button
+                    onClick={() => { setEditSettings(settings); setShowSettingsForm(true); }}
+                    className="font-pixel"
+                    style={{ flex: 'none', fontSize: 9, padding: '10px 16px', background: 'transparent', color: '#ff5fd2', border: '2px solid #ff5fd2', borderRadius: 8, cursor: 'pointer', letterSpacing: '.5px' }}
+                  >
+                    ✎ EDIT
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="font-pixel"
+                  style={{ flex: 'none', fontSize: 9, padding: '10px 16px', background: '#ff5fd2', color: '#0e1512', border: 'none', borderRadius: 8, cursor: 'pointer', letterSpacing: '.5px', whiteSpace: 'nowrap' }}
+                >
+                  + ADD SHOWCASE
+                </button>
+              </div>
             </div>
           </div>
 
@@ -588,34 +649,11 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                     <div style={{ padding: '11px 12px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       {/* Left: content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                          <span className="font-pixel" style={{ 
-                            fontSize: 7, 
-                            padding: '3px 7px', 
-                            borderRadius: 4, 
-                            background: '#ff5fd2', 
-                            color: '#0e1512',
-                            letterSpacing: '.5px'
-                          }}>
-                            {item.kind === 'generation' ? '✦ AI GEN' : '◎ MEDIA'}
-                          </span>
-                          <span className="font-pixel" style={{ 
-                            fontSize: 7, 
-                            padding: '3px 7px', 
-                            borderRadius: 4, 
-                            background: 'rgba(77,255,160,.15)', 
-                            color: '#4dffa0',
-                            border: '1px solid rgba(77,255,160,.3)'
-                          }}>
-                            {(item.source || 'EDEN').replace(/student showcase/i, 'SHOWCASE').toUpperCase()}
-                          </span>
-                        </div>
-                        
-                        <div style={{ fontSize: 16, color: 'var(--tx,#d6ffe0)', lineHeight: 1.2, marginBottom: 5 }}>
+                        <div style={{ fontSize: 24, color: 'var(--tx,#d6ffe0)', lineHeight: 1.2, marginBottom: 5 }}>
                           {item.title}
                         </div>
                         
-                        <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', marginTop: 5 }}>
+                        <div style={{ fontSize: 18, color: 'var(--mu,#77b78d)', marginTop: 5 }}>
                           by {item.profiles?.full_name || 'Student'}
                         </div>
                       </div>
@@ -697,29 +735,8 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                 }}
               >
                 <div style={{ padding: '16px 18px' }}>
-                  {/* Header with tags and close button */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 13 }}>
-                    <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                      <span className="font-pixel" style={{ 
-                        fontSize: 7, 
-                        padding: '4px 8px', 
-                        borderRadius: 4, 
-                        background: '#ff5fd2', 
-                        color: '#0e1512'
-                      }}>
-                        {studentDetail.kind === 'generation' ? '✦ AI GEN' : '◎ MEDIA'}
-                      </span>
-                      <span className="font-pixel" style={{ 
-                        fontSize: 7, 
-                        padding: '4px 8px', 
-                        borderRadius: 4, 
-                        background: 'rgba(77,255,160,.15)', 
-                        color: '#4dffa0',
-                        border: '1px solid rgba(77,255,160,.3)'
-                      }}>
-                        {studentDetail.source || 'EDEN'}
-                      </span>
-                    </div>
+                  {/* Header with close button */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', gap: 10, marginBottom: 13 }}>
                     <button 
                       onClick={() => setStudentDetail(null)}
                       title="Close"
@@ -870,6 +887,40 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
             </div>
           )}
         </>
+      )}
+
+
+      {/* ═══ Settings Edit Modal (Admin Only) ═══ */}
+      {showSettingsForm && isAdmin && (
+        <div onClick={() => setShowSettingsForm(false)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(6,12,9,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 500, background: 'var(--bg,#12081e)', border: '2px solid var(--gold,#ffd23f)', borderRadius: 14, padding: 'clamp(20px,3vw,32px)', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 className="font-pixel" style={{ fontSize: 12, color: 'var(--gold,#ffd23f)', margin: 0 }}>⚙ EDIT SHOWCASE HEADERS</h3>
+              <button onClick={() => setShowSettingsForm(false)} style={{ background: 'none', border: '1.5px solid rgba(255,210,63,.3)', borderRadius: '50%', width: 28, height: 28, color: 'var(--gold,#ffd23f)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+
+            <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>CONTRIBUTORS TITLE</label>
+            <input value={editSettings.contributors_title} onChange={e => setEditSettings(s => ({...s, contributors_title: e.target.value}))} style={{ width: '100%', padding: '10px 12px', fontSize: 14, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', marginBottom: 16, fontFamily: 'inherit' }} />
+
+            <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>CONTRIBUTORS DESCRIPTION</label>
+            <textarea value={editSettings.contributors_description} onChange={e => setEditSettings(s => ({...s, contributors_description: e.target.value}))} rows={3} style={{ width: '100%', padding: '10px 12px', fontSize: 14, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', marginBottom: 16, fontFamily: 'inherit', resize: 'vertical' }} />
+
+            <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>STUDENT TITLE</label>
+            <input value={editSettings.student_title} onChange={e => setEditSettings(s => ({...s, student_title: e.target.value}))} style={{ width: '100%', padding: '10px 12px', fontSize: 14, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', marginBottom: 16, fontFamily: 'inherit' }} />
+
+            <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>STUDENT DESCRIPTION</label>
+            <textarea value={editSettings.student_description} onChange={e => setEditSettings(s => ({...s, student_description: e.target.value}))} rows={3} style={{ width: '100%', padding: '10px 12px', fontSize: 14, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', marginBottom: 16, fontFamily: 'inherit', resize: 'vertical' }} />
+
+            <button
+              onClick={handleSaveSettings}
+              disabled={savingSettings}
+              className="font-pixel"
+              style={{ width: '100%', fontSize: 10, padding: '14px 20px', background: savingSettings ? '#4a3a5a' : 'var(--gold,#ffd23f)', color: '#0e1512', border: 'none', borderRadius: 8, cursor: savingSettings ? 'wait' : 'pointer', letterSpacing: '.5px' }}
+            >
+              {savingSettings ? '⏳ SAVING...' : '💾 SAVE SETTINGS'}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ═══ Preview Modal ═══ */}
