@@ -1,10 +1,11 @@
 import React from "react";
 import PixelHero from "./PixelHero";
+import PathwayCardDownload from "@/components/shared/PathwayCardDownload";
 
 
 
 export default function ArcadeTheme(props: any) {
-const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pwJobCount, onSwitchPathway, otherPwName, pwIntro, atlasIsTrail, pwIsCreator, pwIsEnviro, atlasEdges, atlasNodes, atlasIsBasecamp, jobRows, boardChips, jobFilterChips, jobFilter, popupOpen, popColor: propsPopColor, popMark, popShelf, popStopName, onClosePopup, popBlurb, popEntryCount, popEntryList, popCall, popType, popSub, popTitle, popMedia, popImages, popParas, popFacts, popSrcs, pwTag, suggestOpen, onOpenSuggest, onCloseSuggest, sgDone, sgNotDone, sgTitle, onSgTitle, sgUrl, onSgUrl, sgPathway, onSgPathway, sgType, onSgType, sgStop, onSgStop, sgNote, onSgNote, canSubmit, sgSubmitStyle, onSubmitSuggest, sgSubmitting, isSteward, isExplorer, onRoleExplorer, onRoleSteward, onToggleIntro, introToggleLabel, introExpanded, waypointCount, noteCount, jobCount, showTrailhead, entryIsCrossroads, entryIsMaps, showPathway, creatorTipMeta, enviroTipMeta, mapCards, onPickCreator, onPickEnviro, stop, roleExplorerStyle, roleStewardStyle, pwCards, showOverview, navItems, theme, setTheme, footTag, popEntry, initialAvatar, onSaveAvatar, pw, pwAccent, isAdminUser, stopCounts } = props;
+const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pwJobCount, onSwitchPathway, otherPwName, pwIntro, atlasIsTrail, pwIsCreator, pwIsEnviro, atlasEdges, atlasNodes, atlasIsBasecamp, jobRows, boardChips, jobFilterChips, jobFilter, popupOpen, popColor: propsPopColor, popMark, popShelf, popStopName, onClosePopup, popBlurb, popEntryCount, popEntryList, popCall, popType, popSub, popTitle, popMedia, popImages, popParas, popFacts, popSrcs, pwTag, suggestOpen, onOpenSuggest, onCloseSuggest, sgDone, sgNotDone, sgTitle, onSgTitle, sgUrl, onSgUrl, sgPathway, onSgPathway, sgType, onSgType, sgStop, onSgStop, sgNote, onSgNote, sgContributor, onSgContributor, canSubmit, sgSubmitStyle, onSubmitSuggest, sgSubmitting, isSteward, isExplorer, onRoleExplorer, onRoleSteward, onToggleIntro, introToggleLabel, introExpanded, waypointCount, noteCount, jobCount, showTrailhead, entryIsCrossroads, entryIsMaps, showPathway, creatorTipMeta, enviroTipMeta, mapCards, onPickCreator, onPickEnviro, stop, roleExplorerStyle, roleStewardStyle, pwCards, showOverview, navItems, theme, setTheme, footTag, popEntry, initialAvatar, onSaveAvatar, pw, pwAccent, isAdminUser, stopCounts } = props;
 
   
       const showShell = false;
@@ -426,9 +427,9 @@ return (<>
       </div>
       </>)}
       {isExplorer && (<>
-      <button onClick={onOpenLibrary} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#d24dff", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>≡ Vault</button>
-      <button onClick={onOpenShelf} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>★ My Jobs Shelf · {shelfCount}</button>
-      <button onClick={onOpenSuggest} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ff6a2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>＋ Suggest</button>
+      <button type="button" onClick={onOpenLibrary} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#d24dff", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>≡ Vault</button>
+      <button type="button" onClick={onOpenShelf} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>★ My Jobs Shelf · {shelfCount}</button>
+      <button type="button" onClick={onOpenSuggest} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ff6a2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>＋ Suggest</button>
       </>)}
       {isSteward && (<>
       <a href="/admin/workforce-pathways" style={{flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#45d4ff", color: "#10285e", textDecoration: "none", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>Console ▶</a>
@@ -577,7 +578,7 @@ return (<>
         </div>
         <div style={{flex: "1"}}></div>
         {showQuestBtn && (<>
-        <button onClick={onOpenQuests} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>⚑ Quest board · {pwJobCount}</button>
+        <button type="button" onClick={onOpenQuests} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>⚑ Quest board · {pwJobCount}</button>
         </>)}
       </div>
 
@@ -837,7 +838,7 @@ return (<>
         <button onClick={onBackLibrary} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--panel)", color: "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>◀ Back</button>
         <div style={{flex: "1"}}></div>
         <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
-          <button style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "#ff6a2e", color: "#1c1526", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>QUEST BOARD</button>
+          <button type="button" onClick={onOpenQuests} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "#ff6a2e", color: "#1c1526", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>QUEST BOARD</button>
         </div>
       </div>
 
@@ -899,17 +900,7 @@ return (<>
           </div>
         </React.Fragment>))}
 
-        <div style={{border: "4px solid #1c1526", boxShadow: "5px 5px 0 rgba(18,12,26,.42)", borderRadius: "9px", background: "#163a82", overflow: "hidden"}}>
-          <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#45d4ff", borderBottom: "4px solid #1c1526"}}>
-            <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#10285e"}}>EXTERNAL JOB BOARDS</span>
-            <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#10285e", opacity: ".7"}}>SAVE A SEARCH</span>
-          </div>
-          <div style={{padding: "14px 16px", display: "flex", flexWrap: "wrap", gap: "8px"}}>
-            {libBoards.map((b: any, i: number) => (<React.Fragment key={i}>
-              <a href={b.url} target="_blank" rel="noopener" title={b.desc} style={{display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 12px", background: "#10285e", color: "var(--paper)", textDecoration: "none", fontSize: "16px", border: "2px solid #1c1526", boxShadow: "2px 2px 0 rgba(18,12,26,.4)", borderRadius: "5px"}}>↗ {b.label}</a>
-            </React.Fragment>))}
-          </div>
-        </div>
+
       </div>
     </div>
     </>)}
@@ -1045,12 +1036,19 @@ return (<>
           <span style={{fontSize: "17px", lineHeight: "1.3", color: "var(--muted)"}}>All picks in — confirm to beat the game.</span>
           </>)}
           {summitDone && (<>
-          <button onClick={onPrintCard} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "12px 15px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "9px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>🖨 Save / Print card</button>
+          <PathwayCardDownload
+            cardElementId="arcade-run-card"
+            fileName="pathway-run-card"
+            accentColor={pwAccent || "#ffdd2e"}
+            size="sm"
+            fontFamily="'Press Start 2P', monospace"
+            style={{ display: 'inline-flex' }}
+          />
           <button onClick={onResetRun} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "12px 15px", background: "var(--panel)", color: "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "9px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>↺ New run</button>
           </>)}
         </div>
 
-        <div className="run-card" style={{position: "relative", maxWidth: "770px", margin: "0 auto", background: "#f2f6ff", border: "5px solid #1c1526", boxShadow: "8px 8px 0 rgba(18,12,26,.42)", borderRadius: "12px", overflow: "hidden"}}>
+        <div id="arcade-run-card" className="run-card" style={{position: "relative", maxWidth: "770px", margin: "0 auto", background: "#f2f6ff", border: "5px solid #1c1526", boxShadow: "8px 8px 0 rgba(18,12,26,.42)", borderRadius: "12px", overflow: "hidden"}}>
           {summitDone && (<>
           <div style={{position: "absolute", top: "78px", right: "16px", zIndex: "3", padding: "8px 13px", background: "#ff2e8f", color: "#fff", border: "4px solid #1c1526", fontFamily: "'Press Start 2P',monospace", fontSize: "11px", letterSpacing: ".5px", transform: "rotate(-14deg)", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", animation: "ar-stamp .55s steps(4)"}}>RUN COMPLETE</div>
           </>)}
@@ -1235,10 +1233,25 @@ return (<>
             </select>
           </div>
           <div>
+            <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "var(--muted)", marginBottom: "8px"}}>NODE</div>
+            <select value={sgStop} onChange={onSgStop} style={{width: "100%", padding: "11px", background: "#10285e", color: "var(--paper)", border: "3px solid #1c1526", fontSize: "16px"}}>
+              <option value="terrain">Know the Terrain</option>
+              <option value="portfolio">Portfolio Strategy</option>
+              <option value="story">Story & Resume</option>
+              <option value="tools">Tools & AI Kit</option>
+              <option value="hiring">Who's Hiring</option>
+              <option value="mesa">MESA Basecamp</option>
+            </select>
+          </div>
+          <div>
             <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "var(--muted)", marginBottom: "8px"}}>TYPE</div>
             <select value={sgType} onChange={onSgType} style={{width: "100%", padding: "11px", background: "#10285e", color: "var(--paper)", border: "3px solid #1c1526", fontSize: "16px"}}>
               <option>Article</option><option>Tool</option><option>Program</option><option>Course</option><option>Job posting</option><option>Video</option>
             </select>
+          </div>
+          <div>
+            <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "var(--muted)", marginBottom: "8px"}}>YOUR NAME (OPTIONAL)</div>
+            <input className="arc" value={sgContributor} onInput={onSgContributor} placeholder="anonymous" style={{width: "100%", padding: "12px", background: "#10285e", color: "var(--paper)", border: "3px solid #1c1526", fontSize: "16px", outline: "none"}}/>
           </div>
         </div>
         <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "var(--muted)", margin: "14px 0 8px"}}>NOTE</div>

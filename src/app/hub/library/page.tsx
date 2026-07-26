@@ -23,6 +23,11 @@ export default async function LibraryPage() {
     }
   }
 
+  const { data: categories } = await supabase
+    .from('content_categories')
+    .select('*')
+    .order('sort_order', { ascending: true });
+
   const { data: resources } = await supabase
     .from('content_items')
     .select(`
@@ -36,5 +41,5 @@ export default async function LibraryPage() {
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
-  return <ClientLibraryPage initialResources={resources || []} isAdmin={isAdmin} />;
+  return <ClientLibraryPage initialResources={resources || []} initialCategories={categories || []} isAdmin={isAdmin} />;
 }

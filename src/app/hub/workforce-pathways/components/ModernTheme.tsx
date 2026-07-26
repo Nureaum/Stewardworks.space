@@ -1,4 +1,5 @@
 import React, { Fragment } from "react";
+import PathwayCardDownload from "@/components/shared/PathwayCardDownload";
 
 export default function ModernTheme(props: any) {
   const { 
@@ -770,13 +771,19 @@ export default function ModernTheme(props: any) {
               </div>
             ) : (
               <div style={{display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap"}}>
-                <button onClick={onPrintCard} style={{all:"unset" as any,cursor:"pointer",boxSizing:"border-box" as any,padding:"16px 32px",borderRadius:"14px",background:"var(--wood-d)",color:"#fff",font:"800 14px/1 'Exo'",letterSpacing:".05em",textTransform:"uppercase",boxShadow:"0 12px 24px -12px rgba(60,42,24,.7)"}}>Print Certificate</button>
+                <PathwayCardDownload
+                  cardElementId="modern-run-card"
+                  fileName="pathway-record"
+                  accentColor="var(--wood-d)"
+                  size="md"
+                  fontFamily="'Exo', sans-serif"
+                />
                 <button onClick={onResetRun} style={{all:"unset" as any,cursor:"pointer",boxSizing:"border-box" as any,padding:"16px 32px",borderRadius:"14px",border:"2px solid rgba(60,42,24,.2)",background:"transparent",color:"var(--ink)",font:"800 14px/1 'Exo'",letterSpacing:".05em",textTransform:"uppercase"}}>Reset Progress</button>
               </div>
             )}
           </div>
 
-          <div style={{flex:"0 0 380px",width:"100%"}}>
+          <div id="modern-run-card" style={{flex:"0 0 380px",width:"100%"}}>
             <div style={{background:"var(--parch)",borderRadius:"24px",border:"1px solid rgba(60,42,24,.15)",boxShadow:"0 24px 48px -24px rgba(36,31,23,.4)",overflow:"hidden"}}>
               <div style={{padding:"24px 28px",background:"var(--wood-d)",color:"#fff"}}>
                 <div style={{fontFamily:"'Baloo 2',cursive",fontWeight:700,fontSize:"24px",lineHeight:1.1,marginBottom:"6px"}}>Pathway Record</div>
@@ -818,9 +825,7 @@ export default function ModernTheme(props: any) {
       <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "14px"}}>
         <button onClick={onBackLibrary} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--wood-d)", color: "#fff", fontFamily: "'Courier New',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "1px solid rgba(60,42,24,.15)", borderRadius: "10px"}}>◀ Back</button>
         <div style={{flex: "1"}}></div>
-        <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
-          <button style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--blue)", color: "var(--ink)", fontFamily: "'Courier New',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "1px solid rgba(60,42,24,.2)", borderRadius: "10px", fontWeight: "bold"}}>QUEST BOARD</button>
-        </div>
+
       </div>
 
       <div style={{border: "1px solid rgba(60,42,24,.15)", boxShadow: "0 12px 30px -10px rgba(36,31,23,.15)", borderRadius: "16px", background: "#fff", marginBottom: "18px"}}>
@@ -881,17 +886,7 @@ export default function ModernTheme(props: any) {
           </div>
         </React.Fragment>))}
 
-        <div style={{border: "1px solid rgba(60,42,24,.15)", boxShadow: "0 12px 30px -10px rgba(36,31,23,.15)", borderRadius: "16px", background: "#fff", overflow: "hidden"}}>
-          <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#45d4ff", borderBottom: "1px solid rgba(60,42,24,.15)"}}>
-            <span style={{fontFamily: "'Courier New',monospace", fontSize: "10px", color: "var(--ink)"}}>EXTERNAL JOB BOARDS</span>
-            <span style={{fontFamily: "'Courier New',monospace", fontSize: "7px", color: "var(--ink)", opacity: ".7"}}>SAVE A SEARCH</span>
-          </div>
-          <div style={{padding: "14px 16px", display: "flex", flexWrap: "wrap", gap: "8px"}}>
-            {libBoards.map((b: any, i: number) => (<React.Fragment key={i}>
-              <a href={b.url} target="_blank" rel="noopener" title={b.desc} style={{display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 12px", background: "var(--ink)", color: "#fff", textDecoration: "none", fontSize: "16px", border: "2px solid rgba(60,42,24,.2)", boxShadow: "2px 2px 0 rgba(18,12,26,.4)", borderRadius: "5px"}}>↗ {b.label}</a>
-            </React.Fragment>))}
-          </div>
-        </div>
+
       </div>
     </div>
     </>)}

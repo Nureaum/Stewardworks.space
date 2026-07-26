@@ -122,7 +122,7 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
       {!minimized && (
         <>
           <div style={{ 
-            fontSize: 15, 
+            fontSize: 18, 
             color: 'var(--mu,#77b78d)', 
             lineHeight: 1.4, 
             marginBottom: 13, 

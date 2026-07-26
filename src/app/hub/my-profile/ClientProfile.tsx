@@ -1309,7 +1309,7 @@ export default function ClientProfile({
                           {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
                         <div style={{ fontSize: '12px', color: '#5a8a9a', marginTop: '7px' }}>{domain(b.external_url || b.url)}</div>
                       </div>
                     ))}
@@ -1337,7 +1337,7 @@ export default function ClientProfile({
                           {b.status === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.status === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
                         <div style={{ fontSize: '11px', color: '#A27532', marginTop: '7px' }}>🔖 {b.source}</div>
                       </div>
                       );
@@ -1361,7 +1361,7 @@ export default function ClientProfile({
                           {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#1a2a1a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                        <div style={{ fontWeight: 700, color: '#1a2a1a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
                         <div style={{ fontSize: '12px', color: '#3a5a4a', marginTop: '7px' }}>{b.source || domain(b.url)}</div>
                       </div>
                     ))}
@@ -1384,7 +1384,7 @@ export default function ClientProfile({
                           {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#4a2a1a', fontSize: '15px', lineHeight: 1.3 }}>{b.title.replace(/^Job:\s*/, '')}</div>
+                        <div style={{ fontWeight: 700, color: '#4a2a1a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title.replace(/^Job:\s*/, '')}</div>
                         <div style={{ fontSize: '12px', color: '#8a4a2a', marginTop: '7px' }}>{b.source}</div>
                       </div>
                     ))}
@@ -1407,7 +1407,7 @@ export default function ClientProfile({
                           {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#1a3a4a', fontSize: '15px', lineHeight: 1.3 }}>{b.title}</div>
+                        <div style={{ fontWeight: 700, color: '#1a3a4a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
                         <div style={{ fontSize: '12px', color: '#3a6a7a', marginTop: '7px' }}>{b.source}</div>
                       </div>
                     ))}

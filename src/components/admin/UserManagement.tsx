@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Shield, User as UserIcon, AlertCircle, Loader2, Plus, X, Eye, EyeOff, Mail, Trash2 } from 'lucide-react';
 import { useAdminLoading } from '@/context/AdminLoadingContext';
+import toast from 'react-hot-toast';
 
 interface Profile {
   id: string;
@@ -116,7 +117,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
 
       setInviteEmail('');
       setIsInviteModalOpen(false);
-      alert('Guest invited successfully!');
+      toast.success('Guest invited successfully!');
     } catch (err: any) {
       setInviteError(err.message);
     } finally {
@@ -145,7 +146,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
       setDeleteTarget(null);
       setDeleteConfirmText('');
     } catch (err: any) {
-      alert(`Error deleting user: ${err.message}`);
+      toast.error(`Error deleting user: ${err.message}`);
     } finally {
       setIsDeleting(false);
     }
@@ -153,7 +154,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
 
   const handleRoleChange = async (userId: string, newRole: string, email: string) => {
     if (!isMainAdmin) {
-      alert("Only the Main Admin can change user roles.");
+      toast.error("Only the Main Admin can change user roles.");
       return;
     }
     
@@ -175,7 +176,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
       // Update local state (userId here is clerk_user_id)
       setUsers(users.map(u => u.clerk_user_id === userId ? { ...u, role: newRole, role_name: newRole } : u));
     } catch (err: any) {
-      alert(`Error updating role: ${err.message}`);
+      toast.error(`Error updating role: ${err.message}`);
     } finally {
       setUpdatingId(null);
     }

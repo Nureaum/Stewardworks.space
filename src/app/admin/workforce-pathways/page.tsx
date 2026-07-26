@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { PATHWAYS as INITIAL_PATHWAYS } from '@/data/workforce-content';
-import { fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, updateWorkforceMeta, upsertWorkforceEntry, deleteWorkforceEntry, uploadImage, fetchWorkforceJobs, upsertWorkforceJob, deleteWorkforceJob, fetchPendingSuggestions, approveSuggestion, dismissSuggestion, fetchAllPublishedSources, fetchExternalBoards, upsertExternalBoard, deleteExternalBoard } from './actions';
+import { fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, updateWorkforceMeta, upsertWorkforceEntry, deleteWorkforceEntry, uploadImage, fetchWorkforceJobs, upsertWorkforceJob, deleteWorkforceJob, fetchPendingSuggestions, approveSuggestion, dismissSuggestion, updateSuggestion, fetchAllPublishedSources, fetchExternalBoards, upsertExternalBoard, deleteExternalBoard } from './actions';
 import QuizzesEditor from './components/QuizzesEditor';
 import FinaleEditor from './components/FinaleEditor';
+import './admin-arcade.css';
 type Tab = 'overview' | 'published' | 'quizzes' | 'finale' | 'board' | 'external' | 'suggestions' | 'sources';
 
 export default function WorkforcePathwaysAdminPage() {
@@ -108,33 +109,6 @@ export default function WorkforcePathwaysAdminPage() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
-        .arcade-container {
-          --paper: #f2f6ff;
-          --muted: #9fc0ee;
-          --ink: #10285e;
-          --panel: #163a82;
-          --panel2: #2656a4;
-          font-family: 'VT323', monospace;
-          color: var(--paper);
-          background: radial-gradient(130% 100% at 50% 0%, #1e4aa0 0%, #0d2352 92%);
-          height: 100%;
-        }
-        .arcade-container button {
-          font-family: inherit;
-        }
-        .awf-scroll::-webkit-scrollbar { width: 14px; height: 14px; }
-        .awf-scroll::-webkit-scrollbar-thumb { background: #4a4468; border: 3px solid #1b1730; }
-        .awf-scroll::-webkit-scrollbar-track { background: #1b1730; }
-        .awf-rte a{color:#45d4ff}
-        .awf-rte ul,.awf-rte ol{margin:10px 0;padding-left:22px}
-        .awf-rte li{margin:4px 0}
-        .awf-rte h3{font-family:'Press Start 2P',monospace;font-size:11px;color:#ffdd2e;margin:12px 0 6px;line-height:1.5}
-        .awf-rte strong,.awf-rte b{color:#fff;font-weight:bold;}
-        .awf-rte em,.awf-rte i{color:#ffe6b0;font-style:italic;}
-        .awf-rte:empty:before{content:'Write the field note body - select text to format...';color:#6f6a88}
-      `}} />
       
       <div className="arcade-container absolute inset-0 flex flex-col overflow-hidden">
         
@@ -643,7 +617,7 @@ export default function WorkforcePathwaysAdminPage() {
                                 {stopName} · {s.type}
                               </span>
                             </div>
-                            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '7px', color: 'var(--muted)' }}>FROM anonymous</span>
+                            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '7px', color: 'var(--muted)' }}>FROM {s.subtitle || 'anonymous'}</span>
                           </div>
                           
                           <div style={{ fontSize: '22px', lineHeight: 1.2, color: 'var(--paper)' }}>{s.title}</div>
@@ -663,6 +637,13 @@ export default function WorkforcePathwaysAdminPage() {
                             
                             <div style={{ flex: 1 }}></div>
                             
+                            <button 
+                              type="button" 
+                              onClick={() => setEditingItem({ kind: 'suggestion', data: s })}
+                              style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '9px 13px', background: '#ffdd2e', color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', letterSpacing: '.4px', textTransform: 'uppercase', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px' }}
+                            >
+                              EDIT
+                            </button>
                             <button 
                               type="button" 
                               onClick={async () => {
@@ -742,7 +723,7 @@ export default function WorkforcePathwaysAdminPage() {
                     if (diffDays > 0) dateStr = diffDays + ' days ago';
                     
                     return (
-                      <a key={s.id} href={url || '#'} target="_blank" rel="noopener" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '14px', alignItems: 'center', padding: '14px 18px', borderBottom: '3px solid #10285e', textDecoration: 'none', color: 'var(--paper)' }}>
+                      <a key={s.id} href="/hub/library?category=f4fc9a34-ce7f-4e1c-a360-f28d8a55becc" target="_blank" rel="noopener" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '14px', alignItems: 'center', padding: '14px 18px', borderBottom: '3px solid #10285e', textDecoration: 'none', color: 'var(--paper)' }}>
                         <span style={{ width: '16px', height: '16px', flex: '0 0 auto', background: color, border: '3px solid #1c1526' }}></span>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '9px', flexWrap: 'wrap' }}>
@@ -786,7 +767,8 @@ export default function WorkforcePathwaysAdminPage() {
                   editingItem.kind === 'entry' 
                     ? (editingItem.data?.id ? 'EDIT RESOURCE' : 'ADD RESOURCE') 
                     : (editingItem.kind === 'job' && !editingItem.data?.id ? 'ADD POSTING' : 
-                       (editingItem.kind === 'external_board' && !editingItem.data?.id ? 'ADD BOARD' : 'EDIT'))
+                       (editingItem.kind === 'external_board' && !editingItem.data?.id ? 'ADD BOARD' : 
+                       (editingItem.kind === 'suggestion' ? 'EDIT SUGGESTION' : 'EDIT')))
                 )}
               </div>
               <button type="button" onClick={() => setEditingItem(null)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '30px', height: '30px', background: '#10285e', color: editingItem.kind === 'meta' ? '#ff6a2e' : (editingItem.kind === 'job' && !editingItem.data?.id ? '#ffdd2e' : '#14f0c8'), border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Press Start 2P', monospace", fontSize: '10px' }}>✕</button>
@@ -1054,6 +1036,64 @@ export default function WorkforcePathwaysAdminPage() {
                   </div>
                 );
               })()}
+              {editingItem.kind === 'suggestion' && (() => {
+                const labelStyle = { display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', color: 'var(--muted)', letterSpacing: '.4px', marginBottom: '10px' };
+                const inputStyle = { width: '100%', padding: '12px 13px', background: '#10285e', color: '#f2f6ff', border: '3px solid #1c1526', fontFamily: "'VT323', monospace", fontSize: '19px', outline: 'none' };
+                const ed = editingItem.data;
+                const setEd = (newData: any) => setEditingItem({ ...editingItem, data: newData });
+                
+                return (
+                  <div>
+                    <div style={{ marginBottom: '15px', display: 'flex', gap: '15px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={labelStyle}>TRAIL</label>
+                        <select value={ed.pathway_id || 'creator'} onChange={e => setEd({ ...ed, pathway_id: e.target.value })} style={inputStyle}>
+                          <option value="creator">Content Creator</option>
+                          <option value="enviro">Environmental</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={labelStyle}>NODE</label>
+                        <select value={ed.stop_id || 'terrain'} onChange={e => setEd({ ...ed, stop_id: e.target.value })} style={inputStyle}>
+                          <option value="terrain">Know the Terrain</option>
+                          <option value="portfolio">Portfolio Strategy</option>
+                          <option value="story">Story & Resume</option>
+                          <option value="tools">Tools & AI Kit</option>
+                          <option value="hiring">Who's Hiring</option>
+                          <option value="mesa">MESA Basecamp</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={labelStyle}>TYPE</label>
+                        <select value={ed.type || 'Article'} onChange={e => setEd({ ...ed, type: e.target.value })} style={inputStyle}>
+                          <option>Article</option>
+                          <option>Tool</option>
+                          <option>Program</option>
+                          <option>Course</option>
+                          <option>Job posting</option>
+                          <option>Video</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={labelStyle}>TITLE</label>
+                      <input value={ed.title || ''} onChange={e => setEd({ ...ed, title: e.target.value })} style={inputStyle}/>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={labelStyle}>LINK (URL)</label>
+                      <input value={ed.sources?.[0]?.[1] || ''} onChange={e => {
+                        const newSources = ed.sources ? [...ed.sources] : [['Link', '']];
+                        newSources[0] = [newSources[0]?.[0] || 'Link', e.target.value];
+                        setEd({ ...ed, sources: newSources });
+                      }} style={inputStyle}/>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={labelStyle}>CONTRIBUTOR</label>
+                      <input value={ed.subtitle || ''} onChange={e => setEd({ ...ed, subtitle: e.target.value })} style={inputStyle}/>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', alignItems: 'center' }}>
                 {editingItem.error && <span style={{ color: '#ff6b6b', fontFamily: "'VT323', monospace", fontSize: '15px' }}>{editingItem.error}</span>}
@@ -1157,6 +1197,28 @@ export default function WorkforcePathwaysAdminPage() {
                       setEditingItem(null);
                     } catch (err: any) {
                       console.error("Save external board error:", err);
+                      setEditingItem({ ...editingItem, error: err.message || String(err) });
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  } else if (editingItem.kind === 'suggestion') {
+                    setIsSaving(true);
+                    try {
+                      const payload = {
+                        title: editingItem.data.title || '',
+                        pathway_id: editingItem.data.pathway_id || 'creator',
+                        stop_id: editingItem.data.stop_id || 'terrain',
+                        type: editingItem.data.type || 'Article',
+                        subtitle: editingItem.data.subtitle || 'anonymous',
+                        sources: editingItem.data.sources || []
+                      };
+                      await updateSuggestion(editingItem.data.id, payload);
+                      // Refresh pending suggestions
+                      const data = await fetchPendingSuggestions();
+                      setPendingSuggestions(data);
+                      setEditingItem(null);
+                    } catch (err: any) {
+                      console.error("Save suggestion error:", err);
                       setEditingItem({ ...editingItem, error: err.message || String(err) });
                     } finally {
                       setIsSaving(false);

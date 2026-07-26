@@ -9,6 +9,7 @@ import { getCelebrateProps, getWinSkill, buildCastFx } from './VictoryEffects';
 import { PATHWAYS } from '@/data/workforce-content';
 import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions';
 import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero';
+import PathwayCardDownload from '@/components/shared/PathwayCardDownload';
 
 export function buildClientCertHTML(opts: any) {
   const { playerName, characterKey, certOrg, certFacilitator, certFacTitle,
@@ -175,19 +176,25 @@ function WorkforceProgressCards() {
                   CONTINUE →
                 </a>
               ) : (
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button onClick={() => window.print()} className="font-pixel" style={{ fontSize: 9, background: pathwayColor, color: '#0e1512', border: 'none', borderRadius: 6, padding: '9px 14px', cursor: 'pointer', letterSpacing: 0.5, fontWeight: 700 }}>
-                    🖨 SAVE / PRINT CARD
-                  </button>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   <button onClick={() => setExpandedCard(isExpanded ? null : pathway.id)} className="font-pixel" style={{ fontSize: 9, background: 'var(--bg,#12081e)', color: 'var(--tx,#d6ffe0)', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, padding: '7px 14px', cursor: 'pointer', letterSpacing: 0.5, fontWeight: 700 }}>
                     {isExpanded ? '✕ HIDE CARD' : '🗺 VIEW PATHWAY CARD'}
                   </button>
+                  {isExpanded && (
+                    <PathwayCardDownload
+                      cardElementId={`vs-pathway-card-${pathway.id}`}
+                      fileName={`${pathway.id}-pathway-card`}
+                      accentColor={pathwayColor}
+                      size="sm"
+                      fontFamily="'Press Start 2P', monospace"
+                    />
+                  )}
                 </div>
               )}
 
               {/* Expanded Pathway Card (inline) - same as Chia page */}
               {isComplete && isExpanded && (
-                <div className="run-card" style={{ position: 'relative', marginTop: 18, maxWidth: 770, background: '#f2f6ff', border: '5px solid #1c1526', boxShadow: '8px 8px 0 rgba(18,12,26,.42)', borderRadius: 12, overflow: 'hidden' }}>
+                <div id={`vs-pathway-card-${pathway.id}`} className="run-card" style={{ position: 'relative', marginTop: 18, maxWidth: 770, background: '#f2f6ff', border: '5px solid #1c1526', boxShadow: '8px 8px 0 rgba(18,12,26,.42)', borderRadius: 12, overflow: 'hidden' }}>
                   {/* RUN COMPLETE stamp */}
                   <div style={{ position: 'absolute', top: 78, right: 16, zIndex: 3, padding: '8px 13px', background: '#ff2e8f', color: '#fff', border: '4px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: 11, letterSpacing: '.5px', transform: 'rotate(-14deg)', boxShadow: '3px 3px 0 rgba(18,12,26,.4)' }}>RUN COMPLETE</div>
 

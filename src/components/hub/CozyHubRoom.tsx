@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead } from '@/app/actions/bulletins';
+import { getAnnouncements, getUnreadAnnouncements, getSystemBulletins, markAnnouncementAsRead, markAllAnnouncementsAsRead } from '@/app/actions/bulletins';
 import { getShowcaseItems } from '@/app/actions/workshops/showcase';
 import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions';
 import { getUnreadNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/app/actions/notificationActions';
@@ -12,6 +12,7 @@ import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
 import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero';
 import type { CohortProgress } from '@/app/api/workshops/progress/route';
 import CohortSwitcher from '@/components/hub/CohortSwitcher';
+import PathwayCardDownload from '@/components/shared/PathwayCardDownload';
 
 interface CozyHubRoomProps {
   isAdmin?: boolean;
@@ -113,6 +114,7 @@ export default function CozyHubRoom({
   const [activeToneId, setActiveToneId] = useState<string | null>(null);
   const [wellnessResources, setWellnessResources] = useState<{slot_key:string;label:string;title:string;description:string}[]>([]);
   const [wellnessTones, setWellnessTones] = useState<{id:string;name:string;frequency:number;wave_type:string;gain:number;audio_url?:string}[]>([]);
+  const [customMedTime, setCustomMedTime] = useState('');
   
   const [lampIndex, setLampIndex] = useState(0);
 
@@ -389,6 +391,14 @@ export default function CozyHubRoom({
   const med1 = () => setMed(60);
   const med5 = () => setMed(300);
   const med10 = () => setMed(600);
+  const handleCustomMed = (e: React.FormEvent) => {
+    e.preventDefault();
+    const mins = parseInt(customMedTime);
+    if (!isNaN(mins) && mins > 0) {
+      setMed(mins * 60);
+      setCustomMedTime('');
+    }
+  };
   const medToggle = toggleMed;
   const medTheme0 = () => setMedTheme(0);
   const medTheme1 = () => setMedTheme(1);
@@ -481,13 +491,7 @@ export default function CozyHubRoom({
     phone: { show: hovered === 'phone', enter: () => setHovered('phone'), click: async () => {
       setAnnouncementsSidebarOpen(true);
       setNotifTab('announcements');
-      // Mark announcements as read immediately
-      if (unreadIds.length > 0) {
-        for (const id of unreadIds) {
-          await markAnnouncementAsRead(id);
-        }
-        setUnreadIds([]);
-      }
+      
       // Mark bulletin as read after a brief delay so user sees the "UPDATED" badge
       if (bulletinUpdatedAt && hasUnreadBulletin) {
         setTimeout(() => {
@@ -1201,10 +1205,30 @@ export default function CozyHubRoom({
     </div>
 
     {/*  presets  */}
-    <div style={{"display":"flex","gap":"10px","marginBottom":"14px"}}>
+    <div style={{"display":"flex","gap":"10px","marginBottom":"14px","flexWrap":"wrap","justifyContent":"center"}}>
+      <style>{`
+        .sw-med-input::placeholder { color: rgba(255,255,255,0.6); }
+        .sw-med-input::-webkit-outer-spin-button,
+        .sw-med-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .sw-med-input[type=number] { -moz-appearance: textfield; }
+        .sw-med-btn:hover { background: rgba(255,255,255,0.1) !important; }
+      `}</style>
       <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"9px","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={med1}>1 min</button>
       <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"9px","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={med5}>5 min</button>
       <button style={{"background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"9px","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","backdropFilter":"blur(6px)"}} onClick={med10}>10 min</button>
+      <form onSubmit={handleCustomMed} style={{"display":"flex","alignItems":"center","background":"rgba(255,255,255,.16)","border":"1px solid rgba(255,255,255,.4)","borderRadius":"9px","backdropFilter":"blur(6px)","overflow":"hidden"}}>
+        <input 
+          className="sw-med-input"
+          type="number" 
+          value={customMedTime} 
+          onChange={(e) => setCustomMedTime(e.target.value)} 
+          placeholder="Custom min" 
+          style={{"background":"transparent","border":"none","padding":"8px 12px","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","width":"90px","outline":"none","textAlign":"center"}}
+          min="1"
+        />
+        <div style={{"width":"1px","height":"20px","background":"rgba(255,255,255,.3)"}}></div>
+        <button type="submit" className="sw-med-btn" style={{"background":"transparent","border":"none","padding":"8px 16px","cursor":"pointer","fontFamily":"'DM Mono',monospace","fontSize":"12px","color":"#fff","fontWeight":"600","transition":"background .2s"}}>Set</button>
+      </form>
     </div>
     {/*  play controls  */}
     <div style={{"display":"flex","gap":"12px","alignItems":"center","marginBottom":"22px"}}>
@@ -1764,19 +1788,25 @@ export default function CozyHubRoom({
                           CONTINUE →
                         </button>
                       ) : (
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                          <button onClick={() => window.print()} style={{ background: pathwayColor, color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.06em', fontWeight: 700 }}>
-                            🖨 SAVE / PRINT CARD
-                          </button>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                           <button onClick={() => setExpandedPathwayCard(isExpanded ? null : pathway.id)} style={{ background: '#21282E', color: '#FDDD9A', border: 'none', borderRadius: '8px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.06em', fontWeight: 700, transition: 'all .2s ease' }}>
                             {isExpanded ? '✕ HIDE CARD' : '🎮 VIEW PATHWAY CARD'}
                           </button>
+                          {isExpanded && (
+                            <PathwayCardDownload
+                              cardElementId={`pathway-card-${pathway.id}`}
+                              fileName={`${pathway.id}-pathway-card`}
+                              accentColor={pathwayColor}
+                              size="sm"
+                              fontFamily="'DM Mono', monospace"
+                            />
+                          )}
                         </div>
                       )}
 
                       {/* Arcade-style Pathway Card (shown on button click when complete) */}
                       {isComplete && isExpanded && (
-                        <div id={`pathway-card-${pathway.id}`} className="run-card" style={{ position: 'relative', marginTop: '18px', maxWidth: '770px', background: '#f2f6ff', border: '5px solid #1c1526', boxShadow: '8px 8px 0 rgba(18,12,26,.42)', borderRadius: '12px', overflow: 'hidden', animation: 'sw-fade .3s ease' }}>
+                        <div id={`pathway-card-${pathway.id}`} className="run-card" style={{ position: 'relative', marginTop: '18px', maxWidth: '770px', background: '#f2f6ff', border: '5px solid #1c1526', boxShadow: '8px 8px 0 rgba(18,12,26,.42)', borderRadius: '12px', overflow: 'hidden' }}>
                           {/* RUN COMPLETE stamp */}
                           <div style={{ position: 'absolute', top: '78px', right: '16px', zIndex: 3, padding: '8px 13px', background: '#ff2e8f', color: '#fff', border: '4px solid #1c1526', fontFamily: "'Press Start 2P', 'DM Mono', monospace", fontSize: '11px', letterSpacing: '.5px', transform: 'rotate(-14deg)', boxShadow: '3px 3px 0 rgba(18,12,26,.4)' }}>RUN COMPLETE</div>
 
@@ -1940,11 +1970,8 @@ export default function CozyHubRoom({
           {unreadIds.length > 0 && (
             <button
               onClick={async () => {
-                const idsToMark = [...unreadIds];
                 setUnreadIds([]);
-                for (const id of idsToMark) {
-                  await markAnnouncementAsRead(id);
-                }
+                await markAllAnnouncementsAsRead();
               }}
               style={{"fontFamily":"'DM Mono',monospace","fontSize":"9px","color":"#A27532","background":"rgba(162,117,50,.1)","border":"1px solid rgba(162,117,50,.25)","borderRadius":"6px","padding":"4px 10px","cursor":"pointer","transition":"background .2s"}}
             >

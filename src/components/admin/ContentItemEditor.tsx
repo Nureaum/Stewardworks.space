@@ -96,6 +96,18 @@ export default function ContentItemEditor({
     }
   }, [initialData, topics]);
 
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      setLocalCategories(categories);
+      setCategoryId((prevId) => {
+        if (!prevId && !initialData?.category_id) {
+          return categories[0].id;
+        }
+        return prevId;
+      });
+    }
+  }, [categories, initialData]);
+
   const handleThumbnailUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {

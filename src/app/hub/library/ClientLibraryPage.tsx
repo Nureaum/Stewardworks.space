@@ -67,7 +67,7 @@ function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, '');
 }
 
-export default function ClientLibraryPage({ initialResources, isAdmin = false }: { initialResources: any[], isAdmin?: boolean }) {
+export default function ClientLibraryPage({ initialResources, initialCategories = [], isAdmin = false }: { initialResources: any[], initialCategories?: any[], isAdmin?: boolean }) {
   const router = useRouter();
   const [view, setView] = useState<'shelf'|'catalog'>('shelf');
   const [cat, setCat] = useState<string | null>(null);
@@ -88,11 +88,17 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const categorySlug = params.get('category');
-    if (categorySlug && categorySlug === 'how-to-use-ai') {
-      // We'll set the category after categories are loaded
-      // This will be handled in the next useEffect
+    if (categorySlug) {
+      const match = initialCategories.find(c => c.slug === categorySlug || c.id === categorySlug);
+      if (match) {
+        setCat(match.id);
+        setView('catalog');
+      } else {
+        setCat(categorySlug);
+        setView('catalog');
+      }
     }
-  }, []);
+  }, [initialCategories]);
 
   useEffect(() => {
     fetchUserBookmarks('library').then(data => {
@@ -228,19 +234,47 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
   // Map real categories
   const { cats, res } = useMemo(() => {
     const uniqueCats = new Map();
+    
+    // First, seed with all known categories from DB
+    initialCategories.forEach((cat, idx) => {
+      const catName = cat.label || 'Uncategorized';
+      const proto = PROTOTYPE_CATS.find(p => p.name === catName);
+      const colorIdx = idx % PALETTE.length;
+      
+      const slug = cat.slug || '';
+      const match = slug.match(/--c-([a-fA-F0-9]{6})$/);
+      const customColor = match ? `#${match[1]}` : null;
+      
+      uniqueCats.set(cat.id, {
+        id: cat.id,
+        name: catName,
+        spineLabel: proto ? proto.spineLabel : catName,
+        code: proto ? proto.code : (300 + idx * 10).toString() + '.0',
+        color: customColor || (proto ? proto.color : PALETTE[colorIdx]),
+        blurb: proto ? proto.blurb : (cat.description || `Resources related to ${catName}.`),
+        section: proto ? (proto as any).section : undefined
+      });
+    });
+
     const mappedRes = resources.map((r, i) => {
       const catId = r.category?.id || 'uncategorized';
+      
+      // Fallback if resource category is missing from initialCategories
       if (!uniqueCats.has(catId)) {
         const catName = r.category?.label || 'Uncategorized';
         const proto = PROTOTYPE_CATS.find(p => p.name === catName);
         const colorIdx = uniqueCats.size % PALETTE.length;
+        
+        const slug = r.category?.slug || '';
+        const match = slug.match(/--c-([a-fA-F0-9]{6})$/);
+        const customColor = match ? `#${match[1]}` : null;
         
         uniqueCats.set(catId, {
           id: catId,
           name: catName,
           spineLabel: proto ? proto.spineLabel : catName,
           code: proto ? proto.code : (300 + uniqueCats.size * 10).toString() + '.0',
-          color: proto ? proto.color : PALETTE[colorIdx],
+          color: customColor || (proto ? proto.color : PALETTE[colorIdx]),
           blurb: proto ? proto.blurb : (r.category?.description || `Resources related to ${catName}.`),
           section: proto ? (proto as any).section : undefined
         });
@@ -1338,7 +1372,7 @@ export default function ClientLibraryPage({ initialResources, isAdmin = false }:
                       )}
                     </button>
                     <button onClick={() => { setConsoleOpen(false); setForm({ mode: 'add-direct', data: { title: '', url: '', cat: cats[0]?.id || '', type: 'article', note: '', peerReviewed: false, sourceTag: '' } }); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#2E5534', color: '#FEFAE0', border: 'none', padding: '11px 18px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '13px', cursor: 'pointer', boxShadow: '0 3px 0 #1d3a23' }}>+ Add Resource</button>
-                    <button onClick={() => { setConsoleOpen(false); setForm({ mode: 'shelf', data: { name: '', color: PALETTE[0] } }); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fff', color: '#2E5534', border: '1.5px solid rgba(46,85,52,.45)', padding: '11px 18px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>+ Add Book</button>
+                    <button onClick={() => { setConsoleOpen(false); router.push('/admin/library/categories'); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fff', color: '#2E5534', border: '1.5px solid rgba(46,85,52,.45)', padding: '11px 18px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>+ Add Book</button>
                   </div>
                 </div>
 

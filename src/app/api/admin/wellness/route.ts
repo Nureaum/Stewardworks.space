@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 import { auth } from '@clerk/nextjs/server'
+import { revalidatePath } from 'next/cache'
 
 async function verifyAdmin() {
   const { userId } = await auth()
@@ -95,6 +96,11 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Failed to save resources: ' + insertError.message }, { status: 500 })
     }
   }
+
+  revalidatePath('/api/public/wellness')
+  revalidatePath('/api/admin/wellness')
+  revalidatePath('/admin/wellness')
+  revalidatePath('/hub')
 
   return NextResponse.json({ success: true })
 }

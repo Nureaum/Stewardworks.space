@@ -233,7 +233,8 @@ export async function submitSuggestion(suggestion: any) {
       stop_id: suggestion.stop_id,
       body_html: suggestion.note,
       sources: suggestion.url ? [['Link', suggestion.url]] : [],
-      status: 'pending'
+      status: 'pending',
+      subtitle: suggestion.contributor || 'anonymous'
     })
     .select()
     .single();
@@ -248,6 +249,14 @@ export async function fetchPendingSuggestions() {
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
   return data || [];
+}
+
+export async function updateSuggestion(id: string, updates: any) {
+  const { error } = await supabase
+    .from('workforce_entries')
+    .update(updates)
+    .eq('id', id);
+  if (error) throw error;
 }
 
 export async function approveSuggestion(id: string) {

@@ -413,7 +413,7 @@ export default function SubmissionTracker({
               <div className="font-pixel" style={{ fontSize: 9, color: 'var(--ng,#4dffa0)', letterSpacing: 1 }}>
                 ◈ YOUR CHIA GUARDIAN · {chiaPct}% GROWN
               </div>
-              <div style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: 'var(--mu,#77b78d)', lineHeight: 1.2 }}>
+              <div style={{ fontFamily: "'VT323', monospace", fontSize: 18, color: 'var(--mu,#77b78d)', lineHeight: 1.2 }}>
                 {chiaStageLabel} - each teacher-approved deliverable grows it +25%. Bank below; it sprouts once your instructor approves.
               </div>
             </div>
@@ -508,7 +508,7 @@ export default function SubmissionTracker({
                   {localSubmission?.title && (
                     <div style={{ marginBottom: 12 }}>
                       <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>TITLE</div>
-                      <div style={{ fontSize: 18, color: 'var(--tx,#d6ffe0)', fontFamily: "'VT323', monospace", fontWeight: 'bold' }}>
+                      <div style={{ fontSize: 18, color: 'var(--tx,#d6ffe0)', fontFamily: "'VT323', monospace" }}>
                         {localSubmission.title}
                       </div>
                     </div>
@@ -518,7 +518,7 @@ export default function SubmissionTracker({
                   {localSubmission?.description && (
                     <div style={{ marginBottom: 12 }}>
                       <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>DESCRIPTION</div>
-                      <div style={{ fontSize: 15, color: 'var(--tx,#d6ffe0)', fontFamily: "'VT323', monospace", lineHeight: 1.4 }}>
+                      <div style={{ fontSize: 18, color: 'var(--tx,#d6ffe0)', fontFamily: "'VT323', monospace", lineHeight: 1.4 }}>
                         {localSubmission.description}
                       </div>
                     </div>
@@ -548,6 +548,27 @@ export default function SubmissionTracker({
                     </div>
                   )}
 
+                  {/* Principle shown inside the card */}
+                  {currentPrincipleName && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>
+                        ◈ APPLIED PRINCIPLE
+                      </div>
+                      <div style={{ 
+                        display: 'inline-flex',
+                        background: 'rgba(69,214,255,.15)',
+                        border: '1px solid var(--cy,#45d6ff)',
+                        borderRadius: 4,
+                        padding: '6px 12px',
+                        color: 'var(--cy,#45d6ff)',
+                        fontFamily: "'Press Start 2P', monospace",
+                        fontSize: 9,
+                      }}>
+                        {currentPrincipleName}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Edit Button - always show so students can update anytime */}
                   <div style={{ marginTop: 16 }}>
                     <button onClick={handleEditClick} className="font-pixel"
@@ -556,27 +577,6 @@ export default function SubmissionTracker({
                     </button>
                   </div>
                 </div>
-                
-                {/* Principle shown outside the card */}
-                {currentPrincipleName && (
-                  <div style={{ marginTop: 4 }}>
-                    <div className="font-pixel" style={{ fontSize: 7, color: 'var(--mu,#77b78d)', marginBottom: 6 }}>
-                      ◈ APPLIED PRINCIPLE
-                    </div>
-                    <div style={{ 
-                      display: 'inline-flex',
-                      background: 'rgba(69,214,255,.15)',
-                      border: '1px solid var(--cy,#45d6ff)',
-                      borderRadius: 4,
-                      padding: '6px 12px',
-                      color: 'var(--cy,#45d6ff)',
-                      fontFamily: "'Press Start 2P', monospace",
-                      fontSize: 9,
-                    }}>
-                      {currentPrincipleName}
-                    </div>
-                  </div>
-                )}
                 </>
               ) : (
                 /* Submission Form */
@@ -630,7 +630,7 @@ export default function SubmissionTracker({
                         border: '2px solid var(--ln,#28432f)',
                         borderRadius: 6,
                         color: 'var(--tx,#d6ffe0)',
-                        fontSize: 15,
+                        fontSize: 16,
                         padding: '10px 14px',
                         fontFamily: "'VT323', monospace",
                         boxSizing: 'border-box',

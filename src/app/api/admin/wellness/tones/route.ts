@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 import { auth } from '@clerk/nextjs/server'
+import { revalidatePath } from 'next/cache'
 
 async function verifyAdmin() {
   const { userId } = await auth()
@@ -47,6 +48,12 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    
+  revalidatePath('/api/public/wellness')
+  revalidatePath('/api/admin/wellness')
+  revalidatePath('/admin/wellness')
+  revalidatePath('/hub')
+
   return NextResponse.json({ tone: data })
 }
 
@@ -82,6 +89,12 @@ export async function PUT(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  revalidatePath('/api/public/wellness')
+  revalidatePath('/api/admin/wellness')
+  revalidatePath('/admin/wellness')
+  revalidatePath('/hub')
+
   return NextResponse.json({ tone: data })
 }
 
@@ -103,5 +116,11 @@ export async function DELETE(request: Request) {
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  revalidatePath('/api/public/wellness')
+  revalidatePath('/api/admin/wellness')
+  revalidatePath('/admin/wellness')
+  revalidatePath('/hub')
+
   return NextResponse.json({ success: true })
 }

@@ -385,7 +385,11 @@ export function EnvironmentalScene({
           {/* small obsidian shards at the foot */}
           <g fill="#26252e"><path d="M118 638 l10 -22 l7 22 Z"/><path d="M150 642 l6 -14 l6 14 Z"/><path d="M422 640 l8 -18 l7 18 Z"/><path d="M454 642 l6 -13 l6 13 Z"/><path d="M300 648 l7 -15 l6 15 Z"/></g>
           <g fill="#4a4956" opacity=".7"><path d="M133 638 l4 -12 l1 12 Z"/><path d="M429 640 l4 -12 l1 12 Z"/></g>
-          <text className="el-tip" x="300" y="586" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="10" fontWeight="700" letterSpacing="1.5" fill="#e7e2ee">RED ISLAND LAVA DOME VOLCANO (SALTON BUTTES)</text>
+          <g className="el-tip" transform="translate(300 575)">
+            <rect x="-85" y="-14" width="170" height="32" rx="6" fill="#FBF2D2" stroke="#B89A5E" strokeWidth="2"/>
+            <text x="0" y="1" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="9.5" fontWeight="700" letterSpacing=".5" fill="#6b4a2a">RED ISLAND LAVA DOME</text>
+            <text x="0" y="12" textAnchor="middle" fontFamily="'Courier New',monospace" fontSize="7.5" letterSpacing="1.5" fill="#9c7a3a">VOLCANO · SALTON BUTTES</text>
+          </g>
 
           {/* woven trade mat */}
           <ellipse cx="248" cy="760" rx="150" ry="26" fill="#B98B4E"/>

@@ -102,6 +102,47 @@ export async function markAnnouncementAsRead(announcementId: string) {
   }
 }
 
+export async function markAllAnnouncementsAsRead() {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  
+  if (!userId) return;
+
+  // Get all announcements
+  const { data: allAnnouncements } = await supabase
+    .from('hub_announcements')
+    .select('id');
+
+  if (!allAnnouncements?.length) return;
+
+  // Get user's read announcements
+  const { data: userReads } = await supabase
+    .from('announcement_reads')
+    .select('announcement_id')
+    .eq('user_id', userId);
+
+  const readIds = new Set(userReads?.map(r => r.announcement_id) || []);
+  
+  const unreadAnnouncements = allAnnouncements.filter(a => !readIds.has(a.id));
+  
+  if (unreadAnnouncements.length === 0) return;
+
+  const inserts = unreadAnnouncements.map(a => ({
+    announcement_id: a.id,
+    user_id: userId
+  }));
+
+  const { error } = await supabase
+    .from('announcement_reads')
+    .insert(inserts);
+
+  if (error) {
+    if (error.code !== '23505') {
+      console.error('markAllAnnouncementsAsRead error:', error);
+    }
+  }
+}
+
 export async function getUnreadAnnouncements() {
   const supabase = createServerSupabaseClient();
   const { userId } = await auth();

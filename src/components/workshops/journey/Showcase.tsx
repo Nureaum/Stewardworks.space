@@ -236,6 +236,37 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
     preview ? allItems.find(c => c.id === preview) ?? null : null
   , [preview, allItems])
 
+  /* student derived */
+  const processedStudentItems = useMemo(() => {
+    return studentItems.map(item => {
+      let detectedType = 'aigen'
+      const url = (item.url || '').toLowerCase();
+      if (url) {
+        const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$|\/)/i.test(url) || url.includes('/content-uploads/') || url.includes('supabase');
+        const isVideo = url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com') || /\.(mp4|webm|mov|avi)(\?|#|$|\/)/i.test(url);
+        const isAudio = /\.(mp3|wav|ogg|m4a|flac|aac)(\?|#|$|\/)/i.test(url) || url.includes('soundcloud.com') || url.includes('spotify.com');
+        
+        if (isVideo) detectedType = 'video';
+        else if (isAudio) detectedType = 'audio';
+        else if (isImage) detectedType = 'image';
+        else if (item.kind !== 'generation') detectedType = 'article';
+      }
+      return { ...item, type: detectedType };
+    })
+  }, [studentItems])
+
+  const filteredStudentItems = useMemo(() => {
+    const tab = FILTER_TABS.find(t => t.key === filter)
+    if (!tab || !tab.typeFilter) return processedStudentItems
+    return processedStudentItems.filter(c => c.type === tab.typeFilter)
+  }, [filter, processedStudentItems])
+
+  const studentCounts = useMemo(() => {
+    const m: Record<string, number> = { all: processedStudentItems.length }
+    processedStudentItems.forEach(c => { m[c.type] = (m[c.type] || 0) + 1 })
+    return m
+  }, [processedStudentItems])
+
   /* ── render ── */
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -387,6 +418,35 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
             </div>
           </div>
 
+          {/* ═══ Filter Tabs ═══ */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '18px 0' }}>
+            {FILTER_TABS.map(tab => {
+              const active = filter === tab.key
+              const count = tab.typeFilter ? (studentCounts[tab.typeFilter] || 0) : studentCounts.all
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key)}
+                  className="font-pixel"
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 'normal',
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    border: `2px solid #ff5fd2`,
+                    background: active ? '#ff5fd2' : 'transparent',
+                    color: active ? '#12081e' : '#ff5fd2',
+                    cursor: 'pointer',
+                    transition: 'all .15s',
+                    letterSpacing: '.5px',
+                  }}
+                >
+                  {tab.label} ({count})
+                </button>
+              )
+            })}
+          </div>
+
           {/* ═══ Add Showcase Modal ═══ */}
           {showAddForm && (
             <div onClick={() => setShowAddForm(false)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(6,12,9,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -453,10 +513,10 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
 
           {studentsLoading ? (
             <div className="p-8 text-center font-pixel" style={{ color: '#ff5fd2', marginTop: 40 }}>LOADING SHOWCASE...</div>
-          ) : studentItems.length === 0 ? (
-            <div className="p-12 text-center font-pixel" style={{ color: '#ff5fd2', border: '2px dashed rgba(255,95,210,0.3)', borderRadius: 12, marginTop: 20 }}>
-              The Student Showcase is currently empty.<br /><br />
-              <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>Generations will appear here when approved by the instructor.</span>
+          ) : filteredStudentItems.length === 0 ? (
+            <div className="p-12 text-center font-pixel" style={{ fontSize: 12, color: '#ff5fd2', border: '2px dashed rgba(255,95,210,0.3)', borderRadius: 12, marginTop: 20 }}>
+              The Student Showcase is currently empty for this filter.<br /><br />
+              <span style={{ fontSize: 10, color: 'var(--mu,#a493c9)' }}>Generations will appear here when approved by the instructor.</span>
             </div>
           ) : (
             <div style={{
@@ -465,7 +525,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
               gap: 13,
               marginTop: 18
             }}>
-              {studentItems.map(item => {
+              {filteredStudentItems.map(item => {
                 const isItemBookmarked = localBookmarks.has(item.title) || localBookmarksRef.current.has(item.title) || engagements.some(e => e.kind === 'bookmark' && e.title === item.title && e.status !== 'rejected');
                 return (
                   <div 
