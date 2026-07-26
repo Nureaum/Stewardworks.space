@@ -6,7 +6,7 @@ import { PixelSprite, buildIconUri } from '@/components/workshops/journey';
 import type { WorkshopCharacter, WorkshopProgressPrinciple, WorkshopDay, WorkshopProgress, WorkshopPrinciple } from '@/types/workshops';
 import { MAP_ICONS } from './character-data';
 import { getCelebrateProps, getWinSkill, buildCastFx } from './VictoryEffects';
-import { PATHWAYS } from '@/data/workforce-content';
+import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
 import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions';
 import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero';
 import PathwayCardDownload from '@/components/shared/PathwayCardDownload';
@@ -98,7 +98,14 @@ function WorkforceProgressCards() {
 
   const getAnswerLabel = (pick: any, pathwayId: string, stopId: string) => {
     if (pick.custom_answer) return pick.custom_answer;
-    if (pick.option_id) return pick.option_id;
+    if (pick.option_id) {
+      const quizData = (QUIZZES as any)[pathwayId]?.[stopId];
+      if (quizData?.options) {
+        const option = quizData.options.find((o: any) => o.id === pick.option_id);
+        return option?.label || pick.option_id;
+      }
+      return pick.option_id;
+    }
     return '—';
   };
 
