@@ -24,6 +24,8 @@ interface ArtifactReaderProps {
   onClose?: () => void
   inline?: boolean
   userRole?: string
+  onBookmark?: (key: string, title: string, source: string, url?: string) => void
+  isBookmarked?: boolean
 }
 
 /* Section accent color */
@@ -48,7 +50,7 @@ function relicUri(type: string, accent: string): string {
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='72' height='60' viewBox='0 0 72 60' shape-rendering='crispEdges'>${relic}</svg>`)}`
 }
 
-export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], allBankedPrinciples = [], currentDayPrincipleId: propCurrentDayPrincipleId, progressRows = [], submissions = [], onDeliverableSubmitted, onClose, inline, userRole = 'participant' }: ArtifactReaderProps) {
+export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], allBankedPrinciples = [], currentDayPrincipleId: propCurrentDayPrincipleId, progressRows = [], submissions = [], onDeliverableSubmitted, onClose, inline, userRole = 'participant', onBookmark, isBookmarked = false }: ArtifactReaderProps) {
   const readerAccent = secColor(entry.sectionKey)
   const iconSrc = relicUri(entry.entry_type, accent)
   const actLabel = scene?.label || `ACT ${dayNumber}`
@@ -221,6 +223,33 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
             {entry.title}
           </div>
         </div>
+        {/* Bookmark button — shown in both modal and inline modes when onBookmark is provided */}
+        {onBookmark && (
+          <button
+            onClick={() => onBookmark(
+              `${dayId}-${entry.id}`,
+              entry.title,
+              `${actLabel}: ${entry.sectionTitle}`,
+              cohortId ? `/hub/pilot-workshops/${cohortId}/journey?day=${dayNumber}&topic=${entry.id}` : undefined
+            )}
+            title={isBookmarked ? 'Already bookmarked' : 'Bookmark this lesson'}
+            className="font-pixel"
+            style={{
+              fontSize: 16,
+              color: isBookmarked ? 'var(--gold,#ffd23f)' : 'var(--mu,#a493c9)',
+              background: isBookmarked ? 'rgba(255,210,63,.15)' : 'transparent',
+              border: isBookmarked ? '1px solid var(--gold,#ffd23f)' : '1px solid var(--ln,#3d2668)',
+              borderRadius: 6,
+              padding: '6px 10px',
+              cursor: 'pointer',
+              flex: 'none',
+              transition: 'all 0.2s',
+              boxShadow: isBookmarked ? '0 0 8px rgba(255,210,63,.3)' : 'none',
+            }}
+          >
+            {isBookmarked ? '★' : '☆'}
+          </button>
+        )}
         {!inline && onClose && (
           <button
             onClick={onClose}

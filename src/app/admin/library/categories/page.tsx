@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useAdminLoading } from '@/context/AdminLoadingContext'
-import { BookMarked, Plus, Loader2, Search, X, Edit, Trash2, Check } from 'lucide-react'
+import { BookMarked, Plus, Loader2, Search, X, Edit, Trash2, Check, ChevronLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -223,6 +223,9 @@ export default function LibraryCategoriesPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-[24px]">
         <div>
+          <Link href="/admin/library" className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#a89a82] hover:text-[#241c12] transition-colors mb-3">
+            <ChevronLeft size={14} /> Back to Library
+          </Link>
           <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Manage Books</h1>
           <p className="mt-2 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">
             Create and manage Books (Categories) for the library shelf
@@ -234,7 +237,7 @@ export default function LibraryCategoriesPage() {
             onClick={() => setIsLoading(true)}
             className="bg-[#1a150d] text-[#efd9a8] px-6 py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
           >
-            + Add Topic
+            + Add Resource
           </Link>
         </div>
       </div>

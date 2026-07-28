@@ -51,7 +51,7 @@ export async function fetchWorkforceCounts() {
     supabase.from('workforce_entries').select('pathway_id, stop_id, status'),
     supabase.from('workforce_jobs').select('*', { count: 'exact', head: true }),
     supabase.from('workforce_external_boards').select('*', { count: 'exact', head: true }),
-    supabase.from('workforce_entries').select('*', { count: 'exact', head: true }).not('sources', 'is', null).neq('sources', '[]'),
+    supabase.from('content_items').select('*', { count: 'exact', head: true }).eq('category_id', 'f4fc9a34-ce7f-4e1c-a360-f28d8a55becc').in('topic_id', ['16acc180-063d-4d14-a789-94eccd836569', 'c332e4ed-5717-415e-850e-8da417081902']).eq('status', 'published'),
     supabase.from('workforce_quizzes').select('*', { count: 'exact', head: true })
   ]);
 
@@ -59,10 +59,12 @@ export async function fetchWorkforceCounts() {
     entryCounts.data.forEach(row => {
       if (row.status === 'pending') {
         pendingCount++;
-      } else if (row.status === 'published' || !row.status) {
+      } else if (row.status === 'published') {
         if (row.pathway_id === 'creator') creatorCount++;
         if (row.pathway_id === 'enviro') enviroCount++;
-        stopCounts[row.stop_id] = (stopCounts[row.stop_id] || 0) + 1;
+        // Key by "pathwayId:stopId" so counts are NOT mixed across pathways
+        const key = `${row.pathway_id}:${row.stop_id}`;
+        stopCounts[key] = (stopCounts[key] || 0) + 1;
       }
     });
   }
@@ -326,6 +328,7 @@ export async function fetchAllPublishedSources() {
       topic:env_literacy_topics(*)
     `)
     .eq('category_id', 'f4fc9a34-ce7f-4e1c-a360-f28d8a55becc')
+    .in('topic_id', ['16acc180-063d-4d14-a789-94eccd836569', 'c332e4ed-5717-415e-850e-8da417081902'])
     .eq('status', 'published')
     .order('created_at', { ascending: false });
   return data || [];

@@ -306,7 +306,7 @@ export default function WorkforcePathwaysAdminPage() {
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '18px' }}>
-                  <button type="button" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'block', background: '#163a82', border: '4px solid #1c1526', boxShadow: '5px 5px 0 rgba(18,12,26,.42)', borderRadius: '9px', overflow: 'hidden' }}>
+                  <button type="button" onClick={() => { setPwTab('creator'); setStopTab(pathways.find(p => p.id === 'creator')?.stops[0]?.id || ''); setActiveTab('published'); }} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'block', background: '#163a82', border: '4px solid #1c1526', boxShadow: '5px 5px 0 rgba(18,12,26,.42)', borderRadius: '9px', overflow: 'hidden' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px', background: '#ff6a2e', borderBottom: '4px solid #1c1526' }}>
                       <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '9px', color: '#10285e' }}>Content Creator</span>
                       <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6px', color: '#10285e', opacity: .72 }}>*Content Creator</span>
@@ -318,14 +318,21 @@ export default function WorkforcePathwaysAdminPage() {
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '14px' }}>
                         {creatorStops.map((s, i) => (
-                           <span key={i} style={{ padding: '5px 8px', background: '#2656a4', color: 'var(--muted)', fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', border: '2px solid #1c1526' }}>{s.name} {stopCounts[s.id] || 0}</span>
+                           <button
+                             key={i}
+                             type="button"
+                             onClick={(e) => { e.stopPropagation(); setPwTab('creator'); setStopTab(s.id); setActiveTab('published'); }}
+                             style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '5px 8px', background: '#2656a4', color: 'var(--muted)', fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', border: '2px solid #1c1526', transition: 'background .15s' }}
+                             onMouseEnter={e => (e.currentTarget.style.background = '#ff6a2e', e.currentTarget.style.color = '#10285e')}
+                             onMouseLeave={e => (e.currentTarget.style.background = '#2656a4', e.currentTarget.style.color = 'var(--muted)')}
+                           >{s.name} {stopCounts[`creator:${s.id}`] || 0}</button>
                         ))}
                       </div>
                       <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '7px', color: '#ff6a2e', letterSpacing: '.5px', marginTop: '14px' }}>PUBLISHED RESOURCES ▸</div>
                     </div>
                   </button>
 
-                  <button type="button" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'block', background: '#163a82', border: '4px solid #1c1526', boxShadow: '5px 5px 0 rgba(18,12,26,.42)', borderRadius: '9px', overflow: 'hidden' }}>
+                  <button type="button" onClick={() => { setPwTab('enviro'); setStopTab(pathways.find(p => p.id === 'enviro')?.stops[0]?.id || ''); setActiveTab('published'); }} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'block', background: '#163a82', border: '4px solid #1c1526', boxShadow: '5px 5px 0 rgba(18,12,26,.42)', borderRadius: '9px', overflow: 'hidden' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px', background: '#12f0c0', borderBottom: '4px solid #1c1526' }}>
                       <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '9px', color: '#10285e' }}>Environmental Careers</span>
                       <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6px', color: '#10285e', opacity: .72 }}>*Environmental Career</span>
@@ -337,7 +344,14 @@ export default function WorkforcePathwaysAdminPage() {
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '14px' }}>
                         {enviroStops.map((s, i) => (
-                           <span key={i} style={{ padding: '5px 8px', background: '#2656a4', color: 'var(--muted)', fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', border: '2px solid #1c1526' }}>{s.name} {stopCounts[s.id] || 0}</span>
+                           <button
+                             key={i}
+                             type="button"
+                             onClick={(e) => { e.stopPropagation(); setPwTab('enviro'); setStopTab(s.id); setActiveTab('published'); }}
+                             style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '5px 8px', background: '#2656a4', color: 'var(--muted)', fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', border: '2px solid #1c1526', transition: 'background .15s' }}
+                             onMouseEnter={e => (e.currentTarget.style.background = '#12f0c0', e.currentTarget.style.color = '#10285e')}
+                             onMouseLeave={e => (e.currentTarget.style.background = '#2656a4', e.currentTarget.style.color = 'var(--muted)')}
+                           >{s.name} {stopCounts[`enviro:${s.id}`] || 0}</button>
                         ))}
                       </div>
                       <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '7px', color: '#12f0c0', letterSpacing: '.5px', marginTop: '14px' }}>PUBLISHED RESOURCES ▸</div>
@@ -425,7 +439,7 @@ export default function WorkforcePathwaysAdminPage() {
                         <button key={s.id} type="button" onClick={() => setStopTab(s.id)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 12px', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', letterSpacing: '.4px', textTransform: 'uppercase', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px', background: isActive ? getStopColor(s.id) : '#163a82', color: isActive ? '#10285e' : '#8f88ad' }}>
                           {s.name}
                           <span style={{ minWidth: '20px', textAlign: 'center', padding: '3px 6px', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', background: isActive ? '#10285e' : '#2656a4', color: isActive ? '#f2f6ff' : '#9fc0ee' }}>
-                            {stopCounts[s.id] || 0}
+                            {stopCounts[pwTab+':'+s.id] || 0}
                           </span>
                         </button>
                       );
@@ -437,7 +451,7 @@ export default function WorkforcePathwaysAdminPage() {
                       <span style={{ width: '32px', height: '32px', background: '#10285e', color: getStopColor(activeStop.id), border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flex: '0 0 auto' }}>{activeStop.mark}</span>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '10px', color: '#10285e', lineHeight: 1.4 }}>{activeStop.name.toUpperCase()}</div>
-                        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: '#10285e', opacity: .75, marginTop: '6px' }}>{activePw.name.toUpperCase()} · {stopCounts[activeStop.id] || 0} PUBLISHED</div>
+                        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: '#10285e', opacity: .75, marginTop: '6px' }}>{activePw.name.toUpperCase()} · {stopCounts[`${pwTab}:${activeStop.id}`] || 0} PUBLISHED</div>
                       </div>
                     </div>
                     <button type="button" onClick={() => setEditingItem({ kind: 'entry', pathwayId: activePw.id, stopId: activeStop.id, data: {} })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '9px 12px', background: '#10285e', color: getStopColor(activeStop.id), fontFamily: "'Press Start 2P', monospace", fontSize: '8px', letterSpacing: '.5px', textTransform: 'uppercase', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.3)', borderRadius: '7px', flex: '0 0 auto' }}>＋ Add</button>

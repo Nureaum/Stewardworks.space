@@ -528,7 +528,7 @@ export default function ClientProfile({
   }, [activeCohortId, loadWorkshopData]);
 
   // Edit/Delete handlers for notes and generations
-  const handleDeleteEngagement = async (id: string, kind: 'note' | 'prompt' | 'generation') => {
+  const handleDeleteEngagement = async (id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark') => {
     setIsDeletingItem(true);
     try {
       await removeEngagement(id);
@@ -539,6 +539,8 @@ export default function ClientProfile({
         setPrompts(prev => prev.filter(p => p.id !== id));
       } else if (kind === 'generation') {
         setGenerations(prev => prev.filter(g => g.id !== id));
+      } else if (kind === 'bookmark') {
+        setWorkshopBookmarks(prev => prev.filter(b => b.id !== id));
       }
       // Close popups
       setSelectedNoteItem(null);
@@ -547,7 +549,7 @@ export default function ClientProfile({
       setIsEditingGeneration(false);
       // Reload to get updated engagement percentage
       await loadProfile();
-      setToast(`🗑️ ${kind.charAt(0).toUpperCase() + kind.slice(1)} deleted`);
+      setToast(`☆ Bookmark removed`);
     } catch (err) {
       console.error('Failed to delete engagement:', err);
       setToast('❌ Failed to delete');
@@ -1525,16 +1527,7 @@ export default function ClientProfile({
                       </div>
                     )}
                     
-                    {/* Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: '11px', color: '#7a5a3a' }}>
-                        {typeTag === 'IMAGE' && '🖼️'}
-                        {typeTag === 'VIDEO' && '🎥'}
-                        {typeTag === 'AUDIO' && '🍵'}
-                        {typeTag === 'LINK' && '🔗'}
-                        {' '}{typeTag}
-                      </div>
-                    </div>
+
                   </div>
                 </div>
               );
@@ -1580,11 +1573,13 @@ export default function ClientProfile({
                     <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
                   )}
                 </div>
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px' }}>{n.title}</div>
-                <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
-                  {n.content && n.content.length > 100 ? n.content.slice(0, 100) + '…' : n.content}
-                </div>
-                <div style={{ fontSize: '11px', color: '#7a5a3a' }}>📝 {n.source}</div>
+                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{n.title}</div>
+                {n.content && n.content !== n.title && (
+                  <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
+                    {n.content.length > 100 ? n.content.slice(0, 100) + '…' : n.content}
+                  </div>
+                )}
+                <div style={{ fontSize: '11px', color: '#7a5a3a' }}>📝 {n.source?.startsWith('workshop:') ? 'Workshop Portfolio' : n.source}</div>
               </div>
             ))}
             
@@ -1608,11 +1603,13 @@ export default function ClientProfile({
                     <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
                   )}
                 </div>
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px' }}>{p.title}</div>
-                <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
-                  {p.content && p.content.length > 100 ? p.content.slice(0, 100) + '…' : p.content}
-                </div>
-                <div style={{ fontSize: '11px', color: '#7a5a3a' }}>⌘ {p.source}</div>
+                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{p.title}</div>
+                {p.content && p.content !== p.title && (
+                  <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
+                    {p.content.length > 100 ? p.content.slice(0, 100) + '…' : p.content}
+                  </div>
+                )}
+                <div style={{ fontSize: '11px', color: '#7a5a3a' }}>⌘ {p.source?.startsWith('workshop:') ? 'Workshop Portfolio' : p.source}</div>
               </div>
             ))}
           </div>
@@ -1704,13 +1701,15 @@ export default function ClientProfile({
                 <div style={{ height: '1px', background: 'rgba(162,117,50,.18)', marginBottom: '16px' }} />
 
                 {/* Full content */}
-                <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '18px' }}>
-                  {selectedNoteItem.content}
-                </div>
+                {selectedNoteItem.content && selectedNoteItem.content !== selectedNoteItem.title && (
+                  <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '18px' }}>
+                    {selectedNoteItem.content}
+                  </div>
+                )}
 
                 {/* Source */}
                 <div style={{ fontSize: '11px', color: '#7a5a3a', fontFamily: '"DM Mono", monospace', letterSpacing: '.06em', marginBottom: selectedNoteItem.reviewNote ? '14px' : 0 }}>
-                  {selectedNoteItem.itemType === 'note' ? '📝' : '⌘'} {selectedNoteItem.source}
+                  {selectedNoteItem.itemType === 'note' ? '📝' : '⌘'} {selectedNoteItem.source?.startsWith('workshop:') ? 'Workshop Portfolio' : selectedNoteItem.source}
                 </div>
 
                 {/* Admin review note */}
@@ -1721,8 +1720,13 @@ export default function ClientProfile({
                   </div>
                 )}
 
-                {/* Action buttons */}
                 <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
+                  {selectedNoteItem.source?.startsWith('workshop:') && (
+                    <button
+                      onClick={() => window.open(`/hub/pilot-workshops/${selectedNoteItem.source.split(':')[1]}/journey?tab=portfolio`, '_blank')}
+                      style={{ padding: '9px 16px', background: '#2E5534', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
+                    >View in Portfolio ↗</button>
+                  )}
                   <button
                     onClick={() => { setEditNoteTitle(selectedNoteItem.title); setEditNoteContent(selectedNoteItem.content || ''); setIsEditingNote(true); }}
                     style={{ padding: '9px 16px', background: 'rgba(162,117,50,.1)', color: '#8a5a2e', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: 'pointer' }}
@@ -1947,9 +1951,9 @@ export default function ClientProfile({
                       {isDeletingItem ? '⏳' : '🗑️'} Delete
                     </button>
                   )}
-                  {(r._kind === 'LIBRARY' || r._kind === 'WORKFORCE' || r._kind === 'JOB' || r._kind === 'ENVIRONMENTAL' || r._kind === 'BOOKMARK' || r._kind === 'SHOWCASE') && r.id && (
+                  {(r._kind === 'LIBRARY' || r._kind === 'WORKFORCE' || r._kind === 'JOB' || r._kind === 'ENVIRONMENTAL' || r._kind === 'BOOKMARK' || r._kind === 'SHOWCASE' || r._kind === 'WORKSHOP' || r._kind === 'CONTRIBUTOR' || r._kind === 'STUDENT SHOWCASE') && r.id && (
                     <button
-                      onClick={() => handleDeleteEngagement(r.id, 'note')}
+                      onClick={() => handleDeleteEngagement(r.id, ['WORKSHOP', 'CONTRIBUTOR', 'STUDENT SHOWCASE'].includes(r._kind) ? 'bookmark' : 'note')}
                       disabled={isDeletingItem}
                       style={{
                         padding: '12px 22px',

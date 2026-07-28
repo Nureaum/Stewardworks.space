@@ -328,7 +328,7 @@ export default function Portfolio({
       return
     }
     if (!st || !st.value.trim()) return
-    onAddEngagement(kind, st.value.trim(), 'manual')
+    onAddEngagement(kind, st.value.trim(), `workshop:${cohortId}`)
     st.set('')
   }
 
@@ -798,9 +798,11 @@ export default function Portfolio({
                               fontSize: 18,
                               color: 'var(--tx,#efe6ff)',
                               lineHeight: 1.25,
-                              whiteSpace: 'nowrap',
+                              lineHeight: 1.3,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
                               overflow: 'hidden',
-                              textOverflow: 'ellipsis',
                             }}
                           >
                             {item.title}
@@ -1170,7 +1172,7 @@ export default function Portfolio({
       {/* Modals for Viewing and Editing */}
       {viewingItem && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setViewingId(null)}>
-          <div style={{ background: '#12081e', border: '2px solid var(--s,#45d6ff)', borderRadius: 12, padding: 28, width: '90%', maxWidth: 540 }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#12081e', border: '2px solid var(--s,#45d6ff)', borderRadius: 12, padding: 28, width: '90%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <div className="font-pixel" style={{ fontSize: 14, color: 'var(--s,#45d6ff)' }}>
                 VIEW {viewingItem.kind.toUpperCase()}
@@ -1272,7 +1274,7 @@ export default function Portfolio({
             
             {/* For notes and prompts: show content */}
             {viewingItem.content && viewingItem.content !== viewingItem.title && viewingItem.kind !== 'generation' && (
-              <div style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 18, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{viewingItem.content}</div>
+              <div style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 18, whiteSpace: 'pre-wrap', lineHeight: 1.5, maxHeight: '45vh', overflowY: 'auto', paddingRight: 8 }}>{viewingItem.content}</div>
             )}
             
             {/* For bookmarks or any item with URL: show clickable link */}
@@ -1313,7 +1315,7 @@ export default function Portfolio({
 
       {editingItem && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEditingId(null)}>
-          <div style={{ background: '#12081e', border: '2px solid var(--gold,#ffd23f)', borderRadius: 12, padding: 28, width: '90%', maxWidth: 540 }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#12081e', border: '2px solid var(--gold,#ffd23f)', borderRadius: 12, padding: 28, width: '90%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <div className="font-pixel" style={{ fontSize: 14, color: 'var(--gold,#ffd23f)' }}>
                 EDIT {editingItem.kind.toUpperCase()}

@@ -464,6 +464,8 @@ export default function JourneyClient({
                     }
                   }}
                   onOpenList={() => setScreen('day')}
+                  onBookmark={handleBookmark}
+                  bookmarkedUrls={engagements.filter(e => e.kind === 'bookmark' && e.status !== 'rejected').map(e => e.url || '')}
                   userRole={userRole}
                 />
               ) : screen === 'day' ? (

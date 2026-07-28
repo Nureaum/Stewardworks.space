@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   MonitorFrame,
@@ -9,6 +9,7 @@ import {
   CharacterSelect,
   TreasureMap,
   JourneyScene,
+  JourneyDayList,
   Portfolio,
   Showcase,
   VictoryScreen,
@@ -27,7 +28,7 @@ import type {
 } from '@/types/workshops'
 
 type JourneyTab = 'journey' | 'portfolio' | 'showcase' | 'studentshowcase'
-type JourneyScreen = 'select' | 'map' | 'scene'
+type JourneyScreen = 'select' | 'map' | 'scene' | 'day'
 type Role = 'student' | 'admin'
 
 interface JourneyClientProps {
@@ -81,6 +82,9 @@ export default function JourneyClient({
   const [engagements, setEngagements] = useState<WorkshopEngagement[]>(initialEngagements)
   const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null)
   const [bankedPrinciples, setBankedPrinciples] = useState(initialBankedPrinciples)
+
+  // Active day number (1-based) for JourneyDayList navigation
+  const [activeDayNum, setActiveDayNum] = useState<number>(1)
 
   // Compute days complete (only approved deliverables count for victory/chia)
   const daysComplete = progressRows.filter(
@@ -160,6 +164,39 @@ export default function JourneyClient({
 
   const showToast = useCallback((msg: string) => setToast(msg), [])
   const clearToast = useCallback(() => setToast(null), [])
+
+  // Bookmark handler with duplicate detection (same as root JourneyClient)
+  const submittingRef = useRef<Set<string>>(new Set())
+
+  const handleBookmark = useCallback(async (key: string, title: string, source: string, url?: string) => {
+    if (submittingRef.current.has(key)) return
+
+    const existingBookmark = url
+      ? engagements.find(e => e.kind === 'bookmark' && e.url === url && e.status !== 'rejected')
+      : engagements.find(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
+
+    if (existingBookmark) {
+      if (existingBookmark.status === 'pending') {
+        setToast('Already bookmarked! Pending admin approval.')
+      } else if (existingBookmark.status === 'approved') {
+        setToast('Already bookmarked and approved!')
+      } else {
+        setToast('Already bookmarked!')
+      }
+      return
+    }
+
+    submittingRef.current.add(key)
+    try {
+      const res = await addEngagement(cohortId, 'bookmark', title, source, url)
+      setEngagements(prev => [res, ...prev])
+      setToast('☆ Bookmarked · pending admin approval')
+    } catch (e) {
+      setToast('Error adding bookmark')
+    } finally {
+      submittingRef.current.delete(key)
+    }
+  }, [engagements, cohortId])
 
   return (
     <div
@@ -376,7 +413,41 @@ export default function JourneyClient({
                     setToast(msg)
                     router.refresh()
                   }}
-                  onOpenList={() => setToast('Day list not yet implemented')}
+                  onOpenList={() => {
+                    if (activeDayIndex !== null) setActiveDayNum(days[activeDayIndex].day_number)
+                    setScreen('day')
+                  }}
+                  onBookmark={handleBookmark}
+                  bookmarkedUrls={engagements.filter(e => e.kind === 'bookmark' && e.status !== 'rejected').map(e => e.url || '')}
+                  userRole={userRole}
+                />
+              ) : screen === 'day' && character && activeDayIndex !== null ? (
+                <JourneyDayList
+                  character={character}
+                  day={days.find(d => d.day_number === activeDayNum) || days[activeDayIndex]}
+                  onBack={() => setScreen('map')}
+                  onSceneView={() => setScreen('scene')}
+                  progressRows={progressRows}
+                  cohortId={cohortId}
+                  onBookmark={handleBookmark}
+                  bookmarkedUrls={engagements.filter(e => e.kind === 'bookmark' && e.status !== 'rejected').map(e => e.url || '')}
+                  days={days}
+                  activeDay={activeDayNum}
+                  daysComplete={daysComplete}
+                  onChangeDay={(dayNum) => {
+                    const idx = days.findIndex(d => d.day_number === dayNum)
+                    if (idx >= 0) setActiveDayIndex(idx)
+                    setActiveDayNum(dayNum)
+                  }}
+                  principles={principles}
+                  bankedPrincipleIds={bankedPrinciples.map(p => p.principle_id)}
+                  bankedPrinciples={bankedPrinciples}
+                  allBankedPrinciples={allBankedPrinciples}
+                  submissions={submissions}
+                  onDeliverableSubmitted={(msg) => {
+                    setToast(msg)
+                    router.refresh()
+                  }}
                   userRole={userRole}
                 />
               ) : null}

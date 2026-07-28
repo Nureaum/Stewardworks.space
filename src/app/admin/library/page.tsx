@@ -177,8 +177,8 @@ export default function LibraryAdminPage() {
     <div className="animate-[ac-fade_0.3s_ease] w-full p-[34px_44px]">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-[22px]">
         <div>
-          <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Library Topics</h1>
-          <p className="mt-2 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">Manage topics, articles, and links · Steward Library</p>
+          <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Library Resources</h1>
+          <p className="mt-2 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">Manage resources, articles, and links · Steward Library</p>
         </div>
         <div className="flex gap-[10px]">
           <button 
@@ -204,7 +204,7 @@ export default function LibraryAdminPage() {
             onClick={() => setIsLoading(true)}
             className="bg-[#1a150d] text-[#efd9a8] px-6 py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
           >
-            + Add Topic
+            + Add Resource
           </Link>
         </div>
       </div>
@@ -215,7 +215,7 @@ export default function LibraryAdminPage() {
             <BookOpen size={80} />
           </div>
           <div className="relative z-10">
-            <div className="font-mono text-[11px] tracking-[0.16em] text-[#3c280a]/70">TOTAL TOPICS</div>
+            <div className="font-mono text-[11px] tracking-[0.16em] text-[#3c280a]/70">TOTAL RESOURCES</div>
             <div className="text-[44px] font-[800] text-[#3a2708] mt-[6px] leading-none">{totalItems}</div>
           </div>
         </div>
@@ -377,7 +377,7 @@ export default function LibraryAdminPage() {
           <table className="min-w-full divide-y divide-[#785a32]/10">
             <thead className="bg-[#fbf5e6] border-b border-[#785a32]/10">
               <tr>
-                <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Topic / Category (Book)</th>
+                <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Resource / Category (Book)</th>
                 {userRole === 'super_admin' && (
                   <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Posted By</th>
                 )}
@@ -392,7 +392,7 @@ export default function LibraryAdminPage() {
                   <div className="w-16 h-16 bg-[#fbf5e6] rounded-[22px] flex items-center justify-center mx-auto mb-4 text-[#a89a82]">
                     <Search size={24} />
                   </div>
-                  <p className="text-[11px] font-mono text-[#8a7c66] uppercase tracking-[0.16em]">No matching topics found.</p>
+                  <p className="text-[11px] font-mono text-[#8a7c66] uppercase tracking-[0.16em]">No matching resources found.</p>
                   <p className="text-[13px] text-[#8a7c66] mt-2">Try adjusting your filters or search query.</p>
                 </td></tr>
               ) : (
