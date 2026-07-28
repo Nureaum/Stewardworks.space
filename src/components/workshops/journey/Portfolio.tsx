@@ -291,6 +291,15 @@ export default function Portfolio({
   const approvedCount = engagements.filter(e => e.status === 'approved').length
   const pendingCount = engagements.filter(e => e.status === 'pending').length
 
+  /* ── Helper: Detect media type from URL ── */
+  const detectMediaType = (url: string) => {
+    const lower = url.toLowerCase()
+    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$)/i.test(lower)) return 'image'
+    if (/\.(mp4|webm|mov)(\?|#|$)/i.test(lower) || lower.includes('youtube.com') || lower.includes('youtu.be') || lower.includes('vimeo.com')) return 'video'
+    if (/\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(lower)) return 'audio'
+    return 'link'
+  }
+
   /* ── Engagement items per kind ── */
   const engByKind = useMemo(() => {
     const map: Record<string, WorkshopEngagement[]> = { bookmark: [], note: [], prompt: [], generation: [] }
@@ -1041,8 +1050,8 @@ export default function Portfolio({
                 {isUploadingAsset ? '⏳' : '＋ SAVE'}
               </button>
             </div>
-            {/* Preview image picker — shown only when URL is pasted and not auto-detected as media */}
-            {assetInput.trim() && !assetInput.startsWith('blob:') && !isImageUrl(assetInput) && !assetInput.match(/youtube\.com|youtu\.be/) && !assetInput.match(/\.(mp4|webm|mov|mp3|wav|ogg|aac|flac)/i) && (
+            {/* Preview image picker — shown only when URL is pasted and detected as a non-media link */}
+            {assetInput.trim() && !assetInput.startsWith('blob:') && detectMediaType(assetInput) === 'link' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button
                   onClick={() => assetPreviewFileInputRef.current?.click()}

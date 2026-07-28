@@ -269,6 +269,7 @@ export async function updateAboutPageRich(data: {
   if (error) throw new Error(error.message);
   
   revalidatePath('/');
+  revalidatePath('/api/homepage-content');
   revalidatePath('/admin/about');
   revalidatePath('/admin/announcements');
   revalidatePath('/info');

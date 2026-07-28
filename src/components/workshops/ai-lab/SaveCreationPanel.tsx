@@ -15,6 +15,7 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
   const [showcaseSubmit, setShowcaseSubmit] = useState(false);
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [urlImgError, setUrlImgError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const platformOpts = [
@@ -69,12 +70,36 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
     setFileToUpload(file);
     const localUrl = URL.createObjectURL(file);
     setShareLink(localUrl);
+    setUrlImgError(false);
     
     // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
+
+  // Auto-detect platform from URL
+  const detectPlatform = (url: string) => {
+    if (url.includes('eden.art')) return 'eden';
+    if (url.includes('midjourney.com') || url.includes('discord.com/channels') || url.includes('cdn.discordapp')) return 'midjourney';
+    if (url.includes('chat.openai.com') || url.includes('chatgpt.com')) return 'chatgpt';
+    return null;
+  };
+
+  const handleShareLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setShareLink(val);
+    setUrlImgError(false);
+    const detected = detectPlatform(val);
+    if (detected) setPlatform(detected as any);
+  };
+
+  // Check if a URL looks like a direct image we can preview
+  const isDirectImageUrl = (url: string) =>
+    /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(url) ||
+    url.includes('/storage/v1/object/public/') ||
+    url.includes('/public/content-uploads/');
+
 
   return (
     <div style={{ 
@@ -207,20 +232,21 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
                       </button>
                     </div>
                   ) : (
-                    <input
+                  <input
                       value={shareLink}
-                      onChange={(e) => setShareLink(e.target.value)}
+                      onChange={handleShareLinkChange}
                       placeholder="https://app.eden.art/creations/…  or  any tool's share link"
                       style={{
                         flex: '1',
                         minWidth: 200,
                         background: '#08120d',
-                        border: '2px solid var(--ln,#28432f)',
+                        border: `2px solid ${shareLink.trim() ? 'var(--ng,#4dffa0)' : 'var(--ln,#28432f)'}`,
                         borderRadius: 5,
                         color: 'var(--tx,#d6ffe0)',
                         fontSize: 17,
                         padding: '10px 11px',
                         fontFamily: "'VT323', monospace",
+                        transition: 'border-color .2s',
                       }}
                     />
                   )}
@@ -259,6 +285,77 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
                   Paste a share link from any AI tool, or click UPLOAD to select an image file from your device.
                 </div>
               </div>
+              
+              {/* URL Preview — shown after typing/pasting a non-blob URL */}
+              {shareLink && !shareLink.startsWith('blob:') && (
+                <div style={{
+                  marginTop: 10,
+                  padding: '10px 12px',
+                  background: 'rgba(0,0,0,.35)',
+                  border: '1px solid var(--ln,#28432f)',
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                }}>
+                  {isDirectImageUrl(shareLink) && !urlImgError ? (
+                    <img
+                      src={shareLink}
+                      alt="URL preview"
+                      onError={() => setUrlImgError(true)}
+                      style={{
+                        height: 56,
+                        width: 56,
+                        objectFit: 'cover',
+                        borderRadius: 4,
+                        border: '1px solid var(--mu,#77b78d)',
+                        background: 'rgba(0,0,0,.4)',
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <span style={{
+                      fontSize: 22,
+                      lineHeight: 1,
+                      flexShrink: 0,
+                    }}>🔗</span>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 11,
+                      color: 'var(--mu,#77b78d)',
+                      fontFamily: "'VT323', monospace",
+                      marginBottom: 2,
+                    }}>
+                      {isDirectImageUrl(shareLink) && !urlImgError ? 'IMAGE PREVIEW' : 'LINK DETECTED'}
+                    </div>
+                    <a
+                      href={shareLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: 'var(--ng,#4dffa0)',
+                        fontSize: 13,
+                        fontFamily: "'VT323', monospace",
+                        textDecoration: 'underline',
+                        wordBreak: 'break-all',
+                        lineHeight: 1.3,
+                        display: 'block',
+                      }}
+                    >
+                      {shareLink.length > 70 ? shareLink.slice(0, 67) + '…' : shareLink} ↗
+                    </a>
+                  </div>
+                  <button
+                    onClick={() => { setShareLink(''); setUrlImgError(false); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--mu,#77b78d)', cursor: 'pointer', padding: 4, fontSize: 16, flexShrink: 0 }}
+                    title="Clear link"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right column */}

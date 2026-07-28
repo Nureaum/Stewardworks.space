@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/utils/supabase/server';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 export async function GET() {
+  // Opt out of all Next.js caching — always read live data from Supabase
+  noStore();
   try {
     const supabase = createServerSupabaseClient();
     const { data } = await supabase
