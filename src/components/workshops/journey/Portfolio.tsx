@@ -797,7 +797,6 @@ export default function Portfolio({
                             style={{
                               fontSize: 18,
                               color: 'var(--tx,#efe6ff)',
-                              lineHeight: 1.25,
                               lineHeight: 1.3,
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
