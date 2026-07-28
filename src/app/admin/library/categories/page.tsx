@@ -11,29 +11,43 @@ const BOOK_COLORS = [
   '#B5552F','#3D6E86','#6E7E33','#3A3F45','#4F6B2A','#C8643F','#9A6B2E',
 ]
 
-// Extract color from slug if it exists (format: slug--c-HEX)
-function extractColorFromSlug(slug: string, fallbackColor: string) {
-  const match = slug.match(/--c-([a-fA-F0-9]{6})$/);
-  if (match) {
-    return { cleanSlug: slug.replace(/--c-[a-fA-F0-9]{6}$/, ''), color: `#${match[1]}` };
+// Extract color and style from slug if it exists (format: slug--c-HEX--s-IDX)
+function extractColorAndStyleFromSlug(slug: string, fallbackColor: string, fallbackStyleIndex: number) {
+  let cleanSlug = slug;
+  let color = fallbackColor;
+  let styleIndex = fallbackStyleIndex;
+
+  const styleMatch = cleanSlug.match(/--s-([0-3])$/);
+  if (styleMatch) {
+    styleIndex = parseInt(styleMatch[1]);
+    cleanSlug = cleanSlug.replace(/--s-[0-3]$/, '');
   }
-  return { cleanSlug: slug, color: fallbackColor };
+
+  const colorMatch = cleanSlug.match(/--c-([a-fA-F0-9]{6})$/);
+  if (colorMatch) {
+    color = `#${colorMatch[1]}`;
+    cleanSlug = cleanSlug.replace(/--c-[a-fA-F0-9]{6}$/, '');
+  }
+
+  return { cleanSlug, color, styleIndex };
 }
 
 function CategoryCard({ cat, colorIndex, onUpdate, onDeleteClick }: { cat: any, colorIndex: number, onUpdate: (id: string, updates: any) => Promise<void>, onDeleteClick: (cat: any) => void }) {
   const defaultColor = BOOK_COLORS[colorIndex % BOOK_COLORS.length]
-  const { cleanSlug, color } = extractColorFromSlug(cat.slug, defaultColor)
+  const defaultStyleIndex = colorIndex % 4
+  const { cleanSlug, color, styleIndex } = extractColorAndStyleFromSlug(cat.slug, defaultColor, defaultStyleIndex)
   
   const [isEditing, setIsEditing] = useState(false)
   const [editLabel, setEditLabel] = useState(cat.label)
   const [editSlug, setEditSlug] = useState(cleanSlug)
   const [editColor, setEditColor] = useState(color)
+  const [editStyleIndex, setEditStyleIndex] = useState(styleIndex)
   const [isSaving, setIsSaving] = useState(false)
   
   const handleSave = async () => {
     if (!editLabel.trim() || !editSlug.trim()) return;
     setIsSaving(true)
-    const finalSlug = `${editSlug}--c-${editColor.replace('#', '')}`
+    const finalSlug = `${editSlug}--c-${editColor.replace('#', '')}--s-${editStyleIndex}`
     await onUpdate(cat.id, { label: editLabel, slug: finalSlug })
     setIsSaving(false)
     setIsEditing(false)
@@ -71,6 +85,21 @@ function CategoryCard({ cat, colorIndex, onUpdate, onDeleteClick }: { cat: any, 
               );
             })}
           </div>
+          <div>
+            <label className="block text-[10px] font-bold text-[#a89a82] uppercase mb-1 px-1 mt-1">Spine Style</label>
+            <div className="flex gap-2 px-1">
+              {[0, 1, 2, 3].map(sIdx => (
+                <button
+                  key={sIdx}
+                  type="button"
+                  onClick={() => setEditStyleIndex(sIdx)}
+                  className={`px-2 py-1 flex-1 text-[10px] rounded border transition-colors ${sIdx === editStyleIndex ? 'bg-[#c9a44e] text-white border-[#c9a44e]' : 'bg-white border-[#c9a44e]/40 text-[#785a32] hover:bg-[#c9a44e]/10'}`}
+                >
+                  Style {sIdx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex justify-end gap-2 mt-1">
             <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[#a89a82] hover:bg-black/5 rounded-md transition-colors">Cancel</button>
             <button onClick={handleSave} disabled={isSaving} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-[#2f5a37] text-white hover:bg-[#1a3a1e] rounded-md transition-colors flex items-center gap-1">
@@ -91,10 +120,26 @@ function CategoryCard({ cat, colorIndex, onUpdate, onDeleteClick }: { cat: any, 
           style={{ background: `linear-gradient(180deg, ${color}, ${color}88)` }}
         >
           {/* Spine detailing */}
-          <div className="absolute top-2 w-full h-[1px] bg-white/20"></div>
-          <div className="absolute top-[10px] w-full h-[1px] bg-black/20"></div>
-          <div className="absolute bottom-2 w-full h-[1px] bg-white/20"></div>
-          <div className="absolute bottom-[10px] w-full h-[1px] bg-black/20"></div>
+          {styleIndex === 0 && (
+            <>
+              <div className="absolute top-2 w-full h-[1px] bg-white/20"></div>
+              <div className="absolute top-[10px] w-full h-[1px] bg-black/20"></div>
+              <div className="absolute bottom-2 w-full h-[1px] bg-white/20"></div>
+              <div className="absolute bottom-[10px] w-full h-[1px] bg-black/20"></div>
+            </>
+          )}
+          {styleIndex === 1 && (
+            <div className="absolute top-[20%] bottom-[20%] left-1 right-1 border border-[#c9a44e]/80 rounded-[1px] bg-black/10"></div>
+          )}
+          {styleIndex === 2 && (
+            <>
+              <div className="absolute top-3 w-full h-[1.5px] bg-[#c9a44e]/60"></div>
+              <div className="absolute bottom-3 w-full h-[1.5px] bg-[#c9a44e]/60"></div>
+            </>
+          )}
+          {styleIndex === 3 && (
+            <div className="absolute top-0 left-0 w-full h-[12px] bg-black/30 border-b border-[#c9a44e]/80"></div>
+          )}
         </div>
         <div className="flex-1 min-w-0 pr-8">
           <div className="font-[800] text-[16px] text-[#241c12] leading-tight mb-1">{cat.label}</div>
@@ -124,6 +169,7 @@ export default function LibraryCategoriesPage() {
   const [newLabel, setNewLabel] = useState('')
   const [newSlug, setNewSlug] = useState('')
   const [selectedColor, setSelectedColor] = useState(BOOK_COLORS[0])
+  const [selectedStyleIndex, setSelectedStyleIndex] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null)
@@ -150,8 +196,8 @@ export default function LibraryCategoriesPage() {
     e.preventDefault()
     setIsSubmitting(true)
     
-    // Embed the selected color into the slug so we don't need a DB migration
-    const finalSlug = `${newSlug}--c-${selectedColor.replace('#', '')}`
+    // Embed the selected color and style into the slug so we don't need a DB migration
+    const finalSlug = `${newSlug}--c-${selectedColor.replace('#', '')}--s-${selectedStyleIndex}`
 
     try {
       const res = await fetch('/api/admin/categories', {
@@ -165,6 +211,7 @@ export default function LibraryCategoriesPage() {
       setNewLabel('')
       setNewSlug('')
       setSelectedColor(BOOK_COLORS[0])
+      setSelectedStyleIndex(0)
       fetchCategories()
     } catch (err) {
       console.error(err)
@@ -306,6 +353,24 @@ export default function LibraryCategoriesPage() {
                       />
                     );
                   })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.12em] mb-2">
+                  Book Spine Style
+                </label>
+                <div className="flex gap-2">
+                  {[0, 1, 2, 3].map(sIdx => (
+                    <button
+                      key={sIdx}
+                      type="button"
+                      onClick={() => setSelectedStyleIndex(sIdx)}
+                      className={`flex-1 py-2 text-[11px] font-bold uppercase rounded-[8px] border transition-colors ${sIdx === selectedStyleIndex ? 'bg-[#c9a44e] text-white border-[#c9a44e]' : 'bg-white border-[#785a32]/20 text-[#a89a82] hover:bg-[#c9a44e]/10'}`}
+                    >
+                      Style {sIdx + 1}
+                    </button>
+                  ))}
                 </div>
               </div>
               

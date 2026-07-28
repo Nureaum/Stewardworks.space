@@ -27,6 +27,7 @@ import type {
   DayWithSections,
 } from '@/types/workshops'
 import { addEngagement, removeEngagement, updateEngagement } from '@/app/actions/workshops/engagement'
+import { calculateGlobalEngagement } from '@/lib/progress/calculateGlobalEngagement'
 
 type JourneyTab = 'journey' | 'portfolio' | 'showcase' | 'studentshowcase'
 type JourneyScreen = 'select' | 'map' | 'scene' | 'day'
@@ -184,9 +185,9 @@ export default function JourneyClient({
   const clearToast = useCallback(() => setToast(null), [])
 
   // Engagement handlers
-  const handleAddEngagement = useCallback(async (kind: string, title: string, source: string, url?: string) => {
+  const handleAddEngagement = useCallback(async (kind: string, title: string, source: string, url?: string, content?: string) => {
     try {
-      const item = await addEngagement(cohortId, kind, title, source, url)
+      const item = await addEngagement(cohortId, kind, title, source, url, content)
       setEngagements(prev => [item, ...prev])
       showToast(`☆ ${kind === 'bookmark' ? 'Bookmarked' : kind === 'note' ? 'Note saved' : kind === 'prompt' ? 'Prompt saved' : 'Asset saved'} · pending admin approval`)
     } catch (e) {
@@ -415,15 +416,7 @@ export default function JourneyClient({
                   progressRows={progressRows}
                   cohortId={cohortId}
                   submissions={submissions}
-                  engagementPct={Math.min(
-                    engagements.filter(e => e.status === 'approved').reduce((acc, e) => {
-                      if (e.kind === 'bookmark' || e.kind === 'note') return acc + 1;
-                      if (e.kind === 'generation') return acc + 2;
-                      if (e.kind === 'prompt') return acc + 3;
-                      return acc;
-                    }, 0),
-                    25
-                  )}
+                  engagementPct={calculateGlobalEngagement(engagements)}
                   onBack={() => setVictoryVisible(false)}
                   onViewPortfolio={() => {
                     setVictoryVisible(false)
@@ -503,15 +496,7 @@ export default function JourneyClient({
                   days={days}
                   daysComplete={daysComplete}
                   approvedDays={approvedDaysCount}
-                  engagementPct={Math.min(
-                    engagements.filter(e => e.status === 'approved').reduce((acc, e) => {
-                      if (e.kind === 'bookmark' || e.kind === 'note') return acc + 1;
-                      if (e.kind === 'generation') return acc + 2;
-                      if (e.kind === 'prompt') return acc + 3;
-                      return acc;
-                    }, 0),
-                    25
-                  )}
+                  engagementPct={calculateGlobalEngagement(engagements)}
                   principlesCount={bankedPrinciples.length}
                   bankedPrinciples={bankedPrinciples}
                   principles={principles}

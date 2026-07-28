@@ -25,21 +25,25 @@ export default function PreHome() {
   const [heroSubtitle, setHeroSubtitle] = useState('');
 
   useEffect(() => {
-    // Read cached values from sessionStorage on client mount
+    // Read cached values from sessionStorage on client mount for instant display
     try {
       const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
-      if (cached.homepage_title) setHeroTitle(cached.homepage_title);
-      if (cached.homepage_subtitle) setHeroSubtitle(cached.homepage_subtitle);
+      if (cached.homepage_title !== undefined) setHeroTitle(cached.homepage_title);
+      if (cached.homepage_subtitle !== undefined) setHeroSubtitle(cached.homepage_subtitle);
     } catch {}
 
-    // Fetch fresh data every time the page mounts — bypasses browser & CDN cache
-    fetch('/api/homepage-content', { cache: 'no-store' })
+    // Always fetch fresh data — bypasses browser & CDN cache with timestamp
+    fetch(`/api/homepage-content?t=${Date.now()}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
-        if (d.homepage_title) setHeroTitle(d.homepage_title);
-        if (d.homepage_subtitle) setHeroSubtitle(d.homepage_subtitle);
-        // Update sessionStorage so next visit shows current values instantly
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify(d));
+        // Always apply — even empty strings (admin may have cleared the field)
+        setHeroTitle(d.homepage_title ?? '');
+        setHeroSubtitle(d.homepage_subtitle ?? '');
+        // Always update sessionStorage so next visit shows current values instantly
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+          homepage_title: d.homepage_title ?? '',
+          homepage_subtitle: d.homepage_subtitle ?? '',
+        }));
       })
       .catch(() => {/* silently fall back to defaults */});
   }, []);

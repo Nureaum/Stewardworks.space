@@ -13,8 +13,10 @@ import {
   getBulletinEvents,
   createBulletinUpdate,
   deleteBulletinUpdate,
+  bulkDeleteBulletinUpdates,
   createBulletinEvent,
   deleteBulletinEvent,
+  bulkDeleteBulletinEvents,
   updateBulletinUpdate,
   updateBulletinEvent,
   updateAboutPage
@@ -335,6 +337,18 @@ export default function AdminAnnouncementsPage() {
   const [contactText, setContactText] = useState('');
   const [isSavingAbout, setIsSavingAbout] = useState(false);
 
+  // Bulk Delete State — Updates
+  const [updatesBulkMode, setUpdatesBulkMode] = useState(false);
+  const [selectedUpdateIds, setSelectedUpdateIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteUpdatesConfirm, setBulkDeleteUpdatesConfirm] = useState(false);
+  const [isBulkDeletingUpdates, setIsBulkDeletingUpdates] = useState(false);
+
+  // Bulk Delete State — Events
+  const [eventsBulkMode, setEventsBulkMode] = useState(false);
+  const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteEventsConfirm, setBulkDeleteEventsConfirm] = useState(false);
+  const [isBulkDeletingEvents, setIsBulkDeletingEvents] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -569,6 +583,82 @@ export default function AdminAnnouncementsPage() {
     } finally {
       setIsDeletingEv(false);
       setEventToDelete(null);
+    }
+  }
+
+  // Bulk delete handlers — Updates
+  function toggleUpdateSelection(id: string) {
+    setSelectedUpdateIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllUpdates() {
+    if (selectedUpdateIds.size === updates.length) {
+      setSelectedUpdateIds(new Set());
+    } else {
+      setSelectedUpdateIds(new Set(updates.map(u => u.id)));
+    }
+  }
+
+  function exitUpdatesBulkMode() {
+    setUpdatesBulkMode(false);
+    setSelectedUpdateIds(new Set());
+  }
+
+  async function confirmBulkDeleteUpdates() {
+    if (!selectedUpdateIds.size) return;
+    setIsBulkDeletingUpdates(true);
+    try {
+      await bulkDeleteBulletinUpdates(Array.from(selectedUpdateIds));
+      setUpdates(prev => prev.filter(u => !selectedUpdateIds.has(u.id)));
+      toast.success(`${selectedUpdateIds.size} update${selectedUpdateIds.size > 1 ? 's' : ''} deleted`);
+      exitUpdatesBulkMode();
+    } catch (error: any) {
+      toast.error('Failed to delete updates.');
+    } finally {
+      setIsBulkDeletingUpdates(false);
+      setBulkDeleteUpdatesConfirm(false);
+    }
+  }
+
+  // Bulk delete handlers — Events
+  function toggleEventSelection(id: string) {
+    setSelectedEventIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllEvents() {
+    if (selectedEventIds.size === events.length) {
+      setSelectedEventIds(new Set());
+    } else {
+      setSelectedEventIds(new Set(events.map(e => e.id)));
+    }
+  }
+
+  function exitEventsBulkMode() {
+    setEventsBulkMode(false);
+    setSelectedEventIds(new Set());
+  }
+
+  async function confirmBulkDeleteEvents() {
+    if (!selectedEventIds.size) return;
+    setIsBulkDeletingEvents(true);
+    try {
+      await bulkDeleteBulletinEvents(Array.from(selectedEventIds));
+      setEvents(prev => prev.filter(e => !selectedEventIds.has(e.id)));
+      toast.success(`${selectedEventIds.size} event${selectedEventIds.size > 1 ? 's' : ''} deleted`);
+      exitEventsBulkMode();
+    } catch (error: any) {
+      toast.error('Failed to delete events.');
+    } finally {
+      setIsBulkDeletingEvents(false);
+      setBulkDeleteEventsConfirm(false);
     }
   }
 
@@ -909,21 +999,68 @@ export default function AdminAnnouncementsPage() {
 
               {/* List */}
               <div className="flex flex-col gap-3">
+                {/* Bulk delete toolbar — Updates */}
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  {!updatesBulkMode ? (
+                    <button
+                      onClick={() => setUpdatesBulkMode(true)}
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-[#B85C3E] border border-[#B85C3E]/30 bg-[#F7E7DF] rounded-full px-3 py-1.5 hover:bg-[#f0d0c2] transition-colors"
+                    >
+                      <Trash2 size={12} /> Delete Bulk
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#5c4f3c] cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={selectedUpdateIds.size === updates.length && updates.length > 0}
+                          onChange={toggleAllUpdates}
+                          className="w-3.5 h-3.5 accent-[#B85C3E]"
+                        />
+                        Select all
+                      </label>
+                      <button
+                        onClick={() => setBulkDeleteUpdatesConfirm(true)}
+                        disabled={selectedUpdateIds.size === 0}
+                        className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-red-500 rounded-full px-3 py-1.5 hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 size={12} /> Delete {selectedUpdateIds.size > 0 ? `(${selectedUpdateIds.size})` : ''}
+                      </button>
+                      <button
+                        onClick={exitUpdatesBulkMode}
+                        className="text-[11px] font-bold text-[#5c4f3c] border border-[#785a32]/20 bg-white rounded-full px-3 py-1.5 hover:bg-[#f6ebd4] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {updates.map(u => (
-                  <div key={u.id} className="flex justify-between items-start gap-4 p-4 rounded-xl border border-[#785a32]/10 bg-[#fdf8ea]">
-                    <div>
+                  <div key={u.id} className={`flex justify-between items-start gap-4 p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${updatesBulkMode && selectedUpdateIds.has(u.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'}`}>
+                    {updatesBulkMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedUpdateIds.has(u.id)}
+                        onChange={() => toggleUpdateSelection(u.id)}
+                        className="mt-1 w-4 h-4 accent-[#B85C3E] shrink-0 cursor-pointer"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
                       <span className="text-[10px] font-mono tracking-widest text-[#B85C3E] bg-[#F7E7DF] px-2 py-1 rounded-full mb-2 inline-block">{u.tag}</span>
                       <h4 className="font-[700] text-[15px] mb-1">{u.title}</h4>
                       <p className="text-[12px] text-[#7c6f5a] line-clamp-2">{u.body}</p>
                     </div>
-                    <div className="flex flex-col gap-1 shrink-0">
-                      <button onClick={() => handleEditUpdate(u)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
-                        <Pencil size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteUpdate(u.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    {!updatesBulkMode && (
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <button onClick={() => handleEditUpdate(u)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+                          <Pencil size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteUpdate(u.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1030,9 +1167,54 @@ export default function AdminAnnouncementsPage() {
 
               {/* List */}
               <div className="flex flex-col gap-3">
+                {/* Bulk delete toolbar — Events */}
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  {!eventsBulkMode ? (
+                    <button
+                      onClick={() => setEventsBulkMode(true)}
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-[#B85C3E] border border-[#B85C3E]/30 bg-[#F7E7DF] rounded-full px-3 py-1.5 hover:bg-[#f0d0c2] transition-colors"
+                    >
+                      <Trash2 size={12} /> Delete Bulk
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#5c4f3c] cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={selectedEventIds.size === events.length && events.length > 0}
+                          onChange={toggleAllEvents}
+                          className="w-3.5 h-3.5 accent-[#B85C3E]"
+                        />
+                        Select all
+                      </label>
+                      <button
+                        onClick={() => setBulkDeleteEventsConfirm(true)}
+                        disabled={selectedEventIds.size === 0}
+                        className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-red-500 rounded-full px-3 py-1.5 hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 size={12} /> Delete {selectedEventIds.size > 0 ? `(${selectedEventIds.size})` : ''}
+                      </button>
+                      <button
+                        onClick={exitEventsBulkMode}
+                        className="text-[11px] font-bold text-[#5c4f3c] border border-[#785a32]/20 bg-white rounded-full px-3 py-1.5 hover:bg-[#f6ebd4] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {events.map(e => (
-                  <div key={e.id} className="flex justify-between items-start gap-4 p-4 rounded-xl border border-[#785a32]/10 bg-[#fdf8ea]">
-                    <div className="flex gap-3">
+                  <div key={e.id} className={`flex justify-between items-start gap-4 p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${eventsBulkMode && selectedEventIds.has(e.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'}`}>
+                    {eventsBulkMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedEventIds.has(e.id)}
+                        onChange={() => toggleEventSelection(e.id)}
+                        className="mt-1 w-4 h-4 accent-[#B85C3E] shrink-0 cursor-pointer"
+                      />
+                    )}
+                    <div className="flex gap-3 flex-1 min-w-0">
                       {e.image_url && (
                         <div className="w-[60px] h-[60px] rounded-lg shrink-0 border border-[#785a32]/20 bg-cover bg-center shadow-sm" style={{ backgroundImage: `url(${e.image_url})` }} />
                       )}
@@ -1043,14 +1225,16 @@ export default function AdminAnnouncementsPage() {
                         <p className="text-[12px] text-[#7c6f5a]">📍 {e.location}</p>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1 shrink-0">
-                      <button onClick={() => handleEditEvent(e)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
-                        <Pencil size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteEvent(e.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    {!eventsBulkMode && (
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <button onClick={() => handleEditEvent(e)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+                          <Pencil size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteEvent(e.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1134,6 +1318,58 @@ export default function AdminAnnouncementsPage() {
                 className="px-4 py-2 rounded-lg bg-red-500 text-white font-[700] text-sm hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {isDeletingEv ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Updates Modal */}
+      {bulkDeleteUpdatesConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[400px]">
+            <h3 className="text-[18px] font-[800] mb-2 text-[#241c12]">Delete {selectedUpdateIds.size} Update{selectedUpdateIds.size > 1 ? 's' : ''}?</h3>
+            <p className="text-[14px] text-[#5c4f3c] mb-6">This will permanently delete the selected update{selectedUpdateIds.size > 1 ? 's' : ''}. This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setBulkDeleteUpdatesConfirm(false)}
+                disabled={isBulkDeletingUpdates}
+                className="px-4 py-2 rounded-lg border border-[#785a32]/20 text-[#5c4f3c] font-[700] text-sm hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulkDeleteUpdates}
+                disabled={isBulkDeletingUpdates}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white font-[700] text-sm hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isBulkDeletingUpdates ? 'Deleting...' : `Delete ${selectedUpdateIds.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Events Modal */}
+      {bulkDeleteEventsConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[400px]">
+            <h3 className="text-[18px] font-[800] mb-2 text-[#241c12]">Delete {selectedEventIds.size} Event{selectedEventIds.size > 1 ? 's' : ''}?</h3>
+            <p className="text-[14px] text-[#5c4f3c] mb-6">This will permanently delete the selected event{selectedEventIds.size > 1 ? 's' : ''}. This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setBulkDeleteEventsConfirm(false)}
+                disabled={isBulkDeletingEvents}
+                className="px-4 py-2 rounded-lg border border-[#785a32]/20 text-[#5c4f3c] font-[700] text-sm hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulkDeleteEvents}
+                disabled={isBulkDeletingEvents}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white font-[700] text-sm hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isBulkDeletingEvents ? 'Deleting...' : `Delete ${selectedEventIds.size}`}
               </button>
             </div>
           </div>

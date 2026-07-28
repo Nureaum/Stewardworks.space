@@ -130,6 +130,10 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
   const [addFilePreview, setAddFilePreview] = useState<string | null>(null)
   const [addSubmitting, setAddSubmitting] = useState(false)
   const addFileInputRef = useRef<HTMLInputElement>(null)
+  // Preview image state (for non-media URLs)
+  const [addPreviewFile, setAddPreviewFile] = useState<File | null>(null)
+  const [addPreviewFileUrl, setAddPreviewFileUrl] = useState<string | null>(null)
+  const previewFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (activeViewMode === 'students' && cohortId && studentItems.length === 0) {
@@ -169,9 +173,24 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
     if (!file) return
     setAddFile(file)
     setAddUrl('') // clear URL if file selected
+    // Clear preview image since main file is the media
+    setAddPreviewFile(null)
+    setAddPreviewFileUrl(null)
     // Generate preview
     const url = URL.createObjectURL(file)
     setAddFilePreview(url)
+  }
+
+  // Handle preview image upload (does NOT clear the URL)
+  const handlePreviewFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file for the preview.')
+      return
+    }
+    setAddPreviewFile(file)
+    setAddPreviewFileUrl(URL.createObjectURL(file))
   }
 
   // Detect media type from URL
@@ -190,15 +209,37 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
     setAddSubmitting(true)
     try {
       let finalUrl = addUrl
-      // Upload file if provided
+      // Upload file if provided (full media upload replaces URL)
       if (addFile) {
         const formData = new FormData()
         formData.append('file', addFile)
         const uploadedUrl = await uploadCreationImage(formData)
         finalUrl = uploadedUrl
       }
-      // Submit as engagement with showcaseRequested flag
-      const content = JSON.stringify({ showcaseRequested: true, description: addDescription })
+
+      // Upload preview image if provided (for non-media URLs)
+      let previewUrl: string | null = null
+      if (addPreviewFile) {
+        const previewFormData = new FormData()
+        previewFormData.append('file', addPreviewFile)
+        previewUrl = await uploadCreationImage(previewFormData)
+      }
+
+      // Auto-detect type from URL
+      const detectedType = addFile
+        ? (addFile.type.startsWith('image') ? 'image' : addFile.type.startsWith('video') ? 'video' : addFile.type.startsWith('audio') ? 'audio' : 'aigen')
+        : detectMediaType(finalUrl)
+
+      // Submit as engagement with showcaseRequested flag + preview + detected type
+      const contentData: Record<string, any> = {
+        showcaseRequested: true,
+        description: addDescription,
+        detectedType,
+      }
+      if (previewUrl) {
+        contentData.previewUrl = previewUrl
+      }
+      const content = JSON.stringify(contentData)
       await addEngagement(cohortId, 'generation', addTitle, 'Student Showcase', finalUrl, content)
       // Reset form
       setAddTitle('')
@@ -206,6 +247,8 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
       setAddUrl('')
       setAddFile(null)
       setAddFilePreview(null)
+      setAddPreviewFile(null)
+      setAddPreviewFileUrl(null)
       setShowAddForm(false)
       // Force reload student items
       setStudentItems([])
@@ -279,8 +322,18 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
   const processedStudentItems = useMemo(() => {
     return studentItems.map(item => {
       let detectedType = 'aigen'
+      let previewUrl: string | null = null
       const url = (item.url || '').toLowerCase();
-      if (url) {
+
+      // Try to extract detectedType and previewUrl from content JSON
+      try {
+        const contentData = JSON.parse(item.content || '{}');
+        if (contentData.previewUrl) previewUrl = contentData.previewUrl;
+        if (contentData.detectedType) detectedType = contentData.detectedType;
+      } catch (err) { /* ignore */ }
+
+      // If no detectedType from content, auto-detect from URL
+      if (url && detectedType === 'aigen') {
         const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$|\/)/i.test(url) || url.includes('/content-uploads/') || url.includes('supabase');
         const isVideo = url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com') || /\.(mp4|webm|mov|avi)(\?|#|$|\/)/i.test(url);
         const isAudio = /\.(mp3|wav|ogg|m4a|flac|aac)(\?|#|$|\/)/i.test(url) || url.includes('soundcloud.com') || url.includes('spotify.com');
@@ -290,7 +343,9 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
         else if (isImage) detectedType = 'image';
         else if (item.kind !== 'generation') detectedType = 'article';
       }
-      return { ...item, type: detectedType };
+      // Map 'link' to 'article' for filter tabs
+      if (detectedType === 'link') detectedType = 'article';
+      return { ...item, type: detectedType, previewUrl };
     })
   }, [studentItems])
 
@@ -528,29 +583,59 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                 {/* URL or Upload */}
                 <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>MEDIA (URL OR UPLOAD) *</label>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                  <input value={addUrl} onChange={e => { setAddUrl(e.target.value); setAddFile(null); setAddFilePreview(null); }} placeholder="Paste URL (image, video, audio)" style={{ flex: 1, padding: '10px 12px', fontSize: 13, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', fontFamily: "'DM Mono',monospace" }} />
+                  <input value={addUrl} onChange={e => { setAddUrl(e.target.value); setAddFile(null); setAddFilePreview(null); setAddPreviewFile(null); setAddPreviewFileUrl(null); }} placeholder="Paste URL (image, video, audio, or any link)" style={{ flex: 1, padding: '10px 12px', fontSize: 13, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', fontFamily: "'DM Mono',monospace" }} />
                   <button onClick={() => addFileInputRef.current?.click()} className="font-pixel" style={{ flex: 'none', fontSize: 8, padding: '10px 14px', background: 'rgba(255,95,210,.15)', color: '#ff5fd2', border: '1.5px solid rgba(255,95,210,.3)', borderRadius: 8, cursor: 'pointer' }}>↑ UPLOAD</button>
                   <input ref={addFileInputRef} type="file" accept="image/*,video/*,audio/*" style={{ display: 'none' }} onChange={handleAddFileChange} />
                 </div>
 
                 {/* Media Preview */}
                 {(addFilePreview || addUrl) && (() => {
-                  const previewUrl = addFilePreview || addUrl
+                  const mediaPreviewUrl = addFilePreview || addUrl
                   const type = addFile ? (addFile.type.startsWith('image') ? 'image' : addFile.type.startsWith('video') ? 'video' : addFile.type.startsWith('audio') ? 'audio' : 'link') : detectMediaType(addUrl)
                   return (
                     <div style={{ marginBottom: 16, border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, overflow: 'hidden', background: 'var(--pn,#14211b)' }}>
-                      {type === 'image' && <img src={previewUrl} alt="Preview" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />}
+                      {type === 'image' && <img src={mediaPreviewUrl} alt="Preview" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />}
                       {type === 'video' && (
                         addUrl.includes('youtube.com') || addUrl.includes('youtu.be') ? (
                           <img src={`https://img.youtube.com/vi/${addUrl.includes('youtu.be/') ? addUrl.split('youtu.be/')[1]?.split('?')[0] : new URLSearchParams(addUrl.split('?')[1] || '').get('v')}/mqdefault.jpg`} alt="Video thumbnail" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />
                         ) : (
-                          <video src={previewUrl} controls preload="metadata" style={{ width: '100%', maxHeight: 200 }} />
+                          <video src={mediaPreviewUrl} controls preload="metadata" style={{ width: '100%', maxHeight: 200 }} />
                         )
                       )}
-                      {type === 'audio' && <audio src={previewUrl} controls style={{ width: '100%', padding: 12 }} />}
-                      {type === 'link' && <div style={{ padding: 12, fontSize: 12, color: 'var(--mu,#a493c9)', fontFamily: "'DM Mono',monospace", wordBreak: 'break-all' }}>🔗 {previewUrl}</div>}
+                      {type === 'audio' && <audio src={mediaPreviewUrl} controls style={{ width: '100%', padding: 12 }} />}
+                      {type === 'link' && (
+                        <>
+                          {/* Show uploaded preview image if available, otherwise link icon */}
+                          {addPreviewFileUrl ? (
+                            <div style={{ position: 'relative' }}>
+                              <img src={addPreviewFileUrl} alt="Preview" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} />
+                              <button
+                                onClick={() => { setAddPreviewFile(null); setAddPreviewFileUrl(null); }}
+                                style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,.7)', border: '1px solid rgba(255,95,210,.4)', color: '#ff5fd2', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                                title="Remove preview image"
+                              >×</button>
+                            </div>
+                          ) : (
+                            <div style={{ padding: 12, fontSize: 12, color: 'var(--mu,#a493c9)', fontFamily: "'DM Mono',monospace", wordBreak: 'break-all' }}>🔗 {mediaPreviewUrl}</div>
+                          )}
+                          {/* Preview image upload button for non-media URLs */}
+                          {!addPreviewFileUrl && (
+                            <div style={{ padding: '8px 12px', borderTop: '1px dashed var(--ln,#28432f)' }}>
+                              <button
+                                onClick={() => previewFileInputRef.current?.click()}
+                                className="font-pixel"
+                                style={{ fontSize: 8, padding: '8px 14px', background: 'rgba(69,214,255,.1)', color: '#45d6ff', border: '1.5px solid rgba(69,214,255,.3)', borderRadius: 6, cursor: 'pointer', letterSpacing: '.5px' }}
+                              >
+                                📷 + ADD PREVIEW IMAGE
+                              </button>
+                              <span style={{ fontSize: 10, color: 'var(--mu,#a493c9)', marginLeft: 8, fontFamily: "'DM Mono',monospace" }}>Optional thumbnail</span>
+                              <input ref={previewFileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePreviewFileChange} />
+                            </div>
+                          )}
+                        </>
+                      )}
                       <div style={{ padding: '6px 12px', fontSize: 10, color: '#ff5fd2', fontFamily: "'DM Mono',monospace", borderTop: '1px solid var(--ln,#28432f)' }}>
-                        {addFile ? `📎 ${addFile.name}` : `DETECTED: ${type.toUpperCase()}`}
+                        {addFile ? `📎 ${addFile.name}` : addPreviewFile ? `DETECTED: LINK · 📷 Preview: ${addPreviewFile.name}` : `DETECTED: ${type.toUpperCase()}`}
                       </div>
                     </div>
                   )
@@ -642,6 +727,13 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                             </div>
                           </div>
                         </>
+                      ) : item.previewUrl ? (
+                        <img 
+                          src={item.previewUrl} 
+                          alt={item.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
                       ) : (
                         <span style={{ fontSize: 40, opacity: 0.2, color: '#ff5fd2' }}>✦</span>
                       )}
@@ -797,6 +889,20 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                     ) : studentDetail.url && studentDetail.url.match(/\.(mp3|wav|ogg|aac|flac)/i) ? (
                       <div style={{ width: '100%', padding: 20 }}>
                         <audio src={studentDetail.url} controls style={{ width: '100%' }} />
+                      </div>
+                    ) : studentDetail.previewUrl ? (
+                      <div style={{ width: '100%' }}>
+                        <img 
+                          src={studentDetail.previewUrl} 
+                          alt={studentDetail.title}
+                          style={{ width: '100%', maxHeight: 300, objectFit: 'contain', display: 'block' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                        {studentDetail.url && (
+                          <div style={{ padding: '8px 12px', fontSize: 11, color: 'var(--mu,#a493c9)', fontFamily: "'DM Mono',monospace", borderTop: '1px solid var(--ln,#28432f)', wordBreak: 'break-all' }}>
+                            🔗 {studentDetail.url}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>

@@ -833,7 +833,7 @@ export default function ModernTheme(props: any) {
           <span style={{width: "34px", height: "34px", background: "var(--blue)", border: "3px solid rgba(60,42,24,.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", color: "var(--ink)", flex: "0 0 auto"}}>≡</span>
           <div>
             <div style={{fontFamily: "'Courier New',monospace", fontSize: "14px", color: "#fff", letterSpacing: ".1em"}}>RESOURCE VAULT</div>
-            <div style={{fontSize: "17px", color: "var(--ink2)", marginTop: "5px"}}>Every catalogued link by category — {libTotal} shelved in the Steward Library under Industry and Workforce Development</div>
+            <div style={{fontSize: "17px", color: "var(--ink2)", marginTop: "5px"}}>Every catalogued link by category — {libTotal} shelved in the vault from the workforce adventure game</div>
           </div>
         </div>
       </div>

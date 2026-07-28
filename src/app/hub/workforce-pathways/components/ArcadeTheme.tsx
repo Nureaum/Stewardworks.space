@@ -847,7 +847,7 @@ return (<>
           <span style={{width: "34px", height: "34px", background: "#d24dff", border: "3px solid #1c1526", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", color: "#10285e", flex: "0 0 auto"}}>≡</span>
           <div>
             <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "14px", color: "var(--paper)", textShadow: "2px 2px 0 rgba(255,0,77,.4)"}}>RESOURCE VAULT</div>
-            <div style={{fontSize: "17px", color: "var(--muted)", marginTop: "5px"}}>Every catalogued link by category — {libTotal} shelved in the Steward Library under Industry and Workforce Development</div>
+            <div style={{fontSize: "17px", color: "var(--muted)", marginTop: "5px"}}>Every catalogued link by category — {libTotal} shelved in the vault from the workforce adventure game</div>
           </div>
         </div>
       </div>

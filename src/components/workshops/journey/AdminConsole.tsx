@@ -1899,6 +1899,8 @@ export default function AdminConsole({
                         const isVisible = (() => { try { const d = JSON.parse(item.content || '{}'); return d.showcaseVisible === true; } catch { return false; } })();
                         const isFormSubmission = item.source === 'Student Showcase';
                         const statusColor = item.status === 'approved' ? '#74f0a0' : item.status === 'rejected' ? '#ff8a4a' : '#ffd23f';
+                        // Extract previewUrl from content JSON (set when student uploaded a preview alongside a non-media URL)
+                        const itemPreviewUrl = (() => { try { const d = JSON.parse(item.content || '{}'); return d.previewUrl || null; } catch { return null; } })();
                         return (
                           <div key={item.id} style={{ border: '1.5px solid var(--ln,#3a3352)', borderRadius: 10, padding: '18px 20px', background: 'rgba(255,255,255,.02)', display: 'flex', gap: 16, alignItems: 'center' }}>
                             {/* Thumbnail */}
@@ -1925,6 +1927,8 @@ export default function AdminConsole({
                                 </>
                               ) : item.url && /\.(mp3|wav|ogg|aac|flac)/i.test(item.url) ? (
                                 <span style={{ fontSize: 24, color: '#ff5fd2' }}>♫</span>
+                              ) : itemPreviewUrl ? (
+                                <img src={itemPreviewUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                               ) : item.url ? (
                                 <span style={{ fontSize: 20, color: '#45d6ff' }}>🔗</span>
                               ) : (
@@ -2200,44 +2204,53 @@ export default function AdminConsole({
                       gap: 14,
                     }}>
                       {/* Media thumbnail or type icon */}
-                      {item.url && (isImageUrl(item.url) || item.url.match(/\.(mp4|webm|mov)/i)) ? (
-                        <div style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 6,
-                          overflow: 'hidden',
-                          flex: 'none',
-                          position: 'relative',
-                          background: 'rgba(0,0,0,.3)',
-                          border: '1px solid var(--ln,#3a3352)',
-                        }}>
-                          {isImageUrl(item.url) ? (
-                            <img src={item.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                          ) : (
-                            <>
-                              <video src={item.url} preload="metadata" muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 14, color: '#fff', background: 'rgba(0,0,0,.5)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▶</span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <div style={{
-                          width: 30,
-                          height: 30,
-                          borderRadius: 4,
-                          background: item.type === 'video' ? '#45d6ff' : item.type === 'article' ? '#ffd23f' : item.type === 'audio' ? '#ff5fd2' : '#74f0a0',
-                          flex: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 14,
-                          color: '#12081e',
-                        }}>
-                          {item.type === 'video' ? '▶' : item.type === 'article' ? '✎' : item.type === 'audio' ? '♫' : '✦'}
-                        </div>
-                      )}
+                      {(() => {
+                        // Extract previewUrl from content JSON
+                        let contentPreviewUrl: string | null = null;
+                        try { const d = JSON.parse(item.meta || '{}'); contentPreviewUrl = d.previewUrl || null; } catch {}
+                        return item.url && (isImageUrl(item.url) || item.url.match(/\.(mp4|webm|mov)/i)) ? (
+                          <div style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 6,
+                            overflow: 'hidden',
+                            flex: 'none',
+                            position: 'relative',
+                            background: 'rgba(0,0,0,.3)',
+                            border: '1px solid var(--ln,#3a3352)',
+                          }}>
+                            {isImageUrl(item.url) ? (
+                              <img src={item.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            ) : (
+                              <>
+                                <video src={item.url} preload="metadata" muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <span style={{ fontSize: 14, color: '#fff', background: 'rgba(0,0,0,.5)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▶</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ) : contentPreviewUrl ? (
+                          <div style={{ width: 44, height: 44, borderRadius: 6, overflow: 'hidden', flex: 'none', background: 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#3a3352)' }}>
+                            <img src={contentPreviewUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          </div>
+                        ) : (
+                          <div style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 4,
+                            background: item.type === 'video' ? '#45d6ff' : item.type === 'article' ? '#ffd23f' : item.type === 'audio' ? '#ff5fd2' : '#74f0a0',
+                            flex: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 14,
+                            color: '#12081e',
+                          }}>
+                            {item.type === 'video' ? '▶' : item.type === 'article' ? '✎' : item.type === 'audio' ? '♫' : '✦'}
+                          </div>
+                        );
+                      })()}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 18, color: 'var(--tx,#e4e0ee)', lineHeight: 1.25 }}>{item.title}</div>
                         <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', marginTop: 3 }}>
@@ -2665,7 +2678,56 @@ export default function AdminConsole({
                           // For deliverables, also check external_video_url
                           const displayUrl = sub.url || sub.external_video_url || cleanText;
                           
-                          if (!displayUrl) return null;
+                          // Extract previewUrl and description from content JSON
+                          let previewUrl: string | null = null;
+                          let description: string | null = null;
+                          try {
+                            const parsed = JSON.parse(rawText);
+                            previewUrl = parsed.previewUrl || null;
+                            description = parsed.description || null;
+                          } catch {}
+
+                          if (!displayUrl && !previewUrl) return null;
+
+                          // If we have a previewUrl alongside a non-media link, render custom preview
+                          const isMediaUrl = displayUrl && (isImageUrl(displayUrl) || displayUrl.includes('youtube.com') || displayUrl.includes('youtu.be') || /\.(mp4|webm|mov|mp3|wav|ogg|aac|flac)/i.test(displayUrl));
+                          
+                          if (previewUrl && !isMediaUrl) {
+                            return (
+                              <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {/* Inline row: small thumbnail + link */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  {/* Small preview thumbnail — click to open full size */}
+                                  <div
+                                    onClick={() => window.open(previewUrl!, '_blank')}
+                                    title="Click to view full preview image"
+                                    style={{ cursor: 'pointer', flex: 'none', width: 56, height: 56, borderRadius: 6, overflow: 'hidden', border: '1.5px solid rgba(255,95,210,.35)', position: 'relative', background: 'rgba(255,95,210,.08)' }}
+                                  >
+                                    <img
+                                      src={previewUrl}
+                                      alt="Preview"
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.0)', transition: 'background .15s' }}>
+                                      <span style={{ fontSize: 10, color: '#fff', opacity: 0.7 }}>🔍</span>
+                                    </div>
+                                  </div>
+                                  {/* Link */}
+                                  {displayUrl && (
+                                    <a href={displayUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'VT323', monospace", fontSize: 15, color: '#45d6ff', wordBreak: 'break-all', lineHeight: 1.3 }}>
+                                      🔗 {displayUrl}
+                                    </a>
+                                  )}
+                                </div>
+                                {description && (
+                                  <div style={{ fontFamily: "'VT323', monospace", fontSize: 14, color: 'var(--mu,#9990ab)', fontStyle: 'italic' }}>
+                                    {description}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
 
                           return (
                             <div style={{ 
@@ -2684,6 +2746,11 @@ export default function AdminConsole({
                                 showPreviewButton={true}
                                 maxThumbnailSize={56}
                               />
+                              {description && (
+                                <div style={{ fontFamily: "'VT323', monospace", fontSize: 14, color: 'var(--mu,#9990ab)', marginTop: 6, fontStyle: 'italic' }}>
+                                  {description}
+                                </div>
+                              )}
                             </div>
                           );
                         })()}

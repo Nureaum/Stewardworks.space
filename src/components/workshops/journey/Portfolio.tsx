@@ -27,7 +27,7 @@ interface PortfolioProps {
   bankedPrinciples: WorkshopProgressPrinciple[]
   engagements: WorkshopEngagement[]
   submissions?: any[]
-  onAddEngagement: (kind: string, title: string, source: string, url?: string) => void
+  onAddEngagement: (kind: string, title: string, source: string, url?: string, content?: string) => void
   onRemoveEngagement: (id: string) => void
   onUpdateEngagement?: (id: string, updates: { title?: string, content?: string, url?: string }) => void
   // Certificate data
@@ -119,6 +119,10 @@ export default function Portfolio({
   const [assetFileToUpload, setAssetFileToUpload] = useState<File | null>(null)
   const [isUploadingAsset, setIsUploadingAsset] = useState(false)
   const assetFileInputRef = useRef<HTMLInputElement>(null)
+  // Preview image for non-media URL submissions
+  const [assetPreviewFile, setAssetPreviewFile] = useState<File | null>(null)
+  const [assetPreviewObjectUrl, setAssetPreviewObjectUrl] = useState<string | null>(null)
+  const assetPreviewFileInputRef = useRef<HTMLInputElement>(null)
   const [bookmarkFileToUpload, setBookmarkFileToUpload] = useState<File | null>(null)
   const [isUploadingBookmark, setIsUploadingBookmark] = useState(false)
   const bookmarkFileInputRef = useRef<HTMLInputElement>(null)
@@ -341,7 +345,7 @@ export default function Portfolio({
     if (!assetInput.trim() && !assetFileToUpload) return
     
     if (assetFileToUpload) {
-      // Handle file upload
+      // Handle direct file upload (image/video/audio) — no preview needed
       setIsUploadingAsset(true)
       const formData = new FormData()
       formData.append('file', assetFileToUpload)
@@ -351,12 +355,25 @@ export default function Portfolio({
           setAssetFileToUpload(null)
           setAssetInput('')
         })
-        .catch((err) => {
-          console.error('Failed to upload asset:', err)
+        .catch((err) => console.error('Failed to upload asset:', err))
+        .finally(() => setIsUploadingAsset(false))
+    } else if (assetPreviewFile) {
+      // Non-media URL + uploaded preview image
+      setIsUploadingAsset(true)
+      const formData = new FormData()
+      formData.append('file', assetPreviewFile)
+      uploadCreationImage(formData)
+        .then((previewUrl) => {
+          const url = assetInput.trim()
+          const contentJson = JSON.stringify({ url, previewUrl })
+          onAddEngagement('generation', url, 'link', url, contentJson)
+          setAssetInput('')
+          setAssetPreviewFile(null)
+          if (assetPreviewObjectUrl) URL.revokeObjectURL(assetPreviewObjectUrl)
+          setAssetPreviewObjectUrl(null)
         })
-        .finally(() => {
-          setIsUploadingAsset(false)
-        })
+        .catch((err) => console.error('Failed to upload asset preview:', err))
+        .finally(() => setIsUploadingAsset(false))
     } else {
       onAddEngagement('generation', assetInput.trim(), 'link', assetInput.trim())
       setAssetInput('')
@@ -374,6 +391,20 @@ export default function Portfolio({
     setAssetFileToUpload(file)
     setAssetInput(URL.createObjectURL(file))
     if (assetFileInputRef.current) assetFileInputRef.current.value = ''
+  }
+
+  function handleAssetPreviewFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file for the preview.')
+      return
+    }
+    if (assetPreviewObjectUrl) URL.revokeObjectURL(assetPreviewObjectUrl)
+    const objUrl = URL.createObjectURL(file)
+    setAssetPreviewFile(file)
+    setAssetPreviewObjectUrl(objUrl)
+    if (assetPreviewFileInputRef.current) assetPreviewFileInputRef.current.value = ''
   }
 
   /* ── Status badge color helper ── */
@@ -916,97 +947,137 @@ export default function Portfolio({
           </div>
 
           {/* Input row */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            {assetInput.startsWith('blob:') ? (
-              <div style={{
-                flex: 1,
-                background: '#1a0e2e',
-                border: '1px solid var(--ln,#3d2668)',
-                borderRadius: 6,
-                padding: 6,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}>
-                {assetFileToUpload?.type.startsWith('image/') ? (
-                  <img 
-                    src={assetInput} 
-                    alt="Upload preview" 
-                    style={{ height: 28, width: 28, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--ln,#3d2668)' }} 
-                  />
-                ) : assetFileToUpload?.type.startsWith('video/') ? (
-                  <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>🎬</span>
-                ) : (
-                  <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>🎵</span>
-                )}
-                <div style={{ flex: 1, color: 'var(--tx,#efe6ff)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {assetFileToUpload?.name || 'Uploaded File'}
-                </div>
-                <button
-                  onClick={() => { setAssetInput(''); setAssetFileToUpload(null) }}
-                  style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', padding: 4, fontSize: 14 }}
-                  title="Remove"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <input
-                type="text"
-                value={assetInput}
-                onChange={e => setAssetInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleAddAsset() }}
-                placeholder="Paste link…"
-                style={{
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {assetInput.startsWith('blob:') ? (
+                <div style={{
                   flex: 1,
                   background: '#1a0e2e',
                   border: '1px solid var(--ln,#3d2668)',
                   borderRadius: 6,
+                  padding: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                }}>
+                  {assetFileToUpload?.type.startsWith('image/') ? (
+                    <img
+                      src={assetInput}
+                      alt="Upload preview"
+                      style={{ height: 28, width: 28, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--ln,#3d2668)' }}
+                    />
+                  ) : assetFileToUpload?.type.startsWith('video/') ? (
+                    <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>🎬</span>
+                  ) : (
+                    <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>🎵</span>
+                  )}
+                  <div style={{ flex: 1, color: 'var(--tx,#efe6ff)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {assetFileToUpload?.name || 'Uploaded File'}
+                  </div>
+                  <button
+                    onClick={() => { setAssetInput(''); setAssetFileToUpload(null) }}
+                    style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', padding: 4, fontSize: 14 }}
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={assetInput}
+                  onChange={e => setAssetInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddAsset() }}
+                  placeholder="Paste link…"
+                  style={{
+                    flex: 1,
+                    background: '#1a0e2e',
+                    border: '1px solid var(--ln,#3d2668)',
+                    borderRadius: 6,
+                    padding: '8px 12px',
+                    color: 'var(--tx,#efe6ff)',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                />
+              )}
+              <input type="file" accept="image/*,video/*,audio/*" hidden ref={assetFileInputRef} onChange={handleAssetFileChange} />
+              <input type="file" accept="image/*" hidden ref={assetPreviewFileInputRef} onChange={handleAssetPreviewFileChange} />
+              <button
+                onClick={() => assetFileInputRef.current?.click()}
+                disabled={isUploadingAsset}
+                className="font-pixel"
+                style={{
+                  background: 'transparent',
+                  border: '2px solid var(--s,#45d6ff)',
+                  borderRadius: 6,
                   padding: '8px 12px',
-                  color: 'var(--tx,#efe6ff)',
-                  fontSize: 13,
-                  outline: 'none',
+                  color: 'var(--s,#45d6ff)',
+                  fontSize: 11,
+                  cursor: isUploadingAsset ? 'not-allowed' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
-              />
+              >
+                ↑ UPLOAD
+              </button>
+              <button
+                onClick={handleAddAsset}
+                disabled={isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)}
+                className="font-pixel"
+                style={{
+                  background: 'var(--ok,#74f0a0)',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '8px 16px',
+                  color: '#12081e',
+                  fontSize: 9,
+                  cursor: (isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)) ? 'not-allowed' : 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  opacity: (isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)) ? 0.5 : 1,
+                }}
+              >
+                {isUploadingAsset ? '⏳' : '＋ SAVE'}
+              </button>
+            </div>
+            {/* Preview image picker — shown only when URL is pasted and not auto-detected as media */}
+            {assetInput.trim() && !assetInput.startsWith('blob:') && !isImageUrl(assetInput) && !assetInput.match(/youtube\.com|youtu\.be/) && !assetInput.match(/\.(mp4|webm|mov|mp3|wav|ogg|aac|flac)/i) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => assetPreviewFileInputRef.current?.click()}
+                  disabled={isUploadingAsset}
+                  className="font-pixel"
+                  style={{
+                    background: 'transparent',
+                    border: '2px solid var(--pk,#ff5fd2)',
+                    borderRadius: 6,
+                    padding: '6px 10px',
+                    color: 'var(--pk,#ff5fd2)',
+                    fontSize: 9,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  📷 + ADD PREVIEW IMAGE
+                </button>
+                {assetPreviewObjectUrl && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <img
+                      src={assetPreviewObjectUrl}
+                      alt="Preview"
+                      style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--pk,#ff5fd2)' }}
+                    />
+                    <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>{assetPreviewFile?.name}</span>
+                    <button
+                      onClick={() => { setAssetPreviewFile(null); if (assetPreviewObjectUrl) URL.revokeObjectURL(assetPreviewObjectUrl); setAssetPreviewObjectUrl(null) }}
+                      style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 13, padding: 2 }}
+                    >✕</button>
+                  </div>
+                )}
+              </div>
             )}
-            <input type="file" accept="image/*,video/*,audio/*" hidden ref={assetFileInputRef} onChange={handleAssetFileChange} />
-            <button
-              onClick={() => assetFileInputRef.current?.click()}
-              disabled={isUploadingAsset}
-              className="font-pixel"
-              style={{
-                background: 'transparent',
-                border: '2px solid var(--s,#45d6ff)',
-                borderRadius: 6,
-                padding: '8px 12px',
-                color: 'var(--s,#45d6ff)',
-                fontSize: 11,
-                cursor: isUploadingAsset ? 'not-allowed' : 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              ↑ UPLOAD
-            </button>
-            <button
-              onClick={handleAddAsset}
-              disabled={isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)}
-              className="font-pixel"
-              style={{
-                background: 'var(--ok,#74f0a0)',
-                border: 'none',
-                borderRadius: 6,
-                padding: '8px 16px',
-                color: '#12081e',
-                fontSize: 9,
-                cursor: (isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)) ? 'not-allowed' : 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                opacity: (isUploadingAsset || (!assetInput.trim() && !assetFileToUpload)) ? 0.5 : 1,
-              }}
-            >
-              {isUploadingAsset ? '⏳' : '＋ SAVE'}
-            </button>
           </div>
 
           {/* Asset cards grid */}
@@ -1087,9 +1158,23 @@ export default function Portfolio({
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div style={{ height: 70, background: grad }} />
-                  )}
+                  ) : (() => {
+                    // Try to get previewUrl from content JSON
+                    let previewUrl: string | null = null;
+                    try { const d = JSON.parse(asset.content || '{}'); previewUrl = d.previewUrl || null; } catch {}
+                    return previewUrl ? (
+                      <div style={{ height: 70, overflow: 'hidden', position: 'relative', background: 'rgba(0,0,0,.3)' }}>
+                        <img
+                          src={previewUrl}
+                          alt={asset.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.style.background = grad; }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ height: 70, background: grad }} />
+                    );
+                  })()}
                   {/* Type tag badge */}
                   <span
                     className="font-pixel"
@@ -1244,21 +1329,41 @@ export default function Portfolio({
                       </div>
                     </div>
                   </div>
-                ) : viewingItem.kind === 'generation' ? (
-                  <div style={{ 
-                    width: '100%', 
-                    height: 120, 
-                    background: 'linear-gradient(135deg,#45d6ff 0%,#74f0a0 100%)', 
-                    borderRadius: 8, 
-                    border: '2px solid var(--ln,#3d2668)',
-                    marginBottom: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <span className="font-pixel" style={{ fontSize: 13, color: '#12081e' }}>ASSET</span>
-                  </div>
-                ) : null}
+                ) : viewingItem.kind === 'generation' ? (() => {
+                  let previewUrl: string | null = null;
+                  try { const d = JSON.parse(viewingItem.content || '{}'); previewUrl = d.previewUrl || null; } catch {}
+                  
+                  return previewUrl ? (
+                    <img 
+                      src={previewUrl} 
+                      alt={viewingItem.title} 
+                      style={{ 
+                        display: 'block', 
+                        width: '100%', 
+                        maxHeight: 300,
+                        objectFit: 'contain', 
+                        borderRadius: 8, 
+                        border: '2px solid var(--ln,#3d2668)',
+                        marginBottom: 10,
+                        background: 'rgba(0,0,0,.3)'
+                      }} 
+                    />
+                  ) : (
+                    <div style={{ 
+                      width: '100%', 
+                      height: 120, 
+                      background: 'linear-gradient(135deg,#45d6ff 0%,#74f0a0 100%)', 
+                      borderRadius: 8, 
+                      border: '2px solid var(--ln,#3d2668)',
+                      marginBottom: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <span className="font-pixel" style={{ fontSize: 13, color: '#12081e' }}>ASSET</span>
+                    </div>
+                  );
+                })() : null}
                 {viewingItem.kind === 'generation' && (
                   <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>
                     ◉ {viewingItem.url.match(/\.(mp4|webm|mov)/i) ? 'VIDEO' : viewingItem.url.match(/\.(mp3|wav|ogg)/i) ? 'AUDIO' : 'IMAGE'} asset · generated in your workshop tools

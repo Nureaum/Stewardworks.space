@@ -15,6 +15,11 @@ export async function GET() {
     return NextResponse.json({
       homepage_title: data?.homepage_title || '',
       homepage_subtitle: data?.homepage_subtitle || '',
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+      }
     });
   } catch {
     return NextResponse.json({ homepage_title: '', homepage_subtitle: '' });

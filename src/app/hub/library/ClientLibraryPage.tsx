@@ -242,8 +242,10 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
       const colorIdx = idx % PALETTE.length;
       
       const slug = cat.slug || '';
-      const match = slug.match(/--c-([a-fA-F0-9]{6})$/);
-      const customColor = match ? `#${match[1]}` : null;
+      const colorMatch = slug.match(/--c-([a-fA-F0-9]{6})/);
+      const customColor = colorMatch ? `#${colorMatch[1]}` : null;
+      const styleMatch = slug.match(/--s-([0-3])/);
+      const customStyle = styleMatch ? parseInt(styleMatch[1]) : null;
       
       uniqueCats.set(cat.id, {
         id: cat.id,
@@ -252,7 +254,8 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         code: proto ? proto.code : (300 + idx * 10).toString() + '.0',
         color: customColor || (proto ? proto.color : PALETTE[colorIdx]),
         blurb: proto ? proto.blurb : (cat.description || `Resources related to ${catName}.`),
-        section: proto ? (proto as any).section : undefined
+        section: proto ? (proto as any).section : undefined,
+        styleIndex: customStyle !== null ? customStyle : (idx % 4)
       });
     });
 
@@ -266,8 +269,10 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         const colorIdx = uniqueCats.size % PALETTE.length;
         
         const slug = r.category?.slug || '';
-        const match = slug.match(/--c-([a-fA-F0-9]{6})$/);
-        const customColor = match ? `#${match[1]}` : null;
+        const colorMatch = slug.match(/--c-([a-fA-F0-9]{6})/);
+        const customColor = colorMatch ? `#${colorMatch[1]}` : null;
+        const styleMatch = slug.match(/--s-([0-3])/);
+        const customStyle = styleMatch ? parseInt(styleMatch[1]) : null;
         
         uniqueCats.set(catId, {
           id: catId,
@@ -276,7 +281,8 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
           code: proto ? proto.code : (300 + uniqueCats.size * 10).toString() + '.0',
           color: customColor || (proto ? proto.color : PALETTE[colorIdx]),
           blurb: proto ? proto.blurb : (r.category?.description || `Resources related to ${catName}.`),
-          section: proto ? (proto as any).section : undefined
+          section: proto ? (proto as any).section : undefined,
+          styleIndex: customStyle !== null ? customStyle : (uniqueCats.size % 4)
         });
       }
       
@@ -316,7 +322,8 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
             code: proto.code,
             color: proto.color,
             blurb: proto.blurb,
-            section: (proto as any).section
+            section: (proto as any).section,
+            styleIndex: idx % 4
           });
         }
       }
@@ -403,10 +410,10 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
       h: H[i % H.length],
       w: W[i % W.length],
       headerBg: `linear-gradient(135deg, ${c.color}, ${darken(c.color, 0.42)})`,
-      styleA: (i % 4) === 0,
-      styleB: (i % 4) === 1,
-      styleC: (i % 4) === 2,
-      styleD: (i % 4) === 3,
+      styleA: (c.styleIndex !== undefined ? c.styleIndex : (i % 4)) === 0,
+      styleB: (c.styleIndex !== undefined ? c.styleIndex : (i % 4)) === 1,
+      styleC: (c.styleIndex !== undefined ? c.styleIndex : (i % 4)) === 2,
+      styleD: (c.styleIndex !== undefined ? c.styleIndex : (i % 4)) === 3,
       bandColor: darken(c.color, 0.2),
       labelBg: darken(c.color, 0.3),
       spineFont: spineFont,

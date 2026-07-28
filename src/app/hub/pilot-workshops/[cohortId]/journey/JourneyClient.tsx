@@ -15,6 +15,7 @@ import {
   VictoryScreen,
 } from '@/components/workshops/journey'
 import { addEngagement, removeEngagement, updateEngagement } from '@/app/actions/workshops/engagement'
+import { calculateGlobalEngagement } from '@/lib/progress/calculateGlobalEngagement'
 import AdminConsole from '@/components/workshops/journey/AdminConsole'
 import type {
   WorkshopCharacter,
@@ -112,10 +113,10 @@ export default function JourneyClient({
   }, [daysComplete, character, cohortId])
 
   // Handlers
-  const handleAddEngagement = async (kind: string, title: string, source: string, url?: string) => {
-    console.log('[DEBUG] handleAddEngagement called:', { kind, title, source, url, cohortId });
+  const handleAddEngagement = async (kind: string, title: string, source: string, url?: string, content?: string) => {
+    console.log('[DEBUG] handleAddEngagement called:', { kind, title, source, url, content, cohortId });
     try {
-      const res = await addEngagement(cohortId, kind, title, source, url)
+      const res = await addEngagement(cohortId, kind, title, source, url, content)
       console.log('[DEBUG] addEngagement response:', res);
       setEngagements(prev => [res, ...prev])
       setToast('Added to Portfolio')
@@ -339,15 +340,7 @@ export default function JourneyClient({
                   progressRows={progressRows}
                   cohortId={cohortId}
                   submissions={submissions}
-                  engagementPct={Math.min(
-                    engagements.filter(e => e.status === 'approved').reduce((acc, e) => {
-                      if (e.kind === 'bookmark' || e.kind === 'note') return acc + 1;
-                      if (e.kind === 'generation') return acc + 2;
-                      if (e.kind === 'prompt') return acc + 3;
-                      return acc;
-                    }, 0),
-                    25
-                  )}
+                  engagementPct={calculateGlobalEngagement(engagements)}
                   onBack={() => setVictoryVisible(false)}
                   onViewPortfolio={() => {
                     setVictoryVisible(false)
@@ -371,15 +364,7 @@ export default function JourneyClient({
                   character={character}
                   daysComplete={daysSubmitted}
                   approvedDays={daysComplete}
-                  engagementPct={Math.min(
-                    engagements.filter(e => e.status === 'approved').reduce((acc, e) => {
-                      if (e.kind === 'bookmark' || e.kind === 'note') return acc + 1;
-                      if (e.kind === 'generation') return acc + 2;
-                      if (e.kind === 'prompt') return acc + 3;
-                      return acc;
-                    }, 0),
-                    25
-                  )}
+                  engagementPct={calculateGlobalEngagement(engagements)}
                   principlesCount={bankedPrinciples.length}
                   bankedPrinciples={bankedPrinciples}
                   principles={principles}
