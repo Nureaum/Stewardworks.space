@@ -344,11 +344,13 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
     // Parse JSON content to check for showcaseRequested field
     let isShowcaseRequested = false;
     let principleName = '';
+    let previewImageUrl: string | null = null;
     
     if (item.kind === 'generation') {
       try {
         const data = JSON.parse(rawText);
         isShowcaseRequested = data.showcaseRequested === true;
+        previewImageUrl = data.previewImageUrl || null;
       } catch (e) {
         // Fallback to text marker for legacy data
         isShowcaseRequested = rawText.includes('[SHOWCASE_REQUESTED]');
@@ -494,20 +496,66 @@ export default function AILabsAdminConsole({ cohortId }: AILabsAdminConsoleProps
                 </a>
               </div>
             ) : (
-              <a 
-                href={item.url} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                style={{ 
-                  color: '#4dffa0', 
-                  textDecoration: 'underline',
-                  fontSize: 14,
-                  wordBreak: 'break-all',
-                  lineHeight: 1.4
-                }}
-              >
-                {item.url} ↗
-              </a>
+              // Non-image URL — show preview thumbnail if available, then the link
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {previewImageUrl && (
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: 'block', transition: 'opacity 0.2s' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '0.8'}
+                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '1'}
+                    >
+                      <img
+                        src={previewImageUrl}
+                        alt="Preview thumbnail"
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: 200,
+                          borderRadius: 6,
+                          objectFit: 'cover',
+                          border: '1px solid #2f3d36',
+                          background: 'rgba(0,0,0,.3)',
+                          display: 'block',
+                        }}
+                      />
+                      <div
+                        className="font-pixel"
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          background: 'rgba(0,0,0,.7)',
+                          color: '#4dffa0',
+                          border: '1px solid #4dffa0',
+                          padding: '4px 6px',
+                          borderRadius: 4,
+                          fontSize: 8,
+                          letterSpacing: 1,
+                        }}
+                      >
+                        ↗ OPEN LINK
+                      </div>
+                    </a>
+                  </div>
+                )}
+                <a 
+                  href={item.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ 
+                    color: '#4dffa0', 
+                    textDecoration: 'underline',
+                    fontSize: 14,
+                    wordBreak: 'break-all',
+                    lineHeight: 1.4
+                  }}
+                >
+                  {item.url} ↗
+                </a>
+              </div>
             )}
           </div>
         )}

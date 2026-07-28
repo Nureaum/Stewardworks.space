@@ -5,7 +5,7 @@ import { uploadCreationImage } from '@/app/actions/workshops/engagement';
 import toast from 'react-hot-toast';
 
 interface SaveCreationPanelProps {
-  onSave: (data: { platform: string; url: string; showcase: boolean }) => Promise<void>;
+  onSave: (data: { platform: string; url: string; showcase: boolean; previewImageUrl?: string }) => Promise<void>;
 }
 
 export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
@@ -16,7 +16,11 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [urlImgError, setUrlImgError] = useState(false);
+  // Separate preview image for non-image URLs (same as Showcase form)
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewFileInputRef = useRef<HTMLInputElement>(null);
 
   const platformOpts = [
     { id: 'eden', label: 'EDEN.ART', color: '#4dffa0' },
@@ -36,14 +40,32 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
       let finalUrl = shareLink;
       
       if (fileToUpload) {
+        // Uploaded image file — use its URL as the main asset
         const formData = new FormData();
         formData.append('file', fileToUpload);
         finalUrl = await uploadCreationImage(formData);
+      } else if (previewFile && !isDirectImageUrl(shareLink)) {
+        // Non-image URL with a separate preview thumbnail — upload the thumbnail
+        // and store it in the URL field so it shows up as the card image
+        const formData = new FormData();
+        formData.append('file', previewFile);
+        const uploadedThumb = await uploadCreationImage(formData);
+        // Pass both: original share URL as the url, thumbnail as extra metadata via platform prefix
+        finalUrl = shareLink;
+        await onSave({ platform, url: finalUrl, showcase: showcaseSubmit, previewImageUrl: uploadedThumb });
+        setShareLink('');
+        setFileToUpload(null);
+        setPreviewFile(null);
+        setPreviewFileUrl(null);
+        setShowcaseSubmit(false);
+        return;
       }
 
       await onSave({ platform, url: finalUrl, showcase: showcaseSubmit });
       setShareLink('');
       setFileToUpload(null);
+      setPreviewFile(null);
+      setPreviewFileUrl(null);
       setShowcaseSubmit(false);
     } catch (err) {
       console.error('Error saving creation:', err);
@@ -71,6 +93,8 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
     const localUrl = URL.createObjectURL(file);
     setShareLink(localUrl);
     setUrlImgError(false);
+    setPreviewFile(null);
+    setPreviewFileUrl(null);
     
     // Reset the file input
     if (fileInputRef.current) {
@@ -90,8 +114,22 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
     const val = e.target.value;
     setShareLink(val);
     setUrlImgError(false);
+    setPreviewFile(null);
+    setPreviewFileUrl(null);
     const detected = detectPlatform(val);
     if (detected) setPlatform(detected as any);
+  };
+
+  const handlePreviewFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file for the preview thumbnail.', { position: 'bottom-center' });
+      return;
+    }
+    setPreviewFile(file);
+    setPreviewFileUrl(URL.createObjectURL(file));
+    if (previewFileInputRef.current) previewFileInputRef.current.value = '';
   };
 
   // Check if a URL looks like a direct image we can preview
@@ -290,70 +328,72 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
               {shareLink && !shareLink.startsWith('blob:') && (
                 <div style={{
                   marginTop: 10,
-                  padding: '10px 12px',
-                  background: 'rgba(0,0,0,.35)',
-                  border: '1px solid var(--ln,#28432f)',
-                  borderRadius: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  flexWrap: 'wrap',
+                  border: '1.5px solid var(--ln,#28432f)',
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  background: 'rgba(0,0,0,.3)',
                 }}>
+                  {/* Direct image URL — show inline thumbnail */}
                   {isDirectImageUrl(shareLink) && !urlImgError ? (
                     <img
                       src={shareLink}
-                      alt="URL preview"
+                      alt="Preview"
                       onError={() => setUrlImgError(true)}
-                      style={{
-                        height: 56,
-                        width: 56,
-                        objectFit: 'cover',
-                        borderRadius: 4,
-                        border: '1px solid var(--mu,#77b78d)',
-                        background: 'rgba(0,0,0,.4)',
-                        flexShrink: 0,
-                      }}
+                      style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }}
                     />
                   ) : (
-                    <span style={{
-                      fontSize: 22,
-                      lineHeight: 1,
-                      flexShrink: 0,
-                    }}>🔗</span>
+                    /* Non-image URL — show link + optional preview image upload */
+                    <>
+                      {previewFileUrl ? (
+                        /* Preview thumbnail was added */
+                        <div style={{ position: 'relative' }}>
+                          <img
+                            src={previewFileUrl}
+                            alt="Preview thumbnail"
+                            style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }}
+                          />
+                          <button
+                            onClick={() => { setPreviewFile(null); setPreviewFileUrl(null); }}
+                            style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,.7)', border: '1px solid rgba(77,255,160,.4)', color: 'var(--ng,#4dffa0)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                            title="Remove preview image"
+                          >×</button>
+                        </div>
+                      ) : (
+                        /* Link icon + URL */
+                        <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--mu,#77b78d)', fontFamily: "'DM Mono',monospace", wordBreak: 'break-all' }}>
+                          🔗 {shareLink}
+                        </div>
+                      )}
+                      {/* + ADD PREVIEW IMAGE button */}
+                      {!previewFileUrl && (
+                        <div style={{ padding: '8px 12px', borderTop: '1px dashed var(--ln,#28432f)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <button
+                            onClick={() => previewFileInputRef.current?.click()}
+                            className="font-pixel"
+                            style={{ fontSize: 8, padding: '8px 14px', background: 'rgba(69,214,255,.1)', color: 'var(--cy,#45d6ff)', border: '1.5px solid rgba(69,214,255,.3)', borderRadius: 6, cursor: 'pointer', letterSpacing: '.5px' }}
+                          >
+                            📷 + ADD PREVIEW IMAGE
+                          </button>
+                          <span style={{ fontSize: 10, color: 'var(--mu,#77b78d)', fontFamily: "'DM Mono',monospace" }}>Optional thumbnail</span>
+                          <input
+                            ref={previewFileInputRef}
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={handlePreviewFileChange}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: 11,
-                      color: 'var(--mu,#77b78d)',
-                      fontFamily: "'VT323', monospace",
-                      marginBottom: 2,
-                    }}>
-                      {isDirectImageUrl(shareLink) && !urlImgError ? 'IMAGE PREVIEW' : 'LINK DETECTED'}
-                    </div>
-                    <a
-                      href={shareLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: 'var(--ng,#4dffa0)',
-                        fontSize: 13,
-                        fontFamily: "'VT323', monospace",
-                        textDecoration: 'underline',
-                        wordBreak: 'break-all',
-                        lineHeight: 1.3,
-                        display: 'block',
-                      }}
-                    >
-                      {shareLink.length > 70 ? shareLink.slice(0, 67) + '…' : shareLink} ↗
-                    </a>
+                  {/* Footer label */}
+                  <div style={{ padding: '5px 12px', fontSize: 10, color: 'var(--ng,#4dffa0)', fontFamily: "'DM Mono',monospace", borderTop: '1px solid var(--ln,#28432f)' }}>
+                    {previewFile
+                      ? `DETECTED: LINK · 📷 Preview: ${previewFile.name}`
+                      : isDirectImageUrl(shareLink) && !urlImgError
+                        ? 'DETECTED: IMAGE'
+                        : 'DETECTED: LINK'}
                   </div>
-                  <button
-                    onClick={() => { setShareLink(''); setUrlImgError(false); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--mu,#77b78d)', cursor: 'pointer', padding: 4, fontSize: 16, flexShrink: 0 }}
-                    title="Clear link"
-                  >
-                    ✕
-                  </button>
                 </div>
               )}
             </div>

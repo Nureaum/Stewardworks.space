@@ -59,7 +59,7 @@ export default function AILabClient({
   const profilePct = 40;
   const chiaStage = 2;
 
-  const handleSaveCreation = async (data: { platform: string; url: string; showcase: boolean }) => {
+  const handleSaveCreation = async (data: { platform: string; url: string; showcase: boolean; previewImageUrl?: string }) => {
     if (!cohortId) {
       toast.error('Error: Cohort ID is missing.', { position: 'bottom-center' });
       return;
@@ -70,6 +70,7 @@ export default function AILabClient({
       const contentData = JSON.stringify({
         showcaseRequested: data.showcase,
         showcaseVisible: false,
+        ...(data.previewImageUrl ? { previewImageUrl: data.previewImageUrl } : {}),
       });
       await addEngagement(cohortId, 'generation', `Creation from ${data.platform}`, data.platform, data.url, contentData);
       
