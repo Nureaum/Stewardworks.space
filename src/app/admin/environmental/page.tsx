@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { getAdminEnvironmentalData, deleteCatalogEntry, approveSuggestion, dismissSuggestion, updateCatalogEntry, insertCatalogEntry } from '@/actions/environmental';
+import { getAdminEnvironmentalData, deleteCatalogEntry, approveSuggestion, dismissSuggestion, updateCatalogEntry, insertCatalogEntry, updateCatalogOrder } from '@/actions/environmental';
 import toast from 'react-hot-toast';
+import { SortableList } from '@/components/admin/SortableList';
+import { GripVertical } from 'lucide-react';
 
 const THEMES = [
   { id: 'bioregion', mark: '❋', short: 'Bioregion', topic: 'Imperial County Bioregion', shelf: 'Ocotillo Field', color: '#417C98' },
@@ -442,39 +444,65 @@ export default function EnvironmentalAdminPage() {
                 <button type="button" onClick={() => openAdd(activeTheme)} style={{ cursor: 'pointer', padding: '9px 14px', borderRadius: '10px', border: 0, background: 'rgba(255,255,255,.94)', color: m.color, font: "800 9.5px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase' }}>+ Add resource</button>
               </div>
 
-              <div style={{ background: '#fff', border: '1px solid #e9e6dd', borderTop: 0, borderRadius: '0 0 15px 15px', overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 92px 116px 200px', gap: '14px', alignItems: 'center', padding: '11px 18px', background: '#f7f5ef', borderBottom: '1px solid #e9e6dd' }}>
-                  <span style={{ font: "800 8.5px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase', color: '#6b6d70' }}>#</span>
-                  <span style={{ font: "800 8.5px/1 'Exo', sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', color: '#6b6d70' }}>Resource</span>
+              <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 8px 30px -10px rgba(60,42,24,.08)', border: '1px solid rgba(60,42,24,.1)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 92px 116px 200px', gap: '14px', alignItems: 'center', padding: '12px 18px', borderBottom: '1px solid rgba(60,42,24,.1)', background: 'rgba(255,255,255,.5)' }}>
+                  <span style={{ font: "800 8.5px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase', color: '#6b6d70', paddingLeft: '20px' }}>#</span>
+                  <span style={{ font: "800 8.5px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase', color: '#6b6d70' }}>Resource</span>
                   <span style={{ font: "800 8.5px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase', color: '#6b6d70' }}>Call no.</span>
                   <span style={{ font: "800 8.5px/1 'Exo', sans-serif", letterSpacing: '.1em', textTransform: 'uppercase', color: '#6b6d70' }}>Type</span>
                   <span></span>
                 </div>
-                {activeCatalog.map((r, i) => {
-                  const isUpdating = updatingId === r.id;
-                  return (
-                  <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 92px 116px 200px', gap: '14px', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #e9e6dd', background: isUpdating ? 'repeating-linear-gradient(45deg, #f7f5ef, #f7f5ef 10px, #fff 10px, #fff 20px)' : 'transparent', pointerEvents: isUpdating ? 'none' : 'auto', opacity: isUpdating ? 0.7 : 1 }}>
-                    <span style={{ font: "700 12px/1 'Courier New',monospace", color: m.color }}>{String(i+1).padStart(2,'0')}</span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ font: "800 14px/1.2 'Exo', sans-serif", color: '#21282E' }}>{r.title}</div>
-                        {r.slug?.startsWith('draft___') && <span style={{ padding: '3px 6px', borderRadius: '4px', background: '#e9e6dd', color: '#6b6d70', font: "800 8px/1 'Exo', sans-serif", letterSpacing: '.06em', textTransform: 'uppercase' }}>DRAFT</span>}
+                <SortableList
+                  items={activeCatalog}
+                  onChange={async (newOrder) => {
+                    const reorderedCatalog = catalog.map(c => {
+                      if (c.theme_id === activeTheme) {
+                        const newIdx = newOrder.findIndex(no => no.id === c.id);
+                        return { ...c, sort_order: newIdx };
+                      }
+                      return c;
+                    }).sort((a, b) => {
+                      if (a.theme_id === activeTheme && b.theme_id === activeTheme) {
+                        return (a.sort_order || 0) - (b.sort_order || 0);
+                      }
+                      return 0;
+                    });
+                    
+                    setCatalog(reorderedCatalog);
+                    
+                    const updates = newOrder.map((item, index) => ({ id: item.id, sort_order: index }));
+                    await updateCatalogOrder(updates);
+                  }}
+                  renderItem={(r, isDragging) => {
+                    const i = activeCatalog.findIndex(c => c.id === r.id);
+                    const isUpdating = updatingId === r.id;
+                    return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 92px 116px 200px', gap: '14px', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #e9e6dd', background: isUpdating ? 'repeating-linear-gradient(45deg, #f7f5ef, #f7f5ef 10px, #fff 10px, #fff 20px)' : (isDragging ? '#fff' : 'transparent'), pointerEvents: isUpdating ? 'none' : 'auto', opacity: isUpdating ? 0.7 : (isDragging ? 0.9 : 1), boxShadow: isDragging ? '0 12px 24px -12px rgba(33,40,46,0.3)' : 'none', cursor: 'grab' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: m.color }}>
+                        <GripVertical size={14} style={{ opacity: 0.4 }} />
+                        <span style={{ font: "700 12px/1 'Courier New',monospace" }}>{String(i+1).padStart(2,'0')}</span>
                       </div>
-                      <div style={{ font: "500 12px/1.3 'Exo', sans-serif", color: '#6b6d70', marginTop: '2px' }}>{r.subtitle}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ font: "800 14px/1.2 'Exo', sans-serif", color: '#21282E' }}>{r.title}</div>
+                          {r.slug?.startsWith('draft___') && <span style={{ padding: '3px 6px', borderRadius: '4px', background: '#e9e6dd', color: '#6b6d70', font: "800 8px/1 'Exo', sans-serif", letterSpacing: '.06em', textTransform: 'uppercase' }}>DRAFT</span>}
+                        </div>
+                        <div style={{ font: "500 12px/1.3 'Exo', sans-serif", color: '#6b6d70', marginTop: '2px' }}>{r.subtitle}</div>
+                      </div>
+                      <span style={{ font: "700 12px/1 'Courier New',monospace", color: '#A27532' }}>{r.call_no || ''}</span>
+                      <span style={{ justifySelf: 'start', padding: '5px 10px', borderRadius: '999px', background: '#f7f5ef', border: '1px solid #e9e6dd', font: "700 9.5px/1 'Exo', sans-serif", letterSpacing: '.04em', color: '#6b6d70' }}>{r.type || 'Field Note'}</span>
+                      <div style={{ display: 'flex', gap: '7px', justifyContent: 'flex-end' }}>
+                        <button type="button" onClick={() => openEdit(r)} onPointerDown={(e) => e.stopPropagation()} style={{ cursor: 'pointer', padding: '8px 12px', borderRadius: '9px', border: '1px solid #e9e6dd', background: '#fff', color: '#21282E', font: "800 9px/1 'Exo', sans-serif", letterSpacing: '.08em', textTransform: 'uppercase' }}>Edit</button>
+                        <button type="button" onClick={() => handleToggleDraft(r.id, r.slug)} onPointerDown={(e) => e.stopPropagation()} style={{ cursor: isUpdating ? 'wait' : 'pointer', padding: '8px 11px', borderRadius: '9px', border: '1px solid #eadfd7', background: '#fff', color: '#b4675b', font: "800 9px/1 'Exo', sans-serif", letterSpacing: '.08em', textTransform: 'uppercase' }}>
+                          {isUpdating ? '...' : (r.slug?.startsWith('draft___') ? 'Publish' : 'Unpublish')}
+                        </button>
+                        <button type="button" onClick={() => handleDelete(r.id)} onPointerDown={(e) => e.stopPropagation()} style={{ cursor: isUpdating ? 'wait' : 'pointer', padding: '8px 11px', borderRadius: '9px', border: 'none', background: '#b4675b', color: '#fff', font: "800 9px/1 'Exo', sans-serif", letterSpacing: '.08em', textTransform: 'uppercase' }}>
+                          {isUpdating ? '...' : 'Delete'}
+                        </button>
+                      </div>
                     </div>
-                    <span style={{ font: "700 12px/1 'Courier New',monospace", color: '#A27532' }}>{r.call_no || ''}</span>
-                    <span style={{ justifySelf: 'start', padding: '5px 10px', borderRadius: '999px', background: '#f7f5ef', border: '1px solid #e9e6dd', font: "700 9.5px/1 'Exo', sans-serif", letterSpacing: '.04em', color: '#6b6d70' }}>{r.type || 'Field Note'}</span>
-                    <div style={{ display: 'flex', gap: '7px', justifyContent: 'flex-end' }}>
-                      <button type="button" onClick={() => openEdit(r)} style={{ cursor: 'pointer', padding: '8px 12px', borderRadius: '9px', border: '1px solid #e9e6dd', background: '#fff', color: '#21282E', font: "800 9px/1 'Exo', sans-serif", letterSpacing: '.08em', textTransform: 'uppercase' }}>Edit</button>
-                      <button type="button" onClick={() => handleToggleDraft(r.id, r.slug)} style={{ cursor: isUpdating ? 'wait' : 'pointer', padding: '8px 11px', borderRadius: '9px', border: '1px solid #eadfd7', background: '#fff', color: '#b4675b', font: "800 9px/1 'Exo', sans-serif", letterSpacing: '.08em', textTransform: 'uppercase' }}>
-                        {isUpdating ? '...' : (r.slug?.startsWith('draft___') ? 'Publish' : 'Unpublish')}
-                      </button>
-                      <button type="button" onClick={() => handleDelete(r.id)} style={{ cursor: isUpdating ? 'wait' : 'pointer', padding: '8px 11px', borderRadius: '9px', border: 'none', background: '#b4675b', color: '#fff', font: "800 9px/1 'Exo', sans-serif", letterSpacing: '.08em', textTransform: 'uppercase' }}>
-                        {isUpdating ? '...' : 'Delete'}
-                      </button>
-                    </div>
-                  </div>
-                )})}
+                  )}}
+                />
               </div>
             </div>
           )}

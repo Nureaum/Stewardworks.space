@@ -42,6 +42,7 @@ export default function EnvironmentalLiteracyPage() {
 
   const { user, isLoaded } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkAdminRole() {
@@ -52,6 +53,12 @@ export default function EnvironmentalLiteracyPage() {
           const data = await res.json();
           if (data.profile?.role === 'admin' || data.profile?.role === 'super_admin') {
             setIsAdmin(true);
+          }
+          if (data.profile?.id) {
+            console.log('[EnvLiteracyPage] Profile ID loaded:', data.profile.id);
+            setProfileId(data.profile.id);
+          } else {
+            console.warn('[EnvLiteracyPage] No profile ID found in /api/profile response', data);
           }
         }
       } catch (error) {
@@ -216,7 +223,11 @@ export default function EnvironmentalLiteracyPage() {
     setIsSubmitting(true);
     setSShowErr(false);
 
-    const { success, error } = await submitSuggestion({ theme_id: sTheme, title: t, description: w, url: u, submitter_name: sName });
+    console.log('[EnvLiteracyPage] Submitting suggestion:', { theme_id: sTheme, title: t, description: w, url: u, submitter_name: sName, submitter_profile_id: profileId });
+
+    const { success, error } = await submitSuggestion({ theme_id: sTheme, title: t, description: w, url: u, submitter_name: sName, submitter_profile_id: profileId || undefined });
+
+    console.log('[EnvLiteracyPage] Submit result:', { success, error });
 
     setIsSubmitting(false);
 
@@ -229,6 +240,7 @@ export default function EnvironmentalLiteracyPage() {
     setSTitle('');
     setSWhat('');
     setSUrl('');
+    setSName('');
     setSTheme('bioregion');
     setSShowErr(false);
 
@@ -548,8 +560,11 @@ export default function EnvironmentalLiteracyPage() {
                   <input value={sUrl} onChange={e => setSUrl(e.target.value)} placeholder="https://…" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(60,42,24,.2)', background: '#FBF8F1', color: '#3C2A18', fontSize: '15px', outline: 'none' }}/>
                 </div>
 
-
-
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', font: "700 10.5px/1 'Courier New',monospace", letterSpacing: '.12em', textTransform: 'uppercase', color: '#A27532', marginBottom: '8px' }}>Your Name (Optional)</label>
+                  <input value={sName} onChange={e => setSName(e.target.value)} placeholder="e.g. Jane Doe or anonymous" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(60,42,24,.2)', background: '#FBF8F1', color: '#3C2A18', fontSize: '15px', outline: 'none' }}/>
+                </div>
+                
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '22px' }}>
                   <button onClick={() => setSuggestOpen(false)} disabled={isSubmitting} style={{ background: 'transparent', border: 'none', padding: '12px 16px', color: '#6e5f49', fontWeight: 700, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.6 : 1 }}>Cancel</button>
                   <button onClick={submitSuggest} disabled={isSubmitting} style={{ background: '#3C2A18', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontWeight: 700, cursor: isSubmitting ? 'wait' : 'pointer', fontFamily: "'Baloo 2',cursive", fontSize: '16px', opacity: isSubmitting ? 0.7 : 1 }}>{isSubmitting ? 'Sending...' : 'Send to librarian'}</button>

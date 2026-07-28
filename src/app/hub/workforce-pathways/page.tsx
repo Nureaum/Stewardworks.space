@@ -21,6 +21,7 @@ function WorkforcePathwaysContent() {
 
   const { user, isLoaded } = useUser();
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkRole() {
@@ -32,6 +33,9 @@ function WorkforcePathwaysContent() {
           const profile = data.profile;
           if (profile?.role === 'admin' || profile?.role === 'super_admin') {
             setIsAdminUser(true);
+          }
+          if (profile?.id) {
+            setProfileId(profile.id);
           }
         }
       } catch (e) {}
@@ -439,7 +443,8 @@ function WorkforcePathwaysContent() {
           stop_id: sgStop,
           type: sgType,
           note: sgNote,
-          contributor: sgContributor
+          contributor: sgContributor,
+          submitter_profile_id: profileId || undefined
         });
         setSgDone(true);
       } catch (err) {
@@ -915,7 +920,7 @@ function WorkforcePathwaysContent() {
 
   const onQuizCustomPick = () => handleSavePick('custom', quizCustom);
 
-  const allProps = { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pwJobCount, onSwitchPathway, otherPwName, pwIntro, atlasIsTrail, pwIsCreator, pwIsEnviro, atlasEdges, atlasNodes, atlasIsBasecamp, jobRows, externalBoards, boardChips, jobFilterChips, jobFilter, popupOpen, popColor, popMark, popShelf, popStopName, onClosePopup, popBlurb, popEntryCount, popEntryList, popCall, popType, popSub, popTitle, popMedia, popImages, popParas, popFacts, popSrcs, pwTag, suggestOpen, onOpenSuggest, onCloseSuggest, sgDone, sgNotDone, sgTitle, onSgTitle, sgUrl, onSgUrl, sgPathway, onSgPathway, sgStop, onSgStop, sgNote, onSgNote, sgContributor, onSgContributor, canSubmit, sgSubmitStyle, onSubmitSuggest, sgSubmitting, isSteward, isExplorer, onRoleExplorer, onRoleSteward, onToggleIntro, introToggleLabel, introExpanded, waypointCount, noteCount, jobCount, showTrailhead, entryIsCrossroads, entryIsMaps, showPathway, creatorTipMeta, enviroTipMeta, mapCards, onPickCreator, onPickEnviro, stop, roleExplorerStyle, roleStewardStyle, isAdminUser, theme, setTheme, footTag, popEntry, initialAvatar, onSaveAvatar, pw, pwAccent, libGroups, libTotal, libFilterChips, libNodeChips, shelfItems, shelfCount, popHasQuiz, quizPrompt, quizPickLabel, quizOptions, quizAllowCustom, quizCustomLabel, quizCustom, onQuizCustom, onQuizCustomBlur, quizCustomStyle, quizAnswered, quizUnanswered, quizStatusLabel, quizStatusStyle, onQuizClear, quizClearStyle, onQuizToSummit, quizSummitBtnLabel, quizSummitBtnStyle, summitTitle, summitKlass, summitIntro, summitCloser, summitChecklist, runComplete, runClaimed, summitLocked, summitClaimable, summitDone, remainingCount, remainingText, onClaim, onPrintCard, onResetRun, cardStatRows, onQuizCustomPick, stopCounts: counts.stopCounts };
+  const allProps = { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pwJobCount, onSwitchPathway, otherPwName, pwIntro, atlasIsTrail, pwIsCreator, pwIsEnviro, atlasEdges, atlasNodes, atlasIsBasecamp, jobRows, externalBoards, boardChips, jobFilterChips, jobFilter, popupOpen, popColor, popMark, popShelf, popStopName, onClosePopup, popBlurb, popEntryCount, popEntryList, popCall, popType, popSub, popTitle, popMedia, popImages, popParas, popFacts, popSrcs, pwTag, suggestOpen, onOpenSuggest, onCloseSuggest, sgDone, sgNotDone, sgTitle, onSgTitle, sgUrl, onSgUrl, sgPathway, onSgPathway, sgStop, onSgStop, sgNote, onSgNote, sgContributor, onSgContributor, canSubmit, sgSubmitStyle, onSubmitSuggest, sgSubmitting, isSteward, isExplorer, onRoleExplorer, onRoleSteward, onToggleIntro, introToggleLabel, introExpanded, waypointCount, noteCount, jobCount, showTrailhead, entryIsCrossroads, entryIsMaps, showPathway, creatorTipMeta, enviroTipMeta, mapCards, onPickCreator, onPickEnviro, stop, roleExplorerStyle, roleStewardStyle, isAdminUser, profileId, theme, setTheme, footTag, popEntry, initialAvatar, onSaveAvatar, pw, pwAccent, libGroups, libTotal, libFilterChips, libNodeChips, shelfItems, shelfCount, popHasQuiz, quizPrompt, quizPickLabel, quizOptions, quizAllowCustom, quizCustomLabel, quizCustom, onQuizCustom, onQuizCustomBlur, quizCustomStyle, quizAnswered, quizUnanswered, quizStatusLabel, quizStatusStyle, onQuizClear, quizClearStyle, onQuizToSummit, quizSummitBtnLabel, quizSummitBtnStyle, summitTitle, summitKlass, summitIntro, summitCloser, summitChecklist, runComplete, runClaimed, summitLocked, summitClaimable, summitDone, remainingCount, remainingText, onClaim, onPrintCard, onResetRun, cardStatRows, onQuizCustomPick, stopCounts: counts.stopCounts };
 
   if (!isLoaded || !dataLoaded) {
     return (

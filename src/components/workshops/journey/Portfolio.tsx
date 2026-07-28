@@ -9,6 +9,7 @@ import { DEFAULT_CHARACTER } from './character-data'
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content'
 import { fetchUserPicks } from '@/app/admin/workforce-pathways/actions'
 import { uploadCreationImage } from '@/app/actions/workshops/engagement'
+import { calculateGlobalEngagement } from '@/lib/progress/calculateGlobalEngagement'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 import type {
   WorkshopCharacter,
@@ -263,12 +264,7 @@ export default function Portfolio({
   /* ── Chia growth calculations ── */
   const apprDeliv = progressRows.filter(p => p.deliverable_status === 'approved').length
   const delivPct = Math.min(apprDeliv * 25, 75)
-  const engPct = Math.min(
-    engagements
-      .filter(e => e.status === 'approved')
-      .reduce((a, e) => a + (ENGPCT[e.kind] || 0), 0),
-    25,
-  )
+  const engPct = calculateGlobalEngagement(engagements)
   const chiaPct = Math.min(delivPct + engPct, 100)
   const stageNum =
     chiaPct >= 100

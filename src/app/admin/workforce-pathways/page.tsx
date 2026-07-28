@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { PATHWAYS as INITIAL_PATHWAYS } from '@/data/workforce-content';
-import { fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, updateWorkforceMeta, upsertWorkforceEntry, deleteWorkforceEntry, uploadImage, fetchWorkforceJobs, upsertWorkforceJob, deleteWorkforceJob, fetchPendingSuggestions, approveSuggestion, dismissSuggestion, updateSuggestion, fetchAllPublishedSources, fetchExternalBoards, upsertExternalBoard, deleteExternalBoard } from './actions';
+import { fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, updateWorkforceMeta, upsertWorkforceEntry, deleteWorkforceEntry, uploadImage, fetchWorkforceJobs, upsertWorkforceJob, deleteWorkforceJob, fetchPendingSuggestions, approveSuggestion, dismissSuggestion, updateSuggestion, fetchAllPublishedSources, fetchExternalBoards, upsertExternalBoard, deleteExternalBoard, updateWorkforceEntryOrder } from './actions';
+import { SortableList } from '@/components/admin/SortableList';
+import { GripVertical } from 'lucide-react';
 import QuizzesEditor from './components/QuizzesEditor';
 import FinaleEditor from './components/FinaleEditor';
 import './admin-arcade.css';
@@ -278,14 +280,14 @@ export default function WorkforcePathwaysAdminPage() {
             
             <div style={{ flex: 1 }}></div>
 
-            <a href="/admin" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '7px', background: 'transparent', border: '3px solid transparent', borderRadius: '7px', cursor: 'pointer', textDecoration: 'none' }}>
+            <Link href="/admin" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '7px', background: 'transparent', border: '3px solid transparent', borderRadius: '7px', cursor: 'pointer', textDecoration: 'none' }}>
               <span style={{ width: '26px', height: '26px', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', background: '#45d4ff', color: '#10285e', border: '2px solid #1c1526' }}>
                 ◀
               </span>
               <span style={{ flex: 1, textAlign: 'left', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', lineHeight: 1.5, color: 'var(--paper)' }}>
                 Back to Admin
               </span>
-            </a>
+            </Link>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#1d4490', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px', marginTop: '20px' }}>
               <span style={{ width: '28px', height: '28px', background: '#ffdd2e', color: '#10285e', border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flex: '0 0 auto' }}>▤</span>
@@ -469,29 +471,53 @@ export default function WorkforcePathwaysAdminPage() {
                       <button type="button" onClick={() => setEditingItem({ kind: 'meta', type: 'stop', id: activeStop.id, pwId: activePw.id, label: 'NODE INTRO', hint: 'Explain what this waypoint covers', data: { metaText: activeStop.blurb } })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', flex: '0 0 auto', padding: '6px 10px', background: '#2656a4', color: 'var(--paper)', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>✎ Edit</button>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 92px 118px 150px', gap: '14px', alignItems: 'center', padding: '11px 18px', background: '#10285e', borderBottom: '3px solid #1c1526' }}>
-                      <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: 'var(--muted)' }}>#</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 92px 118px 150px', gap: '14px', alignItems: 'center', padding: '11px 18px', background: '#10285e', borderBottom: '3px solid #1c1526' }}>
+                      <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: 'var(--muted)', paddingLeft: '20px' }}>#</span>
                       <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: 'var(--muted)' }}>RESOURCE</span>
                       <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: 'var(--muted)' }}>CALL NO.</span>
                       <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '6.5px', color: 'var(--muted)' }}>TYPE</span>
                       <span></span>
                     </div>
 
-                    {publishedEntries.map((r, idx) => (
-                      <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 92px 118px 150px', gap: '14px', alignItems: 'center', padding: '13px 18px', borderBottom: '3px solid #10285e' }}>
-                        <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '9px', color: '#45d4ff' }}>{String(idx + 1).padStart(2, '0')}</span>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '19px', lineHeight: 1.25, color: 'var(--paper)' }}>{r.title}</div>
-                          <div style={{ fontSize: '15px', lineHeight: 1.3, color: 'var(--muted)', marginTop: '3px' }}>{r.subtitle || r.media_fallback}</div>
-                        </div>
-                        <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '8px', color: '#ffdd2e' }}>{r.call_no || '—'}</span>
-                        <span style={{ justifySelf: 'start', padding: '4px 8px', background: '#2656a4', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '6px', color: 'var(--muted)' }}>{r.type || 'Field Note'}</span>
-                        <div style={{ display: 'flex', gap: '7px', justifyContent: 'flex-end' }}>
-                          <button type="button" onClick={() => setEditingItem({ kind: 'entry', pathwayId: activePw.id, stopId: activeStop.id, data: { ...r, photos: r.images || r.photos || [] } })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: 'var(--paper)', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>Edit</button>
-                          <button type="button" onClick={() => setDeletingItem({ id: r.id, title: r.title })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: '#ff6b6b', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>Retire</button>
-                        </div>
-                      </div>
-                    ))}
+                    {publishedEntries.length > 0 && (
+                      <SortableList
+                        items={publishedEntries}
+                        onChange={async (newOrder) => {
+                          // Update local state optimistically
+                          const newCatalog = [...publishedEntries];
+                          const reorderedCatalog = newOrder.map((no, idx) => {
+                            const found = newCatalog.find(c => c.id === no.id);
+                            return found ? { ...found, sort_order: idx } : no;
+                          }).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+                          setPublishedEntries(reorderedCatalog);
+                          
+                          // Call backend
+                          const updates = newOrder.map((item, index) => ({ id: item.id, sort_order: index }));
+                          await updateWorkforceEntryOrder(updates);
+                        }}
+                        renderItem={(r, isDragging) => {
+                          const idx = publishedEntries.findIndex(c => c.id === r.id);
+                          return (
+                            <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 92px 118px 150px', gap: '14px', alignItems: 'center', padding: '13px 18px', borderBottom: '3px solid #10285e', background: isDragging ? '#1b1730' : 'transparent', opacity: isDragging ? 0.9 : 1, boxShadow: isDragging ? '0 12px 24px -12px rgba(0,0,0,0.5)' : 'none', cursor: 'grab' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#45d4ff' }}>
+                                <GripVertical size={14} style={{ opacity: 0.4 }} />
+                                <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '9px' }}>{String(idx + 1).padStart(2, '0')}</span>
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '19px', lineHeight: 1.25, color: 'var(--paper)' }}>{r.title}</div>
+                                <div style={{ fontSize: '15px', lineHeight: 1.3, color: 'var(--muted)', marginTop: '3px' }}>{r.subtitle || r.media_fallback}</div>
+                              </div>
+                              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '8px', color: '#ffdd2e' }}>{r.call_no || '—'}</span>
+                              <span style={{ justifySelf: 'start', padding: '4px 8px', background: '#2656a4', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '6px', color: 'var(--muted)' }}>{r.type || 'Field Note'}</span>
+                              <div style={{ display: 'flex', gap: '7px', justifyContent: 'flex-end' }}>
+                                <button type="button" onClick={() => setEditingItem({ kind: 'entry', pathwayId: activePw.id, stopId: activeStop.id, data: { ...r, photos: r.images || r.photos || [] } })} onPointerDown={(e) => e.stopPropagation()} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: 'var(--paper)', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>Edit</button>
+                                <button type="button" onClick={() => setDeletingItem({ id: r.id, title: r.title })} onPointerDown={(e) => e.stopPropagation()} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: '#ff6b6b', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>Retire</button>
+                              </div>
+                            </div>
+                          );
+                        }}
+                      />
+                    )}
                     
                     {publishedEntries.length === 0 && (
                       <div style={{ padding: '30px', textAlign: 'center', color: 'var(--muted)', fontSize: '17px' }}>

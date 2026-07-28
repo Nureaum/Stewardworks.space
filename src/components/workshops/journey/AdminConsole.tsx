@@ -25,7 +25,9 @@ import { PixelSprite } from '@/components/workshops/journey'
 import { updateWorkshopDay, createWorkshopDay } from '@/app/actions/workshops/workshop-days'
 import { updateCohort, uploadCohortThumbnail, getCohorts } from '@/app/actions/workshops/cohorts'
 import { createSection, updateSection, deleteSection } from '@/app/actions/workshops/sections'
-import { createEntry, updateEntry, deleteEntry } from '@/app/actions/workshops/entries'
+import { createEntry, updateEntry, deleteEntry, reorderEntries } from '@/app/actions/workshops/entries'
+import { SortableList } from '@/components/admin/SortableList'
+import { GripVertical } from 'lucide-react'
 import RichEditor from './RichEditor'
 import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia } from '@/app/actions/workshops/entry-media'
 import { createPrinciple, updatePrinciple, deletePrinciple } from '@/app/actions/workshops/principles'
@@ -1471,11 +1473,10 @@ export default function AdminConsole({
                           </div>
                           <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
                             <input
-                              className="font-pixel"
                               defaultValue={sec.hour}
                               placeholder="HOUR A"
                               onBlur={e => handleSectionFieldBlur(sec.id, 'hour', e.target.value)}
-                              style={{ ...inputStyle, flex: 1, minWidth: 0, color: 'var(--gold,#ffd23f)', fontSize: 11, padding: '8px 10px', letterSpacing: '.5px' }}
+                              style={{ ...inputStyle, flex: 1, minWidth: 0, fontFamily: "'Press Start 2P', monospace", color: 'var(--gold,#ffd23f)', fontSize: 10, padding: '8px 10px', letterSpacing: '.5px' }}
                             />
                             <input
                               className="font-retro"
@@ -1494,51 +1495,80 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        {/* Entries */}
-                        {(sec.entries || []).map((en: any, ei: number) => (
-                          <div key={en.id || ei} style={{ display: 'flex', alignItems: 'stretch', gap: 6, marginBottom: 8 }}>
-                            <button
-                              onClick={() => { setSelectedEntry(en.id); setEditorOpen(true); }}
-                              className="font-retro"
-                              style={{
-                                flex: 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '9px 10px',
-                                border: `2px solid ${selectedEntry === en.id ? 'var(--gold,#c9a85f)' : 'var(--ln,#3d2668)'}`,
-                                borderRadius: 8,
-                                background: selectedEntry === en.id ? 'rgba(201,168,95,.1)' : 'rgba(0,0,0,.15)',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                fontFamily: '"VT323", monospace',
-                              }}
-                            >
-                              <span className="font-pixel" style={{
-                                fontSize: 9,
-                                color: 'var(--gold,#ffd23f)',
-                                background: 'rgba(0,0,0,.3)',
-                                borderRadius: 4,
-                                padding: '5px 7px',
-                                flex: 'none',
-                              }}>
-                                {String((si * 10) + ei + 1).padStart(2, '0')}
-                              </span>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>{en.title}</div>
-                                <div className="font-vt323" style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginTop: 4, lineHeight: 1.3 }}>
-                                  {en.subtitle || en.entry_type}
+                        {/* Entries — drag to reorder */}
+                        {(sec.entries || []).length > 0 && (
+                          <SortableList
+                            items={(sec.entries || []).map((en: any) => ({ ...en, id: en.id }))}
+                            onChange={async (newOrder) => {
+                              // Optimistic update
+                              setDaysData(prev => prev.map(d => d.id !== activeDay.id ? d : {
+                                ...d,
+                                sections: d.sections.map((s: any) => s.id !== sec.id ? s : {
+                                  ...s,
+                                  entries: newOrder,
+                                }),
+                              }));
+                              // Persist
+                              await reorderEntries(sec.id, newOrder.map((en, idx) => ({ id: en.id, sort_order: idx })));
+                            }}
+                            renderItem={(en: any, isDragging: boolean) => {
+                              const ei = (sec.entries || []).findIndex((e: any) => e.id === en.id);
+                              return (
+                                <div style={{ display: 'flex', alignItems: 'stretch', gap: 6, marginBottom: 8, background: isDragging ? 'rgba(255,210,63,.06)' : 'transparent', borderRadius: 8 }}>
+                                  <div
+                                    style={{ display: 'flex', alignItems: 'center', paddingLeft: 4, paddingRight: 2, color: 'var(--mu,#a493c9)', cursor: 'grab', opacity: 0.5 }}
+                                    title="Drag to reorder"
+                                  >
+                                    <GripVertical size={14} />
+                                  </div>
+                                  <button
+                                    onClick={() => { setSelectedEntry(en.id); setEditorOpen(true); }}
+                                    onPointerDown={e => e.stopPropagation()}
+                                    className="font-retro"
+                                    style={{
+                                      flex: 1,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 8,
+                                      padding: '9px 10px',
+                                      border: `2px solid ${selectedEntry === en.id ? 'var(--gold,#c9a85f)' : isDragging ? 'var(--gold,#c9a85f)' : 'var(--ln,#3d2668)'}`,
+                                      borderRadius: 8,
+                                      background: selectedEntry === en.id ? 'rgba(201,168,95,.1)' : isDragging ? 'rgba(201,168,95,.07)' : 'rgba(0,0,0,.15)',
+                                      cursor: 'pointer',
+                                      textAlign: 'left',
+                                      fontFamily: '"VT323", monospace',
+                                      boxShadow: isDragging ? '0 8px 20px -8px rgba(0,0,0,.6)' : 'none',
+                                    }}
+                                  >
+                                    <span className="font-pixel" style={{
+                                      fontSize: 9,
+                                      color: 'var(--gold,#ffd23f)',
+                                      background: 'rgba(0,0,0,.3)',
+                                      borderRadius: 4,
+                                      padding: '5px 7px',
+                                      flex: 'none',
+                                    }}>
+                                      {String((si * 10) + ei + 1).padStart(2, '0')}
+                                    </span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div className="font-pixel" style={{ fontSize: 11, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>{en.title}</div>
+                                      <div className="font-vt323" style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginTop: 4, lineHeight: 1.3 }}>
+                                        {en.subtitle || en.entry_type}
+                                      </div>
+                                    </div>
+                                    <span style={{ color: 'var(--mu,#a493c9)', fontSize: 16 }}>›</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteEntry(en.id, sec.id)}
+                                    onPointerDown={e => e.stopPropagation()}
+                                    style={{ fontSize: 16, color: '#cf9760', background: 'rgba(0,0,0,.2)', border: '1px solid #5a4636', borderRadius: 6, padding: '0 8px', cursor: 'pointer', flex: 'none' }}
+                                    title="Delete entry"
+                                  >✕</button>
                                 </div>
-                              </div>
-                              <span style={{ color: 'var(--mu,#a493c9)', fontSize: 16 }}>›</span>
-                            </button>
-                            <button
-                              onClick={() => handleDeleteEntry(en.id, sec.id)}
-                              style={{ fontSize: 16, color: '#cf9760', background: 'rgba(0,0,0,.2)', border: '1px solid #5a4636', borderRadius: 6, padding: '0 8px', cursor: 'pointer', flex: 'none' }}
-                              title="Delete entry"
-                            >✕</button>
-                          </div>
-                        ))}
+                              );
+                            }}
+                          />
+                        )}
 
                         <button
                           onClick={() => handleAddEntry(sec.id)}

@@ -64,10 +64,27 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         title: 'Resource Link'
       })
       
+      // Update engagement if it exists
+      if (data.submitter_engagement_id) {
+        await supabase.from('workshop_engagement').update({ 
+          status: 'approved',
+          content: JSON.stringify({
+            suggestion_id: data.id,
+            category: data.category,
+            resource_type: data.resource_type,
+            library_item_id: newItem.id
+          })
+        }).eq('id', data.submitter_engagement_id).eq('kind', 'lib_suggestion');
+      }
+
       // Revalidate the public library page so it updates instantly
       revalidatePath('/hub/library')
       revalidatePath('/admin/library')
     }
+  } else if (status === 'rejected' && data && data.submitter_engagement_id) {
+    await supabase.from('workshop_engagement').update({ 
+      status: 'rejected'
+    }).eq('id', data.submitter_engagement_id).eq('kind', 'lib_suggestion');
   }
 
   return NextResponse.json({ suggestion: data })

@@ -58,10 +58,16 @@ export default function ClientProfile({
   const [selectedResourceItem, setSelectedResourceItem] = useState<any | null>(null);
   
   // Engagement counts
-  const [engagementCounts, setEngagementCounts] = useState({ bookmarks: 0, notes: 0, prompts: 0, generations: 0 });
+  const [engagementCounts, setEngagementCounts] = useState({ bookmarks: 0, notes: 0, prompts: 0, generations: 0, envSuggestions: 0, wfSuggestions: 0, libSuggestions: 0 });
   
   // Generations State
   const [generations, setGenerations] = useState<any[]>([]);
+  
+  // Environmental Suggestions State
+  const [envSuggestions, setEnvSuggestions] = useState<any[]>([]);
+  // Workforce Suggestions State
+  const [wfSuggestions, setWfSuggestions] = useState<any[]>([]);
+  const [libSuggestions, setLibSuggestions] = useState<any[]>([]);
   
   // Notes & Prompts State
   const [notes, setNotes] = useState<any[]>([]);
@@ -229,13 +235,15 @@ export default function ClientProfile({
           
           // Count approved engagements by kind
           const approved = engagements.filter((e: any) => e.status === 'approved');
-          const counts = {
+          setEngagementCounts({
             bookmarks: approved.filter((e: any) => e.kind === 'bookmark').length,
             notes: approved.filter((e: any) => e.kind === 'note').length,
             prompts: approved.filter((e: any) => e.kind === 'prompt').length,
-            generations: approved.filter((e: any) => e.kind === 'generation').length
-          };
-          setEngagementCounts(counts);
+            generations: approved.filter((e: any) => e.kind === 'generation').length,
+            envSuggestions: approved.filter((e: any) => e.kind === 'env_suggestion').length,
+            wfSuggestions: approved.filter((e: any) => e.kind === 'wf_suggestion').length,
+            libSuggestions: approved.filter((e: any) => e.kind === 'lib_suggestion').length,
+          });
           
           // Filter and set generation engagements
           const generationEngagements = engagements
@@ -259,7 +267,8 @@ export default function ClientProfile({
             });
           console.log('[ClientProfile] Mapped generation engagements:', generationEngagements);
           setGenerations(generationEngagements);
-          
+
+          // We now fetch env_suggestions from the dedicated API instead
           // Filter and set notes
           const noteEngagements = engagements
             .filter((e: any) => e.kind === 'note')
@@ -333,6 +342,24 @@ export default function ClientProfile({
       } catch (err) {
         console.error('Failed to load engagement counts:', err);
       }
+
+      // Fetch environmental & workforce suggestions from dedicated API
+      try {
+        console.log('[ClientProfile] Fetching /api/user-suggestions');
+        const envRes = await fetch('/api/user-suggestions');
+        if (envRes.ok) {
+          const envData = await envRes.json();
+          console.log('[ClientProfile] User suggestions data:', envData);
+          setEnvSuggestions((envData.suggestions || []).filter((s: any) => s.kind === 'env_suggestion'));
+          setWfSuggestions((envData.suggestions || []).filter((s: any) => s.kind === 'wf_suggestion'));
+          setLibSuggestions((envData.suggestions || []).filter((s: any) => s.kind === 'lib_suggestion'));
+        } else {
+          console.error('[ClientProfile] /api/user-suggestions failed:', envRes.statusText);
+        }
+      } catch (error) {
+        console.error('[ClientProfile] Error fetching user suggestions:', error);
+      }
+
     } catch (error) {
       console.error('Failed to load profile:', error);
     } finally {
@@ -1235,7 +1262,15 @@ export default function ClientProfile({
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.generations * 2}%</span>
               </div>
             )}
-            {engagementCounts.bookmarks === 0 && engagementCounts.notes === 0 && engagementCounts.prompts === 0 && engagementCounts.generations === 0 && (
+            {engagementCounts.envSuggestions > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#4B8B9B' }}></span>
+                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Environmental suggestion approved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.envSuggestions}</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.envSuggestions * 2}%</span>
+              </div>
+            )}
+            {engagementCounts.bookmarks === 0 && engagementCounts.notes === 0 && engagementCounts.prompts === 0 && engagementCounts.generations === 0 && engagementCounts.envSuggestions === 0 && (
               <div style={{ gridColumn: '1 / -1', padding: '20px', textAlign: 'center', color: '#8a6a4a', fontSize: '13px' }}>
                 No approved engagements yet. Submit work in the Portfolio to earn rewards!
               </div>
@@ -1534,6 +1569,131 @@ export default function ClientProfile({
             })}
           </div>
         )}
+
+        {/* SUGGESTION ENGAGEMENTS */}
+        {(envSuggestions.length > 0 || wfSuggestions.length > 0 || libSuggestions.length > 0) && (() => {
+          const allSuggestions = [...envSuggestions, ...wfSuggestions, ...libSuggestions].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+          
+          return (
+            <div style={{ background: '#F5ECE3', border: '1.5px solid rgba(138,90,46,.15)', borderRadius: '16px', padding: '24px', marginBottom: '40px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.15em', color: '#3a2412', margin: '0 0 6px 0', fontWeight: 700 }}>SUGGESTION ENGAGEMENTS</h2>
+                  <p style={{ fontSize: '13px', color: '#7a5a3a', margin: 0 }}>All your community submissions from across the StewardWorks hub. ({allSuggestions.length} total)</p>
+                </div>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
+                {allSuggestions.map(s => {
+                  const isEnv = s.kind === 'env_suggestion';
+                  const isWf = s.kind === 'wf_suggestion';
+                  const isLib = s.kind === 'lib_suggestion';
+                  
+                  const badgeText = isEnv ? 'ENV. LITERACY' : isWf ? 'PATHWAYS' : 'LIBRARY';
+                  const badgeBg = isEnv ? '#4B8B9B' : isWf ? '#417C98' : '#A27532';
+                  
+                  return (
+                    <div key={s.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{
+                      background: 'rgba(255,255,255,0.7)',
+                      borderRadius: '16px',
+                      padding: '20px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                      border: '1px solid rgba(0,0,0,0.05)',
+                      position: 'relative'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: badgeBg,
+                          color: '#fff',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '9px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '1px',
+                          fontWeight: 700
+                        }}>
+                          {badgeText}
+                        </div>
+                        
+                        {s.status === 'pending' ? (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#FFF9C4',
+                            color: '#F57F17',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '9px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px',
+                            fontWeight: 700
+                          }}>
+                            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#F57F17' }}></span>
+                            Pending
+                          </div>
+                        ) : s.status === 'approved' ? (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#bcf2cb',
+                            color: '#2e8c46',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '9px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px',
+                            fontWeight: 700
+                          }}>
+                            ✓ APPROVED {isLib ? '+25' : '+2%'}
+                          </div>
+                        ) : (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#ff8a4a',
+                            color: '#fff',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '9px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px',
+                            fontWeight: 700
+                          }}>
+                            ✕ DISMISSED
+                          </div>
+                        )}
+                      </div>
+                      
+                      <h5 style={{ fontSize: '15px', color: '#1a1f36', fontWeight: 600, marginBottom: '8px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {s.title}
+                      </h5>
+                      <div style={{ fontSize: '12px', color: '#6A7E8A', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        🌿 {s.source}
+                      </div>
+                      {s.url && (
+                        <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '10px', color: '#417C98', textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.url}
+                        </a>
+                      )}
+                      {s.status === 'approved' && s.library_item_id && (
+                        <a href={`/hub/library/${s.library_item_id}`} style={{ display: 'inline-block', marginTop: '12px', background: '#2E5534', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
+                          View in Library ➔
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
 
         {/* NOTES & SAVED PROMPTS */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>

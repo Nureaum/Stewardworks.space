@@ -494,7 +494,8 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
             url: form.data.url,
             category: cats.find((c: any) => c.id === form.data.cat)?.name || 'Uncategorized',
             resource_type: form.data.type,
-            note: form.data.note
+            note: form.data.note,
+            submitter_name: form.data.name || ''
           })
         });
         if (!res.ok) throw new Error('Failed to submit');
@@ -601,7 +602,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
             <button onClick={() => { setView('catalog'); setCat(null); setQ(''); }} style={{ padding: '7px 15px', fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, border: 'none', cursor: 'pointer', borderRadius: '6px', background: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '#fff' : 'transparent', color: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '#21282E' : 'rgba(33,40,46,.5)', boxShadow: showCatalog || (view === 'catalog' && !isSearching && !currentCat) ? '0 1px 2px rgba(0,0,0,.14)' : 'none' }}>Catalog</button>
           </div>
 
-          <button onClick={() => setForm({ mode: 'add', data: { title: '', url: '', cat: currentCat ? currentCat.id : (cats[0] && cats[0].id), type: 'article', note: '' } })} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#2E5534', color: '#FEFAE0', border: 'none', padding: '9px 16px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.08em', cursor: 'pointer', boxShadow: '0 3px 0 #1d3a23' }}>+ Suggest Resource</button>
+          <button onClick={() => setForm({ mode: 'add', data: { title: '', url: '', cat: currentCat ? currentCat.id : (cats[0] && cats[0].id), type: 'article', note: '', name: '' } })} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#2E5534', color: '#FEFAE0', border: 'none', padding: '9px 16px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.08em', cursor: 'pointer', boxShadow: '0 3px 0 #1d3a23' }}>+ Suggest Resource</button>
           
           {isAdmin && (
             <Link href="/admin/library" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#21282E', color: '#FEFAE0', border: 'none', padding: '9px 16px', borderRadius: '8px', fontFamily: '"Exo", sans-serif', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.08em', cursor: 'pointer', textDecoration: 'none', boxShadow: '0 3px 0 #111' }}>
@@ -1297,6 +1298,12 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                         <strong style={{ color: '#21282E' }}>A librarian reviews every suggestion.</strong> Once approved, it joins the shelf for everyone — no edit or delete access needed on your end.
                       </div>
                     )}
+                    {form.mode === 'add' && (
+                      <div style={{ marginTop: '14px', marginBottom: '6px' }}>
+                        <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.6)', fontWeight: 700, marginBottom: '6px' }}>Your Name <span style={{ opacity: .55, textTransform: 'none' }}>(Optional)</span></div>
+                        <input value={form.data.name || ''} onChange={(e) => setF('name', e.target.value)} placeholder="e.g. Jane Doe or anonymous" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid rgba(33,40,46,.25)', borderRadius: '6px', background: '#fff', fontFamily: '"Exo", sans-serif', fontSize: '14px', color: '#21282E', outline: 'none' }} className="sl-placeholder" />
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -1474,6 +1481,10 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                 <div>
                   <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.45)', marginBottom: '4px' }}>URL</div>
                   <a href={suggestionDetail.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#A27532', fontWeight: 600, wordBreak: 'break-all' }}>{suggestionDetail.url}</a>
+                </div>
+                <div>
+                  <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.45)', marginBottom: '4px' }}>Submitter Name</div>
+                  <div style={{ fontSize: '13px', color: '#21282E', fontWeight: 600 }}>{suggestionDetail.submitted_by_name || 'Anonymous Library User'}</div>
                 </div>
                 <div style={{ background: '#fdf8ea', padding: '14px', borderRadius: '9px', border: '1px solid rgba(162,117,50,.12)' }}>
                   <div style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(33,40,46,.5)', marginBottom: '4px' }}>Submitter Note</div>

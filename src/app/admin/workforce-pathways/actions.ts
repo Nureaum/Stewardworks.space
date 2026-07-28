@@ -88,6 +88,7 @@ export async function fetchPublishedEntries(pathwayId: string, stopId: string) {
     .eq('pathway_id', pathwayId)
     .eq('stop_id', stopId)
     .eq('status', 'published')
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
 
   return data || [];
@@ -136,11 +137,31 @@ export async function upsertWorkforceEntry(entry: any) {
         images: entry.images || [],
         facts: entry.facts || [],
         sources: entry.sources || [],
+        status: entry.status || 'published'
       })
       .eq('id', entry.id)
       .select()
       .single();
     if (error) throw error;
+
+    // Check if this was a pending suggestion with an engagement ID attached
+    if (data && data.submitter_engagement_id && data.status === 'published') {
+      // Approve the engagement to grant points
+      await supabase
+        .from('workshop_engagement')
+        .update({ 
+          status: 'approved',
+          content: JSON.stringify({
+            suggestion_id: data.id,
+            title: data.title,
+            type: data.type,
+            library_item_id: data.id // The workforce entry is its own library item
+          })
+        })
+        .eq('id', data.submitter_engagement_id)
+        .eq('kind', 'wf_suggestion');
+    }
+
     return data;
   } else {
     const { data, error } = await supabase
@@ -167,11 +188,26 @@ export async function upsertWorkforceEntry(entry: any) {
 }
 
 export async function deleteWorkforceEntry(id: string) {
+  // First get the entry to find its engagement ID if any
+  const { data: entry } = await supabase
+    .from('workforce_entries')
+    .select('submitter_engagement_id, status')
+    .eq('id', id)
+    .single();
+
   const { error } = await supabase
     .from('workforce_entries')
     .delete()
     .eq('id', id);
   if (error) throw error;
+
+  // Delete the pending engagement if it was never published
+  if (entry && entry.submitter_engagement_id && entry.status === 'pending') {
+    await supabase
+      .from('workshop_engagement')
+      .delete()
+      .eq('id', entry.submitter_engagement_id);
+  }
 }
 
 export async function fetchWorkforceJobs() {
@@ -226,7 +262,9 @@ export async function deleteWorkforceJob(id: string) {
 }
 
 export async function submitSuggestion(suggestion: any) {
-  const { data, error } = await supabase
+  console.log('[Workforce submitSuggestion] Called with:', suggestion);
+  
+  const { data: insertedSug, error } = await supabase
     .from('workforce_entries')
     .insert({
       title: suggestion.title,
@@ -240,8 +278,72 @@ export async function submitSuggestion(suggestion: any) {
     })
     .select()
     .single();
+    
   if (error) throw error;
-  return data;
+  console.log('[Workforce submitSuggestion] Successfully inserted entry:', insertedSug.id);
+
+  // If the user is logged in, create a PENDING engagement record
+  if (suggestion.submitter_profile_id && insertedSug) {
+    const profileId = suggestion.submitter_profile_id;
+    console.log('[Workforce submitSuggestion] Creating pending engagement for profile:', profileId);
+
+    // Find the user's most recent cohort for the required FK
+    const { data: anyReg } = await supabase
+      .from('workshop_registrations')
+      .select('cohort_id')
+      .eq('profile_id', profileId)
+      .eq('status', 'registered')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let cohortId = anyReg?.cohort_id;
+    
+    if (!cohortId) {
+      // Fallback
+      const { data: anyCohort } = await supabase
+        .from('cohorts')
+        .select('id')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      cohortId = anyCohort?.id;
+    }
+
+    if (cohortId) {
+      const { data: engRecord, error: engError } = await supabase
+        .from('workshop_engagement')
+        .insert({
+          cohort_id: cohortId,
+          profile_id: profileId,
+          kind: 'wf_suggestion',
+          title: suggestion.title,
+          source: 'Workforce Pathways',
+          url: suggestion.url || '',
+          content: JSON.stringify({
+            suggestion_id: insertedSug.id,
+            pathway_id: suggestion.pathway_id,
+            stop_id: suggestion.stop_id,
+            type: suggestion.type
+          }),
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (engError) {
+        console.error('[Workforce submitSuggestion] Failed to create pending engagement:', engError);
+      } else if (engRecord) {
+        console.log('[Workforce submitSuggestion] Linked engagement ID:', engRecord.id);
+        await supabase
+          .from('workforce_entries')
+          .update({ submitter_engagement_id: engRecord.id })
+          .eq('id', insertedSug.id);
+      }
+    }
+  }
+
+  return insertedSug;
 }
 
 export async function fetchPendingSuggestions() {
@@ -270,19 +372,12 @@ export async function approveSuggestion(id: string) {
     .single();
   if (fetchErr || !entry) throw fetchErr || new Error('Entry not found');
 
-  // 2. Delete the pending entry from workforce_entries (as requested, it should ONLY go to Steward Library)
-  const { error } = await supabase
-    .from('workforce_entries')
-    .delete()
-    .eq('id', id);
-  if (error) throw error;
-
-  // 3. Map pathway_id to topic_id
+  // 2. Map pathway_id to topic_id
   let topicId = null;
   if (entry.pathway_id === 'creator') topicId = '16acc180-063d-4d14-a789-94eccd836569';
   else if (entry.pathway_id === 'enviro') topicId = 'c332e4ed-5717-415e-850e-8da417081902';
 
-  // 4. Clone into content_items (so it goes live in the Steward Library)
+  // 3. Clone into content_items (so it goes live in the Steward Library)
   const { data: newItem, error: insertErr } = await supabase
     .from('content_items')
     .insert({
@@ -299,7 +394,7 @@ export async function approveSuggestion(id: string) {
   
   if (insertErr) throw insertErr;
 
-  // 5. If it has a URL, insert into content_media
+  // 4. If it has a URL, insert into content_media
   if (entry.sources && entry.sources.length > 0) {
     const url = entry.sources[0][1];
     await supabase.from('content_media').insert({
@@ -309,9 +404,48 @@ export async function approveSuggestion(id: string) {
       label: 'Source Link'
     });
   }
+
+  // 5. Update the engagement to APPROVED before deleting the entry
+  if (entry.submitter_engagement_id) {
+    await supabase
+      .from('workshop_engagement')
+      .update({ 
+        status: 'approved',
+        content: JSON.stringify({
+          suggestion_id: entry.id,
+          title: entry.title,
+          type: entry.type,
+          library_item_id: newItem.id
+        })
+      })
+      .eq('id', entry.submitter_engagement_id)
+      .eq('kind', 'wf_suggestion');
+  }
+
+  // 6. Delete the pending entry from workforce_entries (as requested, it should ONLY go to Steward Library)
+  const { error } = await supabase
+    .from('workforce_entries')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
 }
 
 export async function dismissSuggestion(id: string) {
+  // Find the entry first to get the engagement ID
+  const { data: entry } = await supabase
+    .from('workforce_entries')
+    .select('submitter_engagement_id')
+    .eq('id', id)
+    .single();
+
+  if (entry && entry.submitter_engagement_id) {
+    // Delete the engagement or set it to rejected
+    await supabase
+      .from('workshop_engagement')
+      .update({ status: 'rejected' })
+      .eq('id', entry.submitter_engagement_id);
+  }
+
   const { error } = await supabase
     .from('workforce_entries')
     .delete()
@@ -433,6 +567,7 @@ export async function fetchAllWorkforceEntries() {
     .from('workforce_entries')
     .select('*')
     .eq('status', 'published')
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
   if (error) { console.error('fetchAllWorkforceEntries error:', error); return []; }
   return data || [];
@@ -545,4 +680,10 @@ export async function fetchWorkforceInitialData() {
   ]);
 
   return { structure, counts, jobs, boards, entries, quizzes, summits };
+}
+
+export async function updateWorkforceEntryOrder(items: { id: string; sort_order: number }[]) {
+  const updates = items.map(item => supabase.from('workforce_entries').update({ sort_order: item.sort_order }).eq('id', item.id));
+  await Promise.all(updates);
+  return { success: true };
 }

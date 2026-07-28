@@ -97,7 +97,7 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
             ◎ SAVE A CREATION
           </div>
           <div className="font-pixel" style={{ fontSize: 7, color: 'var(--sy,#ffd23f)' }}>
-            +2% TOWARD YOUR PROFILE
+            +2% TOWARD YOUR PROFILE (+1% FOR SHOWCASE)
           </div>
         </div>
         <button 
@@ -318,8 +318,9 @@ export default function SaveCreationPanel({ onSave }: SaveCreationPanelProps) {
           >
             {isUploading ? 'SAVING...' : '＋ SAVE TO MY PORTFOLIO'}
           </button>
-          <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', lineHeight: 1.3 }}>
-            Student assets are reviewed by faculty before appearing in your public portfolio or the showcase.
+          <div style={{ fontSize: 14, color: 'var(--mu,#77b78d)', lineHeight: 1.3, fontFamily: "'VT323', monospace" }}>
+            Student assets are reviewed by faculty before appearing in your public portfolio or the showcase. <br/>
+            <span style={{ color: 'var(--sy,#ffd23f)' }}>* Submitting to the Showcase grants an extra <b>+1% engagement</b> upon approval (3% total).</span>
           </div>
         </div>
           </div>

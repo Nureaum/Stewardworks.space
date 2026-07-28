@@ -143,6 +143,18 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       : Promise.resolve({ data: [] as any[] }),
   ])
 
+  // Sort sections and entries by sort_order so dragged order persists on reload
+  const sortedDays = (days || []).map((day: any) => ({
+    ...day,
+    sections: (day.sections || [])
+      .sort((a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999))
+      .map((section: any) => ({
+        ...section,
+        entries: (section.entries || [])
+          .sort((a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999)),
+      })),
+  }))
+
 
   return (
     <JourneyClient
@@ -150,7 +162,7 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       cohortName={cohort.name}
       cohort={cohort}
       character={character || null}
-      days={days || []}
+      days={sortedDays}
       progressRows={progressRows || []}
       principles={principles || []}
       bankedPrinciples={bankedPrinciples || []}

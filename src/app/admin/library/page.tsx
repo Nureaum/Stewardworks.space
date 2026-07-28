@@ -525,6 +525,10 @@ export default function LibraryAdminPage() {
                 <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">URL</div>
                 <a href={suggestionModalState.data.url} target="_blank" rel="noopener noreferrer" className="text-[#c9a44e] hover:text-[#a5843a] text-[14px] font-[600] break-all">{suggestionModalState.data.url}</a>
               </div>
+              <div>
+                <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Submitter Name</div>
+                <div className="text-[14px] font-[600] text-[#241c12]">{suggestionModalState.data.submitted_by_name || 'Anonymous Library User'}</div>
+              </div>
               <div className="bg-[#fdf8ea] p-4 rounded-xl border border-[#785a32]/10">
                 <div className="text-[11px] font-mono tracking-[0.1em] text-[#8a7c66] uppercase mb-1">Submitter Note</div>
                 <div className="text-[14px] text-[#241c12] leading-relaxed">{suggestionModalState.data.note || 'No note provided.'}</div>

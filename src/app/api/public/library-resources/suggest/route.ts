@@ -9,8 +9,8 @@ export async function POST(request: Request) {
   
   try {
     const body = await request.json()
-    const { title, url, category, resource_type, note, directAdd, peerReviewed, sourceTag } = body
-    
+    const { title, url, category, resource_type, note, directAdd, peerReviewed, sourceTag, submitter_name } = body
+
     if (!title || !url) {
       return NextResponse.json({ error: 'Title and URL are required' }, { status: 400 })
     }
@@ -112,22 +112,28 @@ export async function POST(request: Request) {
 
     // Regular suggestion flow for non-admins
     // Get current user info if available
-    let submitterName = 'Anonymous Library User'
+    let finalSubmitterName = submitter_name || 'Anonymous Library User'
     const { userId } = await auth()
     
+    let profileId = null;
+
     if (userId) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('id, full_name')
         .eq('clerk_user_id', userId)
         .single()
       
-      if (profile?.full_name) {
-        submitterName = profile.full_name
+      if (profile) {
+        profileId = profile.id;
+        if (!submitter_name && profile.full_name) {
+          finalSubmitterName = profile.full_name
+        }
       }
     }
 
-    const { error } = await supabase
+    // Insert the suggestion first
+    const { data: insertedSug, error } = await supabase
       .from('community_suggestions')
       .insert({
         title,
@@ -136,12 +142,68 @@ export async function POST(request: Request) {
         resource_type,
         note,
         status: 'pending',
-        submitted_by_name: submitterName
+        submitted_by_name: finalSubmitterName
       })
+      .select()
+      .single()
 
     if (error) {
       console.error('Suggestion insert error:', error)
       throw error
+    }
+
+    // If user is logged in, create the pending engagement and link it
+    if (profileId && insertedSug) {
+      // Find the user's most recent cohort
+      const { data: anyReg } = await supabase
+        .from('workshop_registrations')
+        .select('cohort_id')
+        .eq('profile_id', profileId)
+        .eq('status', 'registered')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let cohortId = anyReg?.cohort_id;
+      if (!cohortId) {
+        const { data: anyCohort } = await supabase
+          .from('cohorts')
+          .select('id')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        cohortId = anyCohort?.id;
+      }
+
+      if (cohortId) {
+        const { data: engRecord, error: engError } = await supabase
+          .from('workshop_engagement')
+          .insert({
+            cohort_id: cohortId,
+            profile_id: profileId,
+            kind: 'lib_suggestion',
+            title: title,
+            source: 'Steward Library',
+            url: url || '',
+            content: JSON.stringify({
+              suggestion_id: insertedSug.id,
+              category: category,
+              resource_type: resource_type,
+              note: note
+            }),
+            status: 'pending',
+          })
+          .select()
+          .single();
+
+        if (engRecord && !engError) {
+          // Link back to community_suggestions
+          await supabase
+            .from('community_suggestions')
+            .update({ submitter_engagement_id: engRecord.id })
+            .eq('id', insertedSug.id);
+        }
+      }
     }
 
     return NextResponse.json({ success: true })

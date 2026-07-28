@@ -161,17 +161,26 @@ export async function GET(request: NextRequest) {
     const userCohorts = await getUserCohorts(supabase, profile.id)
 
     // Handle case where user has no cohort participation (Requirement 5.5)
+    // Still fetch engagement items (e.g. env_suggestion) so profile displays them
     if (userCohorts.length === 0) {
+      const { data: allEngs } = await supabase
+        .from('workshop_engagement')
+        .select('*')
+        .eq('profile_id', profile.id)
+      const engItems = (allEngs || []) as WorkshopEngagement[]
+      const approvedEngs = engItems.filter(e => e.status === 'approved')
+      const pendingEngs = engItems.filter(e => e.status === 'pending')
+      const globalEngPct = calculateGlobalEngagement(approvedEngs)
       const emptyResponse: ProgressAPIResponse = {
         globalEngagement: {
-          percentage: 0,
-          approvedCount: 0,
-          pendingCount: 0,
-          items: []
+          percentage: globalEngPct,
+          approvedCount: approvedEngs.length,
+          pendingCount: pendingEngs.length,
+          items: engItems
         },
         cohortProgress: [],
         selectedCohortId: '',
-        totalProgress: 0
+        totalProgress: globalEngPct
       }
       return NextResponse.json(emptyResponse)
     }
