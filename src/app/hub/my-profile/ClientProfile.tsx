@@ -2065,8 +2065,7 @@ export default function ClientProfile({
                     onChange={(html) => setEditNoteContent(html)}
                     onUpload={async (formData) => {
                       const res = await uploadNoteImage(formData);
-                      if (!res.success) throw new Error(res.error || 'Upload failed');
-                      return { publicUrl: res.url, type: 'image' };
+                      return { publicUrl: res, type: 'image' };
                     }}
                   />
                 </div>
@@ -2580,8 +2579,7 @@ export default function ClientProfile({
                     }}
                     onUpload={async (formData) => {
                       const res = await uploadNoteImage(formData);
-                      if (!res.success) throw new Error(res.error || 'Upload failed');
-                      return { publicUrl: res.url, type: 'image' };
+                      return { publicUrl: res, type: 'image' };
                     }}
                   />
                 </div>
