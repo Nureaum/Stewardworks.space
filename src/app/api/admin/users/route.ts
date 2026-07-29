@@ -200,31 +200,51 @@ export async function DELETE(request: NextRequest) {
     // 5. Clean up all FK references before deleting the profile
     const profileId = targetProfile.id
 
-    // Nullify created_by/updated_by references (preserve content, remove author link)
-    await supabase.from('content_items').update({ created_by: null }).eq('created_by', profileId)
-    await supabase.from('content_items').update({ updated_by: null }).eq('updated_by', profileId)
-    await supabase.from('job_profiles').update({ created_by: null }).eq('created_by', profileId)
-    await supabase.from('job_profiles').update({ updated_by: null }).eq('updated_by', profileId)
-    await supabase.from('ai_labs').update({ created_by: null }).eq('created_by', profileId)
-    await supabase.from('cohorts').update({ created_by: null }).eq('created_by', profileId)
-    await supabase.from('cohorts').update({ updated_by: null }).eq('updated_by', profileId)
-    await supabase.from('workshop_days').update({ created_by: null }).eq('created_by', profileId)
-    await supabase.from('workshop_days').update({ updated_by: null }).eq('updated_by', profileId)
-    await supabase.from('announcements').update({ created_by: null }).eq('created_by', profileId)
-    await supabase.from('profiles').update({ role_updated_by: null }).eq('role_updated_by', profileId)
+    // Helper to safely run a cleanup query and log (but not throw) on failure
+    const safeCleanup = async (label: string, query: Promise<any>) => {
+      const { error: cleanupErr } = await query
+      if (cleanupErr) {
+        console.warn(`[delete-user] Cleanup warning for "${label}":`, cleanupErr.message)
+      }
+    }
 
-    // Delete user-specific records
-    await supabase.from('workshop_submissions').delete().eq('profile_id', profileId)
-    await supabase.from('workshop_progress').delete().eq('profile_id', profileId)
-    await supabase.from('workshop_engagement').delete().eq('profile_id', profileId)
-    await supabase.from('workshop_registrations').delete().eq('profile_id', profileId)
-    await supabase.from('workshop_characters').delete().eq('profile_id', profileId)
-    await supabase.from('role_change_log').delete().eq('target_profile_id', profileId)
-    await supabase.from('role_change_log').delete().eq('changed_by', profileId)
-    await supabase.from('notifications').delete().eq('profile_id', profileId)
-    await supabase.from('helpdesk_answers').delete().eq('author_id', profileId)
-    await supabase.from('helpdesk_questions').delete().eq('author_id', profileId)
-    await supabase.from('community_suggestions').delete().eq('profile_id', profileId)
+    // --- Nullify authored/managed references (preserve content, remove author link) ---
+    await safeCleanup('content_items.created_by', supabase.from('content_items').update({ created_by: null }).eq('created_by', profileId))
+    await safeCleanup('content_items.updated_by', supabase.from('content_items').update({ updated_by: null }).eq('updated_by', profileId))
+    await safeCleanup('job_profiles.created_by', supabase.from('job_profiles').update({ created_by: null }).eq('created_by', profileId))
+    await safeCleanup('job_profiles.updated_by', supabase.from('job_profiles').update({ updated_by: null }).eq('updated_by', profileId))
+    await safeCleanup('ai_labs.created_by', supabase.from('ai_labs').update({ created_by: null }).eq('created_by', profileId))
+    await safeCleanup('cohorts.created_by', supabase.from('cohorts').update({ created_by: null }).eq('created_by', profileId))
+    await safeCleanup('cohorts.updated_by', supabase.from('cohorts').update({ updated_by: null }).eq('updated_by', profileId))
+    await safeCleanup('workshop_days.created_by', supabase.from('workshop_days').update({ created_by: null }).eq('created_by', profileId))
+    await safeCleanup('workshop_days.updated_by', supabase.from('workshop_days').update({ updated_by: null }).eq('updated_by', profileId))
+    await safeCleanup('announcements.created_by', supabase.from('announcements').update({ created_by: null }).eq('created_by', profileId))
+    await safeCleanup('profiles.role_updated_by', supabase.from('profiles').update({ role_updated_by: null }).eq('role_updated_by', profileId))
+
+    // --- Delete user-specific records (order matters: children before parents) ---
+
+    // Deliverable submissions MUST be deleted before workshop_progress / workshop_registrations
+    await safeCleanup('workshop_deliverable_submissions', supabase.from('workshop_deliverable_submissions').delete().eq('profile_id', profileId))
+
+    // Now safe to delete progress, engagement, registrations, characters
+    await safeCleanup('workshop_submissions', supabase.from('workshop_submissions').delete().eq('profile_id', profileId))
+    await safeCleanup('workshop_progress', supabase.from('workshop_progress').delete().eq('profile_id', profileId))
+    await safeCleanup('workshop_engagement', supabase.from('workshop_engagement').delete().eq('profile_id', profileId))
+    await safeCleanup('workshop_registrations', supabase.from('workshop_registrations').delete().eq('profile_id', profileId))
+    await safeCleanup('workshop_characters', supabase.from('workshop_characters').delete().eq('profile_id', profileId))
+
+    // Audit / log tables
+    await safeCleanup('role_change_log (target)', supabase.from('role_change_log').delete().eq('target_profile_id', profileId))
+    await safeCleanup('role_change_log (changed_by)', supabase.from('role_change_log').delete().eq('changed_by', profileId))
+
+    // Notifications and community data
+    await safeCleanup('notifications', supabase.from('notifications').delete().eq('profile_id', profileId))
+    await safeCleanup('helpdesk_answers', supabase.from('helpdesk_answers').delete().eq('author_id', profileId))
+    await safeCleanup('helpdesk_questions', supabase.from('helpdesk_questions').delete().eq('author_id', profileId))
+    await safeCleanup('community_suggestions', supabase.from('community_suggestions').delete().eq('profile_id', profileId))
+
+    // Old bookmark system (keyed by Clerk userId, not profile id)
+    await safeCleanup('user_bookmarks', supabase.from('user_bookmarks').delete().eq('user_id', userId))
 
     // 6. Delete the user's profile from Supabase
     const { error: deleteError } = await supabase
