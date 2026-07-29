@@ -145,6 +145,9 @@ export default function AdminConsole({
   const [ncFileToUpload, setNcFileToUpload] = useState<File | null>(null)
   const [isUploadingNcFile, setIsUploadingNcFile] = useState(false)
   const ncFileInputRef = useRef<HTMLInputElement>(null)
+  const [ncPreviewFile, setNcPreviewFile] = useState<File | null>(null)
+  const [ncPreviewObjectUrl, setNcPreviewObjectUrl] = useState<string | null>(null)
+  const ncPreviewFileInputRef = useRef<HTMLInputElement>(null)
   const [ncBlurb, setNcBlurb] = useState('')
   const [ncMeta, setNcMeta] = useState('')
   const [ncPaid, setNcPaid] = useState(true)
@@ -659,6 +662,19 @@ export default function AdminConsole({
         else if (ncFileToUpload.type.startsWith('audio/')) detectedType = 'audio'
       }
 
+      let uploadedPreviewUrl: string | null = null
+      if (ncPreviewFile) {
+        const previewFormData = new FormData()
+        previewFormData.append('file', ncPreviewFile)
+        uploadedPreviewUrl = await uploadCreationImage(previewFormData)
+      }
+
+      const finalMeta = uploadedPreviewUrl 
+        ? JSON.stringify({ meta: ncMeta || '', previewUrl: uploadedPreviewUrl }) 
+        : (ncPreviewObjectUrl && !ncPreviewFile) // Keep existing previewUrl if not changed
+          ? JSON.stringify({ meta: ncMeta || '', previewUrl: ncPreviewObjectUrl })
+          : ncMeta || ''
+
       if (editingShowcaseId) {
         // Update existing item
         await updateShowcaseItem(editingShowcaseId, {
@@ -667,7 +683,7 @@ export default function AdminConsole({
           type: detectedType,
           url: finalLink || undefined,
           blurb: ncBlurb || 'Contributor media.',
-          meta: ncMeta || '',
+          meta: finalMeta,
           is_paid: ncPaid,
           theme: 'How to Use AI',
         })
@@ -680,7 +696,7 @@ export default function AdminConsole({
           type: detectedType,
           url: finalLink || undefined,
           blurb: ncBlurb || 'Contributor media.',
-          meta: ncMeta || '',
+          meta: finalMeta,
           is_paid: ncPaid,
           theme: 'How to Use AI',
         })
@@ -776,7 +792,20 @@ export default function AdminConsole({
     setNcEmail('')
     setNcLink(item.url || '')
     setNcBlurb(item.blurb || '')
-    setNcMeta(item.meta || '')
+    
+    let metaStr = item.meta || ''
+    let parsedPreviewUrl: string | null = null
+    try {
+      const d = JSON.parse(item.meta || '{}')
+      if (d && typeof d === 'object' && d.meta !== undefined) {
+        metaStr = d.meta
+        parsedPreviewUrl = d.previewUrl || null
+      }
+    } catch {}
+    
+    setNcMeta(metaStr)
+    setNcPreviewFile(null)
+    setNcPreviewObjectUrl(parsedPreviewUrl)
     setNcPaid(item.is_paid)
   }
 
@@ -2087,6 +2116,50 @@ export default function AdminConsole({
                     ↑ UPLOAD
                   </button>
                 </div>
+
+                {ncLink.trim() && !ncLink.startsWith('blob:') && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+                    <input type="file" accept="image/*" hidden ref={ncPreviewFileInputRef} onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      setNcPreviewFile(file)
+                      setNcPreviewObjectUrl(URL.createObjectURL(file))
+                      if (ncPreviewFileInputRef.current) ncPreviewFileInputRef.current.value = ''
+                    }} />
+                    <button
+                      onClick={() => ncPreviewFileInputRef.current?.click()}
+                      disabled={isUploadingNcFile}
+                      className="font-pixel"
+                      style={{
+                        background: 'transparent',
+                        border: '2px solid var(--pk,#ff5fd2)',
+                        borderRadius: 6,
+                        padding: '6px 10px',
+                        color: 'var(--pk,#ff5fd2)',
+                        fontSize: 9,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}
+                    >
+                      📷 + ADD PREVIEW IMAGE
+                    </button>
+                    {ncPreviewObjectUrl && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <img
+                          src={ncPreviewObjectUrl}
+                          alt="Preview"
+                          style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--pk,#ff5fd2)' }}
+                        />
+                        <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>{ncPreviewFile?.name || 'Preview'}</span>
+                        <button
+                          onClick={() => { setNcPreviewFile(null); if (ncPreviewObjectUrl) URL.revokeObjectURL(ncPreviewObjectUrl); setNcPreviewObjectUrl(null) }}
+                          style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 13, padding: 2 }}
+                        >✕</button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <input value={ncMeta} onChange={e => setNcMeta(e.target.value)} placeholder="Duration / word count (e.g., 8:24 · Video)…" style={{ ...inputStyle, fontSize: 22, marginBottom: 9 }} />
                 <textarea 
                   value={ncBlurb} 

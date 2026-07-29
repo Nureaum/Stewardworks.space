@@ -20,6 +20,7 @@ interface ShowcaseItem {
   thumb: string
   url?: string
   contentItemId?: string
+  previewUrl?: string | null
 }
 
 /* ── type→color mapping ── */
@@ -286,13 +287,26 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
         type: detectedType,
         title: s.title,
         author: s.author || 'Anonymous',
-        meta: s.meta || (s.is_paid ? 'Paid content' : 'Free content'),
+        meta: (() => {
+          try {
+            const d = JSON.parse(s.meta || '{}');
+            if (d && typeof d === 'object' && d.meta !== undefined) return d.meta;
+          } catch {}
+          return s.meta || (s.is_paid ? 'Paid content' : 'Free content');
+        })(),
         paid: s.is_paid,
         blurb: s.blurb || '',
         theme: s.theme || 'Community',
         thumb: '',
         url: s.url,
-        contentItemId: (s as any).content_item_id || undefined
+        contentItemId: (s as any).content_item_id || undefined,
+        previewUrl: (() => {
+          try {
+            const d = JSON.parse(s.meta || '{}');
+            if (d && typeof d === 'object' && d.previewUrl) return d.previewUrl;
+          } catch {}
+          return null;
+        })()
       };
     })
     return dbItems

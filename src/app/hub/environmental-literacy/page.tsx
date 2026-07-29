@@ -24,7 +24,7 @@ export default function EnvironmentalLiteracyPage() {
 
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [sent, setSent] = useState(false);
-  const [sShowErr, setSShowErr] = useState(false);
+  const [sErrMessage, setSErrMessage] = useState('');
   const [sTheme, setSTheme] = useState('bioregion');
   const [sTitle, setSTitle] = useState('');
   const [sWhat, setSWhat] = useState('');
@@ -207,7 +207,10 @@ export default function EnvironmentalLiteracyPage() {
   };
 
   const validUrl = (u: string) => {
-    try { new URL(u); return true; } catch { return false; }
+    try { 
+      const parsed = new URL(u); 
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:'; 
+    } catch { return false; }
   };
 
   const submitSuggest = async () => {
@@ -215,13 +218,18 @@ export default function EnvironmentalLiteracyPage() {
     const w = sWhat.trim();
     const u = sUrl.trim();
 
-    if (!t || !w || !validUrl(u)) {
-      setSShowErr(true);
+    if (!t || !w || !u) {
+      setSErrMessage('Please fill in all required fields before sending.');
+      return;
+    }
+    
+    if (!validUrl(u)) {
+      setSErrMessage('Please enter a valid link (e.g., https://example.com).');
       return;
     }
 
     setIsSubmitting(true);
-    setSShowErr(false);
+    setSErrMessage('');
 
     console.log('[EnvLiteracyPage] Submitting suggestion:', { theme_id: sTheme, title: t, description: w, url: u, submitter_name: sName, submitter_profile_id: profileId });
 
@@ -242,7 +250,7 @@ export default function EnvironmentalLiteracyPage() {
     setSUrl('');
     setSName('');
     setSTheme('bioregion');
-    setSShowErr(false);
+    setSErrMessage('');
 
     setSent(true);
   };
@@ -534,8 +542,8 @@ export default function EnvironmentalLiteracyPage() {
               <div style={{ padding: '22px 22px 24px' }}>
                 <p style={{ margin: '0 0 16px', fontSize: '13.5px', lineHeight: 1.55, color: '#6e5f49' }}>Spotted a study, map, article, or local record we should hold? Tell us where it belongs and a librarian will review it for the field desk. Fields marked <span style={{ color: '#B15A3A', fontWeight: 700 }}>*</span> are required.</p>
 
-                {sShowErr && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '16px', padding: '11px 13px', borderRadius: '11px', background: '#f7e4dc', border: '1px solid #e0b7a6', color: '#8f3f24', font: "700 11px/1.4 'Exo',sans-serif" }}>⚠ Please fill in the required fields before sending.</div>
+                {sErrMessage && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '16px', padding: '11px 13px', borderRadius: '11px', background: '#f7e4dc', border: '1px solid #e0b7a6', color: '#8f3f24', font: "700 11px/1.4 'Exo',sans-serif" }}>⚠ {sErrMessage}</div>
                 )}
 
                 <div style={{ marginBottom: '15px' }}>

@@ -1270,7 +1270,23 @@ export default function ClientProfile({
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.envSuggestions * 2}%</span>
               </div>
             )}
-            {engagementCounts.bookmarks === 0 && engagementCounts.notes === 0 && engagementCounts.prompts === 0 && engagementCounts.generations === 0 && engagementCounts.envSuggestions === 0 && (
+            {engagementCounts.wfSuggestions > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#2E5534' }}></span>
+                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Workforce suggestion approved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.wfSuggestions}</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.wfSuggestions * 2}%</span>
+              </div>
+            )}
+            {engagementCounts.libSuggestions > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#417C98' }}></span>
+                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Library suggestion approved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.libSuggestions}</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.libSuggestions * 2}%</span>
+              </div>
+            )}
+            {engagementCounts.bookmarks === 0 && engagementCounts.notes === 0 && engagementCounts.prompts === 0 && engagementCounts.generations === 0 && engagementCounts.envSuggestions === 0 && engagementCounts.wfSuggestions === 0 && engagementCounts.libSuggestions === 0 && (
               <div style={{ gridColumn: '1 / -1', padding: '20px', textAlign: 'center', color: '#8a6a4a', fontSize: '13px' }}>
                 No approved engagements yet. Submit work in the Portfolio to earn rewards!
               </div>
@@ -1649,7 +1665,7 @@ export default function ClientProfile({
                             letterSpacing: '1px',
                             fontWeight: 700
                           }}>
-                            ✓ APPROVED {isLib ? '+25' : '+2%'}
+                            ✓ APPROVED +2%
                           </div>
                         ) : (
                           <div style={{
