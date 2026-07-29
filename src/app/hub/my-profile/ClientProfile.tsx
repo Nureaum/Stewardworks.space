@@ -20,7 +20,6 @@ const STATUS_PILL: Record<string, { label: string; color: string }> = {
   submitted:     { label: 'PENDING REVIEW', color: '#ffd23f' },
   approved:      { label: 'APPROVED · +25%', color: '#74f0a0' },
   rejected:      { label: 'NEEDS REVISION', color: '#ff8a4a' },
-  rejected:      { label: 'NEEDS REVISION', color: '#ff8a4a' },
 };
 
 export const parseNoteContent = (contentStr: string | null) => {
