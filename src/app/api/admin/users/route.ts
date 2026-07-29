@@ -201,7 +201,7 @@ export async function DELETE(request: NextRequest) {
     const profileId = targetProfile.id
 
     // Helper to safely run a cleanup query and log (but not throw) on failure
-    const safeCleanup = async (label: string, query: Promise<any>) => {
+    const safeCleanup = async (label: string, query: PromiseLike<{ error: any }>) => {
       const { error: cleanupErr } = await query
       if (cleanupErr) {
         console.warn(`[delete-user] Cleanup warning for "${label}":`, cleanupErr.message)
