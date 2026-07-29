@@ -145,6 +145,7 @@ export default function UserManagement({ isMainAdmin = false }: { isMainAdmin?: 
       setUsers(users.filter(u => u.clerk_user_id !== deleteTarget.clerk_user_id));
       setDeleteTarget(null);
       setDeleteConfirmText('');
+      toast.success(`${deleteTarget.full_name || deleteTarget.email || 'User'} has been deleted successfully.`);
     } catch (err: any) {
       toast.error(`Error deleting user: ${err.message}`);
     } finally {
