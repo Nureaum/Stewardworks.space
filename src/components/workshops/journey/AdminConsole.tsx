@@ -2435,7 +2435,7 @@ export default function AdminConsole({
                     borderRadius: 20,
                     padding: '4px 14px',
                   }}>{pendingSubmissions.length} PENDING</span>
-                  <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 7, padding: 3, background: '#181324' }}>
+                  <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 7, padding: 3, background: '#181324', marginLeft: 'auto' }}>
                     <button
                       onClick={() => { setShowHistory(false); setApprovalView('log'); }}
                       style={{
@@ -2479,7 +2479,8 @@ export default function AdminConsole({
                 {[
                   { id: 'all', label: 'ALL', color: 'var(--tx,#e4e0ee)', count: showHistory ? historyItems.length : pendingSubmissions.length },
                   { id: 'deliverables', label: 'DELIVERABLES', color: 'var(--gold,#c9a85f)', count: showHistory ? historyItems.filter(s => !!s.workshop_day_id).length : pendingSubmissions.filter(s => !!s.workshop_day_id).length },
-                  { id: 'engagement', label: 'ENGAGEMENT', color: 'var(--ok,#86b89a)', count: showHistory ? historyItems.filter(s => !s.workshop_day_id).length : pendingSubmissions.filter(s => !s.workshop_day_id).length }
+                  { id: 'mini_deliverables', label: 'MINI DEL.', color: '#7c5cbf', count: showHistory ? historyItems.filter(s => !s.workshop_day_id && s.kind === 'mini_deliverable').length : pendingSubmissions.filter(s => !s.workshop_day_id && s.kind === 'mini_deliverable').length },
+                  { id: 'engagement', label: 'ENGAGEMENT', color: 'var(--ok,#86b89a)', count: showHistory ? historyItems.filter(s => !s.workshop_day_id && s.kind !== 'mini_deliverable').length : pendingSubmissions.filter(s => !s.workshop_day_id && s.kind !== 'mini_deliverable').length }
                 ].map(f => {
                   const active = approvalFilter === f.id
                   return (
@@ -2518,7 +2519,8 @@ export default function AdminConsole({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {historyItems.filter(item => {
                       if (approvalFilter === 'deliverables') return !!item.workshop_day_id
-                      if (approvalFilter === 'engagement') return !item.workshop_day_id
+                      if (approvalFilter === 'mini_deliverables') return !item.workshop_day_id && item.kind === 'mini_deliverable'
+                      if (approvalFilter === 'engagement') return !item.workshop_day_id && item.kind !== 'mini_deliverable'
                       return true
                     }).map(item => {
                       const isDeliverable = !!item.workshop_day_id
@@ -2529,8 +2531,8 @@ export default function AdminConsole({
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                             <div style={{ minWidth: 0, flex: 1 }}>
                               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-                                <span className="font-pixel" style={{ fontSize: 9, padding: '4px 10px', borderRadius: 5, background: isDeliverable ? 'rgba(201,168,95,.2)' : 'rgba(134,184,154,.2)', color: isDeliverable ? '#c9a85f' : '#86b89a', border: `1px solid ${isDeliverable ? 'rgba(201,168,95,.3)' : 'rgba(134,184,154,.3)'}` }}>
-                                  {isDeliverable ? 'DELIVERABLE' : 'ENGAGEMENT'}
+                                <span className="font-pixel" style={{ fontSize: 9, padding: '4px 10px', borderRadius: 5, background: isDeliverable ? 'rgba(201,168,95,.2)' : (item.kind === 'mini_deliverable' ? 'rgba(124,92,191,.2)' : 'rgba(134,184,154,.2)'), color: isDeliverable ? '#c9a85f' : (item.kind === 'mini_deliverable' ? '#7c5cbf' : '#86b89a'), border: `1px solid ${isDeliverable ? 'rgba(201,168,95,.3)' : (item.kind === 'mini_deliverable' ? 'rgba(124,92,191,.3)' : 'rgba(134,184,154,.3)')}` }}>
+                                  {isDeliverable ? 'DELIVERABLE' : (item.kind === 'mini_deliverable' ? 'MINI DEL.' : 'ENGAGEMENT')}
                                 </span>
                                 <span className="font-pixel" style={{ fontSize: 9, padding: '4px 10px', borderRadius: 5, background: `${statusColor}22`, color: statusColor, border: `1px solid ${statusColor}44` }}>
                                   {statusLabel}
@@ -2605,7 +2607,8 @@ export default function AdminConsole({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {pendingSubmissions.filter(sub => {
                     if (approvalFilter === 'deliverables') return !!sub.workshop_day_id
-                    if (approvalFilter === 'engagement') return !sub.workshop_day_id
+                    if (approvalFilter === 'mini_deliverables') return !sub.workshop_day_id && sub.kind === 'mini_deliverable'
+                    if (approvalFilter === 'engagement') return !sub.workshop_day_id && sub.kind !== 'mini_deliverable'
                     return true
                   }).length === 0 ? (
                     <div style={{ border: '2px dashed var(--ln,#3a3352)', borderRadius: 8, padding: 16, textAlign: 'center', fontSize: 16, color: 'var(--mu,#9990ab)' }}>
@@ -2613,13 +2616,14 @@ export default function AdminConsole({
                     </div>
                   ) : pendingSubmissions.filter(sub => {
                     if (approvalFilter === 'deliverables') return !!sub.workshop_day_id
-                    if (approvalFilter === 'engagement') return !sub.workshop_day_id
+                    if (approvalFilter === 'mini_deliverables') return !sub.workshop_day_id && sub.kind === 'mini_deliverable'
+                    if (approvalFilter === 'engagement') return !sub.workshop_day_id && sub.kind !== 'mini_deliverable'
                     return true
                   }).map(sub => {
                     const isDeliverable = !!sub.workshop_day_id
-                    const tagColor = isDeliverable ? '#c9a85f' : '#86b89a'
-                    const tagLabel = isDeliverable ? 'DELIVERABLE' : 'ENGAGEMENT'
-                    const approveLabel = isDeliverable ? '✓ APPROVE +25%' : '✓ APPROVE'
+                    const tagColor = isDeliverable ? '#c9a85f' : (sub.kind === 'mini_deliverable' ? '#7c5cbf' : '#86b89a')
+                    const tagLabel = isDeliverable ? 'DELIVERABLE' : (sub.kind === 'mini_deliverable' ? 'MINI DEL.' : 'ENGAGEMENT')
+                    const approveLabel = isDeliverable ? '✓ APPROVE +25%' : (sub.kind === 'mini_deliverable' ? '✓ APPROVE +4%' : '✓ APPROVE')
                     
                     const studentName = sub.participant_name || 'Unknown Student'
                     const dateStr = sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Unknown Date'
@@ -2742,6 +2746,33 @@ export default function AdminConsole({
                         {/* Content/URL display with proper wrapping */}
                         {(() => {
                           const rawText = sub.content || sub.submission_text || '';
+                          
+                          // 1. Check for Version 2 JSON format (Rich Text & Images)
+                          try {
+                            const parsed = JSON.parse(rawText);
+                            if (parsed && parsed.version === 2) {
+                              return (
+                                <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                  {parsed.html ? (
+                                    <div style={{ fontFamily: 'inherit', fontSize: 15, color: 'var(--tx,#e4e0ee)', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: parsed.html }} />
+                                  ) : parsed.text ? (
+                                    <div style={{ fontFamily: 'inherit', fontSize: 15, color: 'var(--tx,#e4e0ee)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{parsed.text}</div>
+                                  ) : null}
+                                  
+                                  {parsed.images && parsed.images.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                                      {parsed.images.map((img: string, idx: number) => (
+                                        <a key={idx} href={img} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: 140, height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,.1)' }}>
+                                          <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Attachment" />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                          } catch {}
+
                           let cleanText = rawText.replace('[SHOWCASE_REQUESTED]', '').trim();
                           let principleMatch = cleanText.match(/Selected Principle ID: ([a-zA-Z0-9-]+)/);
                           if (principleMatch) {
@@ -2760,7 +2791,7 @@ export default function AdminConsole({
                             description = parsed.description || null;
                           } catch {}
 
-                          if (!displayUrl && !previewUrl) return null;
+                          if (!displayUrl && !previewUrl && (!rawText || rawText.trim() === '')) return null;
 
                           // If we have a previewUrl alongside a non-media link, render custom preview
                           const isMediaUrl = displayUrl && (isImageUrl(displayUrl) || displayUrl.includes('youtube.com') || displayUrl.includes('youtu.be') || /\.(mp4|webm|mov|mp3|wav|ogg|aac|flac)/i.test(displayUrl));
@@ -2901,7 +2932,8 @@ export default function AdminConsole({
                     const grouped: Record<string, any[]> = {}
                     pendingSubmissions.filter(sub => {
                       if (approvalFilter === 'deliverables') return !!sub.workshop_day_id
-                      if (approvalFilter === 'engagement') return !sub.workshop_day_id
+                      if (approvalFilter === 'mini_deliverables') return !sub.workshop_day_id && sub.kind === 'mini_deliverable'
+                      if (approvalFilter === 'engagement') return !sub.workshop_day_id && sub.kind !== 'mini_deliverable'
                       return true
                     }).forEach(sub => {
                       const name = sub.participant_name || 'Unknown Student'
@@ -3001,12 +3033,12 @@ export default function AdminConsole({
                                     return (
                                       <div key={reviewId} style={{ border: '1px solid var(--ln,#3a3352)', borderRadius: 6, padding: 10, background: 'rgba(0,0,0,.25)' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                          <span className="font-pixel" style={{ fontSize: 8, color: '#86b89a', border: '1px solid #86b89a', borderRadius: 3, padding: '2px 6px' }}>{(e.kind || 'note').toUpperCase()}</span>
+                                          <span className="font-pixel" style={{ fontSize: 8, color: e.kind === 'mini_deliverable' ? '#7c5cbf' : '#86b89a', border: `1px solid ${e.kind === 'mini_deliverable' ? '#7c5cbf' : '#86b89a'}`, borderRadius: 3, padding: '2px 6px' }}>{e.kind === 'mini_deliverable' ? 'MINI DEL.' : (e.kind || 'note').toUpperCase()}</span>
                                           <span style={{ fontSize: 17, color: 'var(--tx,#e4e0ee)', lineHeight: 1.2, flex: 1, minWidth: 0 }}>{e.title || 'Engagement'}</span>
                                         </div>
                                         <div style={{ fontSize: 14, color: 'var(--mu,#9990ab)', marginBottom: 9 }}>{e.source || 'Engagement'} · {dateStr}</div>
                                         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                                          <button disabled={!!reviewingIds[reviewId]} onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: '#141019', background: 'var(--ok,#86b89a)', border: 'none', borderRadius: 5, padding: '6px 12px', cursor: reviewingIds[reviewId] ? 'wait' : 'pointer', opacity: reviewingIds[reviewId] ? 0.6 : 1 }}>{reviewingIds[reviewId] === 'approving' ? '⏳ Approving...' : '✓ APPROVE'}</button>
+                                          <button disabled={!!reviewingIds[reviewId]} onClick={() => handleReview(reviewId, 'approved', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: '#141019', background: e.kind === 'mini_deliverable' ? '#7c5cbf' : 'var(--ok,#86b89a)', border: 'none', borderRadius: 5, padding: '6px 12px', cursor: reviewingIds[reviewId] ? 'wait' : 'pointer', opacity: reviewingIds[reviewId] ? 0.6 : 1 }}>{reviewingIds[reviewId] === 'approving' ? '⏳ Approving...' : (e.kind === 'mini_deliverable' ? '✓ APPROVE +4%' : '✓ APPROVE')}</button>
                                           <button disabled={!!reviewingIds[reviewId]} onClick={() => handleReview(reviewId, 'rejected', reviewNotes[reviewId], true)} style={{ fontFamily: "'VT323'", fontSize: 16, letterSpacing: '.5px', color: 'var(--mu,#9990ab)', background: 'none', border: '2px solid var(--ln,#3a3352)', borderRadius: 5, padding: '5px 11px', cursor: reviewingIds[reviewId] ? 'wait' : 'pointer', opacity: reviewingIds[reviewId] ? 0.6 : 1 }}>{reviewingIds[reviewId] === 'rejecting' ? '⏳ Returning...' : '↩ RETURN'}</button>
                                         </div>
                                       </div>

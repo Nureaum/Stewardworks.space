@@ -38,7 +38,7 @@ interface PortfolioProps {
 }
 
 /* ── Helpers ── */
-const ENGPCT: Record<string, number> = { bookmark: 1, note: 1, generation: 2, prompt: 3 }
+const ENGPCT: Record<string, number> = { bookmark: 1, note: 1, generation: 2, prompt: 3, mini_deliverable: 4 }
 
 const STATUS_PILL: Record<string, { label: string; color: string }> = {
   not_submitted: { label: 'NOT SUBMITTED', color: '#a493c9' },
@@ -111,6 +111,8 @@ export default function Portfolio({
   const [bookmarkInput, setBookmarkInput] = useState('')
   const [noteInput, setNoteInput] = useState('')
   const [promptInput, setPromptInput] = useState('')
+  const [isNoteMiniDeliverable, setIsNoteMiniDeliverable] = useState(false)
+  const [isPromptMiniDeliverable, setIsPromptMiniDeliverable] = useState(false)
 
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -304,8 +306,18 @@ export default function Portfolio({
   const engByKind = useMemo(() => {
     const map: Record<string, WorkshopEngagement[]> = { bookmark: [], note: [], prompt: [], generation: [] }
     engagements.forEach(e => {
-      if (map[e.kind]) map[e.kind].push(e)
-      else map[e.kind] = [e]
+      let bucket = e.kind
+      if (e.kind === 'mini_deliverable') {
+        try {
+          const parsed = JSON.parse(e.content || '{}')
+          if (parsed.originalKind) bucket = parsed.originalKind
+          else bucket = 'note'
+        } catch {
+          bucket = 'note'
+        }
+      }
+      if (map[bucket]) map[bucket].push(e)
+      else map[bucket] = [e]
     })
     return map
   }, [engagements])
@@ -337,8 +349,23 @@ export default function Portfolio({
       return
     }
     if (!st || !st.value.trim()) return
-    onAddEngagement(kind, st.value.trim(), `workshop:${cohortId}`)
+    
+    let finalKind = kind
+    let contentPayload: string | undefined = undefined
+    if (kind === 'note' && isNoteMiniDeliverable) {
+      finalKind = 'mini_deliverable'
+      contentPayload = JSON.stringify({ originalKind: 'note' })
+    }
+    if (kind === 'prompt' && isPromptMiniDeliverable) {
+      finalKind = 'mini_deliverable'
+      contentPayload = JSON.stringify({ originalKind: 'prompt' })
+    }
+    
+    onAddEngagement(finalKind, st.value.trim(), `workshop:${cohortId}`, undefined, contentPayload)
+    
     st.set('')
+    if (kind === 'note') setIsNoteMiniDeliverable(false)
+    if (kind === 'prompt') setIsPromptMiniDeliverable(false)
   }
 
   function handleBookmarkFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -808,6 +835,25 @@ export default function Portfolio({
                     ＋
                   </button>
                 </div>
+                
+                {(col.kind === 'note' || col.kind === 'prompt') && (
+                  <div 
+                    style={{ padding: '0 12px 10px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} 
+                    onClick={() => {
+                      if (col.kind === 'note') setIsNoteMiniDeliverable(!isNoteMiniDeliverable)
+                      if (col.kind === 'prompt') setIsPromptMiniDeliverable(!isPromptMiniDeliverable)
+                    }}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={col.kind === 'note' ? isNoteMiniDeliverable : isPromptMiniDeliverable} 
+                      onChange={() => {}} 
+                      style={{ width: 16, height: 16, accentColor: 'var(--gold,#ffd23f)', cursor: 'pointer' }} 
+                    />
+                    <span style={{ fontSize: 16, color: 'var(--tx,#efe6ff)' }}>🏆 Submit as Mini Deliverable (+4%)</span>
+                  </div>
+                )}
+
 
                 {/* Scrollable items list */}
                 <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 240, overflowY: 'auto' }}>
@@ -840,10 +886,15 @@ export default function Portfolio({
                               overflow: 'hidden',
                             }}
                           >
+                            {item.kind === 'mini_deliverable' && (
+                              <span style={{ display: 'inline-block', padding: '2px 6px', background: 'var(--gold,#ffd23f)', color: '#000', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', marginRight: '6px', verticalAlign: 'middle', textTransform: 'uppercase' }}>
+                                Mini Deliverable
+                              </span>
+                            )}
                             {item.title}
                           </div>
-                          <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 2 }}>
-                            {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[col.kind] || 1}%` : item.status === 'rejected' ? '↩ returned' : '🕒 pending'}
+                          <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 4 }}>
+                            {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[item.kind] || 1}%` : item.status === 'rejected' ? '↩ returned' : '🕒 pending'}
                           </div>
                         </div>
                         {item.review_note && (
@@ -1338,7 +1389,7 @@ export default function Portfolio({
                       </div>
                     </div>
                   </div>
-                ) : viewingItem.kind === 'generation' ? (() => {
+                ) : (viewingItem.kind === 'generation' || viewingItem.kind === 'bookmark') ? (() => {
                   let previewUrl: string | null = null;
                   try { const d = JSON.parse(viewingItem.content || '{}'); previewUrl = d.previewUrl || null; } catch {}
                   
@@ -1357,7 +1408,7 @@ export default function Portfolio({
                         background: 'rgba(0,0,0,.3)'
                       }} 
                     />
-                  ) : (
+                  ) : viewingItem.kind === 'generation' ? (
                     <div style={{ 
                       width: '100%', 
                       height: 120, 
@@ -1371,7 +1422,7 @@ export default function Portfolio({
                     }}>
                       <span className="font-pixel" style={{ fontSize: 13, color: '#12081e' }}>ASSET</span>
                     </div>
-                  );
+                  ) : null;
                 })() : null}
                 {viewingItem.kind === 'generation' && (
                   <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)' }}>

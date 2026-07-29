@@ -19,6 +19,8 @@ export default function LibraryAdminPage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const [suggestionModalState, setSuggestionModalState] = useState<{isOpen: boolean, data: any | null}>({ isOpen: false, data: null })
+  const [isEditingSuggestion, setIsEditingSuggestion] = useState(false)
+  const [editSuggestionData, setEditSuggestionData] = useState<any>(null)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
@@ -124,7 +126,38 @@ export default function LibraryAdminPage() {
       setPendingCount(p => p - 1)
       if (suggestionModalState.data?.id === id) {
         setSuggestionModalState({ isOpen: false, data: null })
+        setIsEditingSuggestion(false)
       }
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setProcessing(null)
+    }
+  }
+
+  const handleSaveSuggestion = async () => {
+    if (!editSuggestionData) return
+    setProcessing(editSuggestionData.id)
+    try {
+      const res = await fetch(`/api/admin/library/suggestions/${editSuggestionData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editSuggestionData.title,
+          url: editSuggestionData.url,
+          note: editSuggestionData.note,
+          category: editSuggestionData.category,
+          resource_type: editSuggestionData.resource_type
+        })
+      })
+      if (!res.ok) throw new Error('Failed to update suggestion')
+      
+      const { suggestion } = await res.json()
+      toast.success('Suggestion updated')
+      
+      setSuggestions(s => s.map(x => x.id === suggestion.id ? suggestion : x))
+      setSuggestionModalState({ isOpen: true, data: suggestion })
+      setIsEditingSuggestion(false)
     } catch (err: any) {
       toast.error(err.message)
     } finally {
@@ -263,6 +296,9 @@ export default function LibraryAdminPage() {
                   <div className="flex gap-[8px]">
                     <button onClick={() => setSuggestionModalState({ isOpen: true, data: s })} className="px-4 py-2 rounded-full border border-[#785a32]/20 text-[#241c12] font-black text-[11px] uppercase tracking-[0.12em] hover:bg-white transition-colors flex items-center gap-2">
                       <Eye size={14} /> Details
+                    </button>
+                    <button onClick={() => { setEditSuggestionData(s); setSuggestionModalState({ isOpen: true, data: s }); setIsEditingSuggestion(true); }} className="px-4 py-2 rounded-full border border-[#785a32]/20 text-[#241c12] font-black text-[11px] uppercase tracking-[0.12em] hover:bg-[#fbf5e6] transition-colors flex items-center gap-2">
+                      <Pencil size={14} /> Edit
                     </button>
                     <button onClick={() => handleSuggestionAction(s.id, 'approved')} disabled={processing === s.id} className="px-5 py-2.5 rounded-full bg-[#2f5a37] text-white font-black text-[11px] uppercase tracking-[0.12em] hover:bg-[#244a2c] transition-colors shadow-[0_4px_12px_rgba(47,90,55,0.25)] disabled:opacity-50">
                       Approve
@@ -511,48 +547,138 @@ export default function LibraryAdminPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#241c12]/40 backdrop-blur-sm animate-[ac-fade_0.2s_ease]">
           <div className="bg-white w-full max-w-lg rounded-[22px] shadow-[0_24px_48px_rgba(36,28,18,0.2)] overflow-hidden flex flex-col">
             <div className="px-[26px] py-[20px] border-b border-[#785a32]/10 flex items-center justify-between">
-              <h2 className="text-[18px] font-[800] text-[#241c12]">Suggestion Details</h2>
-              <button onClick={() => setSuggestionModalState({ isOpen: false, data: null })} className="p-2 -mr-2 text-[#a89a82] hover:text-[#241c12] hover:bg-[#fbf5e6] rounded-full transition-colors">
+              <h2 className="text-[18px] font-[800] text-[#241c12]">{isEditingSuggestion ? 'Edit Suggestion' : 'Suggestion Details'}</h2>
+              <button onClick={() => { setSuggestionModalState({ isOpen: false, data: null }); setIsEditingSuggestion(false); }} className="p-2 -mr-2 text-[#a89a82] hover:text-[#241c12] hover:bg-[#fbf5e6] rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <div className="p-[26px] flex flex-col gap-[16px]">
-              <div>
-                <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Title</div>
-                <div className="text-[16px] font-[700] text-[#241c12]">{suggestionModalState.data.title}</div>
-              </div>
-              <div>
-                <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">URL</div>
-                <a href={suggestionModalState.data.url} target="_blank" rel="noopener noreferrer" className="text-[#c9a44e] hover:text-[#a5843a] text-[14px] font-[600] break-all">{suggestionModalState.data.url}</a>
-              </div>
-              <div>
-                <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Submitter Name</div>
-                <div className="text-[14px] font-[600] text-[#241c12]">{suggestionModalState.data.submitted_by_name || 'Anonymous Library User'}</div>
-              </div>
-              <div className="bg-[#fdf8ea] p-4 rounded-xl border border-[#785a32]/10">
-                <div className="text-[11px] font-mono tracking-[0.1em] text-[#8a7c66] uppercase mb-1">Submitter Note</div>
-                <div className="text-[14px] text-[#241c12] leading-relaxed">{suggestionModalState.data.note || 'No note provided.'}</div>
-              </div>
-              <div className="flex gap-6 mt-2">
-                <div>
-                  <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Category</div>
-                  <div className="text-[13px] font-[600] text-[#241c12]">{suggestionModalState.data.category || 'Uncategorized'}</div>
+            <div className="p-[26px] flex flex-col gap-[16px] max-h-[75vh] overflow-y-auto">
+              {isEditingSuggestion ? (
+                <>
+                  <div>
+                    <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Title</div>
+                    <input 
+                      type="text" 
+                      value={editSuggestionData.title || ''} 
+                      onChange={e => setEditSuggestionData({...editSuggestionData, title: e.target.value})} 
+                      className="w-full px-3 py-2 border border-[#785a32]/20 rounded-lg text-[14px] text-[#241c12] focus:outline-none focus:border-[#c9a44e]"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">URL</div>
+                    <input 
+                      type="text" 
+                      value={editSuggestionData.url || ''} 
+                      onChange={e => setEditSuggestionData({...editSuggestionData, url: e.target.value})} 
+                      className="w-full px-3 py-2 border border-[#785a32]/20 rounded-lg text-[14px] text-[#241c12] focus:outline-none focus:border-[#c9a44e]"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Submitter Note</div>
+                    <textarea 
+                      value={editSuggestionData.note || ''} 
+                      onChange={e => setEditSuggestionData({...editSuggestionData, note: e.target.value})} 
+                      className="w-full px-3 py-2 border border-[#785a32]/20 rounded-lg text-[14px] text-[#241c12] focus:outline-none focus:border-[#c9a44e] min-h-[80px]"
+                    />
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Category</div>
+                      <select 
+                        value={editSuggestionData.category || ''} 
+                        onChange={e => setEditSuggestionData({...editSuggestionData, category: e.target.value})} 
+                        className="w-full px-3 py-2 border border-[#785a32]/20 rounded-lg text-[14px] text-[#241c12] focus:outline-none focus:border-[#c9a44e] bg-white"
+                      >
+                        <option value="">Uncategorized</option>
+                        {displayCategories.map((cat: string) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Type</div>
+                      <select 
+                        value={editSuggestionData.resource_type || ''} 
+                        onChange={e => setEditSuggestionData({...editSuggestionData, resource_type: e.target.value})} 
+                        className="w-full px-3 py-2 border border-[#785a32]/20 rounded-lg text-[14px] text-[#241c12] focus:outline-none focus:border-[#c9a44e] bg-white"
+                      >
+                        <option value="article">Article</option>
+                        <option value="video">Video</option>
+                        <option value="pdf">PDF</option>
+                        <option value="tool">Tool</option>
+                        <option value="study">Study</option>
+                        <option value="social">Social</option>
+                        <option value="slides">Slides</option>
+                        <option value="meme">Image/Meme</option>
+                        <option value="other">Resource</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Title</div>
+                    <div className="text-[16px] font-[700] text-[#241c12]">{suggestionModalState.data.title}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">URL</div>
+                    <a href={suggestionModalState.data.url} target="_blank" rel="noopener noreferrer" className="text-[#c9a44e] hover:text-[#a5843a] text-[14px] font-[600] break-all">{suggestionModalState.data.url}</a>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Submitter Name</div>
+                    <div className="text-[14px] font-[600] text-[#241c12]">{suggestionModalState.data.submitted_by_name || 'Anonymous Library User'}</div>
+                  </div>
+                  <div className="bg-[#fdf8ea] p-4 rounded-xl border border-[#785a32]/10">
+                    <div className="text-[11px] font-mono tracking-[0.1em] text-[#8a7c66] uppercase mb-1">Submitter Note</div>
+                    <div className="text-[14px] text-[#241c12] leading-relaxed">{suggestionModalState.data.note || 'No note provided.'}</div>
+                  </div>
+                  <div className="flex gap-6 mt-2">
+                    <div>
+                      <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Category</div>
+                      <div className="text-[13px] font-[600] text-[#241c12]">{suggestionModalState.data.category || 'Uncategorized'}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Type</div>
+                      <div className="text-[13px] font-[600] text-[#241c12]">{suggestionModalState.data.resource_type || 'Link'}</div>
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              <div className="pt-4 border-t border-[#785a32]/10 flex gap-[8px] justify-between mt-2">
+                {!isEditingSuggestion ? (
+                  <button onClick={() => { setEditSuggestionData(suggestionModalState.data); setIsEditingSuggestion(true); }} className="px-5 py-2.5 rounded-[12px] border border-[#785a32]/20 text-[#241c12] font-black text-[12px] uppercase tracking-[0.12em] hover:bg-[#fbf5e6] transition-colors flex items-center gap-2">
+                    <Pencil size={14} /> Edit
+                  </button>
+                ) : (
+                  <div></div>
+                )}
+                
+                <div className="flex gap-[8px]">
+                  {isEditingSuggestion ? (
+                    <>
+                      <button onClick={() => setIsEditingSuggestion(false)} className="px-5 py-2.5 rounded-[12px] border border-[#785a32]/20 text-[#241c12] font-black text-[12px] uppercase tracking-[0.12em] hover:bg-[#fbf5e6] transition-colors">
+                        Cancel
+                      </button>
+                      <button onClick={handleSaveSuggestion} disabled={processing === editSuggestionData?.id} className="px-5 py-2.5 rounded-[12px] bg-[#c9a44e] text-white font-black text-[12px] uppercase tracking-[0.12em] hover:bg-[#b59242] transition-colors shadow-[0_4px_12px_rgba(201,164,78,0.25)] disabled:opacity-50">
+                        Save
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => { setSuggestionModalState({ isOpen: false, data: null }); setIsEditingSuggestion(false); }} className="px-5 py-2.5 rounded-[12px] border border-[#785a32]/20 text-[#241c12] font-black text-[12px] uppercase tracking-[0.12em] hover:bg-[#fbf5e6] transition-colors">
+                        Close
+                      </button>
+                      <button onClick={() => handleSuggestionAction(suggestionModalState.data.id, 'approved')} disabled={processing === suggestionModalState.data.id} className="px-5 py-2.5 rounded-[12px] bg-[#2f5a37] text-white font-black text-[12px] uppercase tracking-[0.12em] hover:bg-[#244a2c] transition-colors shadow-[0_4px_12px_rgba(47,90,55,0.25)] disabled:opacity-50">
+                        Approve
+                      </button>
+                      <button onClick={() => handleSuggestionAction(suggestionModalState.data.id, 'rejected')} disabled={processing === suggestionModalState.data.id} className="px-5 py-2.5 rounded-[12px] border border-red-200 text-red-500 font-black text-[12px] uppercase tracking-[0.12em] hover:bg-red-50 transition-colors disabled:opacity-50">
+                        Reject
+                      </button>
+                    </>
+                  )}
                 </div>
-                <div>
-                  <div className="text-[11px] font-mono tracking-[0.1em] text-[#a89a82] uppercase mb-1">Type</div>
-                  <div className="text-[13px] font-[600] text-[#241c12]">{suggestionModalState.data.resource_type || 'Link'}</div>
-                </div>
-              </div>
-              <div className="pt-4 border-t border-[#785a32]/10 flex gap-[8px] justify-end mt-2">
-                <button onClick={() => setSuggestionModalState({ isOpen: false, data: null })} className="px-5 py-2.5 rounded-[12px] border border-[#785a32]/20 text-[#241c12] font-black text-[12px] uppercase tracking-[0.12em] hover:bg-[#fbf5e6] transition-colors">
-                  Close
-                </button>
-                <button onClick={() => handleSuggestionAction(suggestionModalState.data.id, 'approved')} disabled={processing === suggestionModalState.data.id} className="px-5 py-2.5 rounded-[12px] bg-[#2f5a37] text-white font-black text-[12px] uppercase tracking-[0.12em] hover:bg-[#244a2c] transition-colors shadow-[0_4px_12px_rgba(47,90,55,0.25)] disabled:opacity-50">
-                  Approve
-                </button>
-                <button onClick={() => handleSuggestionAction(suggestionModalState.data.id, 'rejected')} disabled={processing === suggestionModalState.data.id} className="px-5 py-2.5 rounded-[12px] border border-red-200 text-red-500 font-black text-[12px] uppercase tracking-[0.12em] hover:bg-red-50 transition-colors disabled:opacity-50">
-                  Reject
-                </button>
               </div>
             </div>
           </div>

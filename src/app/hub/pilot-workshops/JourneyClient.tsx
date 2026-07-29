@@ -234,8 +234,8 @@ export default function JourneyClient({
 
   const submittingRef = React.useRef<Set<string>>(new Set());
 
-  const handleBookmark = useCallback(async (key: string, title: string, source: string, url?: string) => {
-    console.log('[DEBUG handleBookmark] Called:', { key, title, source, url });
+  const handleBookmark = useCallback(async (key: string, title: string, source: string, url?: string, content?: string) => {
+    console.log('[DEBUG handleBookmark] Called:', { key, title, source, url, content });
     // Use the unique key (day.id-entry.id) as the identifier to prevent duplicates across days
     if (submittingRef.current.has(key)) {
       console.log('[DEBUG handleBookmark] Already submitting, skipping');
@@ -262,7 +262,7 @@ export default function JourneyClient({
     console.log('[DEBUG handleBookmark] No existing bookmark, creating new...');
     submittingRef.current.add(key);
     try {
-      await handleAddEngagement('bookmark', title, source, url)
+      await handleAddEngagement('bookmark', title, source, url, content)
       console.log('[DEBUG handleBookmark] Success!');
     } finally {
       submittingRef.current.delete(key);

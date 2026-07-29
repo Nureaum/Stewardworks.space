@@ -12,6 +12,7 @@ export const ENGAGEMENT_POINT_VALUES: Record<EngagementKind, number> = {
   note: 1,
   generation: 2,
   prompt: 3,
+  mini_deliverable: 4,
   env_suggestion: 2,
   wf_suggestion: 2,
   lib_suggestion: 2,
@@ -26,7 +27,7 @@ export const ENGAGEMENT_CAP = 25;
  * Input type for engagement items - only requires kind and status fields
  * for the calculation (flexible to accept full WorkshopEngagement or minimal objects)
  */
-export type EngagementItem = Pick<WorkshopEngagement, 'kind' | 'status'> & { content?: string | null };
+export type EngagementItem = Pick<WorkshopEngagement, 'kind' | 'status'> & { content?: string | null, source?: string | null };
 
 /**
  * Calculates the global engagement percentage from an array of engagement items.
@@ -45,17 +46,19 @@ export function calculateGlobalEngagement(engagements: EngagementItem[]): number
     .reduce((sum, e) => {
       let points = ENGAGEMENT_POINT_VALUES[e.kind] ?? 0;
       
-      // Add +1% bonus if it's approved and showcaseVisible is true
-      if (e.content) {
-        try {
-          const contentData = JSON.parse(e.content);
-          // Only award if it actually made it to the showcase, OR if it's a legacy check where
-          // we might just assume showcaseRequested + approved means it's showcased.
-          if (contentData.showcaseVisible === true || (contentData.showcaseRequested === true)) {
-            points += 1;
+      if (e.kind === 'generation' && e.source === 'Student Showcase') {
+        points = 3;
+      } else {
+        // Add +1% bonus if it's approved and showcaseVisible is true
+        if (e.content) {
+          try {
+            const contentData = JSON.parse(e.content);
+            if (contentData.showcaseVisible === true || (contentData.showcaseRequested === true)) {
+              points += 1;
+            }
+          } catch (err) {
+            // ignore parsing errors
           }
-        } catch (err) {
-          // ignore parsing errors
         }
       }
       

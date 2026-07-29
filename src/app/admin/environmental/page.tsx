@@ -364,6 +364,12 @@ export default function EnvironmentalAdminPage() {
             )
           })}
           
+          <div style={{ margin: '8px 0', height: '1px', background: '#e9e6dd' }} />
+          <a href="/admin/announcements" style={{ boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: '11px', width: '100%', padding: '11px 10px', borderRadius: '12px', background: 'transparent', color: '#6b6d70', textDecoration: 'none', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#f7f5ef'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+             <span style={{ width: '26px', height: '26px', borderRadius: '8px', flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', background: '#f7f5ef', color: '#6b6d70' }}>‹</span>
+             <span style={{ flex: 1, textAlign: 'left', font: "800 12.5px/1 'Exo', sans-serif" }}>Back to Admin</span>
+          </a>
+
           <div style={{ flex: 1 }}></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '13px', borderRadius: '14px', background: 'linear-gradient(180deg,#f6e6b6,#eccf89)', border: '1px solid #cdaa5f' }}>
             <span style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#3C2A18', color: '#E7C77E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flex: '0 0 auto' }}>▤</span>

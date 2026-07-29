@@ -8,9 +8,10 @@ import Link from 'next/link';
 import { fetchUserBookmarks } from '@/app/actions/bookmarks';
 import { fetchAllWorkforceEntries, fetchUserPicks } from '@/app/admin/workforce-pathways/actions';
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
-import { addEngagement, updateEngagement, removeEngagement } from '@/app/actions/workshops/engagement';
+import { addEngagement, updateEngagement, removeEngagement, uploadNoteImage } from '@/app/actions/workshops/engagement';
 import RetroToast from '@/components/workshops/journey/RetroToast';
 import { PixelSprite } from '@/components/workshops/journey';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 import type { CohortProgressData } from './page';
 
 // Status pill mapping for deliverables (same as Portfolio)
@@ -19,6 +20,20 @@ const STATUS_PILL: Record<string, { label: string; color: string }> = {
   submitted:     { label: 'PENDING REVIEW', color: '#ffd23f' },
   approved:      { label: 'APPROVED · +25%', color: '#74f0a0' },
   rejected:      { label: 'NEEDS REVISION', color: '#ff8a4a' },
+  rejected:      { label: 'NEEDS REVISION', color: '#ff8a4a' },
+};
+
+export const parseNoteContent = (contentStr: string | null) => {
+  if (!contentStr) return { text: '', html: '', images: [], subType: 'note', version: 1 };
+  try {
+    const parsed = JSON.parse(contentStr);
+    if (parsed && parsed.version === 2) {
+      return parsed;
+    }
+  } catch (e) {
+    // legacy format or simple string
+  }
+  return { text: contentStr, html: '', images: [], subType: 'note', version: 1 };
 };
 
 export default function ClientProfile({ 
@@ -58,7 +73,7 @@ export default function ClientProfile({
   const [selectedResourceItem, setSelectedResourceItem] = useState<any | null>(null);
   
   // Engagement counts
-  const [engagementCounts, setEngagementCounts] = useState({ bookmarks: 0, notes: 0, prompts: 0, generations: 0, envSuggestions: 0, wfSuggestions: 0, libSuggestions: 0 });
+  const [engagementCounts, setEngagementCounts] = useState({ bookmarks: 0, notes: 0, prompts: 0, miniDeliverables: 0, generations: 0, envSuggestions: 0, wfSuggestions: 0, libSuggestions: 0, showcase: 0, showcaseForm: 0 });
   
   // Generations State
   const [generations, setGenerations] = useState<any[]>([]);
@@ -75,6 +90,11 @@ export default function ClientProfile({
   const [workshopBookmarks, setWorkshopBookmarks] = useState<any[]>([]);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [noteType, setNoteType] = useState<'note' | 'prompt'>('note');
+  const [isMiniDeliverable, setIsMiniDeliverable] = useState(false);
+  const [noteImages, setNoteImages] = useState<string[]>([]);
+  const [noteHtmlContent, setNoteHtmlContent] = useState('');
+  const [miniDeliverables, setMiniDeliverables] = useState<any[]>([]);
+  const noteEditorRef = React.useRef<HTMLDivElement>(null);
   const [bookmarkFilter, setBookmarkFilter] = useState('all');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
@@ -235,14 +255,49 @@ export default function ClientProfile({
           
           // Count approved engagements by kind
           const approved = engagements.filter((e: any) => e.status === 'approved');
+          let showcaseBonusCount = 0;
+          let studentShowcaseFormCount = 0;
+          let normalGenerationCount = 0;
+          
+          approved.forEach((e: any) => {
+            if (e.kind === 'generation') {
+              if (e.source === 'Student Showcase') {
+                studentShowcaseFormCount++;
+              } else {
+                normalGenerationCount++;
+                if (e.content) {
+                  try {
+                    const contentData = JSON.parse(e.content);
+                    if (contentData.showcaseVisible === true || contentData.showcaseRequested === true) {
+                      showcaseBonusCount++;
+                    }
+                  } catch (err) {}
+                }
+              }
+            } else {
+              // For any other kind that might have showcase requested
+              if (e.content) {
+                try {
+                  const contentData = JSON.parse(e.content);
+                  if (contentData.showcaseVisible === true || contentData.showcaseRequested === true) {
+                    showcaseBonusCount++;
+                  }
+                } catch (err) {}
+              }
+            }
+          });
+          
           setEngagementCounts({
             bookmarks: approved.filter((e: any) => e.kind === 'bookmark').length,
             notes: approved.filter((e: any) => e.kind === 'note').length,
             prompts: approved.filter((e: any) => e.kind === 'prompt').length,
-            generations: approved.filter((e: any) => e.kind === 'generation').length,
+            miniDeliverables: approved.filter((e: any) => e.kind === 'mini_deliverable').length,
+            generations: normalGenerationCount,
             envSuggestions: approved.filter((e: any) => e.kind === 'env_suggestion').length,
             wfSuggestions: approved.filter((e: any) => e.kind === 'wf_suggestion').length,
             libSuggestions: approved.filter((e: any) => e.kind === 'lib_suggestion').length,
+            showcase: showcaseBonusCount,
+            showcaseForm: studentShowcaseFormCount,
           });
           
           // Filter and set generation engagements
@@ -296,6 +351,20 @@ export default function ClientProfile({
               created_at: e.created_at
             }));
           setPrompts(promptEngagements);
+
+          // Filter and set mini deliverables
+          const miniDeliverableEngagements = engagements
+            .filter((e: any) => e.kind === 'mini_deliverable')
+            .map((e: any) => ({
+              id: e.id,
+              title: e.title,
+              content: e.content || e.title,
+              source: e.source || 'Workshops',
+              status: e.status || 'pending',
+              reviewNote: e.review_note || null,
+              created_at: e.created_at
+            }));
+          setMiniDeliverables(miniDeliverableEngagements);
 
           // Filter and set workshop bookmarks
           const bookmarkEngagements = engagements
@@ -759,8 +828,37 @@ export default function ClientProfile({
   const isDreamJobCustom = currentDreamJob && !dreamJobOptions.includes(currentDreamJob);
   const displayDreamJob = isDreamJobCustom ? `Other: ${currentDreamJob}` : (currentDreamJob || 'Add dream role');
 
+  const handleNoteImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const url = await uploadNoteImage(formData);
+      setNoteImages(prev => [...prev, url]);
+      setToast('Photo added');
+    } catch (err) {
+      console.error(err);
+      setToast('✗ Failed to upload image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleExecCommand = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    if (noteEditorRef.current) {
+      setNoteHtmlContent(noteEditorRef.current.innerHTML);
+    }
+  };
+
   const handleAddNote = async () => {
-    if (!noteTitle.trim() || !noteContent.trim()) {
+    const htmlContent = noteEditorRef.current?.innerHTML || noteHtmlContent || noteContent;
+    const plainText = noteEditorRef.current?.innerText || noteContent;
+
+    if (!noteTitle.trim() || !plainText.trim()) {
       setToast('⚠ Please enter both title and content');
       return;
     }
@@ -772,20 +870,38 @@ export default function ClientProfile({
     
     setIsSaving(true);
     try {
-      await addEngagement(activeCohortId, noteType, noteTitle.trim(), 'Profile', '', noteContent.trim());
+      const contentJson = JSON.stringify({
+        version: 2,
+        html: htmlContent,
+        text: plainText,
+        images: noteImages,
+        subType: noteType
+      });
+      
+      const kindToSave = isMiniDeliverable ? 'mini_deliverable' : noteType;
+      
+      await addEngagement(activeCohortId, kindToSave, noteTitle.trim(), 'Profile', '', contentJson);
       
       // Reset form
       setNoteTitle('');
       setNoteContent('');
+      setNoteHtmlContent('');
+      setNoteImages([]);
+      setIsMiniDeliverable(false);
       setIsAddingNote(false);
+      if (noteEditorRef.current) noteEditorRef.current.innerHTML = '';
       
       // Reload profile to get updated notes
       await loadProfile();
       
-      setToast(`📝 ${noteType === 'prompt' ? 'Prompt' : 'Note'} saved · pending admin approval`);
+      if (isMiniDeliverable) {
+        setToast(`🏆 Mini Deliverable submitted · pending admin approval`);
+      } else {
+        setToast(`📝 ${noteType === 'prompt' ? 'Prompt' : 'Note'} saved · pending admin approval`);
+      }
     } catch (error: any) {
       console.error(`Failed to add ${noteType}:`, error);
-      setToast(`✗ Failed to save ${noteType}. Please try again`);
+      setToast(`✗ Failed to save ${isMiniDeliverable ? 'Mini Deliverable' : noteType}. Please try again`);
     } finally {
       setIsSaving(false);
     }
@@ -1229,65 +1345,89 @@ export default function ClientProfile({
           <div style={{ height: '12px', background: 'rgba(33,40,46,.08)', borderRadius: '8px', overflow: 'hidden', marginBottom: '18px' }}>
             <div style={{ width: `${Math.min((engagementProgress / 25) * 100, 100)}%`, height: '100%', background: 'linear-gradient(90deg,#417C98,#65a6c4)' }}></div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '12px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 24px' }}>
             {engagementCounts.bookmarks > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#417C98' }}></span>
-                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Bookmark saved</span>
-                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.bookmarks}</span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Bookmark saved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.bookmarks}</span>
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.bookmarks * 1}%</span>
               </div>
             )}
             {engagementCounts.notes > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#A27532' }}></span>
-                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Note created</span>
-                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.notes}</span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Note created</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.notes}</span>
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.notes * 1}%</span>
               </div>
             )}
             {engagementCounts.prompts > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#DB9B2F' }}></span>
-                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Prompt saved</span>
-                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.prompts}</span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Prompt saved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.prompts}</span>
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.prompts * 3}%</span>
               </div>
             )}
+            {engagementCounts.miniDeliverables > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#7c5cbf' }}></span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Mini Deliverable</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.miniDeliverables}</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.miniDeliverables * 4}%</span>
+              </div>
+            )}
             {engagementCounts.generations > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#2E5534' }}></span>
-                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Generation created</span>
-                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.generations}</span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Generation created</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.generations}</span>
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.generations * 2}%</span>
               </div>
             )}
             {engagementCounts.envSuggestions > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#4B8B9B' }}></span>
-                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Environmental suggestion approved</span>
-                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.envSuggestions}</span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Environmental suggestion approved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.envSuggestions}</span>
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.envSuggestions * 2}%</span>
               </div>
             )}
             {engagementCounts.wfSuggestions > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#2E5534' }}></span>
-                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Workforce suggestion approved</span>
-                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.wfSuggestions}</span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Workforce suggestion approved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.wfSuggestions}</span>
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.wfSuggestions * 2}%</span>
               </div>
             )}
             {engagementCounts.libSuggestions > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#417C98' }}></span>
-                <span style={{ flex: 1, fontSize: '13px', color: '#3a2412' }}>Library suggestion approved</span>
-                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a' }}>x{engagementCounts.libSuggestions}</span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Library suggestion approved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.libSuggestions}</span>
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.libSuggestions * 2}%</span>
               </div>
             )}
-            {engagementCounts.bookmarks === 0 && engagementCounts.notes === 0 && engagementCounts.prompts === 0 && engagementCounts.generations === 0 && engagementCounts.envSuggestions === 0 && engagementCounts.wfSuggestions === 0 && engagementCounts.libSuggestions === 0 && (
-              <div style={{ gridColumn: '1 / -1', padding: '20px', textAlign: 'center', color: '#8a6a4a', fontSize: '13px' }}>
+            {engagementCounts.showcase > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#65a6c4' }}></span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Student showcase bonus</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.showcase}</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.showcase * 1}%</span>
+              </div>
+            )}
+            {engagementCounts.showcaseForm > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#65a6c4' }}></span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Student showcase</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.showcaseForm}</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.showcaseForm * 3}%</span>
+              </div>
+            )}
+            {engagementCounts.bookmarks === 0 && engagementCounts.notes === 0 && engagementCounts.prompts === 0 && engagementCounts.miniDeliverables === 0 && engagementCounts.generations === 0 && engagementCounts.envSuggestions === 0 && engagementCounts.wfSuggestions === 0 && engagementCounts.libSuggestions === 0 && engagementCounts.showcase === 0 && engagementCounts.showcaseForm === 0 && (
+              <div style={{ padding: '20px', width: '100%', textAlign: 'center', color: '#8a6a4a', fontSize: '13px' }}>
                 No approved engagements yet. Submit work in the Portfolio to earn rewards!
               </div>
             )}
@@ -1711,11 +1851,12 @@ export default function ClientProfile({
         })()}
 
 
-        {/* NOTES & SAVED PROMPTS */}
+        {/* PROMPT AND PATTERN LIBRARY */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#8a5a2e' }}>NOTES & SAVED PROMPTS</span>
-            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{notes.length + prompts.length}</span>
+            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#8a5a2e' }}>PROMPT AND PATTERN LIBRARY</span>
+            <span style={{ fontSize: '12px', color: '#8a6a4a', fontStyle: 'italic' }}>(save your prompts, notes, patterns, and mini-deliverables here)</span>
+            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{notes.length + prompts.length + miniDeliverables.length}</span>
             <span style={{ fontSize: '12px', color: '#8a6a4a' }}>from workshops & the AI Lab</span>
           </div>
           <button onClick={() => setIsAddingNote(true)} style={{ background: '#3f5460', color: '#FEFAE0', border: 'none', borderRadius: '9px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px' }}>+ New note</button>
@@ -1723,9 +1864,9 @@ export default function ClientProfile({
         
         {isFetchingResources ? (
           <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading...</div>
-        ) : (notes.length === 0 && prompts.length === 0) ? (
+        ) : (notes.length === 0 && prompts.length === 0 && miniDeliverables.length === 0) ? (
           <div style={{ padding: '30px', textAlign: 'center', color: '#8a6a4a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px' }}>
-            No notes or prompts yet. Add them from the <Link href="/hub/pilot-workshops" style={{ color: '#417C98', textDecoration: 'underline' }}>Workshops</Link> or <Link href="/hub/ai-lab" style={{ color: '#417C98', textDecoration: 'underline' }}>AI Lab</Link>!
+            No notes, prompts, or mini deliverables yet. Add them from the <Link href="/hub/pilot-workshops" style={{ color: '#417C98', textDecoration: 'underline' }}>Workshops</Link> or <Link href="/hub/ai-lab" style={{ color: '#417C98', textDecoration: 'underline' }}>AI Lab</Link>!
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '12px' }}>
@@ -1788,6 +1929,60 @@ export default function ClientProfile({
                 <div style={{ fontSize: '11px', color: '#7a5a3a' }}>⌘ {p.source?.startsWith('workshop:') ? 'Workshop Portfolio' : p.source}</div>
               </div>
             ))}
+
+            {/* Mini Deliverables */}
+            {miniDeliverables.map(m => {
+              const parsed = parseNoteContent(m.content);
+              return (
+                <div
+                  key={m.id}
+                  onClick={() => setSelectedNoteItem({ ...m, itemType: 'mini_deliverable' })}
+                  className="hover:-translate-y-1 hover:shadow-lg transition-all"
+                  style={{ background: 'linear-gradient(135deg, #f3ebfc 0%, #FEFAE0 100%)', border: '1.5px solid rgba(124,92,191,.3)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(124,92,191,.1)', cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#7c5cbf', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>🏆 MINI DELIVERABLE</span>
+                    {(() => {
+                      const t = parsed.noteType || parsed.subType || parsed.originalKind || 'note';
+                      if (t === 'prompt') return <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#fad0e9', color: '#7a2955', padding: '3px 8px', borderRadius: '20px' }}>⌘ PROMPT</span>;
+                      return <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#e8dbb0', color: '#5a4a3a', padding: '3px 8px', borderRadius: '20px' }}>✎ NOTE</span>;
+                    })()}
+                    {m.status === 'pending' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
+                    )}
+                    {m.status === 'approved' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED +4%</span>
+                    )}
+                    {m.status === 'rejected' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
+                    )}
+                  </div>
+                  <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{m.title}</div>
+                  
+                  {parsed.images && parsed.images.length > 0 && (
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,.1)' }}>
+                        <img src={parsed.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Mini deliverable attachment" />
+                      </div>
+                      {parsed.images.length > 1 && (
+                        <div style={{ width: 40, height: 40, borderRadius: 6, background: 'rgba(0,0,0,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#7a5a3a' }}>
+                          +{parsed.images.length - 1}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {parsed.text && parsed.text !== m.title && (
+                    <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
+                      {parsed.text.length > 100 ? parsed.text.slice(0, 100) + '…' : parsed.text}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '11px', color: '#7a5a3a', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{parsed.subType === 'prompt' ? '⌘' : '📝'} {m.source?.startsWith('workshop:') ? 'Workshop Portfolio' : m.source}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -1835,13 +2030,22 @@ export default function ClientProfile({
 
             {/* Badges */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              {selectedNoteItem.itemType === 'note' ? (
+              {selectedNoteItem.itemType === 'mini_deliverable' ? (
+                <>
+                  <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#7c5cbf', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>🏆 MINI DELIVERABLE</span>
+                  {(() => {
+                    const t = popupParsed.noteType || popupParsed.subType || popupParsed.originalKind || 'note';
+                    if (t === 'prompt') return <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#fad0e9', color: '#7a2955', padding: '3px 9px', borderRadius: '20px' }}>⌘ PROMPT</span>;
+                    return <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#e8dbb0', color: '#5a4a3a', padding: '3px 9px', borderRadius: '20px' }}>✎ NOTE</span>;
+                  })()}
+                </>
+              ) : selectedNoteItem.itemType === 'note' ? (
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#A27532', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>NOTE</span>
               ) : (
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#DB9B2F', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>PROMPT</span>
               )}
               {selectedNoteItem.status === 'pending' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 9px', borderRadius: '20px' }}>PENDING</span>}
-              {selectedNoteItem.status === 'approved' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 9px', borderRadius: '20px' }}>✓ APPROVED</span>}
+              {selectedNoteItem.status === 'approved' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 9px', borderRadius: '20px' }}>✓ APPROVED {selectedNoteItem.itemType === 'mini_deliverable' && '+4%'}</span>}
               {selectedNoteItem.status === 'rejected' && <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>✕ REJECTED</span>}
             </div>
 
@@ -1854,39 +2058,62 @@ export default function ClientProfile({
                   placeholder="Title"
                   style={{ width: '100%', padding: '10px 12px', fontSize: '16px', fontWeight: 700, color: '#3a2412', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', background: '#fff', marginBottom: '12px', fontFamily: 'inherit' }}
                 />
-                <textarea
-                  value={editNoteContent}
-                  onChange={e => setEditNoteContent(e.target.value)}
-                  placeholder="Content"
-                  rows={6}
-                  style={{ width: '100%', padding: '10px 12px', fontSize: '14px', color: '#4a3822', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', background: '#fff', marginBottom: '14px', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.6 }}
-                />
+                
+                <div style={{ border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', background: '#fff', overflow: 'hidden', marginBottom: '14px' }}>
+                  <RichTextEditor
+                    content={editNoteContent || ''}
+                    onChange={(html) => setEditNoteContent(html)}
+                    onUpload={async (formData) => {
+                      const res = await uploadNoteImage(formData);
+                      if (!res.success) throw new Error(res.error || 'Upload failed');
+                      return { publicUrl: res.url, type: 'image' };
+                    }}
+                  />
+                </div>
+                
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => handleUpdateNote(selectedNoteItem.id)} style={{ padding: '10px 18px', background: '#2E5534', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '12px', cursor: 'pointer' }}>Save</button>
                   <button onClick={() => setIsEditingNote(false)} style={{ padding: '10px 18px', background: 'transparent', color: '#5c4f3c', border: '1.5px solid rgba(138,90,46,.25)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
                 </div>
               </>
-            ) : (
-              <>
-                {/* Title */}
-                <div style={{ fontWeight: 800, color: '#3a2412', fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.3, marginBottom: '14px' }}>
-                  {selectedNoteItem.title}
-                </div>
-
-                {/* Divider */}
-                <div style={{ height: '1px', background: 'rgba(162,117,50,.18)', marginBottom: '16px' }} />
-
-                {/* Full content */}
-                {selectedNoteItem.content && selectedNoteItem.content !== selectedNoteItem.title && (
-                  <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '18px' }}>
-                    {selectedNoteItem.content}
+            ) : (() => {
+              const popupParsed = parseNoteContent(selectedNoteItem.content);
+              return (
+                <>
+                  {/* Title */}
+                  <div style={{ fontWeight: 800, color: '#3a2412', fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.3, marginBottom: '14px' }}>
+                    {selectedNoteItem.title}
                   </div>
-                )}
-
-                {/* Source */}
-                <div style={{ fontSize: '11px', color: '#7a5a3a', fontFamily: '"DM Mono", monospace', letterSpacing: '.06em', marginBottom: selectedNoteItem.reviewNote ? '14px' : 0 }}>
-                  {selectedNoteItem.itemType === 'note' ? '📝' : '⌘'} {selectedNoteItem.source?.startsWith('workshop:') ? 'Workshop Portfolio' : selectedNoteItem.source}
-                </div>
+  
+                  {/* Divider */}
+                  <div style={{ height: '1px', background: 'rgba(162,117,50,.18)', marginBottom: '16px' }} />
+  
+                  {/* Full content */}
+                  {popupParsed.version === 2 ? (
+                    <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, marginBottom: '18px' }} dangerouslySetInnerHTML={{ __html: popupParsed.html }} />
+                  ) : (
+                    selectedNoteItem.content && selectedNoteItem.content !== selectedNoteItem.title && (
+                      <div style={{ fontSize: '14px', color: '#4a3822', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: '18px' }}>
+                        {selectedNoteItem.content}
+                      </div>
+                    )
+                  )}
+                  
+                  {/* Images Gallery */}
+                  {popupParsed.images && popupParsed.images.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' }}>
+                      {popupParsed.images.map((img: string, idx: number) => (
+                        <a key={idx} href={img} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: 100, height: 100, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(0,0,0,.1)' }}>
+                          <img src={img} alt="Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+  
+                  {/* Source */}
+                  <div style={{ fontSize: '11px', color: '#7a5a3a', fontFamily: '"DM Mono", monospace', letterSpacing: '.06em', marginBottom: selectedNoteItem.reviewNote ? '14px' : 0 }}>
+                    {selectedNoteItem.itemType === 'note' ? '📝' : '⌘'} {selectedNoteItem.source?.startsWith('workshop:') ? 'Workshop Portfolio' : selectedNoteItem.source}
+                  </div>
 
                 {/* Admin review note */}
                 {selectedNoteItem.reviewNote && (
@@ -1914,7 +2141,7 @@ export default function ClientProfile({
                   >{isDeletingItem ? '⏳' : '🗑️'} Delete</button>
                 </div>
               </>
-            )}
+            )})()}
           </div>
         </div>
       )}
@@ -2296,17 +2523,17 @@ export default function ClientProfile({
       {/* Add Note Modal */}
       {isAddingNote && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setIsAddingNote(false)}>
-          <div style={{ background: '#FEFAE0', borderRadius: '16px', maxWidth: '600px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: '24px 28px', borderBottom: '2px solid rgba(33,40,46,.12)' }}>
+          <div style={{ background: '#FEFAE0', borderRadius: '16px', maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ padding: '24px 28px', borderBottom: '2px solid rgba(33,40,46,.12)', position: 'sticky', top: 0, background: '#FEFAE0', zIndex: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.1em', color: '#3a2412', margin: 0 }}>{noteType === 'prompt' ? 'ADD NEW PROMPT' : 'ADD NEW NOTE'}</h2>
+                <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.1em', color: '#3a2412', margin: 0 }}>ADD NEW NOTE / PROMPT / MINI DELIVERABLE</h2>
                 <button onClick={() => setIsAddingNote(false)} style={{ background: 'none', border: 'none', color: '#7a5a3a', fontSize: '24px', cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
               </div>
-              <p style={{ fontSize: '13px', color: '#7a5a3a', marginTop: '8px', marginBottom: 0 }}>Your {noteType} will be submitted for admin approval before appearing in your profile.</p>
+              <p style={{ fontSize: '13px', color: '#7a5a3a', marginTop: '8px', marginBottom: 0 }}>Your submission will be reviewed by an admin before appearing in your profile.</p>
             </div>
             
             <div style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                 <button 
                   onClick={() => setNoteType('note')}
                   style={{ flex: 1, padding: '12px', borderRadius: '8px', border: noteType === 'note' ? '2px solid #3f5460' : '2px solid rgba(33,40,46,.15)', background: noteType === 'note' ? 'rgba(63,84,96,.1)' : '#fff', color: '#3a2412', fontWeight: noteType === 'note' ? 700 : 400, cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '13px' }}
@@ -2320,26 +2547,44 @@ export default function ClientProfile({
                   ⌘ PROMPT
                 </button>
               </div>
+
+              {/* Mini Deliverable Banner/Checkbox */}
+              <div style={{ marginBottom: '20px', background: isMiniDeliverable ? 'rgba(219,155,47,.15)' : '#fff', border: isMiniDeliverable ? '2px solid #DB9B2F' : '2px solid rgba(33,40,46,.15)', borderRadius: '8px', padding: '12px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all .2s' }} onClick={() => setIsMiniDeliverable(!isMiniDeliverable)}>
+                <input type="checkbox" checked={isMiniDeliverable} onChange={() => {}} style={{ width: 18, height: 18, accentColor: '#DB9B2F', cursor: 'pointer' }} />
+                <div>
+                  <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '14px' }}>Mark as Mini Deliverable</div>
+                  {isMiniDeliverable && <div style={{ fontSize: '12px', color: '#8a5a2e', marginTop: 4 }}>🏆 This will be submitted as a Mini Deliverable. You'll earn +4% engagement after admin approval.</div>}
+                </div>
+              </div>
+
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>{noteType === 'prompt' ? 'PROMPT TITLE *' : 'NOTE TITLE *'}</label>
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>TITLE *</label>
                 <input 
                   type="text"
                   value={noteTitle}
                   onChange={(e) => setNoteTitle(e.target.value)}
-                  placeholder={`Enter a title for your ${noteType}...`}
+                  placeholder="Enter a title..."
                   style={{ width: '100%', padding: '12px 14px', background: '#fff', border: '2px solid rgba(33,40,46,.15)', borderRadius: '8px', fontSize: '15px', color: '#3a2412', outline: 'none' }}
                   autoFocus
                 />
               </div>
               
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>{noteType === 'prompt' ? 'PROMPT CONTENT *' : 'NOTE CONTENT *'}</label>
-                <textarea 
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
-                  placeholder={`Write your ${noteType}...`}
-                  style={{ width: '100%', padding: '12px 14px', background: '#fff', border: '2px solid rgba(33,40,46,.15)', borderRadius: '8px', fontSize: '14px', color: '#3a2412', outline: 'none', minHeight: '120px', fontFamily: 'inherit', lineHeight: 1.5, resize: 'vertical' }}
-                />
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>CONTENT *</label>
+                <div style={{ border: '2px solid rgba(33,40,46,.15)', borderRadius: '8px', background: '#fff', overflow: 'hidden' }}>
+                  <RichTextEditor 
+                    content={noteHtmlContent}
+                    onChange={(html) => {
+                      setNoteHtmlContent(html);
+                      setNoteContent(html.replace(/<[^>]+>/g, ''));
+                    }}
+                    onUpload={async (formData) => {
+                      const res = await uploadNoteImage(formData);
+                      if (!res.success) throw new Error(res.error || 'Upload failed');
+                      return { publicUrl: res.url, type: 'image' };
+                    }}
+                  />
+                </div>
               </div>
               
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -2351,10 +2596,10 @@ export default function ClientProfile({
                 </button>
                 <button 
                   onClick={handleAddNote}
-                  disabled={isSaving || !noteTitle.trim() || !noteContent.trim()}
-                  style={{ background: isSaving || !noteTitle.trim() || !noteContent.trim() ? '#ccb89a' : '#3f5460', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, color: '#FEFAE0', cursor: isSaving || !noteTitle.trim() || !noteContent.trim() ? 'not-allowed' : 'pointer' }}
+                  disabled={isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim())}
+                  style={{ background: isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim()) ? '#ccb89a' : '#3f5460', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, color: '#FEFAE0', cursor: isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim()) ? 'not-allowed' : 'pointer' }}
                 >
-                  {isSaving ? 'Saving...' : `Save ${noteType === 'prompt' ? 'Prompt' : 'Note'}`}
+                  {isSaving ? 'Saving...' : (isMiniDeliverable ? 'Submit Mini Deliverable' : `Save ${noteType === 'prompt' ? 'Prompt' : 'Note'}`)}
                 </button>
               </div>
             </div>

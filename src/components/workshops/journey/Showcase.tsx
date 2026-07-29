@@ -60,7 +60,7 @@ const FILTER_TABS: FilterTab[] = [
 interface ShowcaseProps {
   showcaseItems?: WorkshopShowcase[]
   engagements?: WorkshopEngagement[]
-  onBookmark?: (key: string, title: string, source: string, url?: string) => void
+  onBookmark?: (key: string, title: string, source: string, url?: string, content?: string) => void
   cohortId?: string
   onlyStudents?: boolean
   onlyContributors?: boolean
@@ -491,7 +491,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
             item={item}
             bookmarked={isBookmarked(item)}
             onOpen={() => setPreview(item.id)}
-            onBookmark={() => onBookmark && onBookmark('contrib-' + item.id, item.title, 'Showcase · ' + item.theme, item.url || undefined)}
+            onBookmark={() => onBookmark && onBookmark('contrib-' + item.id, item.title, 'Showcase · ' + item.theme, item.url || undefined, item.previewUrl ? JSON.stringify({ previewUrl: item.previewUrl }) : undefined)}
           />
         ))}
       </div>
@@ -1049,7 +1049,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
           item={previewItem}
           bookmarked={isBookmarked(previewItem)}
           onClose={() => setPreview(null)}
-          onBookmark={() => onBookmark && onBookmark('contrib-' + previewItem.id, previewItem.title, 'Showcase · ' + previewItem.theme, previewItem.url || undefined)}
+          onBookmark={() => onBookmark && onBookmark('contrib-' + previewItem.id, previewItem.title, 'Showcase · ' + previewItem.theme, previewItem.url || undefined, previewItem.previewUrl ? JSON.stringify({ previewUrl: previewItem.previewUrl }) : undefined)}
         />
       )}
     </div>
@@ -1117,6 +1117,14 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
               </div>
             </div>
           </>
+        ) : item.previewUrl ? (
+          /* Admin-uploaded preview image (stored in meta JSON) */
+          <img
+            src={item.previewUrl}
+            alt={item.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
         ) : (
           /* fallback type icon */
           <span style={{ fontSize: 38, opacity: .18, color: clr }}>
@@ -1285,16 +1293,26 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
         {!(item.url && (isImageUrl(item.url) || item.url.includes('youtube.com') || item.url.includes('youtu.be') || item.url.match(/\.(mp4|webm|mov|mp3|wav|ogg|aac|flac)/i))) && (
           <div style={{
             height: 150,
-            background: `linear-gradient(135deg,${clr}33,${clr}0a)`,
+            background: item.previewUrl ? undefined : `linear-gradient(135deg,${clr}33,${clr}0a)`,
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
           }}>
-            <span style={{ fontSize: 52, opacity: .14, color: clr }}>
-              {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : item.type === 'image' ? '📷' : '✎'}
-            </span>
+            {item.previewUrl ? (
+              /* Admin-uploaded preview image */
+              <img
+                src={item.previewUrl}
+                alt={item.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            ) : (
+              <span style={{ fontSize: 52, opacity: .14, color: clr }}>
+                {item.type === 'video' ? '▶' : item.type === 'audio' ? '♫' : item.type === 'aigen' ? '✦' : item.type === 'image' ? '📷' : '✎'}
+              </span>
+            )}
 
             {/* type badge */}
             <span className="font-pixel" style={{

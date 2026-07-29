@@ -12,9 +12,10 @@ import toast from 'react-hot-toast'
 interface RichTextEditorProps {
   content: string
   onChange: (content: string) => void
+  onUpload?: (formData: FormData) => Promise<{publicUrl: string, type: string}>
 }
 
-export default function RichTextEditor({ content, onChange }: RichTextEditorProps) {
+export default function RichTextEditor({ content, onChange, onUpload }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -51,17 +52,23 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
       const formData = new FormData()
       formData.append('file', file)
 
-      const res = await fetch('/api/admin/upload-media', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Upload failed')
+      let resData;
+      
+      if (onUpload) {
+        resData = await onUpload(formData)
+      } else {
+        const res = await fetch('/api/admin/upload-media', {
+          method: 'POST',
+          body: formData,
+        })
+        if (!res.ok) {
+          const error = await res.json()
+          throw new Error(error.error || 'Upload failed')
+        }
+        resData = await res.json()
       }
 
-      const { publicUrl, type } = await res.json()
+      const { publicUrl, type } = resData
 
       // Move cursor to the end of the current selection so it doesn't overwrite the existing image/video
       editor.commands.setTextSelection(editor.state.selection.to)

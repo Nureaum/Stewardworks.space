@@ -139,6 +139,32 @@ export async function uploadCreationImage(formData: FormData) {
   return publicUrl;
 }
 
+export async function uploadNoteImage(formData: FormData) {
+  const { userId } = await auth();
+  if (!userId) throw new Error('Authentication required');
+
+  const file = formData.get('file') as File;
+  if (!file) throw new Error('No file provided');
+
+  const supabase = createServerSupabaseClient();
+  
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+  const filePath = `notes/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('content-uploads')
+    .upload(filePath, file);
+
+  if (uploadError) throw uploadError;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('content-uploads')
+    .getPublicUrl(filePath);
+
+  return publicUrl;
+}
+
 /**
  * Updates an engagement item
  * Note: Does NOT reset approval status - edits preserve the existing status

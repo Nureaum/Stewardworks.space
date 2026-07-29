@@ -259,6 +259,9 @@ export async function getPendingEngagements(
         )
       `)
       .eq('status', 'pending')
+      .neq('kind', 'lib_suggestion')
+      .neq('kind', 'env_suggestion')
+      .neq('kind', 'work_suggestion')
       .order('created_at', { ascending: false })
 
     if (cohortId) {
@@ -338,6 +341,9 @@ export async function getAllEngagementsHistory(
           email
         )
       `)
+      .neq('kind', 'lib_suggestion')
+      .neq('kind', 'env_suggestion')
+      .neq('kind', 'work_suggestion')
       .order('created_at', { ascending: false })
 
     if (cohortId) {

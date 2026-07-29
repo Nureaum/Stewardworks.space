@@ -21,15 +21,23 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 
   const body = await request.json()
-  const { status } = body
+  const { status, title, url, note, category, resource_type } = body
 
-  if (!['approved', 'rejected'].includes(status)) {
+  if (status && !['approved', 'rejected'].includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
 
+  const updateData: any = { updated_at: new Date().toISOString() }
+  if (status) updateData.status = status
+  if (title !== undefined) updateData.title = title
+  if (url !== undefined) updateData.url = url
+  if (note !== undefined) updateData.note = note
+  if (category !== undefined) updateData.category = category
+  if (resource_type !== undefined) updateData.resource_type = resource_type
+
   const { data, error } = await supabase
     .from('community_suggestions')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(updateData)
     .eq('id', params.id)
     .select()
     .single()

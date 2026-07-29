@@ -583,7 +583,7 @@ export interface WorkshopEntryMedia {
 /**
  * WorkshopEngagement: Student engagement item for Chia Guardian growth
  */
-export type EngagementKind = 'bookmark' | 'note' | 'prompt' | 'generation' | 'env_suggestion' | 'wf_suggestion' | 'lib_suggestion';
+export type EngagementKind = 'bookmark' | 'note' | 'prompt' | 'mini_deliverable' | 'generation' | 'env_suggestion' | 'wf_suggestion' | 'lib_suggestion';
 export type EngagementStatus = 'pending' | 'approved' | 'rejected';
 
 export interface WorkshopEngagement {
