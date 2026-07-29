@@ -2033,6 +2033,7 @@ export default function ClientProfile({
                 <>
                   <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#7c5cbf', color: '#fff', padding: '3px 9px', borderRadius: '20px' }}>🏆 MINI DELIVERABLE</span>
                   {(() => {
+                    const popupParsed = parseNoteContent(selectedNoteItem.content);
                     const t = popupParsed.noteType || popupParsed.subType || popupParsed.originalKind || 'note';
                     if (t === 'prompt') return <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#fad0e9', color: '#7a2955', padding: '3px 9px', borderRadius: '20px' }}>⌘ PROMPT</span>;
                     return <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#e8dbb0', color: '#5a4a3a', padding: '3px 9px', borderRadius: '20px' }}>✎ NOTE</span>;
