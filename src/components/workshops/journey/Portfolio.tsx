@@ -894,7 +894,7 @@ export default function Portfolio({
                             {item.title}
                           </div>
                           <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 4 }}>
-                            {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[item.kind] || 1}%` : item.status === 'rejected' ? '↩ returned' : '🕒 pending'}
+                            {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[item.kind] || 1}%` : item.status === 'rejected' ? <span style={{ color: 'var(--er,#ff5f5f)' }}>✕ rejected</span> : '🕒 pending'}
                           </div>
                         </div>
                         {item.review_note && (
