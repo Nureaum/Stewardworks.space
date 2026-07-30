@@ -16,6 +16,7 @@ import {
   JourneyDayList,
   VictoryScreen,
 } from '@/components/workshops/journey'
+import { DEFAULT_CHARACTER } from '@/components/workshops/journey/character-data'
 import type {
   WorkshopCharacter,
   WorkshopDay,
@@ -514,9 +515,9 @@ export default function JourneyClient({
           )}
 
           {/* PORTFOLIO tab */}
-          {role === 'student' && tab === 'portfolio' && character && (
+          {role === 'student' && tab === 'portfolio' && (
             <Portfolio
-              character={character}
+              character={character || DEFAULT_CHARACTER as any}
               days={days}
               progressRows={progressRows}
               bankedPrinciples={bankedPrinciples}

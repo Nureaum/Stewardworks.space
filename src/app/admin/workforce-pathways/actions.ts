@@ -407,6 +407,16 @@ export async function approveSuggestion(id: string) {
 
   // 5. Update the engagement to APPROVED before deleting the entry
   if (entry.submitter_engagement_id) {
+    const { data: engData } = await supabase.from('workshop_engagement').select('profile_id').eq('id', entry.submitter_engagement_id).single();
+    if (engData?.profile_id) {
+      await supabase.from('helpdesk_notifications').insert({
+        user_id: engData.profile_id,
+        title: 'Suggestion Approved',
+        message: `Your suggestion "${entry.title}" has been approved and added!`,
+        is_read: false
+      });
+    }
+
     await supabase
       .from('workshop_engagement')
       .update({ 
@@ -439,6 +449,16 @@ export async function dismissSuggestion(id: string) {
     .single();
 
   if (entry && entry.submitter_engagement_id) {
+    const { data: engData } = await supabase.from('workshop_engagement').select('profile_id').eq('id', entry.submitter_engagement_id).single();
+    if (engData?.profile_id) {
+      await supabase.from('helpdesk_notifications').insert({
+        user_id: engData.profile_id,
+        title: 'Suggestion Reviewed',
+        message: `Your suggestion was reviewed but not added at this time.`,
+        is_read: false
+      });
+    }
+
     // Delete the engagement or set it to rejected
     await supabase
       .from('workshop_engagement')

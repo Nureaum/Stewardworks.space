@@ -648,7 +648,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
                           )}
                         </>
                       )}
-                      <div style={{ padding: '6px 12px', fontSize: 10, color: '#ff5fd2', fontFamily: "'DM Mono',monospace", borderTop: '1px solid var(--ln,#28432f)' }}>
+                      <div style={{ padding: '6px 12px', fontSize: 10, color: '#ff5fd2', fontFamily: "'DM Mono',monospace", borderTop: '1px solid var(--ln,#28432f)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {addFile ? `📎 ${addFile.name}` : addPreviewFile ? `DETECTED: LINK · 📷 Preview: ${addPreviewFile.name}` : `DETECTED: ${type.toUpperCase()}`}
                       </div>
                     </div>

@@ -74,6 +74,16 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       
       // Update engagement if it exists
       if (data.submitter_engagement_id) {
+        const { data: engData } = await supabase.from('workshop_engagement').select('profile_id').eq('id', data.submitter_engagement_id).single();
+        if (engData?.profile_id) {
+          await supabase.from('helpdesk_notifications').insert({
+            user_id: engData.profile_id,
+            title: 'Suggestion Approved',
+            message: `Your suggestion "${data.title}" has been approved and added!`,
+            is_read: false
+          });
+        }
+
         await supabase.from('workshop_engagement').update({ 
           status: 'approved',
           content: JSON.stringify({
@@ -90,6 +100,16 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       revalidatePath('/admin/library')
     }
   } else if (status === 'rejected' && data && data.submitter_engagement_id) {
+    const { data: engData } = await supabase.from('workshop_engagement').select('profile_id').eq('id', data.submitter_engagement_id).single();
+    if (engData?.profile_id) {
+      await supabase.from('helpdesk_notifications').insert({
+        user_id: engData.profile_id,
+        title: 'Suggestion Reviewed',
+        message: `Your suggestion was reviewed but not added at this time.`,
+        is_read: false
+      });
+    }
+
     await supabase.from('workshop_engagement').update({ 
       status: 'rejected'
     }).eq('id', data.submitter_engagement_id).eq('kind', 'lib_suggestion');

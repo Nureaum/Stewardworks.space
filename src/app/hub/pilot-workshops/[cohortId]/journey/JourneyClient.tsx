@@ -14,6 +14,7 @@ import {
   Showcase,
   VictoryScreen,
 } from '@/components/workshops/journey'
+import { DEFAULT_CHARACTER } from '@/components/workshops/journey/character-data'
 import { addEngagement, removeEngagement, updateEngagement } from '@/app/actions/workshops/engagement'
 import { calculateGlobalEngagement } from '@/lib/progress/calculateGlobalEngagement'
 import AdminConsole from '@/components/workshops/journey/AdminConsole'
@@ -439,10 +440,10 @@ export default function JourneyClient({
             </>
           )}
 
-          {role === 'student' && tab === 'portfolio' && character && (
+          {role === 'student' && tab === 'portfolio' && (
             <div style={{ padding: '0 0 40px' }}>
               <Portfolio
-                character={character}
+                character={character || DEFAULT_CHARACTER as any}
                 days={days}
                 progressRows={progressRows}
                 bankedPrinciples={bankedPrinciples}

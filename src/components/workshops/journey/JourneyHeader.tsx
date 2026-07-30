@@ -212,8 +212,7 @@ export default function JourneyHeader({
           <ArcadeButton
             active={activeTab === 'portfolio'}
             color="var(--ok, #74f0a0)"
-            onClick={() => character ? onTabChange('portfolio') : undefined}
-            style={!character ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+            onClick={() => onTabChange('portfolio')}
           >
             ❀ MY PORTFOLIO
           </ArcadeButton>

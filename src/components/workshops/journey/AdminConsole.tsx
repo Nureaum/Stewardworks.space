@@ -2151,7 +2151,7 @@ export default function AdminConsole({
                           alt="Preview"
                           style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--pk,#ff5fd2)' }}
                         />
-                        <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>{ncPreviewFile?.name || 'Preview'}</span>
+                        <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)', display: 'inline-block', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ncPreviewFile?.name || 'Preview'}</span>
                         <button
                           onClick={() => { setNcPreviewFile(null); if (ncPreviewObjectUrl) URL.revokeObjectURL(ncPreviewObjectUrl); setNcPreviewObjectUrl(null) }}
                           style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 13, padding: 2 }}

@@ -283,6 +283,16 @@ export async function approveSuggestion(sug: any) {
   // 4. Update the pending engagement record to APPROVED (gives user +2%)
   // Try by submitter_engagement_id first, fall back to matching by content->suggestion_id
   if (sug.submitter_engagement_id) {
+    const { data: engData } = await supabase.from('workshop_engagement').select('profile_id').eq('id', sug.submitter_engagement_id).single();
+    if (engData?.profile_id) {
+      await supabase.from('helpdesk_notifications').insert({
+        user_id: engData.profile_id,
+        title: 'Suggestion Approved',
+        message: `Your suggestion "${sug.title}" has been approved and added!`,
+        is_read: false
+      });
+    }
+
     // Direct update using the stored engagement id
     const { error: engUpdateError } = await supabase
       .from('workshop_engagement')
@@ -346,6 +356,16 @@ export async function dismissSuggestion(id: string) {
 
   // If there's a linked pending engagement, delete it (no credit since dismissed)
   if (sug?.submitter_engagement_id) {
+    const { data: engData } = await supabase.from('workshop_engagement').select('profile_id').eq('id', sug.submitter_engagement_id).single();
+    if (engData?.profile_id) {
+      await supabase.from('helpdesk_notifications').insert({
+        user_id: engData.profile_id,
+        title: 'Suggestion Reviewed',
+        message: `Your suggestion "${sug.title}" was reviewed but not added at this time.`,
+        is_read: false
+      });
+    }
+
     await supabase
       .from('workshop_engagement')
       .delete()
