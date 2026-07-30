@@ -312,11 +312,12 @@ export default function AdminAnnouncementsPage() {
   // Program Documents State
   const [programDocuments, setProgramDocuments] = useState<any[]>([]);
   const [editingDocId, setEditingDocId] = useState<number | null>(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [showDemoVideoModal, setShowDemoVideoModal] = useState(false);
   const [docLabel, setDocLabel] = useState('');
   const [docPdfUrl, setDocPdfUrl] = useState('');
   const [isSavingDoc, setIsSavingDoc] = useState(false);
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
-  const [showPdfModal, setShowPdfModal] = useState(false);
 
   // Updates State
   const [updates, setUpdates] = useState<any[]>([]);
@@ -857,6 +858,9 @@ export default function AdminAnnouncementsPage() {
             <p className="m-0 mt-[6px] font-mono text-[11px] tracking-[0.2em] text-[#9c8d76]">THE WALL PHONE · MESSAGES TO HUB MEMBERS</p>
           </div>
           <div className="flex items-center gap-4">
+            <button onClick={() => setShowDemoVideoModal(true)} className="font-bold text-[13px] text-[#5c4f3c] bg-white border border-[#785a32]/20 px-4 py-2 rounded-full shadow-[0_3px_10px_rgba(120,90,50,0.08)] hover:bg-[#f6ebd4] transition-colors">
+              Manage Demo Video
+            </button>
             <button onClick={() => setShowPdfModal(true)} className="font-bold text-[13px] text-[#5c4f3c] bg-white border border-[#785a32]/20 px-4 py-2 rounded-full shadow-[0_3px_10px_rgba(120,90,50,0.08)] hover:bg-[#f6ebd4] transition-colors">
               Manage Program PDFs
             </button>
@@ -1059,58 +1063,6 @@ export default function AdminAnnouncementsPage() {
                 {isSavingBulletin ? 'Saving...' : 'Update bulletin'}
               </button>
             </div>
-
-            {/* Demo Video Configuration */}
-            <div className="bg-white rounded-[20px] p-[24px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08] mt-[24px]">
-              <div className="flex items-center gap-[8px] mb-[5px]">
-                <Video size={18} className="text-[#c8963e]" />
-                <div className="font-[800] text-[15.5px]">Demo Video</div>
-              </div>
-              <div className="text-[12.5px] text-[#8a7c66] mb-[14px]">Configure the demo video shown to first-time users on the Hub page. You can paste a YouTube link or upload a video directly.</div>
-              
-              <div className="flex gap-2">
-                <input 
-                  type="text"
-                  placeholder="e.g. https://youtube.com/watch?v=... or upload below"
-                  value={demoVideoUrl} 
-                  onChange={(e) => setDemoVideoUrl(e.target.value)} 
-                  className="flex-1 p-[13px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[13.5px] outline-none focus:border-[#785a32]/40 transition-colors"
-                />
-                <label className={`cursor-pointer px-4 py-3 rounded-[11px] border border-[#785a32]/20 bg-white hover:bg-gray-50 flex items-center justify-center text-[13.5px] font-bold text-[#5c4f3c] transition-colors ${isUploadingDemoVideo ? 'opacity-50' : ''}`}>
-                  <input type="file" accept="video/*" className="hidden" onChange={handleUploadDemoVideo} disabled={isUploadingDemoVideo} />
-                  {isUploadingDemoVideo ? 'Uploading...' : 'Upload Video'}
-                </label>
-              </div>
-
-              {demoVideoUrl && (
-                <div className="mt-[14px] flex gap-2">
-                  <button 
-                    onClick={handleDeleteDemoVideo}
-                    disabled={isSavingDemoVideo}
-                    className="flex-1 p-[12px] rounded-[11px] border border-red-200 bg-red-50 text-red-600 font-[700] text-[13.5px] hover:bg-red-100 transition-colors disabled:opacity-50"
-                  >
-                    Delete Video
-                  </button>
-                  <button 
-                    onClick={handleSaveDemoVideoUrl}
-                    disabled={isSavingDemoVideo}
-                    className="flex-1 p-[12px] rounded-[11px] border border-[#2c8a4a]/20 bg-[#2c8a4a] text-white font-[700] text-[13.5px] hover:bg-[#247840] transition-colors disabled:opacity-50"
-                  >
-                    {isSavingDemoVideo ? 'Saving...' : 'Save Video URL'}
-                  </button>
-                </div>
-              )}
-              
-              {!demoVideoUrl && (
-                <button 
-                  onClick={handleSaveDemoVideoUrl}
-                  disabled={isSavingDemoVideo}
-                  className="mt-[14px] w-full p-[12px] rounded-[11px] border border-[#785a32]/20 bg-[#fbf5e6] text-[#5c4f3c] font-[700] text-[13.5px] hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
-                >
-                  {isSavingDemoVideo ? 'Saving...' : 'Save Video URL'}
-                </button>
-              )}
-            </div>
           </div>
         </div>
 
@@ -1199,6 +1151,78 @@ export default function AdminAnnouncementsPage() {
                     ))
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Demo Video Modal */}
+        {showDemoVideoModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[800px] max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Video size={20} className="text-[#c8963e]" />
+                  <h3 className="text-[20px] font-[800] text-[#241c12]">Manage Demo Video</h3>
+                </div>
+                <button onClick={() => setShowDemoVideoModal(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                  <X size={18} className="text-gray-600" />
+                </button>
+              </div>
+              
+              <div className="text-[14px] text-[#8a7c66] mb-6">
+                Configure the demo video shown to first-time users on the Hub page. You can paste a YouTube link or upload a video directly.
+              </div>
+
+              <div className="bg-[#fdfaf0] border border-[#785a32]/20 rounded-xl p-5">
+                <div className="flex gap-2">
+                  <input 
+                    type="text"
+                    placeholder="e.g. https://youtube.com/watch?v=... or upload below"
+                    value={demoVideoUrl} 
+                    onChange={(e) => setDemoVideoUrl(e.target.value)} 
+                    className="flex-1 p-[13px_15px] rounded-[11px] border border-[#785a32]/20 bg-white text-[13.5px] outline-none focus:border-[#2c8a4a] transition-colors"
+                  />
+                  <label className={`cursor-pointer px-4 py-3 rounded-[11px] border border-[#785a32]/20 bg-white hover:bg-gray-50 flex items-center justify-center text-[13.5px] font-bold text-[#5c4f3c] transition-colors ${isUploadingDemoVideo ? 'opacity-50' : ''}`}>
+                    <input type="file" accept="video/*" className="hidden" onChange={handleUploadDemoVideo} disabled={isUploadingDemoVideo} />
+                    {isUploadingDemoVideo ? 'Uploading...' : 'Upload Video'}
+                  </label>
+                </div>
+
+                {demoVideoUrl && (
+                  <div className="mt-[14px] flex gap-2">
+                    <button 
+                      onClick={handleDeleteDemoVideo}
+                      disabled={isSavingDemoVideo}
+                      className="flex-1 p-[12px] rounded-[11px] border border-red-200 bg-red-50 text-red-600 font-[700] text-[13.5px] hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                      Delete Video
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        await handleSaveDemoVideoUrl();
+                        setShowDemoVideoModal(false);
+                      }}
+                      disabled={isSavingDemoVideo}
+                      className="flex-1 p-[12px] rounded-[11px] border border-[#2c8a4a]/20 bg-[#2c8a4a] text-white font-[700] text-[13.5px] hover:bg-[#247840] transition-colors disabled:opacity-50"
+                    >
+                      {isSavingDemoVideo ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                )}
+                
+                {!demoVideoUrl && (
+                  <button 
+                    onClick={async () => {
+                      await handleSaveDemoVideoUrl();
+                      setShowDemoVideoModal(false);
+                    }}
+                    disabled={isSavingDemoVideo}
+                    className="mt-[14px] w-full p-[12px] rounded-[11px] border border-[#2c8a4a]/20 bg-[#2c8a4a] text-white font-[700] text-[13.5px] hover:bg-[#247840] transition-colors disabled:opacity-50"
+                  >
+                    {isSavingDemoVideo ? 'Saving...' : 'Save'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

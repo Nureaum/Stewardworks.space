@@ -59,20 +59,21 @@ export default function HubPage() {
     async function fetchProfile() {
       if (!isLoaded || !user) return;
       try {
+        let profileData = null;
         const res = await fetch('/api/profile');
         if (res.ok) {
           const data = await res.json();
-          const profile = data.profile;
-          if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+          profileData = data.profile;
+          if (profileData?.role === 'admin' || profileData?.role === 'super_admin') {
             setIsAdmin(true);
           }
-          if (profile?.role === 'guest') {
+          if (profileData?.role === 'guest') {
             setIsGuest(true);
           }
-          if (profile?.avatar_url) {
-            setAvatarUrl(profile.avatar_url);
+          if (profileData?.avatar_url) {
+            setAvatarUrl(profileData.avatar_url);
           }
-          if (profile?.has_seen_demo) {
+          if (profileData?.has_seen_demo) {
             setHasSeenDemo(true);
           }
         }
@@ -84,7 +85,7 @@ export default function HubPage() {
           if (hcData.demo_video_url) {
             setDemoVideoUrl(hcData.demo_video_url);
             // If they haven't seen the demo and a demo video exists, show it
-            if (data?.profile && !data.profile.has_seen_demo) {
+            if (profileData && !profileData.has_seen_demo) {
               setShowDemoVideoOverlay(true);
             }
           }
