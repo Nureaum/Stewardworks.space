@@ -21,6 +21,28 @@ export async function getShowcaseItems(cohortId: string) {
     return []
   }
   
+  // Backfill content_item_id if the column doesn't exist or is null
+  if (data && data.length > 0) {
+    const missingIds = data.filter((d: any) => !d.content_item_id).map((d: any) => d.title)
+    if (missingIds.length > 0) {
+      const { data: libraryItems } = await supabase
+        .from('content_items')
+        .select('id, title')
+        .in('title', missingIds)
+        
+      if (libraryItems && libraryItems.length > 0) {
+        data.forEach((d: any) => {
+          if (!d.content_item_id) {
+            const match = libraryItems.find((l: any) => l.title === d.title)
+            if (match) {
+              d.content_item_id = match.id
+            }
+          }
+        })
+      }
+    }
+  }
+  
   return data || []
 }
 
