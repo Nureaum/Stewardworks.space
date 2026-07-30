@@ -507,7 +507,7 @@ export default function AdminConsole({
     })
   }
 
-  const handleEntryFieldBlur = (entryId: string, field: string, value: string) => {
+  const handleEntryFieldBlur = (entryId: string, field: string, value: any) => {
     saveField(() => updateEntry(entryId, { [field]: value } as any))
     setDaysData(prev => prev.map(d => ({
       ...d,
