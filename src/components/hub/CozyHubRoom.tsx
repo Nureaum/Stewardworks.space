@@ -1549,7 +1549,7 @@ export default function CozyHubRoom({
           </div>
 
           {/* Toggle Buttons */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px', justifyContent: 'center' }}>
             {/* Principles Button */}
             <button
               onClick={() => setActivePdfToggle(activePdfToggle === 'principles' ? null : 'principles')}
