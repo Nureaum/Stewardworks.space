@@ -112,6 +112,7 @@ export default function ClientProfile({
   const [editGenTitle, setEditGenTitle] = useState('');
   const [editGenUrl, setEditGenUrl] = useState('');
   const [isDeletingItem, setIsDeletingItem] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark', percentage: number, title: string, isBookmark: boolean } | null>(null);
   const [tempValue, setTempValue] = useState('');
   const [tempMultiValue, setTempMultiValue] = useState<string[]>([]);
   const [otherValue, setOtherValue] = useState('');
@@ -625,7 +626,43 @@ export default function ClientProfile({
   }, [activeCohortId, loadWorkshopData]);
 
   // Edit/Delete handlers for notes and generations
-  const handleDeleteEngagement = async (id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark') => {
+  const calculateItemPercentage = (kind: string, source: string, content: string | null) => {
+    let points = 0;
+    const k = kind.toLowerCase();
+    if (k === 'bookmark' || k === 'note') points = 1;
+    else if (k === 'generation') points = 2;
+    else if (k === 'prompt') points = 3;
+    else if (k === 'mini_deliverable') points = 4;
+    else if (['env_suggestion', 'wf_suggestion', 'lib_suggestion'].includes(k)) points = 2;
+
+    if (k === 'generation' && source === 'Student Showcase') {
+      points = 3;
+    } else {
+      if (content) {
+        try {
+          const contentData = JSON.parse(content);
+          if (contentData.showcaseVisible === true || contentData.showcaseRequested === true) {
+            points += 1;
+          }
+        } catch (err) {}
+      }
+    }
+    return points;
+  };
+
+  const confirmDeleteEngagement = (id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark', title: string, isBookmark: boolean, source: string = '', content: string | null = null) => {
+    setItemToDelete({
+      id,
+      kind,
+      title,
+      isBookmark,
+      percentage: calculateItemPercentage(kind, source, content)
+    });
+  };
+
+  const executeDeleteEngagement = async () => {
+    if (!itemToDelete) return;
+    const { id, kind, isBookmark } = itemToDelete;
     setIsDeletingItem(true);
     try {
       await removeEngagement(id);
@@ -643,9 +680,10 @@ export default function ClientProfile({
       setSelectedResourceItem(null);
       setIsEditingNote(false);
       setIsEditingGeneration(false);
+      setItemToDelete(null);
       // Reload to get updated engagement percentage
       await loadProfile();
-      setToast(`☆ Bookmark removed`);
+      setToast(isBookmark ? `☆ Bookmark removed` : `🗑️ Item deleted`);
     } catch (err) {
       console.error('Failed to delete engagement:', err);
       setToast('❌ Failed to delete');
@@ -2135,7 +2173,7 @@ export default function ClientProfile({
                     style={{ padding: '9px 16px', background: 'rgba(162,117,50,.1)', color: '#8a5a2e', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: 'pointer' }}
                   >✏️ Edit</button>
                   <button
-                    onClick={() => handleDeleteEngagement(selectedNoteItem.id, selectedNoteItem.itemType)}
+                    onClick={() => confirmDeleteEngagement(selectedNoteItem.id, selectedNoteItem.itemType, selectedNoteItem.title, false, selectedNoteItem.source || '', selectedNoteItem.content || null)}
                     disabled={isDeletingItem}
                     style={{ padding: '9px 16px', background: 'rgba(200,50,50,.08)', color: '#c03030', border: '1.5px solid rgba(200,50,50,.3)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: isDeletingItem ? 'wait' : 'pointer', opacity: isDeletingItem ? 0.6 : 1 }}
                   >{isDeletingItem ? '⏳' : '🗑️'} Delete</button>
@@ -2339,7 +2377,7 @@ export default function ClientProfile({
                   )}
                   {r._kind === 'GENERATION' && (
                     <button
-                      onClick={() => handleDeleteEngagement(r.id, 'generation')}
+                      onClick={() => confirmDeleteEngagement(r.id, 'generation', r.title, false, r.source || r._source || '', r.content || null)}
                       disabled={isDeletingItem}
                       style={{
                         padding: '12px 22px',
@@ -2356,7 +2394,7 @@ export default function ClientProfile({
                   )}
                   {(r._kind === 'LIBRARY' || r._kind === 'WORKFORCE' || r._kind === 'JOB' || r._kind === 'ENVIRONMENTAL' || r._kind === 'BOOKMARK' || r._kind === 'SHOWCASE' || r._kind === 'WORKSHOP' || r._kind === 'CONTRIBUTOR' || r._kind === 'STUDENT SHOWCASE') && r.id && (
                     <button
-                      onClick={() => handleDeleteEngagement(r.engagementId || r.id, ['WORKSHOP', 'CONTRIBUTOR', 'STUDENT SHOWCASE'].includes(r._kind) ? 'bookmark' : 'note')}
+                      onClick={() => confirmDeleteEngagement(r.engagementId || r.id, ['WORKSHOP', 'CONTRIBUTOR', 'STUDENT SHOWCASE'].includes(r._kind) ? 'bookmark' : 'note', r.title, ['LIBRARY', 'WORKFORCE', 'JOB', 'ENVIRONMENTAL', 'BOOKMARK'].includes(r._kind), r.source || r._source || '', r.content || null)}
                       disabled={isDeletingItem}
                       style={{
                         padding: '12px 22px',
@@ -2393,6 +2431,76 @@ export default function ClientProfile({
           </div>
         );
       })()}
+
+      {/* Confirmation Popup for Deletion/Unbookmarking */}
+      {itemToDelete && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 11000,
+            background: 'rgba(20,12,4,.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 'clamp(12px,4vw,40px)',
+            animation: 'fadeIn .18s ease'
+          }}
+        >
+          <div
+            style={{
+              width: '100%', maxWidth: 400,
+              background: '#FEFAE0',
+              borderRadius: '8px',
+              padding: '24px',
+              boxShadow: '0 24px 60px rgba(0,0,0,.35), 0 0 0 1px rgba(138,90,46,.15)',
+              animation: 'slideUp .2s ease',
+              textAlign: 'center'
+            }}
+          >
+            <h3 style={{ margin: '0 0 16px', color: '#21282E', fontSize: '18px', fontWeight: 700 }}>
+              {itemToDelete.isBookmark ? 'Unbookmark Resource?' : 'Delete Item?'}
+            </h3>
+            <p style={{ margin: '0 0 24px', color: '#5c4f3c', fontSize: '15px', lineHeight: 1.5 }}>
+              This will reduce your engagement percentage by <strong>{itemToDelete.percentage}%</strong> for removing &quot;<strong>{itemToDelete.title}</strong>&quot; from your profile.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={() => setItemToDelete(null)}
+                disabled={isDeletingItem}
+                style={{
+                  padding: '10px 20px',
+                  background: 'transparent',
+                  color: '#5c4f3c',
+                  border: '1.5px solid rgba(138,90,46,.25)',
+                  borderRadius: '8px',
+                  fontFamily: '"Exo", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeDeleteEngagement}
+                disabled={isDeletingItem}
+                style={{
+                  padding: '10px 20px',
+                  background: 'rgba(200,50,50,.08)',
+                  color: '#c03030',
+                  border: '1.5px solid rgba(200,50,50,.3)',
+                  borderRadius: '8px',
+                  fontFamily: '"Exo", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isDeletingItem ? 'wait' : 'pointer',
+                  opacity: isDeletingItem ? 0.6 : 1
+                }}
+              >
+                {isDeletingItem ? '⏳' : (itemToDelete.isBookmark ? 'Unbookmark' : 'Delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes fadeIn {
