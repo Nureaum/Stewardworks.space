@@ -1859,7 +1859,7 @@ export default function ClientProfile({
                             letterSpacing: '1px',
                             fontWeight: 700
                           }}>
-                            ✕ DISMISSED
+                            ✕ REJECTED
                           </div>
                         )}
                       </div>

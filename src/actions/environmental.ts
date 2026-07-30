@@ -368,10 +368,9 @@ export async function dismissSuggestion(id: string) {
 
     await supabase
       .from('workshop_engagement')
-      .delete()
+      .update({ status: 'rejected' })
       .eq('id', sug.submitter_engagement_id)
-      .eq('kind', 'env_suggestion')
-      .eq('status', 'pending');
+      .eq('kind', 'env_suggestion');
   }
 
   // Delete the suggestion
