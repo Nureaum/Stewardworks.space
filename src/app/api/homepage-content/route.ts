@@ -12,13 +12,14 @@ export async function GET() {
     const supabase = createServerSupabaseClient();
     const { data } = await supabase
       .from('system_bulletins')
-      .select('homepage_title, homepage_subtitle')
+      .select('homepage_title, homepage_subtitle, demo_video_url')
       .eq('id', 1)
       .single();
 
     return NextResponse.json({
       homepage_title: data?.homepage_title || '',
       homepage_subtitle: data?.homepage_subtitle || '',
+      demo_video_url: data?.demo_video_url || '',
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -26,6 +27,6 @@ export async function GET() {
       }
     });
   } catch {
-    return NextResponse.json({ homepage_title: '', homepage_subtitle: '' });
+    return NextResponse.json({ homepage_title: '', homepage_subtitle: '', demo_video_url: '' });
   }
 }

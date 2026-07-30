@@ -198,7 +198,8 @@ export async function getSystemBulletins() {
       contact_phone: '',
       contact_address: '',
       homepage_title: '',
-      homepage_subtitle: ''
+      homepage_subtitle: '',
+      demo_video_url: ''
     };
   }
   
@@ -279,13 +280,35 @@ export async function getHomepageContent() {
   const supabase = createServerSupabaseClient();
   const { data } = await supabase
     .from('system_bulletins')
-    .select('homepage_title, homepage_subtitle')
+    .select('homepage_title, homepage_subtitle, demo_video_url')
     .eq('id', 1)
     .single();
   return {
     homepage_title: data?.homepage_title || '',
     homepage_subtitle: data?.homepage_subtitle || '',
+    demo_video_url: data?.demo_video_url || '',
   };
+}
+
+export async function updateDemoVideoUrl(demo_video_url: string | null) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { error } = await supabase
+    .from('system_bulletins')
+    .upsert({ 
+      id: 1, 
+      demo_video_url,
+      updated_at: new Date().toISOString() 
+    });
+
+  if (error) throw new Error(error.message);
+  
+  revalidatePath('/');
+  revalidatePath('/hub');
+  revalidatePath('/api/homepage-content');
+  revalidatePath('/admin/announcements');
 }
 
 export async function updateOnboardingBulletin(data: {

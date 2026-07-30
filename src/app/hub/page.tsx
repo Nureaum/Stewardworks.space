@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useClerk, useUser } from '@clerk/nextjs';
 import CozyHubRoom from '@/components/hub/CozyHubRoom';
+import DemoVideoOverlay from '@/components/hub/DemoVideoOverlay';
+import DemoFloatingButton from '@/components/hub/DemoFloatingButton';
 import type { CohortProgress, ProgressAPIResponse } from '@/app/api/workshops/progress/route';
 
 export default function HubPage() {
@@ -17,6 +19,11 @@ export default function HubPage() {
   const [cohortProgress, setCohortProgress] = useState<CohortProgress[]>([]);
   const [selectedCohortId, setSelectedCohortId] = useState<string>('');
   const [globalEngagement, setGlobalEngagement] = useState(0);
+
+  // Demo Video state
+  const [demoVideoUrl, setDemoVideoUrl] = useState<string>('');
+  const [showDemoVideoOverlay, setShowDemoVideoOverlay] = useState(false);
+  const [hasSeenDemo, setHasSeenDemo] = useState(false);
 
   // Fetch progress data for a specific cohort (or default to most recent)
   const fetchProgressData = useCallback(async (cohortId?: string) => {
@@ -65,6 +72,22 @@ export default function HubPage() {
           if (profile?.avatar_url) {
             setAvatarUrl(profile.avatar_url);
           }
+          if (profile?.has_seen_demo) {
+            setHasSeenDemo(true);
+          }
+        }
+
+        // Fetch demo video setting
+        const hcRes = await fetch('/api/homepage-content');
+        if (hcRes.ok) {
+          const hcData = await hcRes.json();
+          if (hcData.demo_video_url) {
+            setDemoVideoUrl(hcData.demo_video_url);
+            // If they haven't seen the demo and a demo video exists, show it
+            if (data?.profile && !data.profile.has_seen_demo) {
+              setShowDemoVideoOverlay(true);
+            }
+          }
         }
 
         // Fetch workshop progress using enhanced multi-cohort API
@@ -84,6 +107,22 @@ export default function HubPage() {
     }
   };
 
+  const handleSkipDemo = async () => {
+    setShowDemoVideoOverlay(false);
+    if (!hasSeenDemo) {
+      setHasSeenDemo(true);
+      try {
+        await fetch('/api/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ has_seen_demo: true }),
+        });
+      } catch (error) {
+        console.error('Failed to update has_seen_demo status', error);
+      }
+    }
+  };
+
   // Only show loading on initial Clerk auth check — not on profile/progress fetch
   if (!isLoaded) {
     return (
@@ -96,17 +135,32 @@ export default function HubPage() {
   }
 
   return (
-    <CozyHubRoom 
-      isAdmin={isAdmin} 
-      isGuest={isGuest} 
-      avatarUrl={avatarUrl} 
-      onLogout={handleLogout}
-      initialChiaProgress={chiaProgress}
-      // Multi-cohort support props
-      cohortProgress={cohortProgress}
-      globalEngagement={globalEngagement}
-      selectedCohortId={selectedCohortId}
-      onCohortChange={handleCohortChange}
-    />
+    <>
+      <CozyHubRoom 
+        isAdmin={isAdmin} 
+        isGuest={isGuest} 
+        avatarUrl={avatarUrl} 
+        onLogout={handleLogout}
+        initialChiaProgress={chiaProgress}
+        // Multi-cohort support props
+        cohortProgress={cohortProgress}
+        globalEngagement={globalEngagement}
+        selectedCohortId={selectedCohortId}
+        onCohortChange={handleCohortChange}
+      />
+
+      {showDemoVideoOverlay && demoVideoUrl && (
+        <DemoVideoOverlay 
+          videoUrl={demoVideoUrl} 
+          onSkip={handleSkipDemo} 
+        />
+      )}
+
+      {!showDemoVideoOverlay && demoVideoUrl && (
+        <DemoFloatingButton 
+          onClick={() => setShowDemoVideoOverlay(true)} 
+        />
+      )}
+    </>
   );
 }

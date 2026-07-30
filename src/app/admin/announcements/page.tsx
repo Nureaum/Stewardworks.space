@@ -19,9 +19,10 @@ import {
   bulkDeleteBulletinEvents,
   updateBulletinUpdate,
   updateBulletinEvent,
-  updateAboutPage
+  updateAboutPage,
+  updateDemoVideoUrl
 } from '@/app/actions/bulletins';
-import { Pin, Globe, Trash2, Pencil, Bold, Italic, Link as LinkIcon, Image, X } from 'lucide-react';
+import { Pin, Globe, Trash2, Pencil, Bold, Italic, Link as LinkIcon, Image, X, Video } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Mini Rich Text Editor for announcements
@@ -304,6 +305,10 @@ export default function AdminAnnouncementsPage() {
   const [bulletinText, setBulletinText] = useState('');
   const [isSavingBulletin, setIsSavingBulletin] = useState(false);
 
+  const [demoVideoUrl, setDemoVideoUrl] = useState('');
+  const [isSavingDemoVideo, setIsSavingDemoVideo] = useState(false);
+  const [isUploadingDemoVideo, setIsUploadingDemoVideo] = useState(false);
+
   // Program Documents State
   const [programDocuments, setProgramDocuments] = useState<any[]>([]);
   const [editingDocId, setEditingDocId] = useState<number | null>(null);
@@ -371,6 +376,7 @@ export default function AdminAnnouncementsPage() {
         setBulletinText(sys.project_bulletin_text || '');
         setAboutText(sys.about_content || '');
         setContactText(sys.contact_details || '');
+        setDemoVideoUrl(sys.demo_video_url || '');
       }
 
       const [ups, evs] = await Promise.all([
@@ -468,6 +474,60 @@ export default function AdminAnnouncementsPage() {
       toast.error("Failed to update bulletin.");
     } finally {
       setIsSavingBulletin(false);
+    }
+  }
+
+  async function handleSaveDemoVideoUrl() {
+    setIsSavingDemoVideo(true);
+    try {
+      await updateDemoVideoUrl(demoVideoUrl);
+      toast.success("Demo video updated!");
+    } catch (error: any) {
+      toast.error("Failed to update demo video.");
+    } finally {
+      setIsSavingDemoVideo(false);
+    }
+  }
+
+  async function handleDeleteDemoVideo() {
+    if (!confirm('Are you sure you want to remove the demo video?')) return;
+    setIsSavingDemoVideo(true);
+    try {
+      await updateDemoVideoUrl('');
+      setDemoVideoUrl('');
+      toast.success("Demo video removed!");
+    } catch (error: any) {
+      toast.error("Failed to remove demo video.");
+    } finally {
+      setIsSavingDemoVideo(false);
+    }
+  }
+
+  async function handleUploadDemoVideo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      toast.error('Please upload a valid video file');
+      return;
+    }
+    
+    setIsUploadingDemoVideo(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'demo-videos'); // custom bucket for demo videos
+    
+    try {
+      // Reusing the upload-media API which can handle general file uploads if we pass bucket
+      const res = await fetch('/api/admin/upload-media', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setDemoVideoUrl(data.publicUrl);
+      toast.success('Video uploaded successfully! Make sure to save.');
+    } catch (error: any) {
+      toast.error(error.message || 'Error uploading video');
+    } finally {
+      setIsUploadingDemoVideo(false);
+      if (e.target) e.target.value = ''; // reset input
     }
   }
 
@@ -998,6 +1058,58 @@ export default function AdminAnnouncementsPage() {
               >
                 {isSavingBulletin ? 'Saving...' : 'Update bulletin'}
               </button>
+            </div>
+
+            {/* Demo Video Configuration */}
+            <div className="bg-white rounded-[20px] p-[24px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08] mt-[24px]">
+              <div className="flex items-center gap-[8px] mb-[5px]">
+                <Video size={18} className="text-[#c8963e]" />
+                <div className="font-[800] text-[15.5px]">Demo Video</div>
+              </div>
+              <div className="text-[12.5px] text-[#8a7c66] mb-[14px]">Configure the demo video shown to first-time users on the Hub page. You can paste a YouTube link or upload a video directly.</div>
+              
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  placeholder="e.g. https://youtube.com/watch?v=... or upload below"
+                  value={demoVideoUrl} 
+                  onChange={(e) => setDemoVideoUrl(e.target.value)} 
+                  className="flex-1 p-[13px_15px] rounded-[11px] border border-[#785a32]/20 bg-[#fdfaf0] text-[13.5px] outline-none focus:border-[#785a32]/40 transition-colors"
+                />
+                <label className={`cursor-pointer px-4 py-3 rounded-[11px] border border-[#785a32]/20 bg-white hover:bg-gray-50 flex items-center justify-center text-[13.5px] font-bold text-[#5c4f3c] transition-colors ${isUploadingDemoVideo ? 'opacity-50' : ''}`}>
+                  <input type="file" accept="video/*" className="hidden" onChange={handleUploadDemoVideo} disabled={isUploadingDemoVideo} />
+                  {isUploadingDemoVideo ? 'Uploading...' : 'Upload Video'}
+                </label>
+              </div>
+
+              {demoVideoUrl && (
+                <div className="mt-[14px] flex gap-2">
+                  <button 
+                    onClick={handleDeleteDemoVideo}
+                    disabled={isSavingDemoVideo}
+                    className="flex-1 p-[12px] rounded-[11px] border border-red-200 bg-red-50 text-red-600 font-[700] text-[13.5px] hover:bg-red-100 transition-colors disabled:opacity-50"
+                  >
+                    Delete Video
+                  </button>
+                  <button 
+                    onClick={handleSaveDemoVideoUrl}
+                    disabled={isSavingDemoVideo}
+                    className="flex-1 p-[12px] rounded-[11px] border border-[#2c8a4a]/20 bg-[#2c8a4a] text-white font-[700] text-[13.5px] hover:bg-[#247840] transition-colors disabled:opacity-50"
+                  >
+                    {isSavingDemoVideo ? 'Saving...' : 'Save Video URL'}
+                  </button>
+                </div>
+              )}
+              
+              {!demoVideoUrl && (
+                <button 
+                  onClick={handleSaveDemoVideoUrl}
+                  disabled={isSavingDemoVideo}
+                  className="mt-[14px] w-full p-[12px] rounded-[11px] border border-[#785a32]/20 bg-[#fbf5e6] text-[#5c4f3c] font-[700] text-[13.5px] hover:bg-[#f6ebd4] transition-colors disabled:opacity-50"
+                >
+                  {isSavingDemoVideo ? 'Saving...' : 'Save Video URL'}
+                </button>
+              )}
             </div>
           </div>
         </div>

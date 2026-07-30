@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB for videos/images
+const MAX_FILE_SIZE = 1000 * 1024 * 1024 // 1GB limit for videos
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 
-  'video/mp4', 'video/webm', 
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
   'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm',
   'application/pdf', 
   'application/msword', 
@@ -31,17 +31,18 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const bucketName = (formData.get('bucket') as string) || 'content-uploads'
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, MP3, WAV, OGG, PDF, DOCX, XLSX' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid file type.' }, { status: 400 })
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File too large. Maximum size is 50MB.' }, { status: 400 })
+      return NextResponse.json({ error: 'File too large. Maximum size is 1GB.' }, { status: 400 })
     }
 
     const fileExt = file.name.split('.').pop() || ''
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
 
     const { error: uploadError } = await supabase.storage
-      .from('content-uploads')
+      .from(bucketName)
       .upload(filePath, buffer, {
         contentType: file.type,
         upsert: true,
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: { publicUrl } } = supabase.storage
-      .from('content-uploads')
+      .from(bucketName)
       .getPublicUrl(filePath)
 
     return NextResponse.json({ 
