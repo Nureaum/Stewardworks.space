@@ -685,7 +685,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                       />
                       
                       {/* URL/Upload Input */}
-                      <label className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', display: 'block', marginBottom: 7 }}>
+                      <label className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', display: 'block', marginBottom: 10, lineHeight: 1.5 }}>
                         3 · {entry.submit_label || 'YOUR DELIVERABLE LINK OR FILE'}
                       </label>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
