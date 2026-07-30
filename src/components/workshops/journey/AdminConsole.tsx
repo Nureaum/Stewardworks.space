@@ -3553,16 +3553,9 @@ export default function AdminConsole({
                 {selEntry.entry_type === 'deliverable' ? (
                   (() => {
                     const bodyParts = (selEntry.body || '').split('<!--BLOCK-->')
-                    const appliedBody = bodyParts[0] || ''
-                    const labBody = bodyParts[1] || ''
-                    const goalBody = bodyParts[2] || ''
-
-                    const updateDeliverableBody = (idx: number, val: string) => {
-                      const newParts = [...bodyParts]
-                      while (newParts.length < 3) newParts.push('')
-                      newParts[idx] = val
-                      handleEntryFieldBlur(selEntry.id, 'body', newParts.join('<!--BLOCK-->'))
-                    }
+                    const appliedBody = selEntry.applied || bodyParts[0] || ''
+                    const labBody = selEntry.lab || bodyParts[1] || ''
+                    const goalBody = selEntry.goal || bodyParts[2] || ''
 
                     return (
                       <>
@@ -3570,7 +3563,7 @@ export default function AdminConsole({
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={appliedBody}
-                            onBlur={val => updateDeliverableBody(0, val)}
+                            onBlur={val => handleEntryFieldBlur(selEntry.id, 'applied', val)}
                             minHeight={150}
                             accent="var(--ok,#74f0a0)"
                           />
@@ -3580,7 +3573,7 @@ export default function AdminConsole({
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={labBody}
-                            onBlur={val => updateDeliverableBody(1, val)}
+                            onBlur={val => handleEntryFieldBlur(selEntry.id, 'lab', val)}
                             minHeight={150}
                             accent="var(--ok,#74f0a0)"
                           />
@@ -3590,7 +3583,7 @@ export default function AdminConsole({
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={goalBody}
-                            onBlur={val => updateDeliverableBody(2, val)}
+                            onBlur={val => handleEntryFieldBlur(selEntry.id, 'goal', val)}
                             minHeight={150}
                             accent="var(--ok,#74f0a0)"
                           />
