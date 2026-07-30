@@ -27,8 +27,11 @@ export async function getShowcaseItems(cohortId: string) {
     if (missingIds.length > 0) {
       const { data: libraryItems } = await supabase
         .from('content_items')
-        .select('id, title')
+        .select('id, title, created_at')
         .in('title', missingIds)
+        .eq('status', 'published')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
         
       if (libraryItems && libraryItems.length > 0) {
         data.forEach((d: any) => {
