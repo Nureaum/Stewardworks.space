@@ -3502,26 +3502,31 @@ export default function AdminConsole({
               background: 'linear-gradient(180deg,rgba(255,255,255,.05),transparent)',
             }}>
               <select
-                className="font-pixel"
+                className="font-pixel admin-entry-type-select"
                 value={selEntry.entry_type || 'text'}
                 onChange={e => handleEntryFieldBlur(selEntry.id, 'entry_type', e.target.value)}
                 style={{ 
-                  fontSize: 9, 
+                  fontSize: '9px', 
+                  height: '24px',
+                  lineHeight: '24px',
                   color: '#141019', 
                   background: 'var(--gold,#ffd23f)', 
                   borderRadius: 20, 
-                  padding: '5px 10px', 
+                  padding: '0 12px', 
                   flex: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  outline: 'none'
+                  outline: 'none',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none',
                 }}
               >
-                <option value="text" style={{ fontSize: 12 }}>TEXT</option>
-                <option value="list" style={{ fontSize: 12 }}>LIST</option>
-                <option value="dual" style={{ fontSize: 12 }}>DUAL</option>
-                <option value="featured" style={{ fontSize: 12 }}>FEATURED</option>
-                <option value="deliverable" style={{ fontSize: 12 }}>DELIVERABLE</option>
+                <option value="text" style={{ fontSize: '9px' }}>TEXT</option>
+                <option value="list" style={{ fontSize: '9px' }}>LIST</option>
+                <option value="dual" style={{ fontSize: '9px' }}>DUAL</option>
+                <option value="featured" style={{ fontSize: '9px' }}>FEATURED</option>
+                <option value="deliverable" style={{ fontSize: '9px' }}>DELIVERABLE</option>
               </select>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
@@ -3624,6 +3629,32 @@ export default function AdminConsole({
 
                     <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>FRAMEWORK</div>
                     <input defaultValue={selEntry.framework || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'framework', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }} placeholder="e.g. The Philosophy of 'The Crack' - community as sanctuary." />
+                  </>
+                ) : selEntry.entry_type === 'featured' ? (
+                  <>
+                    <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>FEATURED CONTRIBUTOR PIECE</div>
+                    <select
+                      value={selEntry.contrib_id || ''}
+                      onChange={e => handleEntryFieldBlur(selEntry.id, 'contrib_id', e.target.value)}
+                      style={{ ...inputStyle, fontSize: 16, marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.6)' }}
+                    >
+                      <option value="">-- Select a piece --</option>
+                      {(showcaseList || []).map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.type === 'video' ? 'Video Lesson' : item.type === 'audio' ? 'Audio Guide' : item.type === 'article' ? 'Article' : item.type === 'aigen' ? 'AI Generation' : 'Resource'} - {item.title} · {item.author || 'Unknown'}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>WHY IT'S FEATURED · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text</span></div>
+                    <div style={{ marginBottom: 16 }}>
+                      <RichEditor
+                        value={selEntry.note || ''}
+                        onBlur={val => handleEntryFieldBlur(selEntry.id, 'note', val)}
+                        minHeight={150}
+                        accent="var(--s,#45d6ff)"
+                      />
+                    </div>
                   </>
                 ) : selEntry.entry_type === 'list' ? (
                   <>

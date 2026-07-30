@@ -5,6 +5,7 @@ import type { WorkshopDayEntry, SceneConfig, WorkshopPrinciple, WorkshopProgress
 import { submitDeliverable } from '@/app/actions/workshops/participants'
 import { getEntryMedia } from '@/app/actions/workshops/entry-media'
 import { uploadCreationImage } from '@/app/actions/workshops/engagement'
+import { getShowcaseItems } from '@/app/actions/workshops/showcase'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 
 interface ArtifactReaderProps {
@@ -100,6 +101,19 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
       .then(setMedia)
       .finally(() => setIsLoadingMedia(false))
   }, [entry.id])
+
+  const [featuredItem, setFeaturedItem] = useState<any>(null)
+
+  React.useEffect(() => {
+    if (isFeatured && entry.contrib_id && cohortId) {
+      getShowcaseItems(cohortId)
+        .then(items => {
+          const item = items.find((i: any) => i.id === entry.contrib_id)
+          if (item) setFeaturedItem(item)
+        })
+        .catch(console.error)
+    }
+  }, [isFeatured, entry.contrib_id, cohortId])
 
   const dayProgress = progressRows.find(p => p.workshop_day_id === dayId)
   const isSubmitted = dayProgress?.deliverable_status === 'submitted' || dayProgress?.deliverable_status === 'approved'
@@ -324,9 +338,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   <div className="font-pixel" style={{ fontSize: 11, color: 'var(--s,#45d6ff)', lineHeight: 1.5, marginBottom: 10 }}>
                     {entry.modern_title}
                   </div>
-                  <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
-                    {entry.modern_body}
-                  </div>
+                  <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: entry.modern_body || '' }} />
                 </div>
                 <div style={{ border: '2px solid var(--gold,#ffd23f)', borderRadius: 6, padding: 15, background: 'rgba(255,210,63,.06)' }}>
                   <div className="font-pixel" style={{ fontSize: 7, color: 'var(--bg,#12081e)', background: 'var(--gold,#ffd23f)', padding: '4px 6px', borderRadius: 3, display: 'inline-block', marginBottom: 10 }}>
@@ -335,9 +347,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', lineHeight: 1.5, marginBottom: 10 }}>
                     {entry.ancient_title}
                   </div>
-                  <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
-                    {entry.ancient_body}
-                  </div>
+                  <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: entry.ancient_body || '' }} />
                 </div>
                 {entry.framework && (
                   <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', borderLeft: '3px solid var(--p,#ff5fd2)', paddingLeft: 12, lineHeight: 1.4 }}>
@@ -351,34 +361,48 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
             {isFeatured && (
               <div>
                 {entry.note && (
-                  <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.45, marginBottom: 16 }}>
-                    {entry.note}
+                  <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.45, marginBottom: 16 }} dangerouslySetInnerHTML={{ __html: entry.note }} />
+                )}
+                {featuredItem ? (
+                  <div style={{ border: '2px solid var(--ok,#74f0a0)', borderRadius: 8, padding: 16, background: 'rgba(116,240,160,.05)' }}>
+                    <div className="font-pixel" style={{ fontSize: 14, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, marginBottom: 6 }}>
+                      {featuredItem.title}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', marginBottom: 12 }}>
+                      by {featuredItem.author} · {featuredItem.meta}
+                    </div>
+                    {featuredItem.blurb && (
+                      <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', marginBottom: 18, lineHeight: 1.45 }}>
+                        {featuredItem.blurb}
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => setShowFeaturedPopup(true)}
+                      className="font-pixel" 
+                      style={{
+                        fontSize: 11, 
+                        color: 'var(--bg,#12081e)',
+                        background: 'var(--ok,#74f0a0)', 
+                        border: 'none',
+                        borderRadius: 4, 
+                        padding: '10px 15px', 
+                        cursor: 'pointer',
+                        boxShadow: '0 3px 0 #4da06a',
+                      }}
+                    >
+                      ▸ OPEN SAMPLE
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ border: '2px solid var(--ok,#74f0a0)', borderRadius: 8, padding: 16, background: 'rgba(116,240,160,.05)' }}>
+                    <div className="font-pixel" style={{ fontSize: 11, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, marginBottom: 7 }}>
+                      Featured Contributor
+                    </div>
+                    <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 9 }}>
+                      Loading piece...
+                    </div>
                   </div>
                 )}
-                <div style={{ border: '2px solid var(--ok,#74f0a0)', borderRadius: 8, padding: 16, background: 'rgba(116,240,160,.05)' }}>
-                  <div className="font-pixel" style={{ fontSize: 11, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, marginBottom: 7 }}>
-                    Featured Contributor
-                  </div>
-                  <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 9 }}>
-                    Paid community media
-                  </div>
-                  <button 
-                    onClick={() => setShowFeaturedPopup(true)}
-                    className="font-pixel" 
-                    style={{
-                      fontSize: 11, 
-                      color: 'var(--bg,#12081e)',
-                      background: 'var(--ok,#74f0a0)', 
-                      border: 'none',
-                      borderRadius: 4, 
-                      padding: '10px 15px', 
-                      cursor: 'pointer',
-                      boxShadow: '0 3px 0 #4da06a',
-                    }}
-                  >
-                    ▸ VIA DRIVE
-                  </button>
-                </div>
               </div>
             )}
 
@@ -1047,16 +1071,23 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
         <div className="font-pixel" style={{ fontSize: 9, color: 'var(--ok,#74f0a0)', letterSpacing: 1, marginBottom: 12 }}>
           ◈ FEATURED CONTRIBUTOR
         </div>
-        <div className="font-pixel" style={{ fontSize: 'clamp(13px,2.2vw,16px)', color: 'var(--tx,#efe6ff)', marginBottom: 16, lineHeight: 1.5 }}>
-          {entry.title}
+        <div className="font-pixel" style={{ fontSize: 'clamp(13px,2.2vw,16px)', color: 'var(--tx,#efe6ff)', marginBottom: featuredItem ? 6 : 16, lineHeight: 1.5 }}>
+          {featuredItem ? featuredItem.title : entry.title}
         </div>
+        {featuredItem && (
+          <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginBottom: 16 }}>
+            by {featuredItem.author} · {featuredItem.meta}
+          </div>
+        )}
         <div style={{ fontSize: 17, color: 'var(--tx,#efe6ff)', lineHeight: 1.55, marginBottom: 20 }}>
-          {entry.note || 'This is a hand-picked piece from a paid community contributor — explore an approach outside the main curriculum track.'}
+          {featuredItem?.blurb ? featuredItem.blurb : (
+            entry.note ? <div dangerouslySetInnerHTML={{ __html: entry.note }} /> : 'This is a hand-picked piece from a paid community contributor — explore an approach outside the main curriculum track.'
+          )}
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {entry.external_video_url && (
+          {(featuredItem?.url || entry.external_video_url) && (
             <a
-              href={entry.external_video_url}
+              href={featuredItem?.url || entry.external_video_url}
               target="_blank"
               rel="noopener noreferrer"
               className="font-pixel"
@@ -1072,7 +1103,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                 boxShadow: '0 4px 0 #4da06a',
               }}
             >
-              ▸ OPEN IN DRIVE
+              ▸ OPEN MEDIA
             </a>
           )}
           <button

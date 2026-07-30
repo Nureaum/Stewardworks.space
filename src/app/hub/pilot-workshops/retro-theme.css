@@ -192,6 +192,11 @@
   font-size: 17px !important;
 }
 
+.retro-journey select.admin-entry-type-select {
+  font-size: 9px !important;
+}
+
+
 /* Placeholder text */
 .retro-journey input::placeholder,
 .retro-journey textarea::placeholder {
