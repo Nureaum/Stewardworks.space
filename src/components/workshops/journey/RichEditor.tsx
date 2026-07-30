@@ -9,10 +9,30 @@ interface RichEditorProps {
 
 export default function RichEditor({ value, onBlur, minHeight = 120, accent = '#45d6ff' }: RichEditorProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const lastHtml = useRef(value);
+  const isInitialized = useRef(false);
+
+  useEffect(() => {
+    if (ref.current && !isInitialized.current) {
+      ref.current.innerHTML = value;
+      lastHtml.current = value;
+      isInitialized.current = true;
+    } else if (ref.current && value !== lastHtml.current) {
+      // Only update if the parent explicitly passed a new value (e.g. switching selected entries)
+      if (value !== ref.current.innerHTML) {
+        ref.current.innerHTML = value;
+      }
+      lastHtml.current = value;
+    }
+  }, [value]);
 
   const emit = () => {
     if (onBlur && ref.current) {
-      onBlur(ref.current.innerHTML);
+      const currentHtml = ref.current.innerHTML;
+      if (currentHtml !== lastHtml.current) {
+        lastHtml.current = currentHtml;
+        onBlur(currentHtml);
+      }
     }
   };
 
@@ -37,6 +57,13 @@ export default function RichEditor({ value, onBlur, minHeight = 120, accent = '#
     e.preventDefault();
     if (ref.current) ref.current.focus();
     document.execCommand('removeFormat', false, undefined);
+    emit();
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
     emit();
   };
 
@@ -68,6 +95,7 @@ export default function RichEditor({ value, onBlur, minHeight = 120, accent = '#
         contentEditable
         suppressContentEditableWarning
         onBlur={emit}
+        onPaste={handlePaste}
         style={{
           minHeight,
           padding: 12,
@@ -76,7 +104,6 @@ export default function RichEditor({ value, onBlur, minHeight = 120, accent = '#
           lineHeight: 1.5,
           outline: 'none'
         }}
-        dangerouslySetInnerHTML={{ __html: value }}
       />
     </div>
   );
