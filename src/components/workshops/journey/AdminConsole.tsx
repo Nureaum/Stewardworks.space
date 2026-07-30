@@ -2070,6 +2070,7 @@ export default function AdminConsole({
                   {ncLink.startsWith('blob:') ? (
                     <div style={{
                       flex: 1,
+                      minWidth: 0,
                       ...inputStyle,
                       fontSize: 22,
                       display: 'flex',
