@@ -649,7 +649,7 @@ export default function AdminAnnouncementsPage() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const publicUrl = await uploadFileWithPresignedUrl(file, 'program-docs');
+      const publicUrl = await uploadFileWithPresignedUrl(file, 'content-uploads');
       setDocPdfUrl(publicUrl);
       if (!docLabel) {
         // use filename as default label
