@@ -1577,7 +1577,7 @@ export default function AdminConsole({
                                       padding: '5px 7px',
                                       flex: 'none',
                                     }}>
-                                      {String((si * 10) + ei + 1).padStart(2, '0')}
+                                      {String(ei + 1).padStart(2, '0')}
                                     </span>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                       <div className="font-pixel" style={{ fontSize: 11, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>{en.title}</div>
