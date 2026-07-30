@@ -855,13 +855,13 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                 {entry.applied && (
                   <div style={{ marginTop: 16, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
                     <span className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', display: 'block', marginBottom: 6 }}>APPLIED FOCUS</span>
-                    {entry.applied}
+                    <div dangerouslySetInnerHTML={{ __html: entry.applied }} />
                   </div>
                 )}
                 {entry.lab && (
                   <div style={{ marginTop: 12, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
                     <span className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', display: 'block', marginBottom: 6 }}>LAB</span>
-                    {entry.lab}
+                    <div dangerouslySetInnerHTML={{ __html: entry.lab }} />
                   </div>
                 )}
               </div>
