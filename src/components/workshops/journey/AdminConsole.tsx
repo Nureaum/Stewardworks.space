@@ -3594,6 +3594,96 @@ export default function AdminConsole({
                       </>
                     )
                   })()
+                ) : selEntry.entry_type === 'dual' ? (
+                  <>
+                    <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>MODERN · TITLE</div>
+                    <input defaultValue={selEntry.modern_title || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'modern_title', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }} placeholder="e.g. The Cloned Voice" />
+
+                    <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>MODERN · BODY</div>
+                    <div style={{ marginBottom: 16 }}>
+                      <RichEditor
+                        value={selEntry.modern_body || ''}
+                        onBlur={val => handleEntryFieldBlur(selEntry.id, 'modern_body', val)}
+                        minHeight={150}
+                        accent="var(--s,#45d6ff)"
+                      />
+                    </div>
+
+                    <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>ANCIENT · TITLE</div>
+                    <input defaultValue={selEntry.ancient_title || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'ancient_title', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }} placeholder="e.g. The Songkeeper of the Dunes" />
+
+                    <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>ANCIENT · BODY</div>
+                    <div style={{ marginBottom: 16 }}>
+                      <RichEditor
+                        value={selEntry.ancient_body || ''}
+                        onBlur={val => handleEntryFieldBlur(selEntry.id, 'ancient_body', val)}
+                        minHeight={150}
+                        accent="var(--gold,#ffd23f)"
+                      />
+                    </div>
+
+                    <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>FRAMEWORK</div>
+                    <input defaultValue={selEntry.framework || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'framework', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }} placeholder="e.g. The Philosophy of 'The Crack' - community as sanctuary." />
+                  </>
+                ) : selEntry.entry_type === 'list' ? (
+                  <>
+                    <div style={{ fontSize: 19, color: 'var(--mu,#a493c9)', marginBottom: 12 }}>
+                      LIST ITEMS
+                    </div>
+                    {(() => {
+                      const items = selEntry.items || []
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {items.map((item, idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                              <div className="font-pixel" style={{ color: 'var(--pk,#ff5fd2)', fontSize: 10, paddingTop: 14 }}>◈</div>
+                              <textarea
+                                defaultValue={item}
+                                onBlur={e => {
+                                  const newItems = [...items]
+                                  newItems[idx] = e.target.value
+                                  handleEntryFieldBlur(selEntry.id, 'items', newItems)
+                                }}
+                                style={{
+                                  ...inputStyle,
+                                  fontSize: 16,
+                                  padding: '12px 14px',
+                                  minHeight: 60,
+                                  resize: 'vertical',
+                                  flex: 1,
+                                  fontFamily: 'inherit'
+                                }}
+                              />
+                              <button
+                                onClick={() => {
+                                  const newItems = [...items]
+                                  newItems.splice(idx, 1)
+                                  handleEntryFieldBlur(selEntry.id, 'items', newItems)
+                                }}
+                                className="font-pixel"
+                                style={{
+                                  fontSize: 12, cursor: 'pointer', color: 'var(--warn,#ff7a7a)', background: 'transparent',
+                                  border: 'none', padding: '12px 4px', flex: 'none'
+                                }}
+                                title="Remove item"
+                              >✕</button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => {
+                              const newItems = [...items, '']
+                              handleEntryFieldBlur(selEntry.id, 'items', newItems)
+                            }}
+                            className="font-pixel"
+                            style={{
+                              fontSize: 9, cursor: 'pointer', color: 'var(--pk,#ff5fd2)', background: 'transparent',
+                              border: '2px dashed var(--pk,#ff5fd2)', borderRadius: 6, padding: '12px', marginTop: 4
+                            }}
+                          >＋ ADD LIST ITEM</button>
+                        </div>
+                      )
+                    })()}
+                  </>
                 ) : (
                   <>
                     <div style={{ fontSize: 19, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>
