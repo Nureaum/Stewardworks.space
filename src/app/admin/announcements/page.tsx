@@ -24,6 +24,37 @@ import {
 } from '@/app/actions/bulletins';
 import { Pin, Globe, Trash2, Pencil, Bold, Italic, Link as LinkIcon, Image, X, Video } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { supabase } from '@/utils/supabase/client';
+
+async function uploadFileWithPresignedUrl(file: File, bucketName: string): Promise<string> {
+  console.log(`[Upload] Starting presigned upload for ${file.name} to bucket ${bucketName}`);
+  const res = await fetch('/api/admin/upload-media/presigned', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileName: file.name, bucketName })
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    console.error('[Upload] Failed to get presigned URL:', errorData);
+    throw new Error(errorData.error || 'Failed to get upload URL');
+  }
+  
+  const { token, filePath, publicUrl } = await res.json();
+  console.log(`[Upload] Got presigned URL for ${filePath}, starting direct storage upload...`);
+  
+  const { error: uploadError } = await supabase.storage
+    .from(bucketName)
+    .uploadToSignedUrl(filePath, token, file);
+    
+  if (uploadError) {
+    console.error('[Upload] Supabase direct upload failed:', uploadError);
+    throw new Error(uploadError.message || 'Upload to storage failed');
+  }
+  
+  console.log(`[Upload] Success! Public URL:`, publicUrl);
+  return publicUrl;
+}
 
 // Mini Rich Text Editor for announcements
 function AnnouncementEditor({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
@@ -518,11 +549,9 @@ export default function AdminAnnouncementsPage() {
     formData.append('bucket', 'demo-videos'); // custom bucket for demo videos
     
     try {
-      // Reusing the upload-media API which can handle general file uploads if we pass bucket
-      const res = await fetch('/api/admin/upload-media', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
-      setDemoVideoUrl(data.publicUrl);
+      // Use presigned URLs for large files to bypass Next.js 4.5MB payload limit
+      const publicUrl = await uploadFileWithPresignedUrl(file, 'demo-videos');
+      setDemoVideoUrl(publicUrl);
       toast.success('Video uploaded successfully! Make sure to save.');
     } catch (error: any) {
       toast.error(error.message || 'Error uploading video');
@@ -620,10 +649,8 @@ export default function AdminAnnouncementsPage() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('/api/admin/upload-media', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
-      setDocPdfUrl(data.publicUrl);
+      const publicUrl = await uploadFileWithPresignedUrl(file, 'program-docs');
+      setDocPdfUrl(publicUrl);
       if (!docLabel) {
         // use filename as default label
         setDocLabel(file.name.replace('.pdf', ''));
