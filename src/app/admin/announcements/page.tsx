@@ -233,6 +233,13 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+    emit();
+  };
+
   const btnClass = "p-1.5 rounded border border-[#785a32]/15 hover:bg-[#f6e5c3] transition-colors text-[#5c4f3c] flex items-center justify-center";
 
   return (
@@ -315,6 +322,7 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
         suppressContentEditableWarning
         onInput={emit}
         onBlur={emit}
+        onPaste={handlePaste}
         data-placeholder={placeholder || 'Write the announcement members will read…'}
         className="p-[13px_15px] text-[14px] min-h-[96px] leading-relaxed outline-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-[#9c8d76] [&:empty]:before:pointer-events-none [&_a]:text-[#2c8a4a] [&_a]:underline [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2 [&_img]:cursor-pointer [&_img]:hover:ring-2 [&_img]:hover:ring-red-300 [&_video]:rounded-lg [&_video]:max-w-full [&_video]:my-2 [&_audio]:w-full [&_audio]:my-2 [&_iframe]:rounded-lg [&_iframe]:max-w-full [&_iframe]:my-2"
       />
