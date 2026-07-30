@@ -84,6 +84,9 @@ export default function CozyHubRoom({
   const [showCertPreview, setShowCertPreview] = useState(false);
   const [certPreviewHtml, setCertPreviewHtml] = useState<string>('');
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+
+  // PDF Document Toggle state ('principles' | 'credo' | null)
+  const [activePdfToggle, setActivePdfToggle] = useState<'principles' | 'credo' | null>(null);
   
   // Workforce Pathway state
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([]);
@@ -1534,6 +1537,163 @@ export default function CozyHubRoom({
           </div>
         </div>
       </div>
+
+      {/* ============================================ */}
+      {/* STEWARDWORKS DOCUMENTS SECTION               */}
+      {/* ============================================ */}
+      {!isGuest && (
+        <div style={{ marginBottom: '30px', marginTop: '10px' }}>
+          {/* Section label */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '14px' }}>
+            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#8a5a2e' }}>STEWARDWORKS DOCUMENTS</span>
+          </div>
+
+          {/* Toggle Buttons */}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+            {/* Principles Button */}
+            <button
+              onClick={() => setActivePdfToggle(activePdfToggle === 'principles' ? null : 'principles')}
+              style={{
+                fontFamily: '"DM Mono", monospace',
+                fontSize: '11px',
+                letterSpacing: '.08em',
+                fontWeight: 700,
+                padding: '10px 18px',
+                borderRadius: '10px',
+                border: activePdfToggle === 'principles' ? '2px solid #8a5a2e' : '1.5px solid rgba(138,90,46,.3)',
+                background: activePdfToggle === 'principles' ? 'rgba(138,90,46,.12)' : 'rgba(254,250,224,0.6)',
+                color: activePdfToggle === 'principles' ? '#5a3a1a' : '#7a5a3a',
+                cursor: 'pointer',
+                transition: 'all .2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+              }}
+            >
+              📄 Stewardworks Principles
+              <span style={{ fontSize: '9px', opacity: 0.7 }}>{activePdfToggle === 'principles' ? '▲' : '▼'}</span>
+            </button>
+
+            {/* Credo Button */}
+            <button
+              onClick={() => setActivePdfToggle(activePdfToggle === 'credo' ? null : 'credo')}
+              style={{
+                fontFamily: '"DM Mono", monospace',
+                fontSize: '11px',
+                letterSpacing: '.08em',
+                fontWeight: 700,
+                padding: '10px 18px',
+                borderRadius: '10px',
+                border: activePdfToggle === 'credo' ? '2px solid #2E5534' : '1.5px solid rgba(46,85,52,.3)',
+                background: activePdfToggle === 'credo' ? 'rgba(46,85,52,.12)' : 'rgba(234,242,235,0.6)',
+                color: activePdfToggle === 'credo' ? '#1a3a1e' : '#3a5a4a',
+                cursor: 'pointer',
+                transition: 'all .2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+              }}
+            >
+              📜 Stewardworks Credo
+              <span style={{ fontSize: '9px', opacity: 0.7 }}>{activePdfToggle === 'credo' ? '▲' : '▼'}</span>
+            </button>
+          </div>
+
+          {/* PDF Viewer Panel */}
+          {activePdfToggle !== null && (() => {
+            const isPrinciples = activePdfToggle === 'principles';
+            const pdfSrc = isPrinciples ? '/documents/document1.pdf' : '/documents/document2.pdf';
+            const pdfName = isPrinciples ? 'StewardWorks-Principles.pdf' : 'StewardWorks-Credo.pdf';
+            const accentColor = isPrinciples ? '#8a5a2e' : '#2E5534';
+            const bgColor = isPrinciples ? 'rgba(138,90,46,.06)' : 'rgba(46,85,52,.06)';
+            const borderColor = isPrinciples ? 'rgba(138,90,46,.2)' : 'rgba(46,85,52,.2)';
+            const label = isPrinciples ? 'StewardWorks Principles' : 'StewardWorks Credo';
+
+            return (
+              <div style={{
+                background: bgColor,
+                border: `1.5px solid ${borderColor}`,
+                borderRadius: '14px',
+                overflow: 'hidden',
+                animation: 'fadeIn .2s ease',
+              }}>
+                {/* Header bar */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: `1px solid ${borderColor}`,
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}>
+                  <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.12em', color: accentColor, fontWeight: 700 }}>
+                    {label}
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {/* Download / Print button — uses same anchor-click pattern as certificate download */}
+                    <a
+                      href={pdfSrc}
+                      download={pdfName}
+                      style={{
+                        display: 'inline-block',
+                        padding: '8px 16px',
+                        background: accentColor,
+                        color: '#fff',
+                        borderRadius: '8px',
+                        fontFamily: '"DM Mono", monospace',
+                        fontSize: '11px',
+                        letterSpacing: '.06em',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                        transition: 'opacity .15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    >
+                      ⬇ Download / Print
+                    </a>
+                    {/* Open in new tab */}
+                    <a
+                      href={pdfSrc}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        padding: '8px 14px',
+                        background: 'transparent',
+                        color: accentColor,
+                        border: `1.5px solid ${borderColor}`,
+                        borderRadius: '8px',
+                        fontFamily: '"DM Mono", monospace',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ↗ Open
+                    </a>
+                  </div>
+                </div>
+                {/* iframe PDF preview */}
+                <iframe
+                  src={pdfSrc}
+                  title={label}
+                  style={{
+                    width: '100%',
+                    height: '520px',
+                    border: 'none',
+                    display: 'block',
+                    background: '#fff',
+                  }}
+                />
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* CERTIFICATE SECTION - based on selected cohort only (hidden for guests) */}
       {!isGuest && cohortProgress && cohortProgress.length > 0 && selectedCohortId && (() => {
