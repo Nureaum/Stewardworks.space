@@ -751,7 +751,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         </button>
                       </div>
                       
-                      <div className="font-pixel" style={{ fontSize: 11, color: 'var(--p,#ff5fd2)', marginBottom: 9 }}>
+                      <div className="font-pixel" style={{ fontSize: 11, color: 'var(--p,#ff5fd2)', marginBottom: 12, lineHeight: 1.5 }}>
                         4 · Assign <span style={{ color: 'var(--gold,#ffd23f)' }}>a fresh Steward Principle</span>
                         <span style={{ color: 'var(--mu,#a493c9)', marginLeft: 6 }}>(each principle can only be used once)</span>:
                       </div>
