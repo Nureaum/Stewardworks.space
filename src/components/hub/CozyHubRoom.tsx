@@ -85,8 +85,9 @@ export default function CozyHubRoom({
   const [certPreviewHtml, setCertPreviewHtml] = useState<string>('');
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
 
-  // PDF Document Toggle state ('principles' | 'credo' | null)
-  const [activePdfToggle, setActivePdfToggle] = useState<'principles' | 'credo' | null>(null);
+  // PDF Document Toggle state (Document ID | null)
+  const [activePdfToggle, setActivePdfToggle] = useState<number | null>(null);
+  const [programDocuments, setProgramDocuments] = useState<any[]>([]);
   
   // Workforce Pathway state
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([]);
@@ -182,6 +183,17 @@ export default function CozyHubRoom({
           setPersonalNotifications(notifications);
         } catch (err) {
           console.error("Failed to load personal notifications", err);
+        }
+
+        // Fetch Program Documents
+        try {
+          const docsRes = await fetch('/api/program-documents?t=' + Date.now(), { cache: 'no-store' });
+          if (docsRes.ok) {
+            const docsData = await docsRes.json();
+            setProgramDocuments(docsData.documents || []);
+          }
+        } catch (err) {
+          console.error("Failed to load program documents", err);
         }
 
         const sys = await getSystemBulletins();
@@ -1541,7 +1553,7 @@ export default function CozyHubRoom({
       {/* ============================================ */}
       {/* STEWARDWORKS DOCUMENTS SECTION               */}
       {/* ============================================ */}
-      {!isGuest && (
+      {!isGuest && programDocuments.length > 0 && (
         <div style={{ marginBottom: '30px', marginTop: '10px' }}>
           {/* Section label */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '14px' }}>
@@ -1550,64 +1562,61 @@ export default function CozyHubRoom({
 
           {/* Toggle Buttons */}
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px', justifyContent: 'center' }}>
-            {/* Principles Button */}
-            <button
-              onClick={() => setActivePdfToggle(activePdfToggle === 'principles' ? null : 'principles')}
-              style={{
-                fontFamily: '"DM Mono", monospace',
-                fontSize: '11px',
-                letterSpacing: '.08em',
-                fontWeight: 700,
-                padding: '10px 18px',
-                borderRadius: '10px',
-                border: activePdfToggle === 'principles' ? '2px solid #8a5a2e' : '1.5px solid rgba(138,90,46,.3)',
-                background: activePdfToggle === 'principles' ? 'rgba(138,90,46,.12)' : 'rgba(254,250,224,0.6)',
-                color: activePdfToggle === 'principles' ? '#5a3a1a' : '#7a5a3a',
-                cursor: 'pointer',
-                transition: 'all .2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
-              }}
-            >
-              📄 Stewardworks Principles
-              <span style={{ fontSize: '9px', opacity: 0.7 }}>{activePdfToggle === 'principles' ? '▲' : '▼'}</span>
-            </button>
+            {programDocuments.map((doc, idx) => {
+              const isActive = activePdfToggle === doc.id;
+              // Alternate colors between brown and green theme
+              const isEven = idx % 2 === 0;
+              const borderColor = isActive 
+                ? (isEven ? '#8a5a2e' : '#2E5534')
+                : (isEven ? 'rgba(138,90,46,.3)' : 'rgba(46,85,52,.3)');
+              const bgColor = isActive
+                ? (isEven ? 'rgba(138,90,46,.12)' : 'rgba(46,85,52,.12)')
+                : (isEven ? 'rgba(254,250,224,0.6)' : 'rgba(234,242,235,0.6)');
+              const textColor = isActive
+                ? (isEven ? '#5a3a1a' : '#1a3a1e')
+                : (isEven ? '#7a5a3a' : '#3a5a4a');
+              const icon = isEven ? '📄' : '📜';
 
-            {/* Credo Button */}
-            <button
-              onClick={() => setActivePdfToggle(activePdfToggle === 'credo' ? null : 'credo')}
-              style={{
-                fontFamily: '"DM Mono", monospace',
-                fontSize: '11px',
-                letterSpacing: '.08em',
-                fontWeight: 700,
-                padding: '10px 18px',
-                borderRadius: '10px',
-                border: activePdfToggle === 'credo' ? '2px solid #2E5534' : '1.5px solid rgba(46,85,52,.3)',
-                background: activePdfToggle === 'credo' ? 'rgba(46,85,52,.12)' : 'rgba(234,242,235,0.6)',
-                color: activePdfToggle === 'credo' ? '#1a3a1e' : '#3a5a4a',
-                cursor: 'pointer',
-                transition: 'all .2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
-              }}
-            >
-              📜 Stewardworks Credo
-              <span style={{ fontSize: '9px', opacity: 0.7 }}>{activePdfToggle === 'credo' ? '▲' : '▼'}</span>
-            </button>
+              return (
+                <button
+                  key={doc.id}
+                  onClick={() => setActivePdfToggle(isActive ? null : doc.id)}
+                  style={{
+                    fontFamily: '"DM Mono", monospace',
+                    fontSize: '11px',
+                    letterSpacing: '.08em',
+                    fontWeight: 700,
+                    padding: '10px 18px',
+                    borderRadius: '10px',
+                    border: `1.5px solid ${borderColor}`,
+                    background: bgColor,
+                    color: textColor,
+                    cursor: 'pointer',
+                    transition: 'all .2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                  }}
+                >
+                  {icon} {doc.label}
+                  <span style={{ fontSize: '9px', opacity: 0.7 }}>{isActive ? '▲' : '▼'}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* PDF Viewer Panel */}
           {activePdfToggle !== null && (() => {
-            const isPrinciples = activePdfToggle === 'principles';
-            const pdfSrc = isPrinciples ? '/documents/document1.pdf' : '/documents/document2.pdf';
-            const pdfName = isPrinciples ? 'StewardWorks-Principles.pdf' : 'StewardWorks-Credo.pdf';
-            const accentColor = isPrinciples ? '#8a5a2e' : '#2E5534';
-            const bgColor = isPrinciples ? 'rgba(138,90,46,.06)' : 'rgba(46,85,52,.06)';
-            const borderColor = isPrinciples ? 'rgba(138,90,46,.2)' : 'rgba(46,85,52,.2)';
-            const label = isPrinciples ? 'StewardWorks Principles' : 'StewardWorks Credo';
+            const activeDoc = programDocuments.find(d => d.id === activePdfToggle);
+            if (!activeDoc) return null;
+            
+            const idx = programDocuments.findIndex(d => d.id === activePdfToggle);
+            const isEven = idx % 2 === 0;
+            const pdfSrc = activeDoc.pdf_url;
+            const pdfName = `${activeDoc.label.replace(/\s+/g, '-')}.pdf`;
+            const accentColor = isEven ? '#8a5a2e' : '#2E5534';
+            const bgColor = isEven ? 'rgba(138,90,46,.06)' : 'rgba(46,85,52,.06)';
+            const borderColor = isEven ? 'rgba(138,90,46,.2)' : 'rgba(46,85,52,.2)';
 
             return (
               <div style={{
@@ -1628,10 +1637,9 @@ export default function CozyHubRoom({
                   gap: '10px',
                 }}>
                   <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.12em', color: accentColor, fontWeight: 700 }}>
-                    {label}
+                    {activeDoc.label}
                   </span>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {/* Download / Print button — uses same anchor-click pattern as certificate download */}
                     <a
                       href={pdfSrc}
                       download={pdfName}
@@ -1654,7 +1662,6 @@ export default function CozyHubRoom({
                     >
                       ⬇ Download / Print
                     </a>
-                    {/* Open in new tab */}
                     <a
                       href={pdfSrc}
                       target="_blank"
@@ -1679,8 +1686,8 @@ export default function CozyHubRoom({
                 </div>
                 {/* iframe PDF preview */}
                 <iframe
-                  src={pdfSrc}
-                  title={label}
+                  src={`${pdfSrc}#toolbar=0`}
+                  title={activeDoc.label}
                   style={{
                     width: '100%',
                     height: '520px',

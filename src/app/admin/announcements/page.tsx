@@ -21,7 +21,7 @@ import {
   updateBulletinEvent,
   updateAboutPage
 } from '@/app/actions/bulletins';
-import { Pin, Globe, Trash2, Pencil, Bold, Italic, Link as LinkIcon, Image } from 'lucide-react';
+import { Pin, Globe, Trash2, Pencil, Bold, Italic, Link as LinkIcon, Image, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Mini Rich Text Editor for announcements
@@ -301,9 +301,17 @@ export default function AdminAnnouncementsPage() {
   const [annToDelete, setAnnToDelete] = useState<string | null>(null);
   const [isDeletingAnn, setIsDeletingAnn] = useState(false);
 
-  // Bulletins State
   const [bulletinText, setBulletinText] = useState('');
   const [isSavingBulletin, setIsSavingBulletin] = useState(false);
+
+  // Program Documents State
+  const [programDocuments, setProgramDocuments] = useState<any[]>([]);
+  const [editingDocId, setEditingDocId] = useState<number | null>(null);
+  const [docLabel, setDocLabel] = useState('');
+  const [docPdfUrl, setDocPdfUrl] = useState('');
+  const [isSavingDoc, setIsSavingDoc] = useState(false);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   // Updates State
   const [updates, setUpdates] = useState<any[]>([]);
@@ -371,6 +379,16 @@ export default function AdminAnnouncementsPage() {
       ]);
       setUpdates(ups);
       setEvents(evs);
+
+      try {
+        const docsRes = await fetch('/api/admin/program-documents');
+        if (docsRes.ok) {
+          const docsData = await docsRes.json();
+          setProgramDocuments(docsData.documents || []);
+        }
+      } catch (e) {
+        console.error('Failed to load program documents', e);
+      }
 
     } catch (error) {
       console.error("Failed to load data", error);
@@ -450,6 +468,111 @@ export default function AdminAnnouncementsPage() {
       toast.error("Failed to update bulletin.");
     } finally {
       setIsSavingBulletin(false);
+    }
+  }
+
+  // Program Documents Handlers
+  function handleEditDoc(doc: any) {
+    setEditingDocId(doc.id);
+    setDocLabel(doc.label);
+    setDocPdfUrl(doc.pdf_url);
+  }
+
+  function handleCancelEditDoc() {
+    setEditingDocId(null);
+    setDocLabel('');
+    setDocPdfUrl('');
+  }
+
+  async function handleSaveDoc() {
+    if (!docLabel.trim() || !docPdfUrl.trim()) {
+      toast.error('Label and PDF URL are required.');
+      return;
+    }
+    setIsSavingDoc(true);
+    try {
+      if (editingDocId) {
+        const res = await fetch('/api/admin/program-documents', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingDocId, label: docLabel, pdf_url: docPdfUrl })
+        });
+        if (!res.ok) throw new Error('Failed to update document');
+        setProgramDocuments(prev => prev.map(d => d.id === editingDocId ? { ...d, label: docLabel, pdf_url: docPdfUrl } : d));
+        toast.success('Document updated');
+      } else {
+        const res = await fetch('/api/admin/program-documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: docLabel, pdf_url: docPdfUrl, sort_order: programDocuments.length })
+        });
+        if (!res.ok) throw new Error('Failed to add document');
+        const data = await res.json();
+        setProgramDocuments([...programDocuments, data.document]);
+        toast.success('Document added');
+      }
+      handleCancelEditDoc();
+    } catch (error: any) {
+      toast.error(error.message || 'Error saving document');
+    } finally {
+      setIsSavingDoc(false);
+    }
+  }
+
+  async function handleDeleteDoc(id: number) {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    try {
+      const res = await fetch(`/api/admin/program-documents?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete document');
+      setProgramDocuments(prev => prev.filter(d => d.id !== id));
+      if (editingDocId === id) handleCancelEditDoc();
+      toast.success('Document deleted');
+    } catch (error: any) {
+      toast.error(error.message || 'Error deleting document');
+    }
+  }
+
+  async function handleToggleDocActive(doc: any) {
+    try {
+      const res = await fetch('/api/admin/program-documents', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: doc.id, is_active: !doc.is_active })
+      });
+      if (!res.ok) throw new Error('Failed to toggle status');
+      setProgramDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, is_active: !doc.is_active } : d));
+      toast.success(`Document ${!doc.is_active ? 'activated' : 'deactivated'}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Error toggling status');
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Please upload a PDF file');
+      return;
+    }
+    
+    setIsUploadingDoc(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/admin/upload-media', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setDocPdfUrl(data.publicUrl);
+      if (!docLabel) {
+        // use filename as default label
+        setDocLabel(file.name.replace('.pdf', ''));
+      }
+      toast.success('PDF uploaded successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Error uploading PDF');
+    } finally {
+      setIsUploadingDoc(false);
+      if (e.target) e.target.value = ''; // reset input
     }
   }
 
@@ -674,6 +797,9 @@ export default function AdminAnnouncementsPage() {
             <p className="m-0 mt-[6px] font-mono text-[11px] tracking-[0.2em] text-[#9c8d76]">THE WALL PHONE · MESSAGES TO HUB MEMBERS</p>
           </div>
           <div className="flex items-center gap-4">
+            <button onClick={() => setShowPdfModal(true)} className="font-bold text-[13px] text-[#5c4f3c] bg-white border border-[#785a32]/20 px-4 py-2 rounded-full shadow-[0_3px_10px_rgba(120,90,50,0.08)] hover:bg-[#f6ebd4] transition-colors">
+              Manage Program PDFs
+            </button>
             <Link href="/admin/about" className="font-bold text-[13px] text-white bg-steward-green px-4 py-2 rounded-full shadow-md hover:bg-[#2c8a4a] transition-colors">
               Edit Learn More / Contact Us
             </Link>
@@ -804,7 +930,7 @@ export default function AdminAnnouncementsPage() {
           </div>
 
           {/* Right Column: Phone Preview & Bulletin */}
-          <div className="flex flex-col gap-[22px] lg:sticky lg:top-[24px]">
+          <div className="flex flex-col gap-[22px] lg:sticky lg:top-[24px] max-h-[calc(100vh-48px)] overflow-y-auto pb-4 pr-2">
             
             {/* Phone Preview */}
             <div className="bg-gradient-to-br from-[#2a2118] to-[#1a130c] rounded-[20px] p-[26px_22px_30px] shadow-[0_16px_34px_rgba(0,0,0,0.28)] border border-[#e2b54a]/[0.15] text-center">
@@ -873,9 +999,98 @@ export default function AdminAnnouncementsPage() {
                 {isSavingBulletin ? 'Saving...' : 'Update bulletin'}
               </button>
             </div>
-
           </div>
         </div>
+
+        {/* Program Documents (PDFs) Modal */}
+        {showPdfModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[800px] max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Pin size={20} className="text-[#2c8a4a]" />
+                  <h3 className="text-[20px] font-[800] text-[#241c12]">Manage Program Documents</h3>
+                </div>
+                <button onClick={() => setShowPdfModal(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                  <X size={18} className="text-gray-600" />
+                </button>
+              </div>
+              
+              <div className="text-[14px] text-[#8a7c66] mb-6">
+                Manage the PDFs shown on the Hub page (e.g. Stewardworks Principles, Credo).
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-6 items-start">
+                {/* Upload/Edit Form */}
+                <div className="bg-[#fdfaf0] border border-[#785a32]/20 rounded-xl p-5">
+                  <div className="mb-4">
+                    <label className="font-mono text-[11px] tracking-[0.18em] text-[#9c8d76] block mb-1">BUTTON LABEL</label>
+                    <input value={docLabel} onChange={(e) => setDocLabel(e.target.value)} placeholder="e.g. Stewardworks Principles" className="w-full p-2.5 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none focus:border-[#2c8a4a]" />
+                  </div>
+                  <div className="mb-4">
+                    <label className="font-mono text-[11px] tracking-[0.18em] text-[#9c8d76] block mb-1">PDF FILE</label>
+                    <div className="flex gap-2 items-center flex-wrap">
+                      <label className="cursor-pointer bg-white border border-[#785a32]/20 text-[#5c4f3c] text-[13px] font-bold px-4 py-2 rounded-lg hover:bg-[#f6ebd4] transition-colors shadow-sm">
+                        {isUploadingDoc ? 'Uploading...' : 'Upload PDF'}
+                        <input type="file" accept="application/pdf" className="hidden" onChange={handleFileUpload} disabled={isUploadingDoc} />
+                      </label>
+                      {docPdfUrl && (
+                        <a href={docPdfUrl} target="_blank" rel="noopener noreferrer" className="text-[12px] text-[#2c8a4a] underline break-all max-w-[200px] truncate">
+                          {docPdfUrl.split('/').pop()}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button 
+                      onClick={handleSaveDoc}
+                      disabled={isSavingDoc || !docPdfUrl}
+                      className="flex-1 py-2.5 rounded-lg bg-gradient-to-b from-[#2c8a4a] to-[#1e6134] text-white font-[800] text-sm shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      {isSavingDoc ? 'Saving...' : editingDocId ? 'Save Changes' : 'Add Document'}
+                    </button>
+                    {editingDocId && (
+                      <button 
+                        onClick={handleCancelEditDoc}
+                        className="px-4 py-2.5 rounded-lg border border-[#785a32]/20 bg-white text-[#5c4f3c] font-[700] text-sm hover:bg-[#f6ebd4] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Documents List */}
+                <div className="flex flex-col gap-3">
+                  {programDocuments.length === 0 ? (
+                    <div className="text-center py-8 text-[#9c8d76] text-sm bg-gray-50 rounded-xl border border-dashed border-gray-300">No documents uploaded yet.</div>
+                  ) : (
+                    programDocuments.map((doc, idx) => (
+                      <div key={doc.id} className={`flex items-center gap-3 p-3.5 rounded-xl border border-[#785a32]/10 ${!doc.is_active ? 'bg-gray-50 opacity-60' : 'bg-[#fbf5e6]'}`}>
+                        <div className="text-[20px]">📄</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-[700] text-[14px] text-[#241c12] truncate">{doc.label}</div>
+                          <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2c8a4a] hover:underline truncate block mt-0.5">View PDF</a>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button onClick={() => handleToggleDocActive(doc)} className="text-[11px] font-bold px-2 py-1 rounded bg-white border border-[#785a32]/20 text-[#5c4f3c] hover:bg-gray-100 shadow-sm" title={doc.is_active ? "Hide on Hub" : "Show on Hub"}>
+                            {doc.is_active ? 'ON' : 'OFF'}
+                          </button>
+                          <button onClick={() => handleEditDoc(doc)} className="p-1.5 bg-white rounded border border-[#785a32]/20 text-[#8a7c66] hover:text-[#5c4f3c] shadow-sm" title="Edit">
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => handleDeleteDoc(doc.id)} className="p-1.5 bg-white rounded border border-red-100 text-red-400 hover:text-red-600 shadow-sm" title="Delete">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Public Bulletin Management */}
         <div className="mt-[22px] bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08]">

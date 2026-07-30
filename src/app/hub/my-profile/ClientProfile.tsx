@@ -474,6 +474,7 @@ export default function ClientProfile({
           });
           const placeholders = stillUnmatched.map((b: any) => ({
             id: b.item_id || b.id,
+            engagementId: b.id,
             title: b.title || 'Bookmarked Resource',
             external_url: b.item_id?.startsWith('http') ? b.item_id : '',
             body: '',
@@ -495,7 +496,8 @@ export default function ClientProfile({
             return {
               ...r,
               bookmarkStatus: bookmark?.status || 'approved',
-              reviewNote: bookmark?.review_note || null
+              reviewNote: bookmark?.review_note || null,
+              engagementId: bookmark?.id
             };
           });
           setBookmarkedResources([...withStatus, ...placeholders]);
@@ -628,15 +630,14 @@ export default function ClientProfile({
     try {
       await removeEngagement(id);
       // Remove from local state
-      if (kind === 'note') {
-        setNotes(prev => prev.filter(n => n.id !== id));
-      } else if (kind === 'prompt') {
-        setPrompts(prev => prev.filter(p => p.id !== id));
-      } else if (kind === 'generation') {
-        setGenerations(prev => prev.filter(g => g.id !== id));
-      } else if (kind === 'bookmark') {
-        setWorkshopBookmarks(prev => prev.filter(b => b.id !== id));
-      }
+      setNotes(prev => prev.filter(n => n.id !== id));
+      setPrompts(prev => prev.filter(p => p.id !== id));
+      setGenerations(prev => prev.filter(g => g.id !== id));
+      setWorkshopBookmarks(prev => prev.filter(b => b.id !== id));
+      setBookmarkedResources(prev => prev.filter(b => b.engagementId !== id && b.id !== id));
+      setBookmarkedWorkforce(prev => prev.filter(b => b.id !== id));
+      setBookmarkedJobs(prev => prev.filter(b => b.id !== id));
+      setBookmarkedEnvironmental(prev => prev.filter(b => b.id !== id));
       // Close popups
       setSelectedNoteItem(null);
       setSelectedResourceItem(null);
@@ -1494,7 +1495,7 @@ export default function ClientProfile({
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
                     {bookmarkedResources.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'LIBRARY', _color: '#417C98', _bg: '#EBF4F8', _url: `/hub/library/${b.id}`, _status: b.bookmarkStatus, _source: domain(b.external_url || b.url) })}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'LIBRARY', _color: '#417C98', _bg: '#EBF4F8', _url: (b.id?.startsWith('http') || b.id?.startsWith('/')) ? b.id : `/hub/library/${b.id}`, _status: b.bookmarkStatus, _source: domain(b.external_url || b.url) })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#417C98', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>LIBRARY</span>
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
@@ -2355,7 +2356,7 @@ export default function ClientProfile({
                   )}
                   {(r._kind === 'LIBRARY' || r._kind === 'WORKFORCE' || r._kind === 'JOB' || r._kind === 'ENVIRONMENTAL' || r._kind === 'BOOKMARK' || r._kind === 'SHOWCASE' || r._kind === 'WORKSHOP' || r._kind === 'CONTRIBUTOR' || r._kind === 'STUDENT SHOWCASE') && r.id && (
                     <button
-                      onClick={() => handleDeleteEngagement(r.id, ['WORKSHOP', 'CONTRIBUTOR', 'STUDENT SHOWCASE'].includes(r._kind) ? 'bookmark' : 'note')}
+                      onClick={() => handleDeleteEngagement(r.engagementId || r.id, ['WORKSHOP', 'CONTRIBUTOR', 'STUDENT SHOWCASE'].includes(r._kind) ? 'bookmark' : 'note')}
                       disabled={isDeletingItem}
                       style={{
                         padding: '12px 22px',
