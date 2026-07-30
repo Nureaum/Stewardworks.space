@@ -376,22 +376,46 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         {featuredItem.blurb}
                       </div>
                     )}
-                    <button 
-                      onClick={() => setShowFeaturedPopup(true)}
-                      className="font-pixel" 
-                      style={{
-                        fontSize: 11, 
-                        color: 'var(--bg,#12081e)',
-                        background: 'var(--ok,#74f0a0)', 
-                        border: 'none',
-                        borderRadius: 4, 
-                        padding: '10px 15px', 
-                        cursor: 'pointer',
-                        boxShadow: '0 3px 0 #4da06a',
-                      }}
-                    >
-                      ▸ OPEN SAMPLE
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button 
+                        onClick={() => setShowFeaturedPopup(true)}
+                        className="font-pixel" 
+                        style={{
+                          fontSize: 11, 
+                          color: 'var(--bg,#12081e)',
+                          background: 'var(--ok,#74f0a0)', 
+                          border: 'none',
+                          borderRadius: 4, 
+                          padding: '10px 15px', 
+                          cursor: 'pointer',
+                          boxShadow: '0 3px 0 #4da06a',
+                        }}
+                      >
+                        ▸ OPEN SAMPLE
+                      </button>
+                      
+                      {featuredItem.content_item_id && (
+                        <a
+                          href={`/hub/library/${featuredItem.content_item_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-pixel"
+                          style={{
+                            fontSize: 11,
+                            color: '#FEFAE0',
+                            background: '#2E5534',
+                            border: 'none',
+                            borderRadius: 4,
+                            padding: '10px 15px',
+                            textDecoration: 'none',
+                            display: 'inline-block',
+                            boxShadow: '0 3px 0 #1d3a23',
+                          }}
+                        >
+                          ▸ OPEN IN LIBRARY
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div style={{ border: '2px solid var(--ok,#74f0a0)', borderRadius: 8, padding: 16, background: 'rgba(116,240,160,.05)' }}>
@@ -1104,6 +1128,27 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
               }}
             >
               ▸ OPEN MEDIA
+            </a>
+          )}
+          {featuredItem?.content_item_id && (
+            <a
+              href={`/hub/library/${featuredItem.content_item_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-pixel"
+              style={{
+                fontSize: 10,
+                color: '#FEFAE0',
+                background: '#2E5534',
+                border: 'none',
+                borderRadius: 6,
+                padding: '12px 18px',
+                textDecoration: 'none',
+                display: 'inline-block',
+                boxShadow: '0 4px 0 #1d3a23',
+              }}
+            >
+              ▸ OPEN IN LIBRARY
             </a>
           )}
           <button
