@@ -713,7 +713,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         3 · {entry.submit_label || 'YOUR DELIVERABLE LINK OR FILE'}
                       </label>
                       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 8, marginBottom: 12, width: '100%', alignItems: 'center' }}>
-                        {url.startsWith('blob:') ? (
+                        {url.startsWith('blob:') || url.includes('supabase.co/storage') ? (
                           <div style={{
                             minWidth: 0,
                             overflow: 'hidden',
@@ -732,7 +732,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                               style={{ height: 32, width: 32, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--mu,#a493c9)' }} 
                             />
                             <div style={{ minWidth: 0, color: 'var(--tx,#efe6ff)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {fileToUpload?.name || 'Uploaded Image'}
+                              {fileToUpload?.name || decodeURIComponent(url.split('/').pop()?.split('?')[0] || '') || 'Uploaded Image'}
                             </div>
                             <button
                               onClick={() => { setUrl(''); setFileToUpload(null); }}
