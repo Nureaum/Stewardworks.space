@@ -712,11 +712,12 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                       <label className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', display: 'block', marginBottom: 10, lineHeight: 1.5 }}>
                         3 · {entry.submit_label || 'YOUR DELIVERABLE LINK OR FILE'}
                       </label>
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12, minWidth: 0, width: '100%' }}>
                         {url.startsWith('blob:') ? (
                           <div style={{
-                            flex: 1,
+                            flex: '1 1 0%',
                             minWidth: 0,
+                            overflow: 'hidden',
                             background: 'rgba(0,0,0,.4)',
                             border: '2px solid var(--ln,#3d2668)',
                             borderRadius: 4,
@@ -730,7 +731,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                               alt="Upload preview" 
                               style={{ height: 32, width: 32, flexShrink: 0, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--mu,#a493c9)' }} 
                             />
-                            <div style={{ flex: 1, minWidth: 0, color: 'var(--tx,#efe6ff)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ flex: '1 1 0%', minWidth: 0, color: 'var(--tx,#efe6ff)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {fileToUpload?.name || 'Uploaded Image'}
                             </div>
                             <button
@@ -749,7 +750,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                             onChange={(e) => setUrl(e.target.value)}
                             disabled={isSubmitting}
                             style={{
-                              flex: 1, boxSizing: 'border-box',
+                              flex: '1 1 0%', minWidth: 0, boxSizing: 'border-box',
                               background: 'rgba(0,0,0,.4)',
                               border: '2px solid var(--ln,#3d2668)',
                               borderRadius: 4, color: 'var(--tx,#efe6ff)',
@@ -764,6 +765,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                           className="font-pixel" 
                           style={{
                             fontSize: 8,
+                            flexShrink: 0,
                             background: 'transparent',
                             border: '2px solid var(--s,#45d6ff)',
                             color: 'var(--s,#45d6ff)',
