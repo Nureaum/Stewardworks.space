@@ -3182,9 +3182,6 @@ export default function AdminConsole({
                                       <span style={{ fontSize: 18 }}>🌱</span>
                                     </div>
                                   )}
-                                  <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', textAlign: 'center' }}>
-                                    {stageLabels[chiaStage]}
-                                  </div>
                                 </div>
 
                                 {/* Name + progress */}
