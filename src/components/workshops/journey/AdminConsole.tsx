@@ -3635,7 +3635,7 @@ export default function AdminConsole({
                     <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>FEATURED CONTRIBUTOR PIECE</div>
                     <select
                       value={selEntry.contrib_id || ''}
-                      onChange={e => handleEntryFieldBlur(selEntry.id, 'contrib_id', e.target.value)}
+                      onChange={e => handleEntryFieldBlur(selEntry.id, 'contrib_id', e.target.value === '' ? null : e.target.value)}
                       style={{ ...inputStyle, fontSize: 16, marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.6)' }}
                     >
                       <option value="">-- Select a piece --</option>

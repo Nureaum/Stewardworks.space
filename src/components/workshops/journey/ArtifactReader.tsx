@@ -423,7 +423,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                       Featured Contributor
                     </div>
                     <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 9 }}>
-                      Loading piece...
+                      {entry.contrib_id ? 'Loading piece...' : 'No piece selected yet.'}
                     </div>
                   </div>
                 )}
