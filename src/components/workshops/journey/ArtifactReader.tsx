@@ -716,6 +716,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         {url.startsWith('blob:') ? (
                           <div style={{
                             flex: 1,
+                            minWidth: 0,
                             background: 'rgba(0,0,0,.4)',
                             border: '2px solid var(--ln,#3d2668)',
                             borderRadius: 4,
@@ -727,14 +728,14 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                             <img 
                               src={url} 
                               alt="Upload preview" 
-                              style={{ height: 32, width: 32, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--mu,#a493c9)' }} 
+                              style={{ height: 32, width: 32, flexShrink: 0, objectFit: 'cover', borderRadius: 3, border: '1px solid var(--mu,#a493c9)' }} 
                             />
-                            <div style={{ flex: 1, color: 'var(--tx,#efe6ff)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ flex: 1, minWidth: 0, color: 'var(--tx,#efe6ff)', fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {fileToUpload?.name || 'Uploaded Image'}
                             </div>
                             <button
                               onClick={() => { setUrl(''); setFileToUpload(null); }}
-                              style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', padding: 4 }}
+                              style={{ flexShrink: 0, background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', padding: 4 }}
                               title="Remove image"
                             >
                               ✕

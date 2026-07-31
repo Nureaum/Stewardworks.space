@@ -148,7 +148,7 @@ export default function JourneyDayList({
           </div>
 
           <div style={{ padding: '16px 14px 20px' }}>
-            <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', marginBottom: 14, paddingLeft: 4 }}>SESSIONS & STOPS</div>
+            <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', marginBottom: 14, paddingLeft: 4 }}>SESSIONS</div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {day.sections?.map(sec => (
