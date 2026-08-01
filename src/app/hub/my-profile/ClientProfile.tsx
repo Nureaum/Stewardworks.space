@@ -2291,11 +2291,22 @@ export default function ClientProfile({
               </div>
 
               {/* Image preview for generations */}
-              {isGenImage && (
-                <div style={{ width: '100%', maxHeight: '240px', overflow: 'hidden' }}>
-                  <img src={r._url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-              )}
+              {(() => {
+                 let previewImg = isGenImage ? r._url : null;
+                 if (r._kind === 'GENERATION' && typeof r.content === 'string' && r.content.startsWith('{')) {
+                   try {
+                     const parsed = JSON.parse(r.content);
+                     if (parsed.previewImageUrl) previewImg = parsed.previewImageUrl;
+                     else if (parsed.previewUrl) previewImg = parsed.previewUrl;
+                   } catch(e) {}
+                 }
+                 if (!previewImg) return null;
+                 return (
+                   <div style={{ width: '100%', maxHeight: '280px', overflow: 'hidden', background: '#e8e4c9', display: 'flex', justifyContent: 'center' }}>
+                     <img src={previewImg} alt={r.title || 'Preview'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                   </div>
+                 );
+              })()}
 
               {/* Body content */}
               <div style={{ padding: '24px 26px 28px' }}>
@@ -2350,10 +2361,31 @@ export default function ClientProfile({
                 {/* Content / Description */}
                 {(r.content || r.description || r.note || r.body) && (
                   <>
-                    <div style={{ height: '1px', background: 'rgba(138,90,46,.15)', margin: '14px 0' }} />
-                    <div style={{ fontSize: '15px', color: '#3a2412', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      {r.content || r.description || r.note || (typeof r.body === 'string' && r.body.replace(/<[^>]+>/g, '').trim())}
-                    </div>
+                    {(() => {
+                       let displayContent = r.content || r.description || r.note || (typeof r.body === 'string' && r.body.replace(/<[^>]+>/g, '').trim()) || '';
+                       
+                       if (typeof displayContent === 'string' && displayContent.startsWith('{') && displayContent.endsWith('}')) {
+                         try {
+                           const parsed = JSON.parse(displayContent);
+                           if (parsed.text) {
+                             displayContent = parsed.text;
+                           } else {
+                             displayContent = ''; // Hide metadata payloads
+                           }
+                         } catch(e) {}
+                       }
+                       
+                       if (!displayContent) return null;
+                       
+                       return (
+                         <>
+                           <div style={{ height: '1px', background: 'rgba(138,90,46,.15)', margin: '14px 0' }} />
+                           <div style={{ fontSize: '15px', color: '#3a2412', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                             {displayContent}
+                           </div>
+                         </>
+                       );
+                    })()}
                   </>
                 )}
 
