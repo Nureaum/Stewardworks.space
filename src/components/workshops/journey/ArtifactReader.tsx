@@ -74,6 +74,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
   const [showFeaturedPopup, setShowFeaturedPopup] = useState(false)
   const [fileToUpload, setFileToUpload] = useState<File | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [isMainTextExpanded, setIsMainTextExpanded] = useState(true)
   // Track banked principles locally so the list updates immediately after submission
   const [localBankedPrincipleIds, setLocalBankedPrincipleIds] = useState<string[]>(bankedPrincipleIds)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -297,10 +298,40 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   const bodyParts = (entry.body || '').split('<!--BLOCK-->')
                   const mainBody = bodyParts[0] || ''
                   const blocks = bodyParts.slice(1)
-                  
+                  const hasMainContent = mainBody && (mainBody.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 || mainBody.includes('<img') || mainBody.includes('<iframe'))
+                  const hasBlocks = blocks.length > 0
+                  const hasAnyContent = hasMainContent || hasBlocks
+
+                  if (!hasAnyContent) return null
+
                   return (
-                    <>
-                      <div dangerouslySetInnerHTML={{ __html: mainBody }} />
+                    <div style={{ marginBottom: 24 }}>
+                      <button
+                        onClick={() => setIsMainTextExpanded(!isMainTextExpanded)}
+                        className="font-pixel"
+                        style={{
+                          fontSize: 10,
+                          color: readerAccent,
+                          background: 'transparent',
+                          border: `1px solid ${readerAccent}40`,
+                          borderRadius: 4,
+                          padding: '6px 10px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          marginBottom: isMainTextExpanded ? 16 : 0,
+                          letterSpacing: 0.5
+                        }}
+                      >
+                        {isMainTextExpanded ? '▼ HIDE DETAILS' : '▶ EXPAND DETAILS'}
+                      </button>
+                      
+                      {isMainTextExpanded && (
+                        <>
+                          {hasMainContent && (
+                            <div dangerouslySetInnerHTML={{ __html: mainBody }} />
+                          )}
                       {blocks.map((blk, idx) => {
                         let blockType = 'text'
                         let blockTitle = ''
@@ -438,7 +469,9 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                           </div>
                         )
                       })}
-                    </>
+                        </>
+                      )}
+                    </div>
                   )
                 })()}
               </div>
@@ -715,6 +748,30 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
             {/* ── Deliverable type (hidden for guests) ── */}
             {isDeliverable && userRole !== 'guest' && (
               <div>
+
+
+                {(() => {
+                  const bodyParts = (entry.body || '').split('<!--BLOCK-->')
+                  const appliedContent = entry.applied || bodyParts[0] || ''
+                  const labContent = entry.lab || bodyParts[1] || ''
+                  
+                  return (
+                    <div style={{ marginBottom: (appliedContent || labContent) ? 24 : 0 }}>
+                      {appliedContent && (
+                        <div style={{ marginTop: 16, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
+                          <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>◈ APPLIED FOCUS</div>
+                          <div dangerouslySetInnerHTML={{ __html: appliedContent }} />
+                        </div>
+                      )}
+                      {labContent && (
+                        <div style={{ marginTop: 12, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
+                          <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>◈ LAB PROCESS</div>
+                          <div dangerouslySetInnerHTML={{ __html: labContent }} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
                 {/* Render additional text blocks for deliverable entries */}
                 {(() => {
                   const bodyParts = (entry.body || '').split('<!--BLOCK-->')
@@ -862,17 +919,6 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                     </div>
                   )
                 })()}
-                {/* Goal */}
-                {entry.goal && (
-                  <div style={{ border: '2px dashed var(--gold,#ffd23f)', borderRadius: 6, padding: 15, background: 'rgba(255,210,63,.05)', marginBottom: 16 }}>
-                    <div className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', marginBottom: 9 }}>
-                      ⛃ DAY {dayNumber < 10 ? `0${dayNumber}` : dayNumber} DELIVERABLE GOAL
-                    </div>
-                    <div style={{ fontSize: 19, color: 'var(--tx,#efe6ff)', lineHeight: 1.4 }}>
-                      {entry.goal}
-                    </div>
-                  </div>
-                )}
 
                 {/* AI Lab link */}
                 <a
@@ -1311,19 +1357,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   )
                 })()}
 
-                {/* Applied + Lab descriptions */}
-                {entry.applied && (
-                  <div style={{ marginTop: 16, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
-                    <span className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', display: 'block', marginBottom: 6 }}>APPLIED FOCUS</span>
-                    <div dangerouslySetInnerHTML={{ __html: entry.applied }} />
-                  </div>
-                )}
-                {entry.lab && (
-                  <div style={{ marginTop: 12, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
-                    <span className="font-pixel" style={{ fontSize: 8, color: 'var(--mu,#a493c9)', display: 'block', marginBottom: 6 }}>LAB</span>
-                    <div dangerouslySetInnerHTML={{ __html: entry.lab }} />
-                  </div>
-                )}
+
               </div>
             )}
           </div>

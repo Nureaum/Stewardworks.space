@@ -29,7 +29,7 @@ import { createEntry, updateEntry, deleteEntry, reorderEntries } from '@/app/act
 import { SortableList } from '@/components/admin/SortableList'
 import { GripVertical } from 'lucide-react'
 import RichEditor from './RichEditor'
-import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia } from '@/app/actions/workshops/entry-media'
+import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia, updateEntryMedia } from '@/app/actions/workshops/entry-media'
 import { createPrinciple, updatePrinciple, deletePrinciple } from '@/app/actions/workshops/principles'
 import { addShowcaseItem, updateShowcaseItem, deleteShowcaseItem, getShowcaseItems, seedShowcaseItems, getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
 import { getPlatforms, createPlatform, deletePlatform } from '@/app/actions/workshops/admin'
@@ -586,6 +586,16 @@ export default function AdminConsole({
         setConfirmDialog(null)
       }
     })
+  }
+
+  const handleMediaCaptionChange = async (mediaId: string, newLabel: string) => {
+    try {
+      setEntryMediaList(prev => prev.map(m => m.id === mediaId ? { ...m, label: newLabel } : m));
+      await updateEntryMedia(mediaId, { label: newLabel });
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update caption');
+    }
   }
 
   useEffect(() => {
@@ -3749,7 +3759,7 @@ export default function AdminConsole({
 
                     return (
                       <>
-                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>PRINCIPLE APPLIED</div>
+                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>APPLIED FOCUS</div>
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={appliedBody}
@@ -3769,15 +3779,7 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>DELIVERABLE GOAL</div>
-                        <div style={{ marginBottom: 16 }}>
-                          <RichEditor
-                            value={goalBody}
-                            onBlur={val => handleEntryFieldBlur(selEntry.id, 'goal', val)}
-                            minHeight={150}
-                            accent="var(--ok,#74f0a0)"
-                          />
-                        </div>
+
 
                         <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBMISSION PROMPT LABEL</div>
                         <input defaultValue={selEntry.submit_label || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'submit_label', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }} placeholder="e.g. Paste your story asset link..." />
@@ -4006,7 +4008,24 @@ export default function AdminConsole({
                         </span>
                         
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          {m.label && <div style={{ fontSize: 14, color: 'var(--tx,#efe6ff)', marginBottom: 6 }}>{m.label}</div>}
+                          <input
+                            type="text"
+                            defaultValue={m.label || ''}
+                            onBlur={(e) => handleMediaCaptionChange(m.id, e.target.value)}
+                            placeholder="Add a caption..."
+                            style={{
+                              width: '100%',
+                              background: 'rgba(0,0,0,0.2)',
+                              border: '1px solid var(--ln,#3d2668)',
+                              borderRadius: 4,
+                              color: 'var(--tx,#efe6ff)',
+                              fontSize: 14,
+                              padding: '6px 8px',
+                              marginBottom: 8,
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
                           
                           {m.kind === 'photo' && m.url ? (
                             <img src={m.url} alt={m.label || 'Attached photo'} style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 6, objectFit: 'contain', border: '1px solid rgba(255,255,255,0.1)' }} />
