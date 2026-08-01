@@ -26,8 +26,18 @@ export const parseNoteContent = (contentStr: string | null) => {
   if (!contentStr) return { text: '', html: '', images: [], subType: 'note', version: 1 };
   try {
     const parsed = JSON.parse(contentStr);
-    if (parsed && parsed.version === 2) {
-      return parsed;
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.version === 2) {
+        return parsed;
+      }
+      // Handle legacy or specific JSON payloads (like {"originalKind": "note"})
+      return { 
+        text: parsed.text || '', 
+        html: parsed.html || '', 
+        images: parsed.images || [], 
+        subType: parsed.originalKind || parsed.subType || 'note', 
+        version: 1 
+      };
     }
   } catch (e) {
     // legacy format or simple string
@@ -1572,7 +1582,25 @@ export default function ClientProfile({
                           {b.status === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.status === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
+                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>
+                          {(() => {
+                            let displayTitle = b.title;
+                            if (displayTitle && displayTitle.includes('/library/')) {
+                              displayTitle = 'Library Resource';
+                            } else if (displayTitle && displayTitle.match(/^[0-9a-fA-F-]{36}$/)) {
+                              displayTitle = 'Bookmarked Resource';
+                            } else if (displayTitle && displayTitle.includes('/workforce-pathways')) {
+                              displayTitle = 'Workforce Pathway';
+                            } else if (displayTitle && displayTitle.startsWith('http')) {
+                              try {
+                                displayTitle = new URL(displayTitle).hostname;
+                              } catch {
+                                // ignore
+                              }
+                            }
+                            return displayTitle;
+                          })()}
+                        </div>
                         <div style={{ fontSize: '11px', color: '#A27532', marginTop: '7px' }}>🔖 {b.source}</div>
                       </div>
                       );

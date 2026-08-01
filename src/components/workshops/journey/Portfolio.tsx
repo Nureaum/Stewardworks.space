@@ -352,6 +352,9 @@ export default function Portfolio({
     
     let finalKind = kind
     let contentPayload: string | undefined = undefined
+    let title = st.value.trim()
+    let url: string | undefined = undefined
+
     if (kind === 'note' && isNoteMiniDeliverable) {
       finalKind = 'mini_deliverable'
       contentPayload = JSON.stringify({ originalKind: 'note' })
@@ -361,7 +364,26 @@ export default function Portfolio({
       contentPayload = JSON.stringify({ originalKind: 'prompt' })
     }
     
-    onAddEngagement(finalKind, st.value.trim(), `workshop:${cohortId}`, undefined, contentPayload)
+    if (kind === 'bookmark') {
+      url = title
+      if (title.includes('/library/')) {
+        title = 'Library Resource'
+      } else if (title.includes('/workforce-pathways')) {
+        title = 'Workforce Pathway'
+      } else if (title.startsWith('http')) {
+        try {
+          title = new URL(title).hostname
+        } catch {
+          title = 'Bookmarked Link'
+        }
+      } else if (title.match(/^[0-9a-fA-F-]{36}$/)) {
+        title = 'Bookmarked Resource'
+      } else {
+        title = 'Bookmarked Link'
+      }
+    }
+    
+    onAddEngagement(finalKind, title, `workshop:${cohortId}`, url, contentPayload)
     
     st.set('')
     if (kind === 'note') setIsNoteMiniDeliverable(false)
@@ -891,7 +913,23 @@ export default function Portfolio({
                                 Mini Deliverable
                               </span>
                             )}
-                            {item.title}
+                            {(() => {
+                              let displayTitle = item.title;
+                              if (displayTitle && displayTitle.includes('/library/')) {
+                                displayTitle = 'Library Resource';
+                              } else if (displayTitle && displayTitle.match(/^[0-9a-fA-F-]{36}$/)) {
+                                displayTitle = 'Bookmarked Resource';
+                              } else if (displayTitle && displayTitle.includes('/workforce-pathways')) {
+                                displayTitle = 'Workforce Pathway';
+                              } else if (displayTitle && displayTitle.startsWith('http')) {
+                                try {
+                                  displayTitle = new URL(displayTitle).hostname;
+                                } catch {
+                                  // ignore
+                                }
+                              }
+                              return displayTitle;
+                            })()}
                           </div>
                           <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 4 }}>
                             {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[item.kind] || 1}%` : item.status === 'rejected' ? <span style={{ color: 'var(--er,#ff5f5f)' }}>✕ rejected</span> : '🕒 pending'}
