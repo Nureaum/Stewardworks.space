@@ -62,6 +62,50 @@ export async function createEntryMedia(entryId: string, data: Omit<CreateEntryMe
 }
 
 /**
+ * Updates an entry media record
+ * @param mediaId - UUID of the media
+ * @param data - The fields to update
+ * @returns The updated media record
+ */
+export async function updateEntryMedia(mediaId: string, data: { label?: string; url?: string; kind?: 'photo' | 'video' | 'audio' | 'link' }) {
+  try {
+    const { userId } = await auth()
+    if (!userId) throw new Error('Authentication required')
+
+    const supabase = createServerSupabaseClient()
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('clerk_user_id', userId)
+      .single()
+
+    if (profileError || !profile) throw new Error('Profile not found')
+    if (!['admin', 'super_admin'].includes(profile.role)) throw new Error('Admin access required')
+
+    const { data: media, error } = await supabase
+      .from('workshop_entry_media')
+      .update(data)
+      .eq('id', mediaId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Update entry media error:', error)
+      throw new Error(`Failed to update entry media: ${error.message}`)
+    }
+
+    revalidatePath('/hub/pilot-workshops')
+    revalidatePath('/admin/pilot-workshops')
+
+    return media
+  } catch (error) {
+    if (error instanceof Error) throw error
+    throw new Error('An unexpected error occurred while updating entry media')
+  }
+}
+
+/**
  * Uploads a file to Supabase Storage and creates an entry media record
  * @param formData - FormData containing entryId, file, kind, and optional label
  * @returns Created media record
