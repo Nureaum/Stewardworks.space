@@ -51,6 +51,190 @@ function relicUri(type: string, accent: string): string {
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='72' height='60' viewBox='0 0 72 60' shape-rendering='crispEdges'>${relic}</svg>`)}`
 }
 
+function CollapsibleBlock({ blk, readerAccent, isFirst }: { blk: string, readerAccent: string, isFirst: boolean }) {
+  const [isExpanded, setIsExpanded] = React.useState(true);
+
+  let blockType = 'text'
+  let blockTitle = ''
+  let blockRawContent = blk
+
+  const typeMatch = blockRawContent.match(/^<!--TYPE:(.*?)-->/)
+  if (typeMatch) {
+    blockType = typeMatch[1]
+    blockRawContent = blockRawContent.substring(typeMatch[0].length)
+  }
+
+  const titleMatch = blockRawContent.match(/^<!--TITLE:(.*?)-->/)
+  if (titleMatch) {
+    blockTitle = titleMatch[1]
+    blockRawContent = blockRawContent.substring(titleMatch[0].length)
+  }
+
+  let listItems: string[] = []
+  if (blockType === 'list') {
+    try {
+      listItems = JSON.parse(blockRawContent)
+      if (!Array.isArray(listItems)) listItems = []
+    } catch (e) {
+      listItems = blockRawContent ? blockRawContent.split('<!--LIST_ITEM-->') : []
+    }
+  }
+
+  const titleContent = (() => {
+    if (!blockTitle) return null;
+    if (blockType === 'highlighted_box') {
+      return (
+        <div className="font-pixel" style={{ 
+          fontSize: 9, 
+          color: 'var(--bg,#12081e)', 
+          background: readerAccent, 
+          padding: '6px 10px', 
+          borderRadius: 4,
+          display: 'inline-block',
+          letterSpacing: 1,
+          boxShadow: `0 2px 0 rgba(0,0,0,.3)`
+        }}>
+          {isExpanded ? '▼' : '▶'} ◈ {blockTitle.toUpperCase()}
+        </div>
+      );
+    }
+    if (blockType === 'quote') {
+      return (
+        <div style={{ 
+          fontSize: 11, 
+          color: readerAccent,
+          fontWeight: 600,
+          letterSpacing: 0.5,
+          textTransform: 'uppercase',
+          lineHeight: 1.4,
+          fontFamily: "'Press Start 2P', cursive",
+          maxWidth: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '10px' }}>{isExpanded ? '▼' : '▶'}</span> {blockTitle}
+        </div>
+      );
+    }
+    if (blockType === 'list') {
+      return (
+        <div style={{ 
+          fontSize: 20, 
+          color: 'var(--mu,#a493c9)', 
+          lineHeight: 1.4,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '12px' }}>{isExpanded ? '▼' : '▶'}</span> {blockTitle}
+        </div>
+      );
+    }
+    return (
+      <div className="font-pixel" style={{ 
+        fontSize: 9, 
+        color: readerAccent, 
+        letterSpacing: 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+      }}>
+        <span>{isExpanded ? '▼' : '▶'}</span> ◈ {blockTitle.toUpperCase()}
+      </div>
+    );
+  })();
+
+  return (
+    <div style={{ marginTop: isFirst ? 0 : 24, paddingTop: isFirst ? 0 : 20, borderTop: isFirst ? 'none' : '1px dashed var(--ln,#3d2668)' }}>
+      {blockType === 'highlighted_box' ? (
+        <div style={{ 
+          background: 'transparent', 
+          border: `3px solid ${readerAccent}`, 
+          borderRadius: 10, 
+          padding: 20
+        }}>
+          {blockTitle && (
+            <div style={{ cursor: 'pointer', marginBottom: isExpanded ? 16 : 0, userSelect: 'none', display: 'inline-block' }} onClick={() => setIsExpanded(!isExpanded)}>
+              {titleContent}
+            </div>
+          )}
+          {isExpanded && (
+            <div style={{ color: 'var(--tx,#efe6ff)', textShadow: 'none', lineHeight: 1.6, fontSize: 17 }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
+          )}
+        </div>
+      ) : blockType === 'quote' ? (
+        <div style={{ 
+          display: 'flex',
+          gap: 0,
+          alignItems: 'stretch',
+          padding: 0,
+          position: 'relative'
+        }}>
+          <div style={{
+            width: '4px',
+            background: readerAccent,
+            flex: 'none',
+            borderRadius: '2px',
+            marginRight: 20
+          }} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {blockTitle && (
+              <div style={{ cursor: 'pointer', userSelect: 'none', marginBottom: isExpanded ? 0 : -16, display: 'inline-block' }} onClick={() => setIsExpanded(!isExpanded)}>
+                {titleContent}
+              </div>
+            )}
+            {isExpanded && (
+              <div style={{ 
+                fontSize: 17,
+                color: 'var(--tx,#efe6ff)',
+                lineHeight: 1.6,
+                fontStyle: 'italic'
+              }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
+            )}
+          </div>
+        </div>
+      ) : blockType === 'list' ? (
+        <div>
+          {blockTitle && (
+            <div style={{ cursor: 'pointer', marginBottom: isExpanded ? 18 : 0, userSelect: 'none', display: 'inline-block' }} onClick={() => setIsExpanded(!isExpanded)}>
+              {titleContent}
+            </div>
+          )}
+          {isExpanded && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {listItems.map((item, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: 14, alignItems: 'center',
+                  border: `2px solid ${readerAccent}40`, 
+                  borderRadius: 8,
+                  padding: '16px 18px', 
+                  background: 'rgba(0,0,0,.15)',
+                  transition: 'all 0.2s'
+                }}>
+                  <span style={{ fontSize: 16, color: readerAccent, flex: 'none' }}>◆</span>
+                  <span style={{ fontSize: 18, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, flex: 1 }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          {blockTitle && (
+            <div style={{ cursor: 'pointer', marginBottom: isExpanded ? 12 : 0, userSelect: 'none', display: 'inline-block' }} onClick={() => setIsExpanded(!isExpanded)}>
+              {titleContent}
+            </div>
+          )}
+          {isExpanded && (
+            <div dangerouslySetInnerHTML={{ __html: blockRawContent }} />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent, cohortId, principles = [], bankedPrincipleIds = [], allBankedPrinciples = [], currentDayPrincipleId: propCurrentDayPrincipleId, progressRows = [], submissions = [], onDeliverableSubmitted, onClose, inline, userRole = 'participant', onBookmark, isBookmarked = false }: ArtifactReaderProps) {
   const readerAccent = secColor(entry.sectionKey)
   const iconSrc = relicUri(entry.entry_type, accent)
@@ -306,171 +490,12 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
 
                   return (
                     <div style={{ marginBottom: 24 }}>
-                      <button
-                        onClick={() => setIsMainTextExpanded(!isMainTextExpanded)}
-                        className="font-pixel"
-                        style={{
-                          fontSize: 10,
-                          color: readerAccent,
-                          background: 'transparent',
-                          border: `1px solid ${readerAccent}40`,
-                          borderRadius: 4,
-                          padding: '6px 10px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          marginBottom: isMainTextExpanded ? 16 : 0,
-                          letterSpacing: 0.5
-                        }}
-                      >
-                        {isMainTextExpanded ? '▼ HIDE DETAILS' : '▶ EXPAND DETAILS'}
-                      </button>
-                      
-                      {isMainTextExpanded && (
-                        <>
-                          {hasMainContent && (
-                            <div dangerouslySetInnerHTML={{ __html: mainBody }} />
-                          )}
-                      {blocks.map((blk, idx) => {
-                        let blockType = 'text'
-                        let blockTitle = ''
-                        let blockRawContent = blk
-
-                        const typeMatch = blockRawContent.match(/^<!--TYPE:(.*?)-->/)
-                        if (typeMatch) {
-                          blockType = typeMatch[1]
-                          blockRawContent = blockRawContent.substring(typeMatch[0].length)
-                        }
-
-                        const titleMatch = blockRawContent.match(/^<!--TITLE:(.*?)-->/)
-                        if (titleMatch) {
-                          blockTitle = titleMatch[1]
-                          blockRawContent = blockRawContent.substring(titleMatch[0].length)
-                        }
-
-                        let listItems: string[] = []
-                        if (blockType === 'list') {
-                          try {
-                            listItems = JSON.parse(blockRawContent)
-                            if (!Array.isArray(listItems)) listItems = []
-                          } catch (e) {
-                            listItems = blockRawContent ? blockRawContent.split('<!--LIST_ITEM-->') : []
-                          }
-                        }
-
-                        return (
-                          <div key={idx} style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed var(--ln,#3d2668)' }}>
-                            {blockType === 'highlighted_box' ? (
-                              <div style={{ 
-                                background: 'transparent', 
-                                border: `3px solid ${readerAccent}`, 
-                                borderRadius: 10, 
-                                padding: 20
-                              }}>
-                                {blockTitle && (
-                                  <div className="font-pixel" style={{ 
-                                    fontSize: 9, 
-                                    color: 'var(--bg,#12081e)', 
-                                    background: readerAccent, 
-                                    padding: '6px 10px', 
-                                    borderRadius: 4,
-                                    display: 'inline-block',
-                                    marginBottom: 16, 
-                                    letterSpacing: 1,
-                                    boxShadow: `0 2px 0 rgba(0,0,0,.3)`
-                                  }}>
-                                    ◈ {blockTitle.toUpperCase()}
-                                  </div>
-                                )}
-                                <div style={{ color: 'var(--tx,#efe6ff)', textShadow: 'none', lineHeight: 1.6, fontSize: 17 }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                              </div>
-                            ) : blockType === 'quote' ? (
-                              <div style={{ 
-                                display: 'flex',
-                                gap: 0,
-                                alignItems: 'stretch',
-                                padding: 0,
-                                position: 'relative'
-                              }}>
-                                <div style={{
-                                  width: '4px',
-                                  background: readerAccent,
-                                  flex: 'none',
-                                  borderRadius: '2px',
-                                  marginRight: 20
-                                }} />
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                  {blockTitle && (
-                                    <div style={{ 
-                                      fontSize: 11, 
-                                      color: readerAccent,
-                                      fontWeight: 600,
-                                      letterSpacing: 0.5,
-                                      textTransform: 'uppercase',
-                                      lineHeight: 1.4,
-                                      fontFamily: "'Press Start 2P', cursive",
-                                      maxWidth: 240
-                                    }}>
-                                      {blockTitle}
-                                    </div>
-                                  )}
-                                  <div style={{ 
-                                    fontSize: 17,
-                                    color: 'var(--tx,#efe6ff)',
-                                    lineHeight: 1.6,
-                                    fontStyle: 'italic'
-                                  }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                                </div>
-                              </div>
-                            ) : blockType === 'list' ? (
-                              <div>
-                                {blockTitle && (
-                                  <div style={{ 
-                                    fontSize: 20, 
-                                    color: 'var(--mu,#a493c9)', 
-                                    marginBottom: 18,
-                                    lineHeight: 1.4
-                                  }}>
-                                    {blockTitle}
-                                  </div>
-                                )}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                  {listItems.map((item, i) => (
-                                    <div key={i} style={{
-                                      display: 'flex', gap: 14, alignItems: 'center',
-                                      border: `2px solid ${readerAccent}40`, 
-                                      borderRadius: 8,
-                                      padding: '16px 18px', 
-                                      background: 'rgba(0,0,0,.15)',
-                                      transition: 'all 0.2s'
-                                    }}>
-                                      <span style={{ fontSize: 16, color: readerAccent, flex: 'none' }}>◆</span>
-                                      <span style={{ fontSize: 18, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, flex: 1 }}>{item}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                {blockTitle && (
-                                  <div className="font-pixel" style={{ 
-                                    fontSize: 9, 
-                                    color: readerAccent, 
-                                    marginBottom: 12, 
-                                    letterSpacing: 1
-                                  }}>
-                                    ◈ {blockTitle.toUpperCase()}
-                                  </div>
-                                )}
-                                <div dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                        </>
+                      {hasMainContent && (
+                        <div dangerouslySetInnerHTML={{ __html: mainBody }} />
                       )}
+                      {blocks.map((blk, idx) => (
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={!hasMainContent && idx === 0} />
+                      ))}
                     </div>
                   )
                 })()}
@@ -602,143 +627,9 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   
                   return (
                     <>
-                      {blocks.map((blk, idx) => {
-                        let blockType = 'text'
-                        let blockTitle = ''
-                        let blockRawContent = blk
-
-                        const typeMatch = blockRawContent.match(/^<!--TYPE:(.*?)-->/)
-                        if (typeMatch) {
-                          blockType = typeMatch[1]
-                          blockRawContent = blockRawContent.substring(typeMatch[0].length)
-                        }
-
-                        const titleMatch = blockRawContent.match(/^<!--TITLE:(.*?)-->/)
-                        if (titleMatch) {
-                          blockTitle = titleMatch[1]
-                          blockRawContent = blockRawContent.substring(titleMatch[0].length)
-                        }
-
-                        let listItems: string[] = []
-                        if (blockType === 'list') {
-                          try {
-                            listItems = JSON.parse(blockRawContent)
-                            if (!Array.isArray(listItems)) listItems = []
-                          } catch (e) {
-                            listItems = blockRawContent ? blockRawContent.split('<!--LIST_ITEM-->') : []
-                          }
-                        }
-
-                        return (
-                          <div key={idx} style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed var(--ln,#3d2668)' }}>
-                            {blockType === 'highlighted_box' ? (
-                              <div style={{ 
-                                background: 'transparent', 
-                                border: `3px solid ${readerAccent}`, 
-                                borderRadius: 10, 
-                                padding: 20
-                              }}>
-                                {blockTitle && (
-                                  <div className="font-pixel" style={{ 
-                                    fontSize: 9, 
-                                    color: 'var(--bg,#12081e)', 
-                                    background: readerAccent, 
-                                    padding: '6px 10px', 
-                                    borderRadius: 4,
-                                    display: 'inline-block',
-                                    marginBottom: 16, 
-                                    letterSpacing: 1,
-                                    boxShadow: `0 2px 0 rgba(0,0,0,.3)`
-                                  }}>
-                                    ◈ {blockTitle.toUpperCase()}
-                                  </div>
-                                )}
-                                <div style={{ color: 'var(--tx,#efe6ff)', textShadow: 'none', lineHeight: 1.6, fontSize: 17 }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                              </div>
-                            ) : blockType === 'quote' ? (
-                              <div style={{ 
-                                display: 'flex',
-                                gap: 0,
-                                alignItems: 'stretch',
-                                padding: 0,
-                                position: 'relative'
-                              }}>
-                                <div style={{
-                                  width: '4px',
-                                  background: readerAccent,
-                                  flex: 'none',
-                                  borderRadius: '2px',
-                                  marginRight: 20
-                                }} />
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                  {blockTitle && (
-                                    <div style={{ 
-                                      fontSize: 11, 
-                                      color: readerAccent,
-                                      fontWeight: 600,
-                                      letterSpacing: 0.5,
-                                      textTransform: 'uppercase',
-                                      lineHeight: 1.4,
-                                      fontFamily: "'Press Start 2P', cursive",
-                                      maxWidth: 240
-                                    }}>
-                                      {blockTitle}
-                                    </div>
-                                  )}
-                                  <div style={{ 
-                                    fontSize: 17,
-                                    color: 'var(--tx,#efe6ff)',
-                                    lineHeight: 1.6,
-                                    fontStyle: 'italic'
-                                  }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                                </div>
-                              </div>
-                            ) : blockType === 'list' ? (
-                              <div>
-                                {blockTitle && (
-                                  <div style={{ 
-                                    fontSize: 20, 
-                                    color: 'var(--mu,#a493c9)', 
-                                    marginBottom: 18,
-                                    lineHeight: 1.4
-                                  }}>
-                                    {blockTitle}
-                                  </div>
-                                )}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                  {listItems.map((item, i) => (
-                                    <div key={i} style={{
-                                      display: 'flex', gap: 14, alignItems: 'center',
-                                      border: `2px solid ${readerAccent}40`, 
-                                      borderRadius: 8,
-                                      padding: '16px 18px', 
-                                      background: 'rgba(0,0,0,.15)',
-                                      transition: 'all 0.2s'
-                                    }}>
-                                      <span style={{ fontSize: 16, color: readerAccent, flex: 'none' }}>◆</span>
-                                      <span style={{ fontSize: 18, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, flex: 1 }}>{item}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                {blockTitle && (
-                                  <div className="font-pixel" style={{ 
-                                    fontSize: 9, 
-                                    color: readerAccent, 
-                                    marginBottom: 12, 
-                                    letterSpacing: 1
-                                  }}>
-                                    ◈ {blockTitle.toUpperCase()}
-                                  </div>
-                                )}
-                                <div dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
+                      {blocks.map((blk, idx) => (
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} />
+                      ))}
                     </>
                   )
                 })()}
@@ -776,146 +667,14 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                 {(() => {
                   const bodyParts = (entry.body || '').split('<!--BLOCK-->')
                   const blocks = bodyParts.slice(1) // Skip mainBody, only render blocks
+                  const appliedContent = entry.applied || bodyParts[0] || ''
+                  const labContent = entry.lab || bodyParts[1] || ''
                   
                   return (
                     <div style={{ marginBottom: blocks.length > 0 ? 32 : 0 }}>
-                      {blocks.map((blk, idx) => {
-                        let blockType = 'text'
-                        let blockTitle = ''
-                        let blockRawContent = blk
-
-                        const typeMatch = blockRawContent.match(/^<!--TYPE:(.*?)-->/)
-                        if (typeMatch) {
-                          blockType = typeMatch[1]
-                          blockRawContent = blockRawContent.substring(typeMatch[0].length)
-                        }
-
-                        const titleMatch = blockRawContent.match(/^<!--TITLE:(.*?)-->/)
-                        if (titleMatch) {
-                          blockTitle = titleMatch[1]
-                          blockRawContent = blockRawContent.substring(titleMatch[0].length)
-                        }
-
-                        let listItems: string[] = []
-                        if (blockType === 'list') {
-                          try {
-                            listItems = JSON.parse(blockRawContent)
-                            if (!Array.isArray(listItems)) listItems = []
-                          } catch (e) {
-                            listItems = blockRawContent ? blockRawContent.split('<!--LIST_ITEM-->') : []
-                          }
-                        }
-
-                        return (
-                          <div key={idx} style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed var(--ln,#3d2668)' }}>
-                            {blockType === 'highlighted_box' ? (
-                              <div style={{ 
-                                background: 'transparent', 
-                                border: `3px solid ${readerAccent}`, 
-                                borderRadius: 10, 
-                                padding: 20
-                              }}>
-                                {blockTitle && (
-                                  <div className="font-pixel" style={{ 
-                                    fontSize: 9, 
-                                    color: 'var(--bg,#12081e)', 
-                                    background: readerAccent, 
-                                    padding: '6px 10px', 
-                                    borderRadius: 4,
-                                    display: 'inline-block',
-                                    marginBottom: 16, 
-                                    letterSpacing: 1,
-                                    boxShadow: `0 2px 0 rgba(0,0,0,.3)`
-                                  }}>
-                                    ◈ {blockTitle.toUpperCase()}
-                                  </div>
-                                )}
-                                <div style={{ color: 'var(--tx,#efe6ff)', textShadow: 'none', lineHeight: 1.6, fontSize: 17 }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                              </div>
-                            ) : blockType === 'quote' ? (
-                              <div style={{ 
-                                display: 'flex',
-                                gap: 0,
-                                alignItems: 'stretch',
-                                padding: 0,
-                                position: 'relative'
-                              }}>
-                                <div style={{
-                                  width: '4px',
-                                  background: readerAccent,
-                                  flex: 'none',
-                                  borderRadius: '2px',
-                                  marginRight: 20
-                                }} />
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                  {blockTitle && (
-                                    <div style={{ 
-                                      fontSize: 11, 
-                                      color: readerAccent,
-                                      fontWeight: 600,
-                                      letterSpacing: 0.5,
-                                      textTransform: 'uppercase',
-                                      lineHeight: 1.4,
-                                      fontFamily: "'Press Start 2P', cursive",
-                                      maxWidth: 240
-                                    }}>
-                                      {blockTitle}
-                                    </div>
-                                  )}
-                                  <div style={{ 
-                                    fontSize: 17,
-                                    color: 'var(--tx,#efe6ff)',
-                                    lineHeight: 1.6,
-                                    fontStyle: 'italic'
-                                  }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                                </div>
-                              </div>
-                            ) : blockType === 'list' ? (
-                              <div>
-                                {blockTitle && (
-                                  <div style={{ 
-                                    fontSize: 20, 
-                                    color: 'var(--mu,#a493c9)', 
-                                    marginBottom: 18,
-                                    lineHeight: 1.4
-                                  }}>
-                                    {blockTitle}
-                                  </div>
-                                )}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                  {listItems.map((item, i) => (
-                                    <div key={i} style={{
-                                      display: 'flex', gap: 14, alignItems: 'center',
-                                      border: `2px solid ${readerAccent}40`, 
-                                      borderRadius: 8,
-                                      padding: '16px 18px', 
-                                      background: 'rgba(0,0,0,.15)',
-                                      transition: 'all 0.2s'
-                                    }}>
-                                      <span style={{ fontSize: 16, color: readerAccent, flex: 'none' }}>◆</span>
-                                      <span style={{ fontSize: 18, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, flex: 1 }}>{item}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                {blockTitle && (
-                                  <div className="font-pixel" style={{ 
-                                    fontSize: 9, 
-                                    color: readerAccent, 
-                                    marginBottom: 12, 
-                                    letterSpacing: 1
-                                  }}>
-                                    ◈ {blockTitle.toUpperCase()}
-                                  </div>
-                                )}
-                                <div dangerouslySetInnerHTML={{ __html: blockRawContent }} />
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
+                      {blocks.map((blk, idx) => (
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={!(appliedContent || labContent) && idx === 0} />
+                      ))}
                     </div>
                   )
                 })()}

@@ -120,6 +120,7 @@ export default function Portfolio({
   const [assetInput, setAssetInput] = useState('')
   const [assetFileToUpload, setAssetFileToUpload] = useState<File | null>(null)
   const [isUploadingAsset, setIsUploadingAsset] = useState(false)
+  const [assetShowcaseSubmit, setAssetShowcaseSubmit] = useState(false)
   const assetFileInputRef = useRef<HTMLInputElement>(null)
   // Preview image for non-media URL submissions
   const [assetPreviewFile, setAssetPreviewFile] = useState<File | null>(null)
@@ -409,9 +410,14 @@ export default function Portfolio({
       formData.append('file', assetFileToUpload)
       uploadCreationImage(formData)
         .then((publicUrl) => {
-          onAddEngagement('generation', assetFileToUpload.name, 'upload', publicUrl)
+          const contentData = JSON.stringify({
+            showcaseRequested: assetShowcaseSubmit,
+            showcaseVisible: false,
+          })
+          onAddEngagement('generation', assetFileToUpload.name, 'upload', publicUrl, contentData)
           setAssetFileToUpload(null)
           setAssetInput('')
+          setAssetShowcaseSubmit(false)
         })
         .catch((err) => console.error('Failed to upload asset:', err))
         .finally(() => setIsUploadingAsset(false))
@@ -423,18 +429,29 @@ export default function Portfolio({
       uploadCreationImage(formData)
         .then((previewUrl) => {
           const url = assetInput.trim()
-          const contentJson = JSON.stringify({ url, previewUrl })
+          const contentJson = JSON.stringify({ 
+            url, 
+            previewUrl,
+            showcaseRequested: assetShowcaseSubmit,
+            showcaseVisible: false,
+          })
           onAddEngagement('generation', url, 'link', url, contentJson)
           setAssetInput('')
           setAssetPreviewFile(null)
           if (assetPreviewObjectUrl) URL.revokeObjectURL(assetPreviewObjectUrl)
           setAssetPreviewObjectUrl(null)
+          setAssetShowcaseSubmit(false)
         })
         .catch((err) => console.error('Failed to upload asset preview:', err))
         .finally(() => setIsUploadingAsset(false))
     } else {
-      onAddEngagement('generation', assetInput.trim(), 'link', assetInput.trim())
+      const contentData = JSON.stringify({
+        showcaseRequested: assetShowcaseSubmit,
+        showcaseVisible: false,
+      })
+      onAddEngagement('generation', assetInput.trim(), 'link', assetInput.trim(), contentData)
       setAssetInput('')
+      setAssetShowcaseSubmit(false)
     }
   }
 
@@ -1046,10 +1063,11 @@ export default function Portfolio({
 
           {/* Input row */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {assetInput.startsWith('blob:') ? (
                 <div style={{
                   flex: 1,
+                  minWidth: 200,
                   background: '#1a0e2e',
                   border: '1px solid var(--ln,#3d2668)',
                   borderRadius: 6,
@@ -1089,6 +1107,7 @@ export default function Portfolio({
                   placeholder="Paste link…"
                   style={{
                     flex: 1,
+                    minWidth: 200,
                     background: '#1a0e2e',
                     border: '1px solid var(--ln,#3d2668)',
                     borderRadius: 6,
@@ -1138,6 +1157,48 @@ export default function Portfolio({
               >
                 {isUploadingAsset ? '⏳' : '＋ SAVE'}
               </button>
+            </div>
+            {/* Showcase checkbox */}
+            <button
+              onClick={() => setAssetShowcaseSubmit(!assetShowcaseSubmit)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 10px',
+                background: 'rgba(0,0,0,.2)',
+                border: `2px solid ${assetShowcaseSubmit ? 'var(--pk,#ff5fd2)' : 'var(--ln,#3d2668)'}`,
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                color: 'var(--tx,#efe6ff)',
+                width: 'fit-content',
+              }}
+            >
+              <span
+                style={{
+                  width: 16,
+                  height: 16,
+                  border: '2px solid var(--pk,#ff5fd2)',
+                  borderRadius: 3,
+                  background: assetShowcaseSubmit ? 'var(--pk,#ff5fd2)' : 'transparent',
+                  color: assetShowcaseSubmit ? '#12081e' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  flex: 'none',
+                }}
+              >
+                {assetShowcaseSubmit ? '✓' : ''}
+              </span>
+              <span style={{ lineHeight: 1.3 }}>
+                Submit to the curated <b>Student Showcase</b>
+              </span>
+            </button>
+            <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', lineHeight: 1.3 }}>
+              Student assets are reviewed by faculty before appearing in your public portfolio or the showcase.{' '}
+              <span style={{ color: 'var(--sy,#ffd23f)' }}>* Submitting to the Showcase grants an extra <b>+1% engagement</b> upon approval (3% total).</span>
             </div>
             {/* Preview image picker — shown only when URL is pasted and detected as a non-media link */}
             {assetInput.trim() && !assetInput.startsWith('blob:') && detectMediaType(assetInput) === 'link' && (
