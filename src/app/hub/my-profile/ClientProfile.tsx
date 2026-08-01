@@ -112,7 +112,7 @@ export default function ClientProfile({
   const [editGenTitle, setEditGenTitle] = useState('');
   const [editGenUrl, setEditGenUrl] = useState('');
   const [isDeletingItem, setIsDeletingItem] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark', percentage: number, title: string, isBookmark: boolean } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark' | 'suggestion', percentage: number, title: string, isBookmark: boolean } | null>(null);
   const [tempValue, setTempValue] = useState('');
   const [tempMultiValue, setTempMultiValue] = useState<string[]>([]);
   const [otherValue, setOtherValue] = useState('');
@@ -317,7 +317,8 @@ export default function ClientProfile({
                 source: e.source || 'AI Lab',
                 status: e.status || 'pending',
                 reviewNote: e.review_note || null,
-                created_at: e.created_at
+                created_at: e.created_at,
+                content: e.content
               };
             });
           console.log('[ClientProfile] Mapped generation engagements:', generationEngagements);
@@ -650,13 +651,13 @@ export default function ClientProfile({
     return points;
   };
 
-  const confirmDeleteEngagement = (id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark', title: string, isBookmark: boolean, source: string = '', content: string | null = null) => {
+  const confirmDeleteEngagement = (id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark' | 'suggestion', title: string, isBookmark: boolean, source: string = '', content: string | null = null, customPercentage?: number) => {
     setItemToDelete({
       id,
       kind,
       title,
       isBookmark,
-      percentage: calculateItemPercentage(kind, source, content)
+      percentage: customPercentage !== undefined ? customPercentage : calculateItemPercentage(kind, source, content)
     });
   };
 
@@ -675,6 +676,9 @@ export default function ClientProfile({
       setBookmarkedWorkforce(prev => prev.filter(b => b.id !== id));
       setBookmarkedJobs(prev => prev.filter(b => b.id !== id));
       setBookmarkedEnvironmental(prev => prev.filter(b => b.id !== id));
+      setEnvSuggestions(prev => prev.filter(s => s.id !== id));
+      setWfSuggestions(prev => prev.filter(s => s.id !== id));
+      setLibSuggestions(prev => prev.filter(s => s.id !== id));
       // Close popups
       setSelectedNoteItem(null);
       setSelectedResourceItem(null);
@@ -1676,7 +1680,17 @@ export default function ClientProfile({
               const isVideo = g.url && /\.(mp4|webm|mov)(\?|#|$)/i.test(g.url);
               const isAudio = g.url && /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(g.url);
               const typeTag = isVideo ? 'VIDEO' : isAudio ? 'AUDIO' : isImageUrl ? 'IMAGE' : 'LINK';
-              
+
+              let isShowcaseApproved = false;
+              if (g.content) {
+                try {
+                  const contentData = JSON.parse(g.content);
+                  if (contentData.showcaseVisible === true) {
+                    isShowcaseApproved = true;
+                  }
+                } catch (e) {}
+              }
+
               return (
                 <div key={g.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '0', boxShadow: '0 8px 18px rgba(0,0,0,.06)', overflow: 'hidden', cursor: 'pointer', minWidth: 0 }} onClick={() => setSelectedResourceItem({ ...g, _kind: 'GENERATION', _color: '#45d6ff', _bg: '#FEFAE0', _url: g.url, _status: g.status, _source: g.source, _typeTag: typeTag, _isImageUrl: isImageUrl })}>
                   {/* Media Preview - Full width at top */}
@@ -1715,7 +1729,14 @@ export default function ClientProfile({
                   <div style={{ padding: '15px 16px', minWidth: 0 }}>
                     {/* Badges */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: 'linear-gradient(135deg,#45d6ff,#74f0a0)', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>GENERATION</span>
+                      {g.source === 'Student Showcase' ? (
+                        <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#7c5cbf', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>🌟 STUDENT SHOWCASE</span>
+                      ) : (
+                        <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: 'linear-gradient(135deg,#45d6ff,#74f0a0)', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>GENERATION</span>
+                      )}
+                      {isShowcaseApproved && g.source !== 'Student Showcase' && (
+                        <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#7c5cbf', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>🌟 SHOWCASE APPROVED</span>
+                      )}
                       {g.status === 'pending' && (
                         <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
                       )}
@@ -1875,11 +1896,24 @@ export default function ClientProfile({
                           {s.url}
                         </a>
                       )}
-                      {s.status === 'approved' && s.library_item_id && (
-                        <a href={`/hub/library/${s.library_item_id}`} style={{ display: 'inline-block', marginTop: '12px', background: '#2E5534', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
-                          View in Library ➔
-                        </a>
-                      )}
+                      <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(0,0,0,0.04)', display: 'flex', justifyContent: (s.status === 'approved' && s.library_item_id) ? 'space-between' : 'flex-end', alignItems: 'center' }}>
+                        {s.status === 'approved' && s.library_item_id && (
+                          <a href={`/hub/library/${s.library_item_id}`} style={{ display: 'inline-block', background: '#2E5534', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', textDecoration: 'none', fontWeight: 600 }}>
+                            View in Library ➔
+                          </a>
+                        )}
+
+                        <button 
+                          onClick={() => confirmDeleteEngagement(s.id, 'suggestion', s.title, false, s.source || '', null, s.status === 'approved' ? 2 : 0)}
+                          disabled={isDeletingItem && itemToDelete?.id === s.id}
+                          style={{
+                            background: 'none', border: 'none', color: '#b56d6d', fontSize: '12px', fontWeight: 600,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', opacity: (isDeletingItem && itemToDelete?.id === s.id) ? 0.5 : 1
+                          }}
+                        >
+                          {(isDeletingItem && itemToDelete?.id === s.id) ? '⏳' : '🗑️'} Delete
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -2239,10 +2273,16 @@ export default function ClientProfile({
               <div style={{ padding: '24px 26px 28px' }}>
                 {/* Type badge + status */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '24px', height: '24px', borderRadius: '4px', background: color, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{r._kind?.slice(0,2)}</span>
-                    <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: color, fontWeight: 700 }}>{r._kind}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ width: '24px', height: '24px', borderRadius: '4px', background: r._source === 'Student Showcase' ? '#7c5cbf' : color, color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '9px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{r._source === 'Student Showcase' ? 'SS' : r._kind?.slice(0,2)}</span>
+                    <span style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.1em', color: r._source === 'Student Showcase' ? '#7c5cbf' : color, fontWeight: 700 }}>{r._source === 'Student Showcase' ? '🌟 STUDENT SHOWCASE' : r._kind}</span>
                     {r._typeTag && <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: '#8a7c66' }}>{r._typeTag}</span>}
+                    {r._kind === 'GENERATION' && r._source !== 'Student Showcase' && (() => {
+                      try {
+                        const contentData = r.content ? JSON.parse(r.content) : {};
+                        return contentData.showcaseVisible ? <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#7c5cbf', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>🌟 SHOWCASE APPROVED</span> : null;
+                      } catch (e) { return null; }
+                    })()}
                   </div>
                   {dateStr && (
                     <span style={{ fontFamily: '"Courier New", monospace', fontSize: '9px', color: '#7A2E2E', border: '1.5px solid #7A2E2E', padding: '4px 8px', borderRadius: '3px', letterSpacing: '.06em', transform: 'rotate(-2deg)', opacity: 0.8 }}>

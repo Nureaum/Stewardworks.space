@@ -160,6 +160,7 @@ export default function HubPage() {
       {!showDemoVideoOverlay && demoVideoUrl && (
         <DemoFloatingButton 
           onClick={() => setShowDemoVideoOverlay(true)} 
+          isBouncing={!hasSeenDemo}
         />
       )}
     </>

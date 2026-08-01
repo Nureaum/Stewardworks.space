@@ -1103,7 +1103,7 @@ export default function AdminAnnouncementsPage() {
 
         {/* Program Documents (PDFs) Modal */}
         {showPdfModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed top-0 right-0 bottom-0 left-[246px] z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[800px] max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
@@ -1193,7 +1193,7 @@ export default function AdminAnnouncementsPage() {
 
         {/* Demo Video Modal */}
         {showDemoVideoModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed top-0 right-0 bottom-0 left-[246px] z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[800px] max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
@@ -1210,7 +1210,7 @@ export default function AdminAnnouncementsPage() {
               </div>
 
               <div className="bg-[#fdfaf0] border border-[#785a32]/20 rounded-xl p-5">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input 
                     type="text"
                     placeholder="e.g. https://youtube.com/watch?v=... or upload below"
@@ -1218,14 +1218,14 @@ export default function AdminAnnouncementsPage() {
                     onChange={(e) => setDemoVideoUrl(e.target.value)} 
                     className="flex-1 p-[13px_15px] rounded-[11px] border border-[#785a32]/20 bg-white text-[13.5px] outline-none focus:border-[#2c8a4a] transition-colors"
                   />
-                  <label className={`cursor-pointer px-4 py-3 rounded-[11px] border border-[#785a32]/20 bg-white hover:bg-gray-50 flex items-center justify-center text-[13.5px] font-bold text-[#5c4f3c] transition-colors ${isUploadingDemoVideo ? 'opacity-50' : ''}`}>
+                  <label className={`cursor-pointer px-4 py-3 rounded-[11px] border border-[#785a32]/20 bg-white hover:bg-gray-50 flex items-center justify-center text-[13.5px] font-bold text-[#5c4f3c] transition-colors whitespace-nowrap ${isUploadingDemoVideo ? 'opacity-50' : ''}`}>
                     <input type="file" accept="video/*" className="hidden" onChange={handleUploadDemoVideo} disabled={isUploadingDemoVideo} />
                     {isUploadingDemoVideo ? 'Uploading...' : 'Upload Video'}
                   </label>
                 </div>
 
                 {demoVideoUrl && (
-                  <div className="mt-[14px] flex gap-2">
+                  <div className="mt-[14px] flex flex-col sm:flex-row gap-2">
                     <button 
                       onClick={handleDeleteDemoVideo}
                       disabled={isSavingDemoVideo}

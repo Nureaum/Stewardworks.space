@@ -244,7 +244,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative z-30">
         <AdminLoadingProvider>
           {children}
         </AdminLoadingProvider>
