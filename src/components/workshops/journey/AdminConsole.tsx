@@ -3759,7 +3759,13 @@ export default function AdminConsole({
 
                     return (
                       <>
-                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>APPLIED FOCUS</div>
+                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SECTION 1 TITLE (DEFAULT: APPLIED FOCUS)</div>
+                        <input 
+                          defaultValue={selEntry.modern_title || 'APPLIED FOCUS'} 
+                          onBlur={e => handleEntryFieldBlur(selEntry.id, 'modern_title', e.target.value)}
+                          style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }}
+                          placeholder="APPLIED FOCUS"
+                        />
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={appliedBody}
@@ -3769,7 +3775,13 @@ export default function AdminConsole({
                           />
                         </div>
 
-                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>LAB PROCESS</div>
+                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6, marginTop: 24 }}>SECTION 2 TITLE (DEFAULT: LAB PROCESS)</div>
+                        <input 
+                          defaultValue={selEntry.ancient_title || 'LAB PROCESS'} 
+                          onBlur={e => handleEntryFieldBlur(selEntry.id, 'ancient_title', e.target.value)}
+                          style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }}
+                          placeholder="LAB PROCESS"
+                        />
                         <div style={{ marginBottom: 16 }}>
                           <RichEditor
                             value={labBody}

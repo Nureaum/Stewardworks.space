@@ -759,13 +759,13 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                     <div style={{ marginBottom: (appliedContent || labContent) ? 24 : 0 }}>
                       {appliedContent && (
                         <div style={{ marginTop: 16, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
-                          <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>◈ APPLIED FOCUS</div>
+                          <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>◈ {(entry.modern_title || 'APPLIED FOCUS').toUpperCase()}</div>
                           <div dangerouslySetInnerHTML={{ __html: appliedContent }} />
                         </div>
                       )}
                       {labContent && (
                         <div style={{ marginTop: 12, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
-                          <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>◈ LAB PROCESS</div>
+                          <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>◈ {(entry.ancient_title || 'LAB PROCESS').toUpperCase()}</div>
                           <div dangerouslySetInnerHTML={{ __html: labContent }} />
                         </div>
                       )}
