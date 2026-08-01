@@ -37,6 +37,8 @@ export default function ContentItemEditor({
   const [resourceType, setResourceType] = useState(initialData?.resource_type || "");
   const [peerReviewed, setPeerReviewed] = useState(initialData?.peer_reviewed || false);
   const [sourceTag, setSourceTag] = useState(initialData?.source_tag || "");
+  const [referenceTags, setReferenceTags] = useState<string[]>(initialData?.reference_tags || []);
+  const [availableRefTags, setAvailableRefTags] = useState<{ id: string; label: string }[]>([]);
 
   const [categoryId, setCategoryId] = useState(
     initialData?.category_id || (categories?.[0]?.id ?? ""),
@@ -107,6 +109,19 @@ export default function ContentItemEditor({
       });
     }
   }, [categories, initialData]);
+
+  useEffect(() => {
+    if (contentType === "library_resource") {
+      fetch('/api/admin/reference-tags')
+        .then(res => res.json())
+        .then(data => {
+          if (data.tags) {
+            setAvailableRefTags(data.tags);
+          }
+        })
+        .catch(err => console.error("Failed to fetch reference tags:", err));
+    }
+  }, [contentType]);
 
   const handleThumbnailUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -291,6 +306,7 @@ export default function ContentItemEditor({
       if (resourceType) payload.resource_type = resourceType;
       if (contentType === 'library_resource') payload.peer_reviewed = peerReviewed;
       if (contentType === 'library_resource') payload.source_tag = sourceTag || null;
+      if (contentType === 'library_resource') payload.reference_tags = referenceTags;
 
       await onSubmit(payload);
 
@@ -907,6 +923,39 @@ export default function ContentItemEditor({
                 <option value="ai-generated">⚡ AI Generated</option>
               </select>
               <p className="text-[11px] text-[#8a7c66] mt-1.5">Tag the source origin of this resource. Shows as a badge on the card.</p>
+            </div>
+          )}
+
+          {contentType === "library_resource" && (
+            <div className="col-span-full">
+              <label className="block text-[11px] font-black text-black uppercase tracking-widest mb-2">
+                Reference Tags
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {availableRefTags.map(t => {
+                  const isSelected = referenceTags.includes(t.label);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setReferenceTags(referenceTags.filter(tag => tag !== t.label));
+                        } else {
+                          setReferenceTags([...referenceTags, t.label]);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-[12px] font-bold border transition-colors ${isSelected ? 'bg-[#241c12] text-white border-[#241c12]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                    >
+                      {t.label}
+                    </button>
+                  )
+                })}
+                {availableRefTags.length === 0 && (
+                  <div className="text-[12px] text-gray-400 italic">No reference tags available.</div>
+                )}
+              </div>
+              <p className="mt-2 text-[10px] text-gray-500 font-medium">Select one or more tags to categorize this resource. This powers the filter on the Steward Library. (Manage tags from the Library dashboard).</p>
             </div>
           )}
         </div>

@@ -208,15 +208,15 @@ export default function LibraryAdminPage() {
 
   return (
     <div className="animate-[ac-fade_0.3s_ease] w-full p-[34px_44px]">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-[22px]">
+      <div className="flex flex-col gap-5 mb-[26px]">
         <div>
           <h1 className="m-0 text-[30px] font-[800] text-[#241c12] uppercase tracking-normal">Library Resources</h1>
           <p className="mt-2 font-mono text-[11px] tracking-[0.2em] text-[#9c8d76] uppercase">Manage resources, articles, and links · Steward Library</p>
         </div>
-        <div className="flex gap-[10px]">
+        <div className="flex flex-wrap gap-[10px]">
           <button 
             onClick={() => setShowSuggestions(!showSuggestions)}
-            className="bg-transparent text-[#241c12] border border-[#785a32]/20 px-[18px] py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-[8px] hover:bg-[#fbf5e6] hover:border-[#785a32]/30 transition-all"
+            className="bg-transparent text-[#241c12] border border-[#785a32]/20 px-[18px] py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-[8px] hover:bg-[#fbf5e6] hover:border-[#785a32]/30 transition-all shrink-0 whitespace-nowrap"
           >
             Review Suggestions
             {pendingCount > 0 && (
@@ -228,14 +228,21 @@ export default function LibraryAdminPage() {
           <Link 
             href="/admin/library/categories" 
             onClick={() => setIsLoading(true)}
-            className="bg-transparent text-[#241c12] border border-[#785a32]/20 px-[18px] py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-[8px] hover:bg-[#fbf5e6] hover:border-[#785a32]/30 transition-all"
+            className="bg-transparent text-[#241c12] border border-[#785a32]/20 px-[18px] py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-[8px] hover:bg-[#fbf5e6] hover:border-[#785a32]/30 transition-all shrink-0 whitespace-nowrap"
           >
             Manage Books (Categories)
           </Link>
           <Link 
+            href="/admin/library/tags" 
+            onClick={() => setIsLoading(true)}
+            className="bg-transparent text-[#241c12] border border-[#785a32]/20 px-[18px] py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-[8px] hover:bg-[#fbf5e6] hover:border-[#785a32]/30 transition-all shrink-0 whitespace-nowrap"
+          >
+            Manage Tags
+          </Link>
+          <Link 
             href="/admin/library/new" 
             onClick={() => setIsLoading(true)}
-            className="bg-[#1a150d] text-[#efd9a8] px-6 py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent"
+            className="bg-[#1a150d] text-[#efd9a8] px-6 py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-[0_4px_12px_rgba(36,28,18,0.2)] border border-transparent shrink-0 whitespace-nowrap"
           >
             + Add Resource
           </Link>

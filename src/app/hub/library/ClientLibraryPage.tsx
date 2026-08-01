@@ -72,6 +72,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
   const [view, setView] = useState<'shelf'|'catalog'>('shelf');
   const [cat, setCat] = useState<string | null>(null);
   const [type, setType] = useState<string>('all');
+  const [refTag, setRefTag] = useState<string>('all');
   const [q, setQ] = useState('');
   const [detail, setDetail] = useState<any>(null);
   const [form, setForm] = useState<any>(null);
@@ -300,6 +301,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
         peerReviewed: r.peer_reviewed || false,
         sourceTag: r.source_tag || null,
+        referenceTags: r.reference_tags || [],
         raw: r
       };
     });
@@ -428,7 +430,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
   const books = allBooks.filter(c => !c.section);
   const shelfRows = chunk(books, 6);
 
-  const isSearching = q.trim() !== '';
+  const isSearching = q.trim() !== '' || refTag !== 'all';
   const currentCat = cat ? allBooks.find(b => b.id === cat) : null;
   const showCategory = !isSearching && !!currentCat;
   const showSearch = isSearching;
@@ -438,11 +440,25 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
 
   let currentResources: any[] = [];
   if (showCategory) {
-    currentResources = res.filter(r => r.cat === cat && (type === 'all' || r.type === type)).map(r => decorate(r));
+    currentResources = res.filter(r => r.cat === cat && (type === 'all' || r.type === type) && (refTag === 'all' || (r.referenceTags && r.referenceTags.includes(refTag)))).map(r => decorate(r));
   } else if (showSearch) {
     const ql = q.trim().toLowerCase();
-    currentResources = res.filter(r => ((r.title + ' ' + (r.note || '') + ' ' + ((cm[r.cat] || {}).name || '') + ' ' + ((TYPE_MAP[r.type] || {}).label || '')).toLowerCase().includes(ql))).map(r => decorate(r));
+    currentResources = res.filter(r => {
+      const matchQ = ql === '' || ((r.title + ' ' + (r.note || '') + ' ' + ((cm[r.cat] || {}).name || '') + ' ' + ((TYPE_MAP[r.type] || {}).label || '')).toLowerCase().includes(ql));
+      const matchTag = refTag === 'all' || (r.referenceTags && r.referenceTags.includes(refTag));
+      return matchQ && matchTag;
+    }).map(r => decorate(r));
   }
+  
+  const availableRefTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    res.forEach(r => {
+      if (r.referenceTags && Array.isArray(r.referenceTags)) {
+        r.referenceTags.forEach((tag: string) => tagSet.add(tag));
+      }
+    });
+    return Array.from(tagSet).sort();
+  }, [res]);
 
   let typeChips: any[] = [];
   if (showCategory) {
@@ -600,8 +616,16 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
             }
           `}</style>
 
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the stacks…" className="sl-placeholder" style={{ width: '230px', maxWidth: '42vw', padding: '9px 14px', border: '1.5px solid rgba(33,40,46,.2)', borderRadius: '999px', background: '#fff', fontFamily: '"Exo", sans-serif', fontSize: '13px', color: '#21282E', outline: 'none' }} />
+            {availableRefTags.length > 0 && (
+              <select value={refTag} onChange={(e) => setRefTag(e.target.value)} style={{ width: '180px', padding: '9px 14px', border: '1.5px solid rgba(33,40,46,.2)', borderRadius: '999px', background: '#fff', fontFamily: '"Exo", sans-serif', fontSize: '13px', color: '#21282E', outline: 'none', cursor: 'pointer' }}>
+                <option value="all">All Reference Tags</option>
+                {availableRefTags.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '3px', background: 'rgba(33,40,46,.07)', padding: '3px', borderRadius: '9px' }}>
@@ -1004,9 +1028,9 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         {/* ======================= SEARCH HEADER ======================= */}
         {showSearch && (
           <div style={{ position: 'relative', zIndex: 2, maxWidth: '1000px', margin: '0 auto', padding: '28px 26px 0', animation: 'sl-fade 0.3s ease' }}>
-            <button onClick={() => setQ('')} style={{ display: 'flex', alignItems: 'center', gap: '7px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(33,40,46,.6)', fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '14px', padding: 0 }}>← Clear search</button>
+            <button onClick={() => { setQ(''); setRefTag('all'); }} style={{ display: 'flex', alignItems: 'center', gap: '7px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(33,40,46,.6)', fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '14px', padding: 0 }}>← Clear search</button>
             <h1 style={{ fontSize: '28px', fontWeight: 900, letterSpacing: '-.01em', margin: '0 0 4px' }}>Searching the stacks</h1>
-            <div style={{ fontFamily: '"Courier New", monospace', fontSize: '13px', color: 'rgba(33,40,46,.55)' }}>“{q}” — {currentResources.length} results</div>
+            <div style={{ fontFamily: '"Courier New", monospace', fontSize: '13px', color: 'rgba(33,40,46,.55)' }}>“{q || refTag}” — {currentResources.length} results</div>
           </div>
         )}
 
