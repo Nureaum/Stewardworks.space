@@ -727,12 +727,12 @@ export default function CharacterSelect({
             onClick={() => router.push(`/hub/pilot-workshops/${cohortId}/journey`)}
             className="font-pixel"
               style={{
-                fontSize: 16,
+                fontSize: 12,
                 color: 'var(--tx, #efe6ff)',
                 background: 'transparent',
                 border: '2px solid var(--ln, #3d2668)',
                 borderRadius: 6,
-                padding: '18px 26px',
+                padding: '12px 20px',
               cursor: 'pointer',
               letterSpacing: 1,
               transition: 'all 0.15s ease',
@@ -746,14 +746,14 @@ export default function CharacterSelect({
           disabled={isPending}
           className="font-pixel"
           style={{
-            fontSize: 13,
+            fontSize: 12,
             color: 'var(--bg, #12081e)',
             background: 'var(--gold, #ffd23f)',
             border: 'none',
             borderRadius: 6,
-            padding: '16px 34px',
+            padding: '12px 24px',
             cursor: isPending ? 'wait' : 'pointer',
-            boxShadow: '0 5px 0 #b8912a, 0 0 26px rgba(255,210,63,.5)',
+            boxShadow: '0 4px 0 #b8912a, 0 0 20px rgba(255,210,63,.5)',
             letterSpacing: 1,
             opacity: isPending ? 0.7 : 1,
           }}
