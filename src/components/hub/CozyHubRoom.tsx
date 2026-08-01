@@ -25,6 +25,7 @@ interface CozyHubRoomProps {
   globalEngagement?: number;
   selectedCohortId?: string;
   onCohortChange?: (cohortId: string) => void;
+  onScreenChange?: (screen: string) => void;
 }
 
 export default function CozyHubRoom({ 
@@ -37,7 +38,8 @@ export default function CozyHubRoom({
   cohortProgress,
   globalEngagement,
   selectedCohortId,
-  onCohortChange
+  onCohortChange,
+  onScreenChange
 }: CozyHubRoomProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,6 +67,13 @@ export default function CozyHubRoom({
   const [announcementsSidebarOpen, setAnnouncementsSidebarOpen] = useState(false);
   const [notifTab, setNotifTab] = useState<'announcements' | 'submissions'>('announcements');
   const [expandedAnnouncement, setExpandedAnnouncement] = useState<any>(null);
+
+  // Notify parent of screen changes
+  useEffect(() => {
+    if (onScreenChange) {
+      onScreenChange(screen);
+    }
+  }, [screen, onScreenChange]);
 
   // Bulletins & Announcements Data
   const [announcements, setAnnouncements] = useState<any[]>([]);

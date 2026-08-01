@@ -24,6 +24,7 @@ export default function HubPage() {
   const [demoVideoUrl, setDemoVideoUrl] = useState<string>('');
   const [showDemoVideoOverlay, setShowDemoVideoOverlay] = useState(false);
   const [hasSeenDemo, setHasSeenDemo] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState('hub');
 
   // Fetch progress data for a specific cohort (or default to most recent)
   const fetchProgressData = useCallback(async (cohortId?: string) => {
@@ -148,6 +149,7 @@ export default function HubPage() {
         globalEngagement={globalEngagement}
         selectedCohortId={selectedCohortId}
         onCohortChange={handleCohortChange}
+        onScreenChange={setCurrentScreen}
       />
 
       {showDemoVideoOverlay && demoVideoUrl && (
@@ -157,7 +159,7 @@ export default function HubPage() {
         />
       )}
 
-      {!showDemoVideoOverlay && demoVideoUrl && (
+      {currentScreen === 'hub' && !showDemoVideoOverlay && demoVideoUrl && (
         <DemoFloatingButton 
           onClick={() => setShowDemoVideoOverlay(true)} 
           isBouncing={!hasSeenDemo}
