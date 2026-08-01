@@ -51,7 +51,25 @@ function relicUri(type: string, accent: string): string {
   return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='72' height='60' viewBox='0 0 72 60' shape-rendering='crispEdges'>${relic}</svg>`)}`
 }
 
-function CollapsibleBlock({ blk, readerAccent, isFirst }: { blk: string, readerAccent: string, isFirst: boolean }) {
+function CollapsibleSection({ title, content, readerAccent, marginTop = 16 }: { title: string, content: string, readerAccent: string, marginTop?: number }) {
+  const [isExpanded, setIsExpanded] = React.useState(true)
+  return (
+    <div style={{ marginTop, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
+      <div 
+        className="font-pixel" 
+        style={{ cursor: 'pointer', userSelect: 'none', fontSize: 13, color: readerAccent, marginBottom: isExpanded ? 10 : 0, letterSpacing: 1, textTransform: 'uppercase', display: 'inline-block' }}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <span>{isExpanded ? '▼' : '▶'}</span> ◈ {title.toUpperCase()}
+      </div>
+      {isExpanded && (
+        <div dangerouslySetInnerHTML={{ __html: content }} />
+      )}
+    </div>
+  )
+}
+
+function CollapsibleBlock({ blk, readerAccent, isFirst, allowCollapse = true }: { blk: string, readerAccent: string, isFirst: boolean, allowCollapse?: boolean }) {
   const [isExpanded, setIsExpanded] = React.useState(true);
 
   let blockType = 'text'
@@ -80,12 +98,19 @@ function CollapsibleBlock({ blk, readerAccent, isFirst }: { blk: string, readerA
     }
   }
 
+  const toggleExpand = () => {
+    if (allowCollapse) setIsExpanded(!isExpanded)
+  }
+
   const titleContent = (() => {
     if (!blockTitle) return null;
+    
+    const icon = allowCollapse ? (isExpanded ? '▼ ' : '▶ ') : '';
+    
     if (blockType === 'highlighted_box') {
       return (
         <div className="font-pixel" style={{ 
-          fontSize: 9, 
+          fontSize: 13, 
           color: 'var(--bg,#12081e)', 
           background: readerAccent, 
           padding: '6px 10px', 
@@ -94,53 +119,21 @@ function CollapsibleBlock({ blk, readerAccent, isFirst }: { blk: string, readerA
           letterSpacing: 1,
           boxShadow: `0 2px 0 rgba(0,0,0,.3)`
         }}>
-          {isExpanded ? '▼' : '▶'} ◈ {blockTitle.toUpperCase()}
+          {icon}◈ {blockTitle.toUpperCase()}
         </div>
       );
     }
-    if (blockType === 'quote') {
-      return (
-        <div style={{ 
-          fontSize: 11, 
-          color: readerAccent,
-          fontWeight: 600,
-          letterSpacing: 0.5,
-          textTransform: 'uppercase',
-          lineHeight: 1.4,
-          fontFamily: "'Press Start 2P', cursive",
-          maxWidth: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <span style={{ fontSize: '10px' }}>{isExpanded ? '▼' : '▶'}</span> {blockTitle}
-        </div>
-      );
-    }
-    if (blockType === 'list') {
-      return (
-        <div style={{ 
-          fontSize: 20, 
-          color: 'var(--mu,#a493c9)', 
-          lineHeight: 1.4,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <span style={{ fontSize: '12px' }}>{isExpanded ? '▼' : '▶'}</span> {blockTitle}
-        </div>
-      );
-    }
+    
+    // For text, list, and quote, use the same consistent heading style
     return (
       <div className="font-pixel" style={{ 
-        fontSize: 9, 
+        fontSize: 13, 
         color: readerAccent, 
         letterSpacing: 1,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px'
+        textTransform: 'uppercase',
+        display: 'inline-block'
       }}>
-        <span>{isExpanded ? '▼' : '▶'}</span> ◈ {blockTitle.toUpperCase()}
+        {allowCollapse && <span>{isExpanded ? '▼ ' : '▶ '}</span>}◈ {blockTitle.toUpperCase()}
       </div>
     );
   })();
@@ -155,7 +148,7 @@ function CollapsibleBlock({ blk, readerAccent, isFirst }: { blk: string, readerA
           padding: 20
         }}>
           {blockTitle && (
-            <div style={{ cursor: 'pointer', marginBottom: isExpanded ? 16 : 0, userSelect: 'none', display: 'inline-block' }} onClick={() => setIsExpanded(!isExpanded)}>
+            <div style={{ cursor: allowCollapse ? 'pointer' : 'default', marginBottom: isExpanded ? 16 : 0, userSelect: 'none', display: 'inline-block' }} onClick={toggleExpand}>
               {titleContent}
             </div>
           )}
@@ -180,7 +173,7 @@ function CollapsibleBlock({ blk, readerAccent, isFirst }: { blk: string, readerA
           }} />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
             {blockTitle && (
-              <div style={{ cursor: 'pointer', userSelect: 'none', marginBottom: isExpanded ? 0 : -16, display: 'inline-block' }} onClick={() => setIsExpanded(!isExpanded)}>
+              <div style={{ cursor: allowCollapse ? 'pointer' : 'default', userSelect: 'none', marginBottom: isExpanded ? 0 : -16, display: 'inline-block' }} onClick={toggleExpand}>
                 {titleContent}
               </div>
             )}
@@ -197,7 +190,7 @@ function CollapsibleBlock({ blk, readerAccent, isFirst }: { blk: string, readerA
       ) : blockType === 'list' ? (
         <div>
           {blockTitle && (
-            <div style={{ cursor: 'pointer', marginBottom: isExpanded ? 18 : 0, userSelect: 'none', display: 'inline-block' }} onClick={() => setIsExpanded(!isExpanded)}>
+            <div style={{ cursor: allowCollapse ? 'pointer' : 'default', marginBottom: isExpanded ? 18 : 0, userSelect: 'none', display: 'inline-block' }} onClick={toggleExpand}>
               {titleContent}
             </div>
           )}
@@ -222,12 +215,12 @@ function CollapsibleBlock({ blk, readerAccent, isFirst }: { blk: string, readerA
       ) : (
         <div>
           {blockTitle && (
-            <div style={{ cursor: 'pointer', marginBottom: isExpanded ? 12 : 0, userSelect: 'none', display: 'inline-block' }} onClick={() => setIsExpanded(!isExpanded)}>
+            <div style={{ cursor: allowCollapse ? 'pointer' : 'default', marginBottom: isExpanded ? 12 : 0, userSelect: 'none', display: 'inline-block' }} onClick={toggleExpand}>
               {titleContent}
             </div>
           )}
           {isExpanded && (
-            <div dangerouslySetInnerHTML={{ __html: blockRawContent }} />
+            <div style={{ fontSize: 18, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: blockRawContent }} />
           )}
         </div>
       )}
@@ -259,6 +252,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
   const [fileToUpload, setFileToUpload] = useState<File | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isMainTextExpanded, setIsMainTextExpanded] = useState(true)
+  const [showInlineMediaModal, setShowInlineMediaModal] = useState(false)
   // Track banked principles locally so the list updates immediately after submission
   const [localBankedPrincipleIds, setLocalBankedPrincipleIds] = useState<string[]>(bankedPrincipleIds)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -468,6 +462,23 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
         <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: inline ? 'column' : 'row', flexWrap: inline ? 'nowrap' : 'wrap', alignItems: 'stretch' }}>
           {/* MAIN TEXT COLUMN */}
           <div style={{ flex: inline ? 'none' : '3 1 430px', minWidth: inline ? 'auto' : 280, maxWidth: '100%', padding: 'clamp(18px,2.6vw,30px)', overflow: 'hidden' }}>
+            {/* INLINE MEDIA BUTTON */}
+            {inline && (media.length > 0 || isLoadingMedia) && (
+              <button 
+                onClick={() => setShowInlineMediaModal(true)}
+                className="font-pixel"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  width: '100%', padding: '16px', marginBottom: 24,
+                  background: 'rgba(255,210,63,.1)', border: '2px dashed var(--gold,#ffd23f)',
+                  color: 'var(--gold,#ffd23f)', borderRadius: 8, cursor: 'pointer',
+                  fontSize: 12, letterSpacing: 1, transition: 'all 0.2s'
+                }}
+              >
+                ◈ VIEW VISUALS & MEDIA {media.length > 0 ? `(${media.length})` : ''}
+              </button>
+            )}
+            
             {/* Subtitle */}
             {entry.subtitle && (
               <div style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 20, lineHeight: 1.4 }}>
@@ -628,7 +639,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   return (
                     <>
                       {blocks.map((blk, idx) => (
-                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} />
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} allowCollapse={false} />
                       ))}
                     </>
                   )
@@ -649,16 +660,20 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   return (
                     <div style={{ marginBottom: (appliedContent || labContent) ? 24 : 0 }}>
                       {appliedContent && (
-                        <div style={{ marginTop: 16, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
-                          <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>◈ {(entry.modern_title || 'APPLIED FOCUS').toUpperCase()}</div>
-                          <div dangerouslySetInnerHTML={{ __html: appliedContent }} />
-                        </div>
+                        <CollapsibleSection
+                          title={entry.modern_title || 'APPLIED FOCUS'}
+                          content={appliedContent}
+                          readerAccent={readerAccent}
+                          marginTop={16}
+                        />
                       )}
                       {labContent && (
-                        <div style={{ marginTop: 12, fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
-                          <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>◈ {(entry.ancient_title || 'LAB PROCESS').toUpperCase()}</div>
-                          <div dangerouslySetInnerHTML={{ __html: labContent }} />
-                        </div>
+                        <CollapsibleSection
+                          title={entry.ancient_title || 'LAB PROCESS'}
+                          content={labContent}
+                          readerAccent={readerAccent}
+                          marginTop={12}
+                        />
                       )}
                     </div>
                   )
@@ -1121,39 +1136,40 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
             )}
           </div>
 
-          {/* ── MEDIA RAIL (right column in modal, below content when inline) ── */}
-          <div style={{
-            flex: inline ? 'none' : '2 1 300px', 
-            minWidth: 0,
-            maxWidth: '100%',
-            borderLeft: inline ? 'none' : '2px solid var(--ln,#3d2668)',
-            borderTop: inline ? '2px solid var(--ln,#3d2668)' : 'none',
-            background: 'rgba(0,0,0,.18)',
-            padding: 'clamp(16px,2vw,24px)',
-            overflow: 'hidden',
-          }}>
-            <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', letterSpacing: 1, marginBottom: 14 }}>
-              ◈ VISUALS &amp; MEDIA
-            </div>
-            
-            {isLoadingMedia ? (
-              <div style={{
-                border: '2px dashed var(--ln,#3d2668)', borderRadius: 8,
-                padding: '20px 16px', textAlign: 'center',
-                fontSize: 15, color: 'var(--mu,#a493c9)',
-              }}>
-                Loading media...
+          {/* ── MEDIA RAIL (right column in modal, hidden when inline) ── */}
+          {!inline && (
+            <div style={{
+              flex: inline ? 'none' : '2 1 300px', 
+              minWidth: 0,
+              maxWidth: '100%',
+              borderLeft: inline ? 'none' : '2px solid var(--ln,#3d2668)',
+              borderTop: inline ? '2px solid var(--ln,#3d2668)' : 'none',
+              background: 'rgba(0,0,0,.18)',
+              padding: 'clamp(16px,2vw,24px)',
+              overflow: 'hidden',
+            }}>
+              <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', letterSpacing: 1, marginBottom: 14 }}>
+                ◈ VISUALS &amp; MEDIA
               </div>
-            ) : media.length === 0 ? (
-              <div style={{
-                border: '2px dashed var(--ln,#3d2668)', borderRadius: 8,
-                padding: '20px 16px', textAlign: 'center',
-                fontSize: 15, color: 'var(--mu,#a493c9)', lineHeight: 1.45,
-              }}>
-                No visuals on this session yet. Your instructor can attach photos, video, audio &amp; links in the Admin console — they&apos;ll appear here, matched to the text.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              
+              {isLoadingMedia ? (
+                <div style={{
+                  border: '2px dashed var(--ln,#3d2668)', borderRadius: 8,
+                  padding: '20px 16px', textAlign: 'center',
+                  fontSize: 15, color: 'var(--mu,#a493c9)',
+                }}>
+                  Loading media...
+                </div>
+              ) : media.length === 0 ? (
+                <div style={{
+                  border: '2px dashed var(--ln,#3d2668)', borderRadius: 8,
+                  padding: '20px 16px', textAlign: 'center',
+                  fontSize: 15, color: 'var(--mu,#a493c9)', lineHeight: 1.45,
+                }}>
+                  No visuals on this session yet. Your instructor can attach photos, video, audio &amp; links in the Admin console — they&apos;ll appear here, matched to the text.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {media.map(m => (
                   <div key={m.id} style={{ border: '1px solid var(--ln,#3d2668)', borderRadius: 6, overflow: 'hidden', background: 'rgba(0,0,0,.2)', minWidth: 0 }}>
                     <div style={{ padding: '4px 8px', background: 'var(--pn,#241542)', borderBottom: '1px solid var(--ln,#3d2668)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
@@ -1256,6 +1272,153 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
               </div>
             )}
           </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  const inlineMediaPopup = showInlineMediaModal && (
+    <div
+      onClick={(e) => { e.stopPropagation(); setShowInlineMediaModal(false) }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.85)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20
+      }}
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--bg,#12081e)',
+          border: '2px solid var(--ln,#3d2668)',
+          borderRadius: 12,
+          width: 500, maxWidth: '100%', maxHeight: '90vh',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--ln,#3d2668)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="font-pixel" style={{ fontSize: 12, color: 'var(--gold,#ffd23f)', letterSpacing: 1 }}>
+            ◈ VISUALS & MEDIA
+          </div>
+          <button onClick={() => setShowInlineMediaModal(false)} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', fontSize: 24, cursor: 'pointer', lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+          {isLoadingMedia ? (
+            <div style={{
+              border: '2px dashed var(--ln,#3d2668)', borderRadius: 8,
+              padding: '20px 16px', textAlign: 'center',
+              fontSize: 15, color: 'var(--mu,#a493c9)',
+            }}>
+              Loading media...
+            </div>
+          ) : media.length === 0 ? (
+            <div style={{
+              border: '2px dashed var(--ln,#3d2668)', borderRadius: 8,
+              padding: '20px 16px', textAlign: 'center',
+              fontSize: 15, color: 'var(--mu,#a493c9)', lineHeight: 1.45,
+            }}>
+              No visuals on this session yet. Your instructor can attach photos, video, audio &amp; links in the Admin console — they&apos;ll appear here, matched to the text.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {media.map(m => (
+                <div key={m.id} style={{ border: '1px solid var(--ln,#3d2668)', borderRadius: 6, overflow: 'hidden', background: 'rgba(0,0,0,.2)', minWidth: 0 }}>
+                  <div style={{ padding: '4px 8px', background: 'var(--pn,#241542)', borderBottom: '1px solid var(--ln,#3d2668)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+                    <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)' }}>{m.kind.toUpperCase()}</span>
+                    {(m.label || m.file_name || m.kind === 'link') && (
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--tx,#efe6ff)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {m.label || m.file_name || (m.kind === 'link' ? m.url : '')}
+                      </span>
+                    )}
+                  </div>
+                  {m.kind === 'photo' && m.url && (
+                    <div 
+                      style={{ position: 'relative', cursor: 'zoom-in', width: '100%' }}
+                      onClick={(e) => { e.stopPropagation(); setZoomedImage(m.url) }}
+                    >
+                      <img src={m.url} alt="" style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
+                      <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: 6, display: 'flex' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--tx,#efe6ff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                          <line x1="11" y1="8" x2="11" y2="14"></line>
+                          <line x1="8" y1="11" x2="14" y2="11"></line>
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                  {m.kind === 'video' && m.url && <video src={m.url} controls style={{ width: '100%', maxWidth: '100%', display: 'block' }} />}
+                  {m.kind === 'audio' && m.url && <audio src={m.url} controls style={{ width: '100%', padding: '8px 0' }} />}
+                  {m.kind === 'link' && m.url && (() => {
+                    const isImage = isImageUrl(m.url);
+                    const ytMatch = m.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]+)/);
+                    const vimeoMatch = m.url.match(/vimeo\.com\/(\d+)/);
+                    const isDirectVideo = /\.(mp4|webm|mov|avi)(\?|#|$)/i.test(m.url);
+                    const isDirectAudio = /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(m.url);
+                    
+                    if (isImage) {
+                      return (
+                        <div 
+                          style={{ position: 'relative', cursor: 'zoom-in', width: '100%' }}
+                          onClick={(e) => { e.stopPropagation(); setZoomedImage(m.url) }}
+                        >
+                          <img src={m.url} alt={m.label || ''} style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
+                          <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: 6, display: 'flex' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--tx,#efe6ff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="11" cy="11" r="8"></circle>
+                              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                              <line x1="11" y1="8" x2="11" y2="14"></line>
+                              <line x1="8" y1="11" x2="14" y2="11"></line>
+                            </svg>
+                          </div>
+                        </div>
+                      );
+                    } else if (ytMatch) {
+                      return (
+                        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
+                          <iframe 
+                            src={`https://www.youtube.com/embed/${ytMatch[1]}`}
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title={m.label || 'Video'}
+                          />
+                        </div>
+                      );
+                    } else if (vimeoMatch) {
+                      return (
+                        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
+                          <iframe 
+                            src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                            title={m.label || 'Video'}
+                          />
+                        </div>
+                      );
+                    } else if (isDirectVideo) {
+                      return (
+                        <video src={m.url} controls preload="metadata" style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
+                      );
+                    } else if (isDirectAudio) {
+                      return (
+                        <audio src={m.url} controls style={{ width: '100%', padding: '8px 0' }} />
+                      );
+                    } else {
+                      return (
+                        <div style={{ padding: 10, wordBreak: 'break-all', fontSize: 13, color: 'var(--s,#45d6ff)' }}>
+                          <a href={m.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{m.label || m.url}</a>
+                        </div>
+                      );
+                    }
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1423,6 +1586,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
       {innerContent}
       {zoomModal}
       {featuredPopup}
+      {inlineMediaPopup}
     </div>
   )
 }

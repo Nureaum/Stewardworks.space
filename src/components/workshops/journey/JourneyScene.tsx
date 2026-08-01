@@ -393,9 +393,7 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
 
   // Scene nodes
   const nearArt = nearIdx >= 0 ? entries[nearIdx] : null
-  const visitedCount = Object.keys(visited)
-    .filter(k => k.startsWith(`${day.day_number}-`) && visited[k])
-    .length
+  const visitedCount = entries.filter(e => visited[`${day.day_number}-${e.id}`]).length
 
   return (
     <div style={{ padding: 'clamp(4px,1vw,8px) clamp(8px,2vw,18px)', maxWidth: 1200, margin: '0 auto' }}>
