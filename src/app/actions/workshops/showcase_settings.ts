@@ -35,6 +35,8 @@ export async function updateShowcaseSettings(settings: {
   contributors_description?: string
   student_title?: string
   student_description?: string
+  tally_link?: string
+  show_tally_link?: boolean
 }) {
   const { userId } = await auth()
   if (!userId) throw new Error('Authentication required')

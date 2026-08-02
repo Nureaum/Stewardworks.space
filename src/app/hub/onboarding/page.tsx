@@ -6,8 +6,20 @@ import { Check, Loader2 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import Image from 'next/image';
 
-// Bilingual content structure
-const CONTENT = {
+type Question = {
+  id: string;
+  title_en: string;
+  title_es: string;
+  type: 'text' | 'single' | 'multiple';
+  is_required: boolean;
+  section: string;
+  options_en: string[];
+  options_es: string[];
+  sort_order: number;
+};
+
+// Bilingual static UI content
+const UI_CONTENT = {
   en: {
     title: 'Learning',
     subtitle: 'Complete the questionnaire to access AI Labs & Pilot Works',
@@ -16,54 +28,14 @@ const CONTENT = {
     continue: 'Continue',
     saving: 'Saving...',
     selectAll: '(Select all that apply)',
-    other: 'Other (please describe)',
     otherPlaceholder: 'Please describe...',
-    prefilled: '✓ Already filled from your profile',
     sections: {
       identity: 'Identity & Aspiration',
       age: 'Age + Language',
       tech: 'Technology + Job Interest',
       context: 'Optional Context',
       additional: 'Additional Questions',
-    },
-    questions: {
-      q1: {
-        title: 'How long have you called Imperial Valley home?',
-        options: ['Less than 1 year', '1–5 years', '6–10 years', 'More than 10 years', 'I grew up here'],
-      },
-      q2: {
-        title: 'What type of learner are you?',
-        options: ['Hands-on / learning by doing', 'Visual (videos, images, diagrams)', 'Reading and writing',
-          'Group learning / discussion', 'Self-paced / independent', 'Other (please describe)'],
-      },
-      q3: {
-        title: 'What is your dream environmental job?',
-        options: ['Environmental educator', 'Media creator / storyteller', 'Conservation or restoration worker',
-          'Agriculture or water systems worker', 'Environmental technician', 'Community organizer',
-          'Not sure yet', 'Other (please describe)'],
-      },
-      q4: { title: 'What is your age range?', options: ['Under 18', '18–24', '25–34', '35–44', '45+'] },
-      q5: { title: 'Which language do you prefer for learning?', options: ['English', 'Spanish', 'Both English and Spanish'] },
-      q6: {
-        title: 'What do you usually use to access the internet?',
-        options: ['Smartphone only', 'Computer or laptop', 'Tablet',
-          'Public computer (library, school, community center)', 'Limited or no access'],
-      },
-      q7: { title: 'Are you interested in training that could lead to a job in environmental work?',
-        options: ['Yes', 'Maybe', 'Just exploring'] },
-      q8: { title: 'Which best describes your current situation?',
-        options: ['In school', 'Working full-time', 'Working part-time', 'Looking for work', 'Not currently working', 'Other'] },
-      q9: { title: 'How much time could you spend learning each week?',
-        options: ['Less than 2 hours', '2–5 hours', '5–10 hours', 'More than 10 hours'] },
-      q10: { title: 'What might make it hard for you to participate?',
-        options: ['Work schedule', 'Transportation', 'Internet or device access',
-          'Childcare or family responsibilities', 'Language barriers', 'None of these', 'Other'] },
-      q11: { title: 'What is a personal strength or skill you feel proud of?', placeholder: 'A strength I bring is...' },
-      q12: { title: 'What do you hope to learn or build through this program?', placeholder: 'My goal is to...' },
-      q13: { title: 'Which Imperial Valley communities are you connected to, live in, or care about?',
-        options: ['El Centro', 'Calexico', 'Brawley', 'Imperial', 'Holtville', 'Calipatria', 'Westmorland',
-          'Heber', 'Seeley', 'Niland', 'Salton City', 'Bombay Beach', 'Slab City', 'Winterhaven', 'Ocotillo', 'Palo Verde'] },
-    },
+    } as Record<string, string>,
   },
   es: {
     title: 'Aprendizaje',
@@ -73,86 +45,15 @@ const CONTENT = {
     continue: 'Continuar',
     saving: 'Guardando...',
     selectAll: '(Selecciona todas las que correspondan)',
-    other: 'Otro (describe cuál)',
     otherPlaceholder: 'Por favor describe...',
-    prefilled: '✓ Ya completado desde tu perfil',
     sections: {
       identity: 'Identidad y Aspiración',
       age: 'Edad + Idioma',
       tech: 'Tecnología + Interés Laboral',
       context: 'Contexto Opcional',
       additional: 'Preguntas Adicionales',
-    },
-    questions: {
-      q1: { title: '¿Cuánto tiempo has vivido en el Valle Imperial?',
-        options: ['Menos de 1 año', '1–5 años', '6–10 años', 'Más de 10 años', 'Crecí aquí'] },
-      q2: { title: '¿Qué tipo de estudiante eres?',
-        options: ['Práctico / aprender haciendo', 'Visual (videos, imágenes, diagramas)', 'Lectura y escritura',
-          'Aprendizaje en grupo / conversación', 'A mi propio ritmo / independiente', 'Otro (describe cuál)'] },
-      q3: { title: '¿Cuál es tu trabajo ambiental ideal?',
-        options: ['Educador/a ambiental', 'Creador/a de medios o narrador/a', 'Trabajador/a de conservación o restauración',
-          'Trabajo en agricultura o sistemas de agua', 'Técnico/a ambiental', 'Organizador/a comunitario/a',
-          'Aún no estoy seguro/a', 'Otro (describe cuál)'] },
-      q4: { title: '¿Cuál es tu rango de edad?', options: ['Menos de 18', '18–24', '25–34', '35–44', '45 o más'] },
-      q5: { title: '¿Qué idioma prefieres para aprender?', options: ['Inglés', 'Español', 'Inglés y Español'] },
-      q6: { title: '¿Qué usas normalmente para acceder a internet?',
-        options: ['Solo teléfono celular', 'Computadora o laptop', 'Tableta',
-          'Computadora pública (biblioteca, escuela, centro comunitario)', 'Acceso limitado o sin acceso'] },
-      q7: { title: '¿Te interesa recibir capacitación que pueda llevarte a un trabajo ambiental?',
-        options: ['Sí', 'Tal vez', 'Solo estoy explorando'] },
-      q8: { title: '¿Cuál describe mejor tu situación actual?',
-        options: ['Estoy estudiando', 'Trabajo de tiempo completo', 'Trabajo de medio tiempo',
-          'Buscando trabajo', 'Actualmente no trabajo', 'Otro'] },
-      q9: { title: '¿Cuánto tiempo podrías dedicar al aprendizaje cada semana?',
-        options: ['Menos de 2 horas', '2–5 horas', '5–10 horas', 'Más de 10 horas'] },
-      q10: { title: '¿Qué podría dificultar tu participación?',
-        options: ['Horario de trabajo', 'Transporte', 'Acceso a internet o dispositivos',
-          'Cuidado de niños o responsabilidades familiares', 'Barreras de idioma', 'Ninguna de estas', 'Otro'] },
-      q11: { title: '¿Cuál es una fortaleza o habilidad personal de la que te sientes orgulloso/a?',
-        placeholder: 'Una fortaleza que aporto es...' },
-      q12: { title: '¿Qué esperas aprender o construir a través de este programa?', placeholder: 'Mi meta es...' },
-      q13: { title: '¿Con qué comunidades del Valle Imperial estás conectado/a, vives o te interesan?',
-        options: ['El Centro', 'Calexico', 'Brawley', 'Imperial', 'Holtville', 'Calipatria', 'Westmorland',
-          'Heber', 'Seeley', 'Niland', 'Salton City', 'Bombay Beach', 'Slab City', 'Winterhaven', 'Ocotillo', 'Palo Verde'] },
-    },
-  },
-};
-
-const QUESTIONS = [
-  { id: 'q1', section: 'identity', required: true, type: 'single' },
-  { id: 'q2', section: 'identity', required: true, type: 'multiple' },
-  { id: 'q3', section: 'identity', required: true, type: 'single' },
-  { id: 'q4', section: 'age', required: true, type: 'single' },
-  { id: 'q5', section: 'age', required: true, type: 'single' },
-  { id: 'q6', section: 'tech', required: true, type: 'single' },
-  { id: 'q7', section: 'tech', required: true, type: 'single' },
-  { id: 'q8', section: 'context', required: false, type: 'single' },
-  { id: 'q9', section: 'context', required: false, type: 'single' },
-  { id: 'q10', section: 'context', required: false, type: 'multiple' },
-  { id: 'q11', section: 'additional', required: true, type: 'text' },
-  { id: 'q12', section: 'additional', required: true, type: 'text' },
-  { id: 'q13', section: 'additional', required: true, type: 'multiple' },
-];
-
-// Map questions to existing database columns
-// Q1-Q10 match the original onboarding fields exactly
-// Q11 maps to 'why_here' (personal strength/motivation)
-// Q12 maps to 'community_serve' (goals - repurposing this field)
-// Q13 uses 'barriers' array field - but we'll store communities separately via a new approach
-const DB_FIELD_MAP: Record<string, string> = {
-  q1: 'community_status',      // Time in Imperial Valley
-  q2: 'learning_style',        // Learning style (array)
-  q3: 'dream_job',             // Dream environmental job
-  q4: 'age_range',             // Age range
-  q5: 'preferred_language',    // Language preference
-  q6: 'internet_access',       // Technology access
-  q7: 'training_interest',     // Job training interest
-  q8: 'employment_status',     // Current situation (optional)
-  q9: 'time_commitment',       // Time availability (optional)
-  q10: 'barriers',             // Participation barriers (array, optional)
-  q11: 'why_here',             // Personal strength/skill
-  q12: 'community_serve',      // Learning goals
-  q13: 'connected_communities', // Communities connected to (array) - may need DB column
+    } as Record<string, string>,
+  }
 };
 
 // Language Selection Screen Component
@@ -284,8 +185,8 @@ function HubOnboardingContent() {
   const { user, isLoaded } = useUser();
   
   const [lang, setLang] = useState<'en' | 'es' | null>(null); // null = show language selection
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
-  const [prefilledQuestions, setPrefilledQuestions] = useState<Set<string>>(new Set()); // Track pre-filled answers
   const [otherValues, setOtherValues] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -298,37 +199,32 @@ function HubOnboardingContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const loadData = async () => {
       if (!isLoaded || !user) { setIsLoading(false); return; }
       try {
-        const response = await fetch('/api/profile');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.profile) {
-            if (data.profile.onboarding_completed) { router.push(returnUrl); return; }
-            const loaded: Record<string, string | string[]> = {};
-            const prefilled = new Set<string>();
-            Object.entries(DB_FIELD_MAP).forEach(([qId, field]) => {
-              const value = data.profile[field];
-              if (value !== null && value !== undefined) {
-                loaded[qId] = value;
-                // Track q2 (learning_style) and q3 (dream_job) as pre-filled if they have actual values
-                if (qId === 'q2' && Array.isArray(value) && value.length > 0) {
-                  prefilled.add(qId);
-                }
-                if (qId === 'q3' && typeof value === 'string' && value.trim() !== '') {
-                  prefilled.add(qId);
-                }
-              }
-            });
-            setAnswers(loaded);
-            setPrefilledQuestions(prefilled);
+        // First check if already completed
+        const pRes = await fetch('/api/profile');
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          if (pData.profile?.onboarding_completed) {
+            router.push(returnUrl);
+            return;
           }
         }
-      } catch (error) { console.error('Failed to load profile:', error); }
-      finally { setIsLoading(false); }
+
+        // Fetch dynamic questions
+        const qRes = await fetch('/api/admin/onboarding-questions');
+        if (qRes.ok) {
+          const qData = await qRes.json();
+          setQuestions(qData.questions || []);
+        }
+      } catch (error) { 
+        console.error('Failed to load onboarding data:', error); 
+      } finally { 
+        setIsLoading(false); 
+      }
     };
-    loadProfile();
+    loadData();
   }, [isLoaded, user, router, returnUrl]);
 
   const handleSingleSelect = (qId: string, value: string) => {
@@ -355,48 +251,57 @@ function HubOnboardingContent() {
   };
 
   const handleSubmit = async () => {
-    const missing = QUESTIONS.find(q => {
-      if (!q.required) return false;
+    const missing = questions.find(q => {
+      if (!q.is_required) return false;
       const ans = answers[q.id];
       if (q.type === 'multiple') return !ans || (ans as string[]).length === 0;
       if (q.type === 'text') return !ans || (ans as string).trim() === '';
       return !ans;
     });
+    
     if (missing) {
       setErrorQId(missing.id);
       document.getElementById(`question-${missing.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    
     setIsSaving(true);
     try {
-      // Build payload with all onboarding answers
-      const payload: Record<string, any> = {};
-      
-      QUESTIONS.forEach(q => {
-        const field = DB_FIELD_MAP[q.id];
+      // Build payload for new answers table
+      const formattedAnswers = questions.map(q => {
         let value = answers[q.id];
-        // Handle "Other" option - replace with user's custom text
-        if (q.type === 'single' && value && (value as string).toLowerCase().includes('other'))
+        
+        // Resolve "Other" values
+        if (q.type === 'single' && value && typeof value === 'string' && (value.toLowerCase().includes('other') || value.toLowerCase().includes('otro'))) {
           value = otherValues[q.id] || value;
-        if (q.type === 'multiple' && Array.isArray(value))
-          value = value.map(v => v.toLowerCase().includes('other') && otherValues[q.id] ? otherValues[q.id] : v);
-        if (value !== undefined) payload[field] = value;
+        }
+        if (q.type === 'multiple' && Array.isArray(value)) {
+          value = value.map(v => (v.toLowerCase().includes('other') || v.toLowerCase().includes('otro')) && otherValues[q.id] ? otherValues[q.id] : v);
+        }
+        
+        return {
+          question_id: q.id,
+          answer_text: q.type === 'single' || q.type === 'text' ? (value as string) : null,
+          answer_array: q.type === 'multiple' ? (value as string[]) : null
+        };
+      }).filter(a => a.answer_text !== undefined || a.answer_array !== undefined);
+      
+      const response = await fetch('/api/onboarding-answers', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: formattedAnswers }) 
       });
-      
-      // Mark onboarding as completed
-      payload.onboarding_completed = true;
-      
-      const response = await fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload) });
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Profile save error:', errorData);
-        throw new Error(errorData.error || 'Failed to save profile');
+        throw new Error(errorData.error || 'Failed to save answers');
       }
       
       router.push(returnUrl);
-    } catch (error) { console.error('Save error:', error); setIsSaving(false); }
+    } catch (error) { 
+      console.error('Save error:', error); 
+      setIsSaving(false); 
+    }
   };
 
   if (isLoading) {
@@ -413,8 +318,9 @@ function HubOnboardingContent() {
     return <LanguageSelectionScreen onSelectLanguage={(selectedLang) => setLang(selectedLang)} />;
   }
 
-  const t = CONTENT[lang];
-  const getSectionQuestions = (section: string) => QUESTIONS.filter(q => q.section === section);
+  const t = UI_CONTENT[lang];
+  // Group questions by section
+  const sections = Array.from(new Set(questions.map(q => q.section)));
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#efe4d2,#e0cdb4)', fontFamily: '"Exo", sans-serif' }}>
@@ -442,102 +348,108 @@ function HubOnboardingContent() {
         <h1 style={{ fontSize: 32, fontWeight: 800, color: '#21282E', marginBottom: 8, textAlign: 'center' }}>{t.title}</h1>
         <p style={{ fontSize: 14, color: '#5a4a3a', marginBottom: 40, textAlign: 'center' }}>{t.subtitle}</p>
 
-        {['identity', 'age', 'tech', 'context', 'additional'].map(sectionKey => (
-          <div key={sectionKey} style={{ marginBottom: 48 }}>
-            <div style={{ background: '#21282E', color: '#FEFAE0', padding: '12px 20px',
-              borderRadius: '12px 12px 0 0', fontFamily: '"DM Mono", monospace', fontSize: 11,
-              letterSpacing: '.15em', fontWeight: 700 }}>
-              {t.sections[sectionKey as keyof typeof t.sections]}
-            </div>
-            <div style={{ background: '#fff', borderRadius: '0 0 12px 12px', padding: '24px', boxShadow: '0 8px 24px rgba(0,0,0,.08)' }}>
-              {getSectionQuestions(sectionKey).map((q, idx) => {
-                const qContent = t.questions[q.id as keyof typeof t.questions];
-                const answer = answers[q.id];
-                const isError = errorQId === q.id;
-                return (
-                  <div key={q.id} id={`question-${q.id}`} style={{
-                    marginBottom: idx < getSectionQuestions(sectionKey).length - 1 ? 32 : 0,
-                    paddingTop: idx > 0 ? 24 : 0, borderTop: idx > 0 ? '1px solid rgba(0,0,0,.06)' : 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: '50%',
-                        background: isError ? '#dc2626' : '#417C98', color: '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{QUESTIONS.indexOf(q) + 1}</div>
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#21282E', marginBottom: 4, lineHeight: 1.4 }}>
-                          {qContent.title}</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.1em',
-                            color: q.required ? '#DB9B2F' : 'rgba(0,0,0,.3)' }}>
-                            {q.required ? t.required : t.optional}</span>
-                          {q.type === 'multiple' && <span style={{ fontSize: 11, color: 'rgba(0,0,0,.4)' }}>{t.selectAll}</span>}
+        {sections.map(sectionKey => {
+          const sectionQuestions = questions.filter(q => q.section === sectionKey);
+          return (
+            <div key={sectionKey} style={{ marginBottom: 48 }}>
+              <div style={{ background: '#21282E', color: '#FEFAE0', padding: '12px 20px',
+                borderRadius: '12px 12px 0 0', fontFamily: '"DM Mono", monospace', fontSize: 11,
+                letterSpacing: '.15em', fontWeight: 700 }}>
+                {t.sections[sectionKey] || sectionKey.toUpperCase()}
+              </div>
+              <div style={{ background: '#fff', borderRadius: '0 0 12px 12px', padding: '24px', boxShadow: '0 8px 24px rgba(0,0,0,.08)' }}>
+                {sectionQuestions.map((q, idx) => {
+                  const answer = answers[q.id];
+                  const isError = errorQId === q.id;
+                  const title = lang === 'es' ? q.title_es : q.title_en;
+                  const options = lang === 'es' ? q.options_es : q.options_en;
+                  
+                  return (
+                    <div key={q.id} id={`question-${q.id}`} style={{
+                      marginBottom: idx < sectionQuestions.length - 1 ? 32 : 0,
+                      paddingTop: idx > 0 ? 24 : 0, borderTop: idx > 0 ? '1px solid rgba(0,0,0,.06)' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%',
+                          background: isError ? '#dc2626' : '#417C98', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{questions.indexOf(q) + 1}</div>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#21282E', marginBottom: 4, lineHeight: 1.4 }}>
+                            {title}</h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.1em',
+                              color: q.is_required ? '#DB9B2F' : 'rgba(0,0,0,.3)' }}>
+                              {q.is_required ? t.required : t.optional}</span>
+                            {q.type === 'multiple' && <span style={{ fontSize: 11, color: 'rgba(0,0,0,.4)' }}>{t.selectAll}</span>}
+                          </div>
+                          {isError && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4, fontWeight: 600 }}>
+                            Please answer this question to continue.</p>}
                         </div>
-                        {isError && <p style={{ fontSize: 12, color: '#dc2626', marginTop: 4, fontWeight: 600 }}>
-                          Please answer this question to continue.</p>}
-                        {/* Show pre-filled note for q2 and q3 if they have data from profile */}
-                        {prefilledQuestions.has(q.id) && (q.id === 'q2' || q.id === 'q3') && (
-                          <p style={{ fontSize: 11, color: '#22863a', marginTop: 6, fontWeight: 600,
-                            background: 'rgba(34,134,58,.08)', padding: '6px 10px', borderRadius: 6,
-                            display: 'inline-block' }}>
-                            {(t as any).prefilled || '✓ Already filled from your profile'}
-                          </p>
-                        )}
                       </div>
+                      {q.type === 'text' && (
+                        <textarea value={(answer as string) || ''} onChange={e => handleTextChange(q.id, e.target.value)}
+                          placeholder="" style={{ width: '100%', minHeight: 100,
+                            padding: '14px 16px', border: isError ? '2px solid #dc2626' : '2px solid rgba(0,0,0,.1)',
+                            borderRadius: 10, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
+                      )}
+                      {(q.type === 'single' || q.type === 'multiple') && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {options?.map((option: string) => {
+                            const isSelected = q.type === 'multiple'
+                              ? ((answer as string[]) || []).includes(option) : answer === option;
+                            const isOther = option.toLowerCase().includes('other') || option.toLowerCase().includes('otro');
+                            return (
+                              <div key={option}>
+                                <button onClick={() => q.type === 'single' ? handleSingleSelect(q.id, option) : handleMultiSelect(q.id, option)}
+                                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                                    padding: '14px 16px', background: isSelected ? 'rgba(65,124,152,.1)' : '#fff',
+                                    border: isSelected ? '2px solid #417C98' : '2px solid rgba(0,0,0,.08)',
+                                    borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'all .15s ease' }}>
+                                  <div style={{ width: 22, height: 22, borderRadius: q.type === 'multiple' ? 6 : '50%',
+                                    border: isSelected ? '2px solid #417C98' : '2px solid rgba(0,0,0,.15)',
+                                    background: isSelected ? '#417C98' : '#fff', display: 'flex',
+                                    alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    {isSelected && <Check size={14} color="#fff" />}
+                                  </div>
+                                  <span style={{ fontSize: 14, fontWeight: isSelected ? 600 : 400, color: '#21282E' }}>{option}</span>
+                                </button>
+                                {isOther && isSelected && (
+                                  <input type="text" value={otherValues[q.id] || ''}
+                                    onChange={e => handleOtherChange(q.id, e.target.value)} placeholder={t.otherPlaceholder}
+                                    style={{ width: '100%', marginTop: 8, marginLeft: 34, maxWidth: 'calc(100% - 34px)',
+                                      padding: '10px 14px', border: '2px solid rgba(65,124,152,.3)', borderRadius: 8,
+                                      fontSize: 14, outline: 'none' }} />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    {q.type === 'text' && (
-                      <textarea value={(answer as string) || ''} onChange={e => handleTextChange(q.id, e.target.value)}
-                        placeholder={(qContent as any).placeholder || ''} style={{ width: '100%', minHeight: 100,
-                          padding: '14px 16px', border: isError ? '2px solid #dc2626' : '2px solid rgba(0,0,0,.1)',
-                          borderRadius: 10, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
-                    )}
-                    {(q.type === 'single' || q.type === 'multiple') && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {(qContent as any).options?.map((option: string) => {
-                          const isSelected = q.type === 'multiple'
-                            ? ((answer as string[]) || []).includes(option) : answer === option;
-                          const isOther = option.toLowerCase().includes('other') || option.toLowerCase().includes('otro');
-                          return (
-                            <div key={option}>
-                              <button onClick={() => q.type === 'single' ? handleSingleSelect(q.id, option) : handleMultiSelect(q.id, option)}
-                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                                  padding: '14px 16px', background: isSelected ? 'rgba(65,124,152,.1)' : '#fff',
-                                  border: isSelected ? '2px solid #417C98' : '2px solid rgba(0,0,0,.08)',
-                                  borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'all .15s ease' }}>
-                                <div style={{ width: 22, height: 22, borderRadius: q.type === 'multiple' ? 6 : '50%',
-                                  border: isSelected ? '2px solid #417C98' : '2px solid rgba(0,0,0,.15)',
-                                  background: isSelected ? '#417C98' : '#fff', display: 'flex',
-                                  alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  {isSelected && <Check size={14} color="#fff" />}
-                                </div>
-                                <span style={{ fontSize: 14, fontWeight: isSelected ? 600 : 400, color: '#21282E' }}>{option}</span>
-                              </button>
-                              {isOther && isSelected && (
-                                <input type="text" value={otherValues[q.id] || ''}
-                                  onChange={e => handleOtherChange(q.id, e.target.value)} placeholder={t.otherPlaceholder}
-                                  style={{ width: '100%', marginTop: 8, marginLeft: 34, maxWidth: 'calc(100% - 34px)',
-                                    padding: '10px 14px', border: '2px solid rgba(65,124,152,.3)', borderRadius: 8,
-                                    fontSize: 14, outline: 'none' }} />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+          );
+        })}
+        
+        {questions.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No questions found.</p>
           </div>
-        ))}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 20 }}>
-          <button onClick={handleSubmit} disabled={isSaving} style={{ width: '100%', maxWidth: 400,
-            padding: '18px 32px', background: isSaving ? '#9aa596' : '#417C98', color: '#FEFAE0',
-            border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 800, letterSpacing: '.1em',
-            cursor: isSaving ? 'not-allowed' : 'pointer',
-            boxShadow: isSaving ? 'none' : '0 12px 28px -8px rgba(65,124,152,.5)', transition: 'all .2s ease' }}>
-            {isSaving ? t.saving : t.continue}
-          </button>
-        </div>
+        )}
+
+        {questions.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 20 }}>
+            <button onClick={handleSubmit} disabled={isSaving} style={{ width: '100%', maxWidth: 400,
+              padding: '18px 32px', background: isSaving ? '#9aa596' : '#417C98', color: '#FEFAE0',
+              border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 800, letterSpacing: '.1em',
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              boxShadow: isSaving ? 'none' : '0 12px 28px -8px rgba(65,124,152,.5)', transition: 'all .2s ease' }}>
+              {isSaving ? t.saving : t.continue}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

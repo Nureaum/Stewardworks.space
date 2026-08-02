@@ -32,6 +32,7 @@ import RichEditor from './RichEditor'
 import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia, updateEntryMedia } from '@/app/actions/workshops/entry-media'
 import { createPrinciple, updatePrinciple, deletePrinciple } from '@/app/actions/workshops/principles'
 import { addShowcaseItem, updateShowcaseItem, deleteShowcaseItem, getShowcaseItems, seedShowcaseItems, getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
+import { getShowcaseSettings, updateShowcaseSettings } from '@/app/actions/workshops/showcase_settings'
 import { getPlatforms, createPlatform, deletePlatform } from '@/app/actions/workshops/admin'
 import ConfirmDialog from './ConfirmDialog'
 import RetroToast from './RetroToast'
@@ -157,6 +158,9 @@ export default function AdminConsole({
   const [showcaseSubTab, setShowcaseSubTab] = useState<'contributor' | 'student'>('contributor')
   const [studentShowcaseItems, setStudentShowcaseItems] = useState<any[]>([])
   const [isLoadingStudentShowcase, setIsLoadingStudentShowcase] = useState(false)
+  const [showcaseSettings, setShowcaseSettings] = useState<any>(null)
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [showConfigModal, setShowConfigModal] = useState(false)
   const [editingStudentItem, setEditingStudentItem] = useState<any | null>(null)
   const [editStudentTitle, setEditStudentTitle] = useState('')
   const [editStudentDescription, setEditStudentDescription] = useState('')
@@ -234,6 +238,8 @@ export default function AdminConsole({
       try {
         const items = await getShowcaseItems(cohortId)
         setShowcaseList((items || []) as WorkshopShowcase[])
+        const settings = await getShowcaseSettings()
+        setShowcaseSettings(settings)
       } catch (e) {
         console.error('Failed to load showcase items', e)
         setShowcaseList([])
@@ -2078,7 +2084,8 @@ export default function AdminConsole({
           {section === 'contributors' && (
             <div>
               {/* Sub-tab toggle: Contributor / Student */}
-              <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 7, padding: 3, background: '#181324', marginBottom: 18, width: 'fit-content' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 18 }}>
+              <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 7, padding: 3, background: '#181324', width: 'fit-content' }}>
                 <button
                   onClick={() => setShowcaseSubTab('contributor')}
                   className="font-pixel"
@@ -2112,6 +2119,14 @@ export default function AdminConsole({
                   className="font-pixel"
                   style={{ fontSize: 9, padding: '9px 16px', border: 'none', borderRadius: 5, background: showcaseSubTab === 'student' ? '#ff5fd2' : 'transparent', color: showcaseSubTab === 'student' ? '#12081e' : 'var(--tx,#e4e0ee)', cursor: 'pointer' }}
                 >★ STUDENT</button>
+              </div>
+                <button
+                  onClick={() => setShowConfigModal(true)}
+                  className="font-pixel"
+                  style={{ fontSize: 9, padding: '9px 16px', border: '2px solid var(--gold,#ffd23f)', borderRadius: 5, background: 'rgba(255,210,63,.1)', color: 'var(--gold,#ffd23f)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  ⚙ CONFIG
+                </button>
               </div>
 
               {/* Student Showcase Tab */}
@@ -2222,7 +2237,8 @@ export default function AdminConsole({
               {/* Contributor Showcase Tab (original content) */}
               {showcaseSubTab === 'contributor' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 18, alignItems: 'start' }}>
-              {/* Publish form */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {/* Publish form */}
               <div style={{
                 border: '2px solid var(--ok,#74f0a0)',
                 borderRadius: 8,
@@ -2443,6 +2459,8 @@ export default function AdminConsole({
                 </div>
               </div>
 
+              </div>
+              
               {/* Published list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ 
@@ -2571,6 +2589,75 @@ export default function AdminConsole({
                 )}
               </div>
             </div>
+              )}
+
+              {/* Settings Modal */}
+              {showConfigModal && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'rgba(0,0,0,0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: 20
+                }}>
+                  <div style={{
+                    border: '2px solid var(--gold,#ffd23f)',
+                    borderRadius: 12,
+                    padding: 24,
+                    background: '#1a1625',
+                    width: '100%',
+                    maxWidth: 500,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    position: 'relative'
+                  }}>
+                    <button
+                      onClick={() => setShowConfigModal(false)}
+                      style={{
+                        position: 'absolute',
+                        top: 16,
+                        right: 16,
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--mu,#a493c9)',
+                        fontSize: 20,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✕
+                    </button>
+                    <div className="font-pixel" style={{ fontSize: 12, color: 'var(--gold,#ffd23f)', marginBottom: 20 }}>
+                      ⚙ SHOWCASE CONFIG
+                    </div>
+                    <div className="font-vt323" style={{ fontSize: 20, color: 'var(--mu,#a493c9)', marginBottom: 10 }}>TALLY FORM LINK</div>
+                    <input 
+                      value={showcaseSettings?.tally_link || ''} 
+                      onChange={e => setShowcaseSettings({...showcaseSettings, tally_link: e.target.value})} 
+                      placeholder="https://tally.so/r/..." 
+                      style={{ ...inputStyle, fontSize: 18, marginBottom: 12 }} 
+                    />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'DM Mono',monospace", fontSize: 12, color: 'var(--tx,#d6ffe0)', marginBottom: 24, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={!!showcaseSettings?.show_tally_link} onChange={e => setShowcaseSettings({...showcaseSettings, show_tally_link: e.target.checked})} style={{ width: 18, height: 18, accentColor: 'var(--gold,#ffd23f)' }} />
+                      Enable Tally Button in Contributor Tab
+                    </label>
+                    <button
+                      onClick={async () => {
+                        setIsSavingSettings(true);
+                        await updateShowcaseSettings(showcaseSettings);
+                        setToast('✓ Settings updated');
+                        setIsSavingSettings(false);
+                        setShowConfigModal(false);
+                      }}
+                      disabled={isSavingSettings}
+                      className="font-pixel"
+                      style={{ fontSize: 11, padding: '12px 20px', background: 'var(--gold,#ffd23f)', color: '#0e1512', border: 'none', borderRadius: 5, cursor: isSavingSettings ? 'wait' : 'pointer', width: '100%' }}
+                    >
+                      {isSavingSettings ? 'SAVING...' : 'SAVE CONFIG'}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}

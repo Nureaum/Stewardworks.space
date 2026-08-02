@@ -89,7 +89,9 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
     contributors_title: '★ CONTRIBUTORS SHOWCASE LIBRARY',
     contributors_description: 'Curated lessons, articles, audio guides, and AI-generated packs from community contributors, partner educators, and the StewardWorks AI Lab. Bookmark items to your desk for quick reference during workshops.',
     student_title: '★ STUDENT SHOWCASE LIBRARY',
-    student_description: 'Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.'
+    student_description: 'Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.',
+    tally_link: 'https://tally.so/r/0QyDkQ',
+    show_tally_link: false
   })
   const [showSettingsForm, setShowSettingsForm] = useState(false)
   const [editSettings, setEditSettings] = useState(settings)
@@ -102,7 +104,9 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
           contributors_title: data.contributors_title || '★ CONTRIBUTORS SHOWCASE LIBRARY',
           contributors_description: data.contributors_description || 'Curated lessons, articles, audio guides, and AI-generated packs from community contributors, partner educators, and the StewardWorks AI Lab. Bookmark items to your desk for quick reference during workshops.',
           student_title: data.student_title || '★ STUDENT SHOWCASE LIBRARY',
-          student_description: data.student_description || 'Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.'
+          student_description: data.student_description || 'Explore inspiring AI creations designed by your peers. When instructors approve student creations, they appear here.',
+          tally_link: data.tally_link || 'https://tally.so/r/0QyDkQ',
+          show_tally_link: !!data.show_tally_link
         })
       }
     }).catch(err => console.error('Failed to load settings', err))
@@ -437,6 +441,20 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
               }}>
                 {settings.contributors_description}
               </p>
+              
+              {settings.show_tally_link && settings.tally_link && (
+                <div style={{ marginTop: 16 }}>
+                  <a
+                    href={settings.tally_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-pixel"
+                    style={{ display: 'inline-block', fontSize: 10, padding: '10px 16px', background: 'var(--gold,#ffd23f)', color: '#0e1512', border: 'none', borderRadius: 8, cursor: 'pointer', letterSpacing: '.5px', textDecoration: 'none' }}
+                  >
+                    + BECOME A CONTRIBUTOR
+                  </a>
+                </div>
+              )}
             </div>
             {isAdmin && (
               <button
@@ -1030,6 +1048,14 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
 
             <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>STUDENT DESCRIPTION</label>
             <textarea value={editSettings.student_description} onChange={e => setEditSettings(s => ({...s, student_description: e.target.value}))} rows={3} style={{ width: '100%', padding: '10px 12px', fontSize: 14, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', marginBottom: 16, fontFamily: 'inherit', resize: 'vertical' }} />
+
+            <label style={{ display: 'block', fontFamily: "'DM Mono',monospace", fontSize: 10, color: 'var(--mu,#a493c9)', letterSpacing: '.1em', marginBottom: 6 }}>TALLY FORM LINK</label>
+            <input value={editSettings.tally_link} onChange={e => setEditSettings(s => ({...s, tally_link: e.target.value}))} style={{ width: '100%', padding: '10px 12px', fontSize: 14, background: 'var(--pn,#14211b)', border: '1.5px solid var(--ln,#28432f)', borderRadius: 8, color: 'var(--tx,#d6ffe0)', marginBottom: 12, fontFamily: 'inherit' }} />
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'DM Mono',monospace", fontSize: 11, color: 'var(--tx,#d6ffe0)', marginBottom: 24, cursor: 'pointer' }}>
+              <input type="checkbox" checked={editSettings.show_tally_link} onChange={e => setEditSettings(s => ({...s, show_tally_link: e.target.checked}))} style={{ width: 16, height: 16, accentColor: 'var(--gold,#ffd23f)' }} />
+              ENABLE TALLY FORM BUTTON IN CONTRIBUTORS TAB
+            </label>
 
             <button
               onClick={handleSaveSettings}

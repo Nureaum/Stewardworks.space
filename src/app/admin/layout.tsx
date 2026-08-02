@@ -121,6 +121,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const menuItems = [
     { label: 'Announcements', href: '/admin/announcements', icon: Megaphone, exact: false },
+    { label: 'Onboarding Questions', href: '/admin/onboarding-questions', icon: BookOpen, exact: false },
+    { label: 'Agreements', href: '/admin/agreements', icon: Layers, exact: false },
     { label: 'User Management', href: '/admin/users', icon: Users },
     { label: 'Library Resources', href: '/admin/library', icon: BookOpen, exact: true },
     // { label: 'Manage Categories', href: '/admin/library/categories', icon: Layers }, // Hidden for now
