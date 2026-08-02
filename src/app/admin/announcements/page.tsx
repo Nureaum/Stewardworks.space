@@ -20,11 +20,29 @@ import {
   updateBulletinUpdate,
   updateBulletinEvent,
   updateAboutPage,
-  updateDemoVideoUrl
+  updateDemoVideoUrl,
+  updateBulletinUpdatesOrder,
+  updateBulletinEventsOrder
 } from '@/app/actions/bulletins';
-import { Pin, Globe, Trash2, Pencil, Bold, Italic, Link as LinkIcon, Image, X, Video } from 'lucide-react';
+import { Pin, Globe, Trash2, Pencil, Bold, Italic, Link as LinkIcon, Image, X, Video, GripVertical } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/utils/supabase/client';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 async function uploadFileWithPresignedUrl(file: File, bucketName: string): Promise<string> {
   console.log(`[Upload] Starting presigned upload for ${file.name} to bucket ${bucketName}`);
@@ -330,6 +348,84 @@ function AnnouncementEditor({ value, onChange, placeholder }: { value: string; o
   );
 }
 
+function SortableUpdateItem({ update, updatesBulkMode, selectedUpdateIds, toggleUpdateSelection, handleEditUpdate, handleDeleteUpdate }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: update.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 1, opacity: isDragging ? 0.9 : 1 };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`flex justify-between items-start gap-3 p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${updatesBulkMode && selectedUpdateIds.has(update.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'} ${isDragging ? 'shadow-lg ring-2 ring-[#B85C3E]/40 border-[#B85C3E]/40' : ''}`}>
+      <div {...attributes} {...listeners} className="mt-1 text-[#b5a995] hover:text-[#B85C3E] cursor-grab active:cursor-grabbing">
+        <GripVertical size={18} />
+      </div>
+      {updatesBulkMode && (
+        <input
+          type="checkbox"
+          checked={selectedUpdateIds.has(update.id)}
+          onChange={() => toggleUpdateSelection(update.id)}
+          className="mt-1 w-4 h-4 accent-[#B85C3E] shrink-0 cursor-pointer"
+        />
+      )}
+      <div className="flex-1 min-w-0">
+        <span className="text-[10px] font-mono tracking-widest text-[#B85C3E] bg-[#F7E7DF] px-2 py-1 rounded-full mb-2 inline-block">{update.tag}</span>
+        <h4 className="font-[700] text-[15px] mb-1">{update.title}</h4>
+        <p className="text-[12px] text-[#7c6f5a] line-clamp-2">{update.body}</p>
+      </div>
+      {!updatesBulkMode && (
+        <div className="flex flex-col gap-1 shrink-0">
+          <button onClick={() => handleEditUpdate(update)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+            <Pencil size={16} />
+          </button>
+          <button onClick={() => handleDeleteUpdate(update.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SortableEventItem({ event, eventsBulkMode, selectedEventIds, toggleEventSelection, handleEditEvent, handleDeleteEvent }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: event.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 1, opacity: isDragging ? 0.9 : 1 };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`flex justify-between items-start gap-3 p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${eventsBulkMode && selectedEventIds.has(event.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'} ${isDragging ? 'shadow-lg ring-2 ring-[#B85C3E]/40 border-[#B85C3E]/40' : ''}`}>
+      <div {...attributes} {...listeners} className="mt-1 text-[#b5a995] hover:text-[#B85C3E] cursor-grab active:cursor-grabbing">
+        <GripVertical size={18} />
+      </div>
+      {eventsBulkMode && (
+        <input
+          type="checkbox"
+          checked={selectedEventIds.has(event.id)}
+          onChange={() => toggleEventSelection(event.id)}
+          className="mt-1 w-4 h-4 accent-[#B85C3E] shrink-0 cursor-pointer"
+        />
+      )}
+      <div className="flex gap-3 flex-1 min-w-0">
+        {event.image_url && (
+          <div className="w-[60px] h-[60px] rounded-lg shrink-0 border border-[#785a32]/20 bg-cover bg-center shadow-sm" style={{ backgroundImage: `url(${event.image_url})` }} />
+        )}
+        <div>
+          <span className="text-[10px] font-mono tracking-widest text-gray-100 bg-[#3B2E20] px-2 py-1 rounded-full mb-2 inline-block">{event.badge}</span>
+          <h4 className="font-[700] text-[15px] mb-1">{event.title}</h4>
+          <p className="text-[12px] text-[#7c6f5a]">📅 {event.event_date} · 🕒 {event.event_time}</p>
+          <p className="text-[12px] text-[#7c6f5a]">📍 {event.location}</p>
+        </div>
+      </div>
+      {!eventsBulkMode && (
+        <div className="flex flex-col gap-1 shrink-0">
+          <button onClick={() => handleEditEvent(event)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+            <Pencil size={16} />
+          </button>
+          <button onClick={() => handleDeleteEvent(event.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminAnnouncementsPage() {
   // Announcements State
   const [annTitle, setAnnTitle] = useState('');
@@ -401,6 +497,37 @@ export default function AdminAnnouncementsPage() {
   const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
   const [bulkDeleteEventsConfirm, setBulkDeleteEventsConfirm] = useState(false);
   const [isBulkDeletingEvents, setIsBulkDeletingEvents] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function handleDragEndUpdates(event: any) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setUpdates((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newArray = arrayMove(items, oldIndex, newIndex);
+        updateBulletinUpdatesOrder(newArray.map(u => u.id)).catch(e => console.error(e));
+        return newArray;
+      });
+    }
+  }
+
+  function handleDragEndEvents(event: any) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setEvents((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newArray = arrayMove(items, oldIndex, newIndex);
+        updateBulletinEventsOrder(newArray.map(u => u.id)).catch(e => console.error(e));
+        return newArray;
+      });
+    }
+  }
 
   useEffect(() => {
     loadData();
@@ -1422,33 +1549,21 @@ export default function AdminAnnouncementsPage() {
                   )}
                 </div>
 
-                {updates.map(u => (
-                  <div key={u.id} className={`flex justify-between items-start gap-4 p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${updatesBulkMode && selectedUpdateIds.has(u.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'}`}>
-                    {updatesBulkMode && (
-                      <input
-                        type="checkbox"
-                        checked={selectedUpdateIds.has(u.id)}
-                        onChange={() => toggleUpdateSelection(u.id)}
-                        className="mt-1 w-4 h-4 accent-[#B85C3E] shrink-0 cursor-pointer"
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndUpdates}>
+                  <SortableContext items={updates.map(u => u.id)} strategy={verticalListSortingStrategy}>
+                    {updates.map(u => (
+                      <SortableUpdateItem
+                        key={u.id}
+                        update={u}
+                        updatesBulkMode={updatesBulkMode}
+                        selectedUpdateIds={selectedUpdateIds}
+                        toggleUpdateSelection={toggleUpdateSelection}
+                        handleEditUpdate={handleEditUpdate}
+                        handleDeleteUpdate={handleDeleteUpdate}
                       />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-mono tracking-widest text-[#B85C3E] bg-[#F7E7DF] px-2 py-1 rounded-full mb-2 inline-block">{u.tag}</span>
-                      <h4 className="font-[700] text-[15px] mb-1">{u.title}</h4>
-                      <p className="text-[12px] text-[#7c6f5a] line-clamp-2">{u.body}</p>
-                    </div>
-                    {!updatesBulkMode && (
-                      <div className="flex flex-col gap-1 shrink-0">
-                        <button onClick={() => handleEditUpdate(u)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
-                          <Pencil size={16} />
-                        </button>
-                        <button onClick={() => handleDeleteUpdate(u.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </div>
             </div>
 
@@ -1590,39 +1705,21 @@ export default function AdminAnnouncementsPage() {
                   )}
                 </div>
 
-                {events.map(e => (
-                  <div key={e.id} className={`flex justify-between items-start gap-4 p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${eventsBulkMode && selectedEventIds.has(e.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'}`}>
-                    {eventsBulkMode && (
-                      <input
-                        type="checkbox"
-                        checked={selectedEventIds.has(e.id)}
-                        onChange={() => toggleEventSelection(e.id)}
-                        className="mt-1 w-4 h-4 accent-[#B85C3E] shrink-0 cursor-pointer"
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndEvents}>
+                  <SortableContext items={events.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                    {events.map(e => (
+                      <SortableEventItem
+                        key={e.id}
+                        event={e}
+                        eventsBulkMode={eventsBulkMode}
+                        selectedEventIds={selectedEventIds}
+                        toggleEventSelection={toggleEventSelection}
+                        handleEditEvent={handleEditEvent}
+                        handleDeleteEvent={handleDeleteEvent}
                       />
-                    )}
-                    <div className="flex gap-3 flex-1 min-w-0">
-                      {e.image_url && (
-                        <div className="w-[60px] h-[60px] rounded-lg shrink-0 border border-[#785a32]/20 bg-cover bg-center shadow-sm" style={{ backgroundImage: `url(${e.image_url})` }} />
-                      )}
-                      <div>
-                        <span className="text-[10px] font-mono tracking-widest text-gray-100 bg-[#3B2E20] px-2 py-1 rounded-full mb-2 inline-block">{e.badge}</span>
-                        <h4 className="font-[700] text-[15px] mb-1">{e.title}</h4>
-                        <p className="text-[12px] text-[#7c6f5a]">📅 {e.event_date} · 🕒 {e.event_time}</p>
-                        <p className="text-[12px] text-[#7c6f5a]">📍 {e.location}</p>
-                      </div>
-                    </div>
-                    {!eventsBulkMode && (
-                      <div className="flex flex-col gap-1 shrink-0">
-                        <button onClick={() => handleEditEvent(e)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
-                          <Pencil size={16} />
-                        </button>
-                        <button onClick={() => handleDeleteEvent(e.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </div>
             </div>
 

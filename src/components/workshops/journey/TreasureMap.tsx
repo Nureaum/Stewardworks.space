@@ -101,17 +101,17 @@ function chiaStageLabel(stage: number): string {
 function PrincipleCard({ principle, isBanked }: { principle: WorkshopPrinciple, isBanked: boolean }) {
   const [expanded, setExpanded] = useState(false)
   return (
-    <div style={{ border: `1px solid ${isBanked ? 'var(--ok, #74f0a0)' : 'var(--ln, #3d2668)'}`, borderRadius: 8, background: 'rgba(255,255,255,.02)', overflow: 'hidden' }}>
+    <div style={{ border: `1px solid ${isBanked ? 'var(--ok, #74f0a0)' : 'var(--ln, #3d2668)'}`, borderRadius: 8, background: 'rgba(255,255,255,.02)', overflow: 'visible', position: 'relative' }}>
       <button 
         onClick={() => setExpanded(!expanded)} 
-        style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12 }}
+        style={{ width: '100%', display: 'flex', alignItems: 'flex-start', padding: '16px 16px 20px 16px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12, position: 'relative', zIndex: 1 }}
       >
-        <span style={{ color: isBanked ? 'var(--ok, #74f0a0)' : 'var(--mu, #a493c9)' }}>{expanded ? '▼' : '▶'}</span>
-        <span style={{ fontSize: 18, color: isBanked ? 'var(--tx, #efe6ff)' : 'var(--mu, #a493c9)', flex: 1, fontFamily: "'VT323', monospace", letterSpacing: 0.5 }}>{principle.name}</span>
-        {isBanked && <span className="font-pixel" style={{ fontSize: 8, color: 'var(--bg, #12081e)', background: 'var(--ok, #74f0a0)', padding: '3px 8px', borderRadius: 12 }}>BANKED</span>}
+        <span style={{ color: isBanked ? 'var(--ok, #74f0a0)' : 'var(--mu, #a493c9)', marginTop: 2, flex: 'none', zIndex: 2 }}>{expanded ? '▼' : '▶'}</span>
+        <span style={{ fontSize: 18, lineHeight: 1.6, color: isBanked ? 'var(--tx, #efe6ff)' : 'var(--mu, #a493c9)', flex: '1 1 auto', minWidth: 0, whiteSpace: 'normal', wordBreak: 'break-word', fontFamily: "'VT323', monospace", letterSpacing: 0.5, zIndex: 2, position: 'relative' }}>{principle.name}</span>
+        {isBanked && <span className="font-pixel" style={{ fontSize: 8, color: 'var(--bg, #12081e)', background: 'var(--ok, #74f0a0)', padding: '4px 8px', borderRadius: 12, marginTop: 4, flex: 'none', zIndex: 2 }}>BANKED</span>}
       </button>
       {expanded && (
-        <div style={{ padding: '0 16px 16px 44px', color: 'var(--mu, #a493c9)', fontSize: 18, lineHeight: 1.4, fontFamily: "'VT323', monospace" }}>
+        <div style={{ padding: '0 16px 16px 44px', color: 'var(--mu, #a493c9)', fontSize: 18, lineHeight: 1.4, fontFamily: "'VT323', monospace", position: 'relative', zIndex: 1 }}>
           {principle.description && <div style={{ marginBottom: 8, whiteSpace: 'pre-wrap' }}>{principle.description}</div>}
           {principle.example && <div style={{ color: 'var(--s, #45d6ff)', opacity: 0.9 }}>Example: {principle.example}</div>}
         </div>

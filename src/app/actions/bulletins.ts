@@ -345,6 +345,7 @@ export async function getBulletinUpdates() {
   const { data, error } = await supabase
     .from('bulletin_updates')
     .select('*')
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
 
   if (error) return [];
@@ -356,10 +357,41 @@ export async function getBulletinEvents() {
   const { data, error } = await supabase
     .from('bulletin_events')
     .select('*')
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
 
   if (error) return [];
   return data;
+}
+
+export async function updateBulletinUpdatesOrder(orderedIds: string[]) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  for (let i = 0; i < orderedIds.length; i++) {
+    const id = orderedIds[i];
+    await supabase.from('bulletin_updates').update({ sort_order: i }).eq('id', id);
+  }
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/onboarding/bulletin');
+  revalidatePath('/hub');
+}
+
+export async function updateBulletinEventsOrder(orderedIds: string[]) {
+  const supabase = createServerSupabaseClient();
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  for (let i = 0; i < orderedIds.length; i++) {
+    const id = orderedIds[i];
+    await supabase.from('bulletin_events').update({ sort_order: i }).eq('id', id);
+  }
+  
+  revalidatePath('/admin/announcements');
+  revalidatePath('/onboarding/bulletin');
+  revalidatePath('/hub');
 }
 
 export async function createBulletinUpdate(data: { tag: string; title: string; body: string; detail: string; cta_label: string; link_url?: string; image_url?: string | null }) {
