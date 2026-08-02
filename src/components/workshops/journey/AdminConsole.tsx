@@ -3012,7 +3012,8 @@ export default function AdminConsole({
                                 {principleName && (
                                   <div className="font-pixel" style={{
                                     fontSize: 8, color: 'var(--ok,#74f0a0)', border: '1px solid var(--ok,#74f0a0)',
-                                    borderRadius: 20, padding: '4px 8px', letterSpacing: 1, whiteSpace: 'nowrap',
+                                    borderRadius: 20, padding: '4px 8px', letterSpacing: 1, 
+                                    whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '300px', lineHeight: '1.4', textAlign: 'right'
                                   }}>
                                     ◈ {principleName.toUpperCase()}
                                   </div>

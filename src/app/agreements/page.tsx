@@ -113,10 +113,60 @@ export default function AgreementsPage() {
             </div>
           ) : (
             <div 
-              className="space-y-8 text-left prose max-w-none text-sm leading-relaxed" 
-              dangerouslySetInnerHTML={{ __html: content }} 
+              className="space-y-8 text-left prose prose-sm prose-steward max-w-none" 
+              dangerouslySetInnerHTML={{ __html: content }}
+              style={{
+                lineHeight: '1.6',
+              }}
             />
           )}
+          <style jsx>{`
+            .prose-steward h3 {
+              font-size: 1.25rem;
+              font-weight: 700;
+              color: #417C98;
+              margin-bottom: 0.75rem;
+              margin-top: 1.5rem;
+            }
+            .prose-steward h2 {
+              font-size: 1.5rem;
+              font-weight: 700;
+              color: #417C98;
+              margin-bottom: 1rem;
+              margin-top: 2rem;
+            }
+            .prose-steward p {
+              margin-bottom: 1rem;
+              line-height: 1.6;
+            }
+            .prose-steward strong {
+              font-weight: 700;
+              color: #241c12;
+            }
+            .prose-steward em {
+              font-style: italic;
+            }
+            .prose-steward ul {
+              list-style-type: disc;
+              padding-left: 1.5rem;
+              margin-bottom: 1rem;
+            }
+            .prose-steward ol {
+              list-style-type: decimal;
+              padding-left: 1.5rem;
+              margin-bottom: 1rem;
+            }
+            .prose-steward li {
+              margin-bottom: 0.5rem;
+            }
+            .prose-steward a {
+              color: #417C98;
+              text-decoration: underline;
+            }
+            .prose-steward a:hover {
+              color: #2d5a6e;
+            }
+          `}</style>
         </div>
 
         {/* Scroll indicator */}

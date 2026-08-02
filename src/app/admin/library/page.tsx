@@ -31,6 +31,12 @@ export default function LibraryAdminPage() {
   const [allCategories, setAllCategories] = useState<string[]>([])
   const ITEMS_PER_PAGE = 10
 
+  // Bulk Delete State
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+
   const fetchItems = () => {
     setIsLoading(true)
     fetch('/api/admin/content?type=library_resource')
@@ -90,6 +96,43 @@ export default function LibraryAdminPage() {
     } finally {
       setProcessing(null)
       setDeleteModalState({ isOpen: false, id: null })
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true)
+    try {
+      const deletePromises = Array.from(selectedIds).map(id =>
+        fetch(`/api/admin/content/${id}`, { method: 'DELETE' })
+      )
+      await Promise.all(deletePromises)
+      setItems(items.filter(item => !selectedIds.has(item.id)))
+      toast.success(`${selectedIds.size} resource${selectedIds.size > 1 ? 's' : ''} deleted`)
+      setSelectedIds(new Set())
+      setBulkMode(false)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete some resources')
+    } finally {
+      setIsBulkDeleting(false)
+      setBulkDeleteConfirm(false)
+    }
+  }
+
+  const toggleSelectItem = (id: string) => {
+    const newSet = new Set(selectedIds)
+    if (newSet.has(id)) {
+      newSet.delete(id)
+    } else {
+      newSet.add(id)
+    }
+    setSelectedIds(newSet)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedItems.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(paginatedItems.map(item => item.id)))
     }
   }
 
@@ -332,7 +375,6 @@ export default function LibraryAdminPage() {
                 className="flex-1 min-w-0 border-none bg-transparent text-[14.5px] text-[#241c12] focus:outline-none placeholder:text-[#a89a82]"
               />
             </div>
-            
             <div className="relative w-full sm:w-auto custom-dropdown-container">
               <button 
                 onClick={() => {
@@ -413,6 +455,37 @@ export default function LibraryAdminPage() {
             </div>
           </div>
 
+          {/* Bulk Delete Controls */}
+          <div className="flex flex-wrap gap-[10px] items-center mb-[18px]">
+            <button 
+              onClick={() => setBulkMode(!bulkMode)}
+              className={`${bulkMode ? 'bg-red-50 text-red-600 border-red-300' : 'bg-red-500 text-white border-red-600'} border px-[18px] py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-[8px] hover:bg-red-600 hover:text-white hover:border-red-700 transition-all shrink-0 whitespace-nowrap shadow-[0_4px_12px_rgba(239,68,68,0.15)]`}
+            >
+              {bulkMode ? (
+                <>
+                  <X size={14} /> Cancel Bulk Delete
+                </>
+              ) : (
+                <>
+                  <Trash2 size={14} /> Bulk Delete
+                </>
+              )}
+            </button>
+            {bulkMode && selectedIds.size > 0 && (
+              <button
+                onClick={() => setBulkDeleteConfirm(true)}
+                className="bg-red-600 text-white border border-red-700 px-[18px] py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-[8px] hover:bg-red-700 transition-all shrink-0 whitespace-nowrap shadow-[0_4px_12px_rgba(220,38,38,0.25)] animate-pulse"
+              >
+                <Trash2 size={14} /> Delete Selected ({selectedIds.size})
+              </button>
+            )}
+            {bulkMode && (
+              <span className="text-[11px] font-mono text-red-600 uppercase tracking-[0.12em]">
+                Select items to delete
+              </span>
+            )}
+          </div>
+
 
 
       <div className="bg-white rounded-[22px] shadow-[0_14px_34px_rgba(120,90,50,0.1)] border border-[#785a32]/10 overflow-hidden">
@@ -420,6 +493,16 @@ export default function LibraryAdminPage() {
           <table className="min-w-full divide-y divide-[#785a32]/10">
             <thead className="bg-[#fbf5e6] border-b border-[#785a32]/10">
               <tr>
+                {bulkMode && (
+                  <th className="px-[28px] py-[18px] text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === paginatedItems.length && paginatedItems.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-2 border-[#785a32]/30 text-[#c8963e] focus:ring-[#c8963e]/30 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Resource / Category (Book)</th>
                 {userRole === 'super_admin' && (
                   <th className="px-[28px] py-[18px] text-left text-[11px] font-mono text-[#a89a82] uppercase tracking-[0.16em]">Posted By</th>
@@ -431,7 +514,7 @@ export default function LibraryAdminPage() {
             </thead>
             <tbody className="divide-y divide-[#785a32]/5 bg-white">
               {paginatedItems.length === 0 ? (
-                <tr><td colSpan={userRole === 'super_admin' ? 5 : 4} className="px-[28px] py-[40px] text-center">
+                <tr><td colSpan={bulkMode ? (userRole === 'super_admin' ? 6 : 5) : (userRole === 'super_admin' ? 5 : 4)} className="px-[28px] py-[40px] text-center">
                   <div className="w-16 h-16 bg-[#fbf5e6] rounded-[22px] flex items-center justify-center mx-auto mb-4 text-[#a89a82]">
                     <Search size={24} />
                   </div>
@@ -441,6 +524,16 @@ export default function LibraryAdminPage() {
               ) : (
                 paginatedItems.map((item) => (
                   <tr key={item.id} className="hover:bg-[#fbf5e6]/30 transition-colors group">
+                    {bulkMode && (
+                      <td className="px-[28px] py-[18px]">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(item.id)}
+                          onChange={() => toggleSelectItem(item.id)}
+                          className="w-4 h-4 rounded border-2 border-[#785a32]/30 text-[#c8963e] focus:ring-[#c8963e]/30 cursor-pointer"
+                        />
+                      </td>
+                    )}
                     <td className="px-[28px] py-[18px] whitespace-nowrap">
                       <div className="flex flex-col">
                         <span className="text-[15px] font-[700] text-[#241c12] tracking-tight">{item.title || 'Untitled'}</span>
@@ -697,6 +790,32 @@ export default function LibraryAdminPage() {
         onClose={() => setDeleteModalState({ isOpen: false, id: null })}
         onConfirm={handleDelete}
       />
+
+      {/* Bulk Delete Confirmation Modal */}
+      {bulkDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#785a32]/10 w-[90%] max-w-[400px]">
+            <h3 className="text-[18px] font-[800] mb-2 text-[#241c12]">Delete {selectedIds.size} Resource{selectedIds.size > 1 ? 's' : ''}?</h3>
+            <p className="text-[14px] text-[#5c4f3c] mb-6">This will permanently delete the selected resource{selectedIds.size > 1 ? 's' : ''}. This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setBulkDeleteConfirm(false)}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 rounded-lg bg-white border border-[#785a32]/20 text-[#241c12] font-[700] text-sm hover:bg-[#fbf5e6] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white font-[700] text-sm hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isBulkDeleting ? 'Deleting...' : `Delete ${selectedIds.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
