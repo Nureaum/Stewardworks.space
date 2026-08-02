@@ -112,61 +112,72 @@ export default function AgreementsPage() {
               <p className="text-sm font-mono text-gray-500 uppercase tracking-widest">Loading terms...</p>
             </div>
           ) : (
-            <div 
-              className="space-y-8 text-left prose prose-sm prose-steward max-w-none" 
-              dangerouslySetInnerHTML={{ __html: content }}
-              style={{
-                lineHeight: '1.6',
-              }}
-            />
+            <>
+              <style dangerouslySetInnerHTML={{__html: `
+                .agreements-content h3 {
+                  font-size: 1.25rem !important;
+                  font-weight: 700 !important;
+                  color: #417C98 !important;
+                  margin-bottom: 0.75rem !important;
+                  margin-top: 1.5rem !important;
+                }
+                .agreements-content h2 {
+                  font-size: 1.5rem !important;
+                  font-weight: 700 !important;
+                  color: #417C98 !important;
+                  margin-bottom: 1rem !important;
+                  margin-top: 2rem !important;
+                }
+                .agreements-content h1 {
+                  font-size: 1.875rem !important;
+                  font-weight: 800 !important;
+                  color: #417C98 !important;
+                  margin-bottom: 1.25rem !important;
+                  margin-top: 2.5rem !important;
+                }
+                .agreements-content p {
+                  margin-bottom: 1rem !important;
+                  line-height: 1.6 !important;
+                  font-size: 0.875rem !important;
+                }
+                .agreements-content strong, .agreements-content b {
+                  font-weight: 700 !important;
+                  color: #1a1a1a !important;
+                }
+                .agreements-content em, .agreements-content i {
+                  font-style: italic !important;
+                }
+                .agreements-content ul {
+                  list-style-type: disc !important;
+                  padding-left: 1.5rem !important;
+                  margin-bottom: 1rem !important;
+                }
+                .agreements-content ol {
+                  list-style-type: decimal !important;
+                  padding-left: 1.5rem !important;
+                  margin-bottom: 1rem !important;
+                }
+                .agreements-content li {
+                  margin-bottom: 0.5rem !important;
+                  line-height: 1.6 !important;
+                }
+                .agreements-content a {
+                  color: #417C98 !important;
+                  text-decoration: underline !important;
+                }
+                .agreements-content a:hover {
+                  color: #2d5a6e !important;
+                }
+                .agreements-content u {
+                  text-decoration: underline !important;
+                }
+              `}} />
+              <div 
+                className="agreements-content text-left max-w-none" 
+                dangerouslySetInnerHTML={{ __html: content }}
+              />
+            </>
           )}
-          <style jsx>{`
-            .prose-steward h3 {
-              font-size: 1.25rem;
-              font-weight: 700;
-              color: #417C98;
-              margin-bottom: 0.75rem;
-              margin-top: 1.5rem;
-            }
-            .prose-steward h2 {
-              font-size: 1.5rem;
-              font-weight: 700;
-              color: #417C98;
-              margin-bottom: 1rem;
-              margin-top: 2rem;
-            }
-            .prose-steward p {
-              margin-bottom: 1rem;
-              line-height: 1.6;
-            }
-            .prose-steward strong {
-              font-weight: 700;
-              color: #241c12;
-            }
-            .prose-steward em {
-              font-style: italic;
-            }
-            .prose-steward ul {
-              list-style-type: disc;
-              padding-left: 1.5rem;
-              margin-bottom: 1rem;
-            }
-            .prose-steward ol {
-              list-style-type: decimal;
-              padding-left: 1.5rem;
-              margin-bottom: 1rem;
-            }
-            .prose-steward li {
-              margin-bottom: 0.5rem;
-            }
-            .prose-steward a {
-              color: #417C98;
-              text-decoration: underline;
-            }
-            .prose-steward a:hover {
-              color: #2d5a6e;
-            }
-          `}</style>
         </div>
 
         {/* Scroll indicator */}

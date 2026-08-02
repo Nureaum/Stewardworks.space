@@ -97,6 +97,29 @@ function chiaStageLabel(stage: number): string {
   return ['Bare bud', 'Sprouting', 'Filling in', 'Leafy crown', 'Lush mane', 'Full bloom 🌸'][stage] || 'Bare bud'
 }
 
+// ── Principle Card ──
+function PrincipleCard({ principle, isBanked }: { principle: WorkshopPrinciple, isBanked: boolean }) {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <div style={{ border: `1px solid ${isBanked ? 'var(--ok, #74f0a0)' : 'var(--ln, #3d2668)'}`, borderRadius: 8, background: 'rgba(255,255,255,.02)', overflow: 'hidden' }}>
+      <button 
+        onClick={() => setExpanded(!expanded)} 
+        style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12 }}
+      >
+        <span style={{ color: isBanked ? 'var(--ok, #74f0a0)' : 'var(--mu, #a493c9)' }}>{expanded ? '▼' : '▶'}</span>
+        <span style={{ fontSize: 18, color: isBanked ? 'var(--tx, #efe6ff)' : 'var(--mu, #a493c9)', flex: 1, fontFamily: "'VT323', monospace", letterSpacing: 0.5 }}>{principle.name}</span>
+        {isBanked && <span className="font-pixel" style={{ fontSize: 8, color: 'var(--bg, #12081e)', background: 'var(--ok, #74f0a0)', padding: '3px 8px', borderRadius: 12 }}>BANKED</span>}
+      </button>
+      {expanded && (
+        <div style={{ padding: '0 16px 16px 44px', color: 'var(--mu, #a493c9)', fontSize: 18, lineHeight: 1.4, fontFamily: "'VT323', monospace" }}>
+          {principle.description && <div style={{ marginBottom: 8, whiteSpace: 'pre-wrap' }}>{principle.description}</div>}
+          {principle.example && <div style={{ color: 'var(--s, #45d6ff)', opacity: 0.9 }}>Example: {principle.example}</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function TreasureMap({
   character,
   days,
@@ -114,6 +137,7 @@ export default function TreasureMap({
 }: TreasureMapProps) {
   const [mounted, setMounted] = useState(false)
   const [mapTarget, setMapTarget] = useState<number | null>(null)
+  const [showPrincipleLibrary, setShowPrincipleLibrary] = useState(false)
 
   // Clear map target if daysComplete changes (e.g. coming back after a win)
   useEffect(() => { setMapTarget(null) }, [daysComplete])
@@ -156,6 +180,13 @@ export default function TreasureMap({
           {allDone ? 'All deliverables banked – the portfolio treasure is yours! 📦' : `Embarking on Day ${clampedDays + 1}`}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 14 }}>
+          <button
+            onClick={() => setShowPrincipleLibrary(true)}
+            className="font-pixel"
+            style={{ fontSize: 'clamp(7px, 1.2vw, 9px)', lineHeight: '1.6', color: 'var(--bg, #12081e)', background: 'var(--ok, #74f0a0)', border: 'none', borderRadius: 4, padding: '9px 12px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px rgba(116,240,160,.4)' }}
+          >
+            ◈ PRINCIPLE LIBRARY
+          </button>
           <button
             onClick={onChangeChar}
             className="font-pixel"
@@ -434,6 +465,35 @@ export default function TreasureMap({
         </div>
         )}
       </div>
+
+      {/* Principle Library Modal */}
+      {showPrincipleLibrary && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(18,8,30,.85)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(10px, 3vw, 40px)'
+        }}>
+          <div style={{
+            background: 'var(--bg, #12081e)', border: '2px solid var(--ln, #3d2668)', borderRadius: 12,
+            width: '100%', maxWidth: 700, maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 10px 40px rgba(0,0,0,.5)'
+          }}>
+            <div style={{ padding: '20px 24px', borderBottom: '2px solid var(--ln, #3d2668)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="font-pixel" style={{ fontSize: 14, color: 'var(--ok, #74f0a0)', margin: 0, letterSpacing: 1 }}>◈ PRINCIPLE LIBRARY</h2>
+              <button onClick={() => setShowPrincipleLibrary(false)} style={{ background: 'none', border: 'none', color: 'var(--mu, #a493c9)', fontSize: 28, lineHeight: 1, cursor: 'pointer' }}>&times;</button>
+            </div>
+            <div style={{ padding: 24, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {principles.map(p => (
+                <PrincipleCard key={p.id} principle={p} isBanked={bankedPrinciples.some(bp => bp.principle_id === p.id)} />
+              ))}
+              {principles.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--mu, #a493c9)', padding: 40, fontSize: 18, fontFamily: "'VT323', monospace" }}>
+                  No principles loaded.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
