@@ -131,11 +131,11 @@ export default function JourneyDayList({
         )}
       </div>
 
-      {/* ── Two-column Master/Detail ── */}
+      {/* ── Single-column Master List ── */}
       <div style={{ display: 'flex', minHeight: 'min(70vh, 600px)', border: '3px solid var(--ln,#3d2668)', borderRadius: 14, overflow: 'hidden', background: '#181024' }}>
         
-        {/* Left: Master List */}
-        <div style={{ flex: '1 1 280px', minWidth: 240, maxWidth: 360, borderRight: '2px solid var(--ln,#3d2668)', background: 'rgba(0,0,0,.16)', overflow: 'auto' }}>
+        {/* Master List (Full Width) */}
+        <div style={{ width: '100%', background: 'rgba(0,0,0,.16)', overflow: 'auto' }}>
           <div style={{ background: 'linear-gradient(180deg, rgba(255,95,210,.14), transparent)', borderBottom: '2px solid var(--ln,#3d2668)', padding: '18px 18px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <img src={dayIconUri} alt="" width="46" height="46" style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 0 10px var(--p,#ff5fd2))', flex: 'none' }} />
@@ -217,43 +217,39 @@ export default function JourneyDayList({
             </div>
           </div>
         </div>
-        
-        {/* Right: Detail View (ArtifactReader inline) */}
-        <div style={{ flex: '2 1 400px', minWidth: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.08), transparent)', overflow: 'auto' }}>
-          {activeEntry ? (
-            <ArtifactReader
-              key={`${day.id}-${activeEntry.id}`}
-              entry={activeEntry}
-              dayId={day.id}
-              dayNumber={day.day_number}
-              scene={{ label: `ACT ${day.day_number}` }}
-              accent={accent}
-              cohortId={cohortId}
-              progressRows={progressRows}
-              inline={true}
-              principles={principles}
-              bankedPrincipleIds={bankedPrincipleIds}
-              currentDayPrincipleId={(() => {
-                // Find the progress row for this specific day
-                const dayProgress = progressRows.find(p => p.workshop_day_id === day.id)
-                if (!dayProgress) return null
-                // Use allBankedPrinciples (submitted+approved) so pending submissions also show their principle
-                const bankedMatch = allBankedPrinciples.find((bp: any) => bp.progress_id === dayProgress.id)
-                return bankedMatch?.principle_id || null
-              })()}
-              submissions={submissions}
-              allBankedPrinciples={allBankedPrinciples}
-              onDeliverableSubmitted={onDeliverableSubmitted}
-              userRole={userRole}
-            />
-          ) : (
-            <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--mu,#a493c9)', fontSize: 15 }}>
-              Select a session on the left to read it here.
-            </div>
-          )}
-        </div>
 
       </div>
+
+      {/* ── Artifact Reader modal ── */}
+      {activeEntry && (
+        <ArtifactReader
+          key={`${day.id}-${activeEntry.id}`}
+          entry={activeEntry}
+          dayId={day.id}
+          dayNumber={day.day_number}
+          scene={{ label: `ACT ${day.day_number}` }}
+          accent={accent}
+          onClose={() => setActiveEntry(null)}
+          cohortId={cohortId}
+          progressRows={progressRows}
+          principles={principles}
+          bankedPrincipleIds={bankedPrincipleIds}
+          currentDayPrincipleId={(() => {
+            // Find the progress row for this specific day
+            const dayProgress = progressRows.find(p => p.workshop_day_id === day.id)
+            if (!dayProgress) return null
+            // Use allBankedPrinciples (submitted+approved) so pending submissions also show their principle
+            const bankedMatch = allBankedPrinciples.find((bp: any) => bp.progress_id === dayProgress.id)
+            return bankedMatch?.principle_id || null
+          })()}
+          submissions={submissions}
+          allBankedPrinciples={allBankedPrinciples}
+          onDeliverableSubmitted={onDeliverableSubmitted}
+          userRole={userRole}
+          onBookmark={onBookmark}
+          isBookmarked={bookmarkedUrls.some(u => u.includes(`topic=${activeEntry.id}`))}
+        />
+      )}
     </div>
   )
 }
