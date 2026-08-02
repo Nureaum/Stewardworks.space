@@ -463,7 +463,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
           {/* MAIN TEXT COLUMN */}
           <div style={{ flex: inline ? 'none' : '3 1 430px', minWidth: inline ? 'auto' : 280, maxWidth: '100%', padding: 'clamp(18px,2.6vw,30px)', overflow: 'hidden' }}>
             {/* INLINE MEDIA BUTTON */}
-            {inline && (media.length > 0 || isLoadingMedia) && (
+            {inline && media.length > 0 && (
               <button 
                 onClick={() => setShowInlineMediaModal(true)}
                 className="font-pixel"
@@ -1035,7 +1035,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                         4 · Assign <span style={{ color: 'var(--gold,#ffd23f)' }}>a fresh Steward Principle</span>
                         <span style={{ color: 'var(--mu,#a493c9)', marginLeft: 6 }}>(each principle can only be used once)</span>:
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 16 }}>
                         {principles.map(p => {
                           const isUsedOtherDay = otherDaysBankedIds.includes(p.id)
                           const isPendingOtherDay = !isUsedOtherDay && pendingOtherDayPrincipleIds.includes(p.id)
@@ -1054,8 +1054,9 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                               }
                               style={{
                                 fontSize: 9,
-                                padding: '6px 10px',
-                                borderRadius: 4,
+                                padding: '12px 16px',
+                                lineHeight: 1.7,
+                                borderRadius: 6,
                                 cursor: isBlocked ? 'not-allowed' : 'pointer',
                                 background: isSelected ? 'var(--gold,#ffd23f)' : isUsedOtherDay ? 'rgba(0,0,0,.15)' : isPendingOtherDay ? 'rgba(255,160,50,.08)' : 'rgba(0,0,0,.3)',
                                 color: isSelected ? '#000' : isUsedOtherDay ? 'var(--ln,#3d2668)' : isPendingOtherDay ? '#ffa032' : 'var(--mu,#a493c9)',
@@ -1262,7 +1263,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                       } else {
                         return (
                           <div style={{ padding: 10, wordBreak: 'break-all', fontSize: 13, color: 'var(--s,#45d6ff)' }}>
-                            <a href={m.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{m.label || m.url}</a>
+                            <a href={m.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{m.url}</a>
                           </div>
                         );
                       }
@@ -1410,7 +1411,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                     } else {
                       return (
                         <div style={{ padding: 10, wordBreak: 'break-all', fontSize: 13, color: 'var(--s,#45d6ff)' }}>
-                          <a href={m.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{m.label || m.url}</a>
+                          <a href={m.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{m.url}</a>
                         </div>
                       );
                     }
