@@ -85,7 +85,7 @@ export default function JourneyDayList({
   const dayIconUri = buildIconUri(MAP_ICONS.tent, accent) // Simplified icon
 
   return (
-    <div style={{ padding: '4px clamp(12px,3vw,26px) clamp(14px,3vw,30px)' }}>
+    <div style={{ padding: '4px clamp(12px,3vw,26px) clamp(14px,3vw,30px)', width: '100%', boxSizing: 'border-box' }}>
       {/* ── Top bar ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
         <button onClick={onBack} className="font-pixel" style={{ fontSize: 11, color: 'var(--s,#45d6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s' }}>
@@ -129,10 +129,10 @@ export default function JourneyDayList({
       </div>
 
       {/* ── Single-column Master List ── */}
-      <div style={{ display: 'flex', minHeight: 'min(70vh, 600px)', border: '3px solid var(--ln,#3d2668)', borderRadius: 14, overflow: 'hidden', background: '#181024' }}>
+      <div style={{ display: 'flex', width: '100%', minHeight: 'min(70vh, 600px)', border: '3px solid var(--ln,#3d2668)', borderRadius: 14, overflow: 'hidden', background: '#181024' }}>
         
         {/* Master List (Full Width) */}
-        <div style={{ width: '100%', background: 'rgba(0,0,0,.16)', overflow: 'auto' }}>
+        <div style={{ flex: 1, width: '100%', background: 'rgba(0,0,0,.16)', overflow: 'auto' }}>
           <div style={{ background: 'linear-gradient(180deg, rgba(255,95,210,.14), transparent)', borderBottom: '2px solid var(--ln,#3d2668)', padding: '18px 18px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <img src={dayIconUri} alt="" width="46" height="46" style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 0 10px var(--p,#ff5fd2))', flex: 'none' }} />
