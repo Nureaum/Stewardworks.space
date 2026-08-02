@@ -28,6 +28,9 @@ import { createSection, updateSection, deleteSection } from '@/app/actions/works
 import { createEntry, updateEntry, deleteEntry, reorderEntries } from '@/app/actions/workshops/entries'
 import { SortableList } from '@/components/admin/SortableList'
 import { GripVertical } from 'lucide-react'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import RichEditor from './RichEditor'
 import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia, updateEntryMedia } from '@/app/actions/workshops/entry-media'
 import { createPrinciple, updatePrinciple, deletePrinciple } from '@/app/actions/workshops/principles'
@@ -94,6 +97,294 @@ function chiaUri(pct: number): string {
 }
 
 // ─── Component ─────────────────────────────────────────────
+const localInputStyle: React.CSSProperties = {
+  background: 'rgba(0,0,0,.35)',
+  border: '2px solid var(--ln,#3a3352)',
+  borderRadius: 6,
+  color: 'var(--tx,#e4e0ee)',
+  fontFamily: '"VT323", monospace',
+  fontSize: 22,
+  padding: '12px 14px',
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
+}
+
+function SortableBlockItem({ id, idx, blockRawContent, blockType, blockTitle, listItems, updateBlock, onRemove }: any) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 1, opacity: isDragging ? 0.9 : 1 };
+
+  const btnStyle = (isActive: boolean) => ({
+    fontSize: 9, cursor: 'pointer', 
+    color: isActive ? 'var(--bg,#1a1025)' : 'var(--mu,#a493c9)', 
+    background: isActive ? 'var(--mu,#a493c9)' : 'transparent', 
+    border: '2px solid var(--ln,#3d2668)', 
+    borderRadius: 4, padding: '6px 12px'
+  });
+
+  return (
+    <div ref={setNodeRef} style={{ ...style, marginBottom: 14, position: 'relative', border: '1px solid var(--ln,#3d2668)', borderRadius: 8, padding: 12, background: isDragging ? 'var(--bg,#14101f)' : 'transparent' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isExpanded ? 6 : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--mu,#a493c9)', display: 'flex', alignItems: 'center' }}>
+            <GripVertical size={16} />
+          </div>
+          <button onClick={() => setIsExpanded(!isExpanded)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: 'var(--gold,#ffd23f)', fontSize: 12, marginTop: 1 }}>{isExpanded ? '▼' : '▶'}</span>
+            <span className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)' }}>◈ BLOCK {idx + 1}</span>
+            {!isExpanded && blockTitle && (
+              <span style={{ color: 'var(--tx,#efe6ff)', fontSize: 14, marginLeft: 8, opacity: 0.8, fontFamily: 'inherit' }}>{blockTitle}</span>
+            )}
+          </button>
+          {isExpanded && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  if (blockType === 'list') {
+                    updateBlock('text', blockTitle, listItems.join('\n'))
+                  } else {
+                    const items = blockRawContent 
+                      ? blockRawContent.split(/<\/?p>|<br\s*\/?>|<\/?div>/i)
+                          .map((s: string) => s.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim())
+                          .filter(Boolean)
+                      : []
+                    updateBlock('list', blockTitle, items)
+                  }
+                }}
+                className="font-pixel"
+                style={btnStyle(blockType === 'list')}
+              >LIST</button>
+              <button
+                onClick={() => updateBlock(blockType === 'highlighted_box' ? 'text' : 'highlighted_box', blockTitle, blockType === 'list' ? listItems.join('\n') : blockRawContent)}
+                className="font-pixel"
+                style={btnStyle(blockType === 'highlighted_box')}
+              >HIGHLIGHTED BOX</button>
+              <button
+                onClick={() => updateBlock(blockType === 'quote' ? 'text' : 'quote', blockTitle, blockType === 'list' ? listItems.join('\n') : blockRawContent)}
+                className="font-pixel"
+                style={btnStyle(blockType === 'quote')}
+              >QUOTE</button>
+            </div>
+          )}
+        </div>
+        <button 
+          onClick={onRemove} 
+          className="font-pixel"
+          style={{
+            fontSize: 7, cursor: 'pointer', color: 'var(--warn,#ff7a7a)', background: 'transparent',
+            border: '2px solid var(--ln,#3d2668)', borderRadius: 4, padding: '6px 9px'
+          }}
+        >✕ REMOVE</button>
+      </div>
+      
+      {isExpanded && (
+        <>
+          <input 
+            defaultValue={blockTitle}
+            onBlur={e => updateBlock(blockType, e.target.value, blockType === 'list' ? listItems : blockRawContent)}
+            placeholder="Block Title..."
+            style={{ ...localInputStyle, fontSize: 16, marginBottom: 8, padding: '10px 12px' }}
+          />
+          {blockType === 'list' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {listItems.map((item: string, i: number) => (
+                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <div className="font-pixel" style={{ color: 'var(--pk,#ff5fd2)', fontSize: 10, paddingTop: 14 }}>◈</div>
+                  <textarea
+                    defaultValue={item}
+                    onBlur={e => {
+                      const newItems = [...listItems]
+                      newItems[i] = e.target.value
+                      updateBlock('list', blockTitle, newItems)
+                    }}
+                    style={{
+                      ...localInputStyle,
+                      fontSize: 16,
+                      padding: '12px 14px',
+                      minHeight: 60,
+                      resize: 'vertical',
+                      flex: 1,
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const newItems = [...listItems]
+                      newItems.splice(i, 1)
+                      updateBlock('list', blockTitle, newItems)
+                    }}
+                    className="font-pixel"
+                    style={{
+                      fontSize: 12, cursor: 'pointer', color: 'var(--warn,#ff7a7a)', background: 'transparent',
+                      border: 'none', padding: '12px 4px', flex: 'none'
+                    }}
+                    title="Remove item"
+                  >✕</button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newItems = [...listItems, '']
+                  updateBlock('list', blockTitle, newItems)
+                }}
+                className="font-pixel"
+                style={{
+                  fontSize: 9, cursor: 'pointer', color: 'var(--pk,#ff5fd2)', background: 'transparent',
+                  border: '2px dashed var(--pk,#ff5fd2)', borderRadius: 6, padding: '12px', marginTop: 4
+                }}
+              >＋ ADD LIST ITEM</button>
+            </div>
+          ) : (
+            <RichEditor
+              value={blockRawContent}
+              onBlur={val => updateBlock(blockType, blockTitle, val)}
+              minHeight={150}
+              accent="var(--ok,#74f0a0)"
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+export function AdditionalBlocksEditor({ blocks, onSave, endRef }: { blocks: string[], onSave: (newBlocks: string[]) => void, endRef: React.RefObject<HTMLDivElement> }) {
+  const [internalBlocks, setInternalBlocks] = useState(() => blocks.map(b => ({ id: Math.random().toString(36).substring(2), content: b })));
+
+  useEffect(() => {
+    setInternalBlocks(prev => {
+      if (blocks.length === prev.length && blocks.every((b, i) => prev[i]?.content === b)) {
+        return prev;
+      }
+      
+      if (blocks.length === prev.length) {
+        return prev.map((p, i) => ({ ...p, content: blocks[i] }));
+      }
+
+      return blocks.map((b, i) => {
+        const existing = prev.find(p => p.content === b);
+        if (existing) return existing;
+        
+        if (prev[i] && !blocks.includes(prev[i].content)) {
+          return { ...prev[i], content: b };
+        }
+        
+        return { id: Math.random().toString(36).substring(2), content: b };
+      });
+    });
+  }, [blocks]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setInternalBlocks(items => {
+        const oldIndex = items.findIndex(i => i.id === active.id);
+        const newIndex = items.findIndex(i => i.id === over.id);
+        const newArray = arrayMove(items, oldIndex, newIndex);
+        onSave(newArray.map(item => item.content));
+        return newArray;
+      });
+    }
+  }
+
+  return (
+    <>
+      <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6, marginTop: 24 }}>
+        ADDITIONAL TEXT BLOCKS · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — each block appears below the content</span>
+      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={internalBlocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+          {internalBlocks.map((blkObj, idx) => {
+            const blk = blkObj.content;
+            let blockType = 'text'
+            let blockTitle = ''
+            let blockRawContent = blk
+
+            const typeMatch = blockRawContent.match(/^<!--TYPE:(.*?)-->/)
+            if (typeMatch) {
+              blockType = typeMatch[1]
+              blockRawContent = blockRawContent.substring(typeMatch[0].length)
+            }
+
+            const titleMatch = blockRawContent.match(/^<!--TITLE:(.*?)-->/)
+            if (titleMatch) {
+              blockTitle = titleMatch[1]
+              blockRawContent = blockRawContent.substring(titleMatch[0].length)
+            }
+
+            let listItems: string[] = []
+            if (blockType === 'list') {
+              try {
+                listItems = JSON.parse(blockRawContent)
+                if (!Array.isArray(listItems)) listItems = []
+              } catch (e) {
+                listItems = blockRawContent ? blockRawContent.split('<!--LIST_ITEM-->') : []
+              }
+            }
+
+            const updateBlock = (newType: string, newTitle: string, newContent: string | string[]) => {
+              const newBlocks = [...internalBlocks]
+              let blockStr = ''
+              if (newType !== 'text') {
+                blockStr += `<!--TYPE:${newType}-->`
+              }
+              blockStr += `<!--TITLE:${newTitle}-->`
+              if (newType === 'list') {
+                blockStr += JSON.stringify(newContent)
+              } else {
+                blockStr += newContent as string
+              }
+              newBlocks[idx] = { ...newBlocks[idx], content: blockStr };
+              onSave(newBlocks.map(b => b.content))
+            }
+
+            const onRemove = () => {
+              const newBlocks = [...internalBlocks]
+              newBlocks.splice(idx, 1)
+              onSave(newBlocks.map(b => b.content))
+            }
+
+            return (
+              <SortableBlockItem
+                key={blkObj.id}
+                id={blkObj.id}
+                idx={idx}
+                blockRawContent={blockRawContent}
+                blockType={blockType}
+                blockTitle={blockTitle}
+                listItems={listItems}
+                updateBlock={updateBlock}
+                onRemove={onRemove}
+              />
+            )
+          })}
+        </SortableContext>
+      </DndContext>
+      <button 
+        onClick={() => {
+          const newBlocks = [...internalBlocks.map(b => b.content), '']
+          onSave(newBlocks)
+          setTimeout(() => {
+            endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }, 100)
+        }}
+        className="font-pixel"
+        style={{
+          fontSize: 8, cursor: 'pointer', color: 'var(--ok,#74f0a0)', background: 'transparent',
+          border: '2px dashed var(--ok,#74f0a0)', borderRadius: 6, padding: '11px 13px', marginTop: 2
+        }}
+      >＋ ADD TEXT BLOCK</button>
+      <div ref={endRef} style={{ height: 1 }} />
+    </>
+  );
+}
+
 export default function AdminConsole({
   cohortId,
   cohortName,
@@ -1021,196 +1312,7 @@ export default function AdminConsole({
     boxSizing: 'border-box',
   }
 
-  const renderAdditionalBlocksUI = (blocks: string[], onSave: (newBlocks: string[]) => void, endRef: React.RefObject<HTMLDivElement>) => {
-    return (
-      <>
-        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6, marginTop: 24 }}>
-          ADDITIONAL TEXT BLOCKS · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — each block appears below the content</span>
-        </div>
-        {blocks.map((blk, idx) => {
-          let blockType = 'text'
-          let blockTitle = ''
-          let blockRawContent = blk
 
-          const typeMatch = blockRawContent.match(/^<!--TYPE:(.*?)-->/)
-          if (typeMatch) {
-            blockType = typeMatch[1]
-            blockRawContent = blockRawContent.substring(typeMatch[0].length)
-          }
-
-          const titleMatch = blockRawContent.match(/^<!--TITLE:(.*?)-->/)
-          if (titleMatch) {
-            blockTitle = titleMatch[1]
-            blockRawContent = blockRawContent.substring(titleMatch[0].length)
-          }
-
-          let listItems: string[] = []
-          if (blockType === 'list') {
-            try {
-              listItems = JSON.parse(blockRawContent)
-              if (!Array.isArray(listItems)) listItems = []
-            } catch (e) {
-              listItems = blockRawContent ? blockRawContent.split('<!--LIST_ITEM-->') : []
-            }
-          }
-
-          const updateBlock = (newType: string, newTitle: string, newContent: string | string[]) => {
-            const newBlocks = [...blocks]
-            let blockStr = ''
-            if (newType !== 'text') {
-              blockStr += `<!--TYPE:${newType}-->`
-            }
-            blockStr += `<!--TITLE:${newTitle}-->`
-            if (newType === 'list') {
-              blockStr += JSON.stringify(newContent)
-            } else {
-              blockStr += newContent as string
-            }
-            newBlocks[idx] = blockStr
-            onSave(newBlocks)
-          }
-
-          const btnStyle = (isActive: boolean) => ({
-            fontSize: 9, cursor: 'pointer', 
-            color: isActive ? 'var(--bg,#1a1025)' : 'var(--mu,#a493c9)', 
-            background: isActive ? 'var(--mu,#a493c9)' : 'transparent', 
-            border: '2px solid var(--ln,#3d2668)', 
-            borderRadius: 4, padding: '6px 12px'
-          })
-
-          return (
-            <div key={idx} style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)' }}>◈ BLOCK {idx + 1}</span>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => {
-                        if (blockType === 'list') {
-                          updateBlock('text', blockTitle, listItems.join('\n'))
-                        } else {
-                          const items = blockRawContent 
-                            ? blockRawContent.split(/<\/?p>|<br\s*\/?>|<\/?div>/i)
-                                .map(s => s.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim())
-                                .filter(Boolean)
-                            : []
-                          updateBlock('list', blockTitle, items)
-                        }
-                      }}
-                      className="font-pixel"
-                      style={btnStyle(blockType === 'list')}
-                    >LIST</button>
-                    <button
-                      onClick={() => updateBlock(blockType === 'highlighted_box' ? 'text' : 'highlighted_box', blockTitle, blockType === 'list' ? listItems.join('\n') : blockRawContent)}
-                      className="font-pixel"
-                      style={btnStyle(blockType === 'highlighted_box')}
-                    >HIGHLIGHTED BOX</button>
-                    <button
-                      onClick={() => updateBlock(blockType === 'quote' ? 'text' : 'quote', blockTitle, blockType === 'list' ? listItems.join('\n') : blockRawContent)}
-                      className="font-pixel"
-                      style={btnStyle(blockType === 'quote')}
-                    >QUOTE</button>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => {
-                    const newBlocks = [...blocks]
-                    newBlocks.splice(idx, 1)
-                    onSave(newBlocks)
-                  }} 
-                  className="font-pixel"
-                  style={{
-                    fontSize: 7, cursor: 'pointer', color: 'var(--warn,#ff7a7a)', background: 'transparent',
-                    border: '2px solid var(--ln,#3d2668)', borderRadius: 4, padding: '6px 9px'
-                  }}
-                >✕ REMOVE</button>
-              </div>
-              <input 
-                key={`title-${idx}-${blockTitle}`}
-                defaultValue={blockTitle}
-                onBlur={e => updateBlock(blockType, e.target.value, blockType === 'list' ? listItems : blockRawContent)}
-                placeholder="Block Title..."
-                style={{ ...inputStyle, fontSize: 16, marginBottom: 8, padding: '10px 12px' }}
-              />
-              {blockType === 'list' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {listItems.map((item, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <div className="font-pixel" style={{ color: 'var(--pk,#ff5fd2)', fontSize: 10, paddingTop: 14 }}>◈</div>
-                      <textarea
-                        key={`item-${idx}-${i}-${item}`}
-                        defaultValue={item}
-                        onBlur={e => {
-                          const newItems = [...listItems]
-                          newItems[i] = e.target.value
-                          updateBlock('list', blockTitle, newItems)
-                        }}
-                        style={{
-                          ...inputStyle,
-                          fontSize: 16,
-                          padding: '12px 14px',
-                          minHeight: 60,
-                          resize: 'vertical',
-                          flex: 1,
-                          fontFamily: 'inherit'
-                        }}
-                      />
-                      <button
-                        onClick={() => {
-                          const newItems = [...listItems]
-                          newItems.splice(i, 1)
-                          updateBlock('list', blockTitle, newItems)
-                        }}
-                        className="font-pixel"
-                        style={{
-                          fontSize: 12, cursor: 'pointer', color: 'var(--warn,#ff7a7a)', background: 'transparent',
-                          border: 'none', padding: '12px 4px', flex: 'none'
-                        }}
-                        title="Remove item"
-                      >✕</button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      const newItems = [...listItems, '']
-                      updateBlock('list', blockTitle, newItems)
-                    }}
-                    className="font-pixel"
-                    style={{
-                      fontSize: 9, cursor: 'pointer', color: 'var(--pk,#ff5fd2)', background: 'transparent',
-                      border: '2px dashed var(--pk,#ff5fd2)', borderRadius: 6, padding: '12px', marginTop: 4
-                    }}
-                  >＋ ADD LIST ITEM</button>
-                </div>
-              ) : (
-                <RichEditor
-                  value={blockRawContent}
-                  onBlur={val => updateBlock(blockType, blockTitle, val)}
-                  minHeight={150}
-                  accent="var(--ok,#74f0a0)"
-                />
-              )}
-            </div>
-          )
-        })}
-        <button 
-          onClick={() => {
-            const newBlocks = [...blocks, '']
-            onSave(newBlocks)
-            setTimeout(() => {
-              endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-            }, 100)
-          }}
-          className="font-pixel"
-          style={{
-            fontSize: 8, cursor: 'pointer', color: 'var(--ok,#74f0a0)', background: 'transparent',
-            border: '2px dashed var(--ok,#74f0a0)', borderRadius: 6, padding: '11px 13px', marginTop: 2
-          }}
-        >＋ ADD TEXT BLOCK</button>
-        <div ref={endRef} style={{ height: 1 }} />
-      </>
-    )
-  }
 
   const rootStyle = {
     maxWidth: 1200,
@@ -3890,9 +3992,13 @@ export default function AdminConsole({
                           const parts = (selEntry.body || '').split('<!--BLOCK-->')
                           const mainBody = parts[0] || ''
                           const additionalBlocks = parts.slice(1)
-                          return renderAdditionalBlocksUI(additionalBlocks, newBlocks => {
-                            handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))
-                          }, blocksEndRef)
+                          return (
+                            <AdditionalBlocksEditor
+                              blocks={additionalBlocks}
+                              onSave={newBlocks => handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))}
+                              endRef={blocksEndRef}
+                            />
+                          )
                         })()}
                       </>
                     )
@@ -3957,9 +4063,13 @@ export default function AdminConsole({
                       const parts = (selEntry.body || '').split('<!--BLOCK-->')
                       const mainBody = parts[0] || ''
                       const additionalBlocks = parts.slice(1)
-                      return renderAdditionalBlocksUI(additionalBlocks, newBlocks => {
-                        handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))
-                      }, blocksEndRef)
+                      return (
+                        <AdditionalBlocksEditor
+                          blocks={additionalBlocks}
+                          onSave={newBlocks => handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))}
+                          endRef={blocksEndRef}
+                        />
+                      )
                     })()}
                   </>
                 ) : selEntry.entry_type === 'list' ? (
@@ -4023,9 +4133,11 @@ export default function AdminConsole({
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 19, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>
-                      CONTENT · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — bold, italic, lists & links</span>
-                    </div>
+                    {selEntry.entry_type !== 'text' && (
+                      <div style={{ fontSize: 19, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>
+                        CONTENT · <span style={{ color: 'var(--ok,#74f0a0)' }}>rich text — bold, italic, lists & links</span>
+                      </div>
+                    )}
                     {(() => {
                       const bodyParts = (selEntry.body || '').split('<!--BLOCK-->')
                       const mainBody = bodyParts[0] || ''
@@ -4033,16 +4145,20 @@ export default function AdminConsole({
                       
                       return (
                         <>
-                          <RichEditor
-                            value={mainBody}
-                            onBlur={val => handleEntryFieldBlur(selEntry.id, 'body', [val, ...additionalBlocks].join('<!--BLOCK-->'))}
-                            minHeight={200}
-                            accent="var(--ok,#74f0a0)"
-                          />
+                          {selEntry.entry_type !== 'text' && (
+                            <RichEditor
+                              value={mainBody}
+                              onBlur={val => handleEntryFieldBlur(selEntry.id, 'body', [val, ...additionalBlocks].join('<!--BLOCK-->'))}
+                              minHeight={200}
+                              accent="var(--ok,#74f0a0)"
+                            />
+                          )}
                           
-                          {renderAdditionalBlocksUI(additionalBlocks, newBlocks => {
-                            handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))
-                          }, blocksEndRef)}
+                          <AdditionalBlocksEditor
+                            blocks={additionalBlocks}
+                            onSave={newBlocks => handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))}
+                            endRef={blocksEndRef}
+                          />
                         </>
                       )
                     })()}
