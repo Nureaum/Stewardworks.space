@@ -20,7 +20,13 @@ export default function AgreementsPage() {
   useEffect(() => {
     const fetchTerms = async () => {
       try {
-        const res = await fetch('/api/agreements');
+        // Add cache-busting parameter to ensure fresh data
+        const res = await fetch(`/api/agreements?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         const data = await res.json();
         if (data.agreements) {
           const terms = data.agreements.find((a: any) => a.id === 'terms_of_participation');

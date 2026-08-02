@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/utils/supabase/server';
 import { auth } from '@clerk/nextjs/server';
+import { revalidatePath } from 'next/cache';
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -19,6 +20,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       .eq('id', params.id);
 
     if (error) throw error;
+    
+    // Revalidate the agreements page and API to clear cache
+    revalidatePath('/agreements');
+    revalidatePath('/api/agreements');
     
     return NextResponse.json({ success: true });
   } catch (error: any) {
