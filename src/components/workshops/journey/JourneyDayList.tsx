@@ -68,19 +68,16 @@ export default function JourneyDayList({
       const match = allEntries.find(e => e.id === defaultTopicId)
       if (match) return match
     }
-    return allEntries[0] || null
+    return null
   })
 
-  // When the day changes, automatically select the first entry of the new day
+  // When the day changes, clear the active entry if it no longer belongs to the new day
   React.useEffect(() => {
-    if (allEntries.length > 0) {
-      // Only reset if the current active entry is not in the new day's entries
-      const stillExists = allEntries.some(e => e.id === activeEntry?.id)
+    if (activeEntry) {
+      const stillExists = allEntries.some(e => e.id === activeEntry.id)
       if (!stillExists) {
-        setActiveEntry(allEntries[0])
+        setActiveEntry(null)
       }
-    } else {
-      setActiveEntry(null)
     }
   }, [day.id])
 

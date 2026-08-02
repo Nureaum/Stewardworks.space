@@ -1120,6 +1120,7 @@ export default function AdminConsole({
                 >✕ REMOVE</button>
               </div>
               <input 
+                key={`title-${idx}-${blockTitle}`}
                 defaultValue={blockTitle}
                 onBlur={e => updateBlock(blockType, e.target.value, blockType === 'list' ? listItems : blockRawContent)}
                 placeholder="Block Title..."
@@ -1131,6 +1132,7 @@ export default function AdminConsole({
                     <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                       <div className="font-pixel" style={{ color: 'var(--pk,#ff5fd2)', fontSize: 10, paddingTop: 14 }}>◈</div>
                       <textarea
+                        key={`item-${idx}-${i}-${item}`}
                         defaultValue={item}
                         onBlur={e => {
                           const newItems = [...listItems]
