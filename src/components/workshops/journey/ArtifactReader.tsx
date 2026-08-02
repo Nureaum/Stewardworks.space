@@ -491,21 +491,15 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
               <div style={{ fontSize: 18, color: 'var(--tx,#efe6ff)', lineHeight: 1.5 }}>
                 {(() => {
                   const bodyParts = (entry.body || '').split('<!--BLOCK-->')
-                  const mainBody = bodyParts[0] || ''
-                  const blocks = bodyParts.slice(1)
-                  const hasMainContent = mainBody && (mainBody.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 || mainBody.includes('<img') || mainBody.includes('<iframe'))
+                  const blocks = bodyParts.filter(Boolean)
                   const hasBlocks = blocks.length > 0
-                  const hasAnyContent = hasMainContent || hasBlocks
 
-                  if (!hasAnyContent) return null
+                  if (!hasBlocks) return null
 
                   return (
                     <div style={{ marginBottom: 24 }}>
-                      {hasMainContent && (
-                        <div dangerouslySetInnerHTML={{ __html: mainBody }} />
-                      )}
                       {blocks.map((blk, idx) => (
-                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={!hasMainContent && idx === 0} />
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} />
                       ))}
                     </div>
                   )
@@ -652,43 +646,15 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
               <div>
 
 
+                {/* Render all content as text blocks for deliverable entries */}
                 {(() => {
                   const bodyParts = (entry.body || '').split('<!--BLOCK-->')
-                  const appliedContent = entry.applied || bodyParts[0] || ''
-                  const labContent = entry.lab || bodyParts[1] || ''
-                  
-                  return (
-                    <div style={{ marginBottom: (appliedContent || labContent) ? 24 : 0 }}>
-                      {appliedContent && (
-                        <CollapsibleSection
-                          title={entry.modern_title || 'APPLIED FOCUS'}
-                          content={appliedContent}
-                          readerAccent={readerAccent}
-                          marginTop={16}
-                        />
-                      )}
-                      {labContent && (
-                        <CollapsibleSection
-                          title={entry.ancient_title || 'LAB PROCESS'}
-                          content={labContent}
-                          readerAccent={readerAccent}
-                          marginTop={12}
-                        />
-                      )}
-                    </div>
-                  )
-                })()}
-                {/* Render additional text blocks for deliverable entries */}
-                {(() => {
-                  const bodyParts = (entry.body || '').split('<!--BLOCK-->')
-                  const blocks = bodyParts.slice(1) // Skip mainBody, only render blocks
-                  const appliedContent = entry.applied || bodyParts[0] || ''
-                  const labContent = entry.lab || bodyParts[1] || ''
+                  const blocks = bodyParts.filter(Boolean)
                   
                   return (
                     <div style={{ marginBottom: blocks.length > 0 ? 32 : 0 }}>
                       {blocks.map((blk, idx) => (
-                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={!(appliedContent || labContent) && idx === 0} />
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} />
                       ))}
                     </div>
                   )

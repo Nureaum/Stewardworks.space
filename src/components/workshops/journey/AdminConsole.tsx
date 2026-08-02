@@ -3948,54 +3948,18 @@ export default function AdminConsole({
                     const appliedBody = selEntry.applied || bodyParts[0] || ''
                     const labBody = selEntry.lab || bodyParts[1] || ''
                     const goalBody = selEntry.goal || bodyParts[2] || ''
-
                     return (
                       <>
-                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SECTION 1 TITLE (DEFAULT: APPLIED FOCUS)</div>
-                        <input 
-                          defaultValue={selEntry.modern_title || 'APPLIED FOCUS'} 
-                          onBlur={e => handleEntryFieldBlur(selEntry.id, 'modern_title', e.target.value)}
-                          style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }}
-                          placeholder="APPLIED FOCUS"
-                        />
-                        <div style={{ marginBottom: 16 }}>
-                          <RichEditor
-                            value={appliedBody}
-                            onBlur={val => handleEntryFieldBlur(selEntry.id, 'applied', val)}
-                            minHeight={150}
-                            accent="var(--ok,#74f0a0)"
-                          />
-                        </div>
-
-                        <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6, marginTop: 24 }}>SECTION 2 TITLE (DEFAULT: LAB PROCESS)</div>
-                        <input 
-                          defaultValue={selEntry.ancient_title || 'LAB PROCESS'} 
-                          onBlur={e => handleEntryFieldBlur(selEntry.id, 'ancient_title', e.target.value)}
-                          style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }}
-                          placeholder="LAB PROCESS"
-                        />
-                        <div style={{ marginBottom: 16 }}>
-                          <RichEditor
-                            value={labBody}
-                            onBlur={val => handleEntryFieldBlur(selEntry.id, 'lab', val)}
-                            minHeight={150}
-                            accent="var(--ok,#74f0a0)"
-                          />
-                        </div>
-
-
-
                         <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBMISSION PROMPT LABEL</div>
                         <input defaultValue={selEntry.submit_label || ''} onBlur={e => handleEntryFieldBlur(selEntry.id, 'submit_label', e.target.value)} style={{ ...inputStyle, fontSize: 18, marginBottom: 16, padding: '12px 14px' }} placeholder="e.g. Paste your story asset link..." />
                         
                         {(() => {
-                          const parts = (selEntry.body || '').split('<!--BLOCK-->')
-                          const mainBody = parts[0] || ''
-                          const additionalBlocks = parts.slice(1)
+                          const bodyParts = (selEntry.body || '').split('<!--BLOCK-->')
+                          const blocks = bodyParts.filter(Boolean)
                           return (
                             <AdditionalBlocksEditor
-                              blocks={additionalBlocks}
-                              onSave={newBlocks => handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))}
+                              blocks={blocks}
+                              onSave={newBlocks => handleEntryFieldBlur(selEntry.id, 'body', newBlocks.join('<!--BLOCK-->'))}
                               endRef={blocksEndRef}
                             />
                           )
@@ -4140,12 +4104,13 @@ export default function AdminConsole({
                     )}
                     {(() => {
                       const bodyParts = (selEntry.body || '').split('<!--BLOCK-->')
-                      const mainBody = bodyParts[0] || ''
-                      const additionalBlocks = bodyParts.slice(1)
+                      const isTextOnlyBlocks = selEntry.entry_type === 'text'
+                      const mainBody = isTextOnlyBlocks ? '' : (bodyParts[0] || '')
+                      const additionalBlocks = isTextOnlyBlocks ? bodyParts : bodyParts.slice(1)
                       
                       return (
                         <>
-                          {selEntry.entry_type !== 'text' && (
+                          {!isTextOnlyBlocks && (
                             <RichEditor
                               value={mainBody}
                               onBlur={val => handleEntryFieldBlur(selEntry.id, 'body', [val, ...additionalBlocks].join('<!--BLOCK-->'))}
@@ -4156,7 +4121,10 @@ export default function AdminConsole({
                           
                           <AdditionalBlocksEditor
                             blocks={additionalBlocks}
-                            onSave={newBlocks => handleEntryFieldBlur(selEntry.id, 'body', [mainBody, ...newBlocks].join('<!--BLOCK-->'))}
+                            onSave={newBlocks => {
+                              const newBody = isTextOnlyBlocks ? newBlocks.join('<!--BLOCK-->') : [mainBody, ...newBlocks].join('<!--BLOCK-->')
+                              handleEntryFieldBlur(selEntry.id, 'body', newBody)
+                            }}
                             endRef={blocksEndRef}
                           />
                         </>
