@@ -90,12 +90,30 @@ export default function RichEditor({ value, onBlur, minHeight = 120, accent = '#
         <button type="button" style={{ ...btnStyle }} title="Insert link" onMouseDown={e => link(e)}>🔗 LINK</button>
         <button type="button" style={{ ...btnStyle, color: '#a493c9', borderColor: '#3d2668' }} title="Clear formatting" onMouseDown={e => clip(e)}>✕</button>
       </div>
+      <style>{`
+        .rich-editor-content ul {
+          list-style-type: disc;
+          padding-left: 2em;
+          margin-top: 1em;
+          margin-bottom: 1em;
+        }
+        .rich-editor-content ol {
+          list-style-type: decimal;
+          padding-left: 2em;
+          margin-top: 1em;
+          margin-bottom: 1em;
+        }
+        .rich-editor-content li {
+          margin-bottom: 0.5em;
+        }
+      `}</style>
       <div
         ref={ref}
         contentEditable
         suppressContentEditableWarning
         onBlur={emit}
         onPaste={handlePaste}
+        className="rich-editor-content"
         style={{
           minHeight,
           padding: 12,

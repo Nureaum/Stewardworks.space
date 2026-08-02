@@ -402,11 +402,11 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
           ◂ MAP
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)' }}>{sc.label || `ACT ${day.day_number}`}</div>
-          <div className="font-pixel" style={{ fontSize: 'clamp(10px,1.4vw,12px)', color: 'var(--tx,#efe6ff)', marginTop: 3, lineHeight: 1.4 }}>{day.title}</div>
+          <div className="font-pixel" style={{ fontSize: 'clamp(10px,1.4vw,12px)', color: 'var(--gold,#ffd23f)' }}>{day.title}</div>
+          {(day.content_body || (day as any).blurb) && <div style={{ fontSize: 12, color: 'var(--tx,#efe6ff)', marginTop: 4, lineHeight: 1.3, opacity: 0.9 }}>{day.content_body || (day as any).blurb}</div>}
         </div>
         <div style={{ fontSize: 12, color: 'var(--mu,#a493c9)', flex: 'none' }}>◈ {visitedCount} / {entries.length} explored</div>
-        <button onClick={() => setIntroOpen(true)} className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', background: 'none', border: '2px solid var(--gold,#ffd23f)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 10px rgba(255,210,63,.2)' }}>
+        <button onClick={() => setIntroOpen(prev => !prev)} className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', background: 'none', border: '2px solid var(--gold,#ffd23f)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 10px rgba(255,210,63,.2)' }}>
           ✦ INTRO
         </button>
         <button onClick={onOpenList} className="font-pixel" style={{ fontSize: 11, color: 'var(--p,#ff5fd2)', background: 'rgba(255,95,210,.08)', border: '2px solid var(--p,#ff5fd2)', borderRadius: 5, padding: '8px 14px', cursor: 'pointer', flex: 'none', transition: 'all 0.2s', boxShadow: '0 0 12px rgba(255,95,210,.18)' }}>
@@ -666,10 +666,7 @@ export default function JourneyScene({ character, day, visited, setVisited, onBa
                 boxShadow: '0 0 40px rgba(0,0,0,.6)',
               }}
             >
-              <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', letterSpacing: 1 }}>
-                {sc.label || `ACT ${day.day_number}`}
-              </div>
-              <div className="font-pixel" style={{ fontSize: 'clamp(10px,1.6vw,12px)', color: 'var(--tx,#efe6ff)', margin: '6px 0 8px', lineHeight: 1.4 }}>
+              <div className="font-pixel" style={{ fontSize: 'clamp(12px,1.8vw,16px)', color: 'var(--gold,#ffd23f)', margin: '6px 0 12px', lineHeight: 1.4 }}>
                 {day.title}
               </div>
               <div style={{ fontSize: 13, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, marginBottom: 14 }}>
