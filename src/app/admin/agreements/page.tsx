@@ -109,7 +109,7 @@ export default function AdminAgreementsPage() {
     setIsSaving(true);
     const savingToast = toast.loading('Saving agreement...');
     try {
-      const res = await fetch(`/api/admin/agreements/\${agreement.id}`, {
+      const res = await fetch(`/api/admin/agreements/${agreement.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editedContent })
