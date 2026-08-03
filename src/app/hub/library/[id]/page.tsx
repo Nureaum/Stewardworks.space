@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronDown, BookOpen, Calendar, FileText, Download, Eye, Image as ImageIcon, Video, Music, ExternalLink, Tag, Globe, ArrowUpRight } from 'lucide-react';
+import { ChevronLeft, ChevronDown, BookOpen, Calendar, FileText, Download, Eye, Image as ImageIcon, Video, Music, ExternalLink, Tag, Globe, ArrowUpRight, Edit } from 'lucide-react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 
 /* ── Collapsible Media Section ── */
 function MediaSection({ 
@@ -146,8 +147,33 @@ function VideoCard({ media }: { media: any }) {
 
 export default function LibraryResourceDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const { user } = useUser();
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    if (user) {
+      const cached = sessionStorage.getItem('admin_role');
+      if (cached) {
+        try {
+          const { role } = JSON.parse(cached);
+          if (role === 'admin' || role === 'super_admin') setIsAdmin(true);
+        } catch(e) {}
+      } else {
+        fetch('/api/profile')
+          .then(res => res.json())
+          .then(data => {
+             if (data?.profile?.role === 'admin' || data?.profile?.role === 'super_admin') {
+               setIsAdmin(true);
+               sessionStorage.setItem('admin_role', JSON.stringify({ role: data.profile.role, ts: Date.now() }));
+             }
+          }).catch(console.error);
+      }
+    }
+  }, [user]);
+
   const [resource, setResource] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMedia, setSelectedMedia] = useState<any>(null);
 
   useEffect(() => {
     fetch(`/api/public/library-resources/${params.id}?t=${Date.now()}`)
@@ -267,7 +293,7 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 pt-6 pb-12">
           {/* Navigation */}
-          <div className="flex items-center gap-6 mb-10">
+          <div className="flex items-center gap-6 mb-10 flex-wrap">
             <Link 
               href="/hub/library" 
               className="inline-flex items-center gap-2 text-[#c4a55a]/70 text-[11px] font-bold uppercase tracking-[.15em] hover:text-[#c4a55a] transition-colors no-underline group"
@@ -277,10 +303,19 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
             
             {resource.category && (
               <Link 
-                href={`/hub/library?category=${resource.category.slug || resource.category.id || ''}`}
-                className="inline-flex items-center gap-2 text-[#c4a55a]/70 text-[11px] font-bold uppercase tracking-[.15em] hover:text-[#c4a55a] transition-colors no-underline group"
+                href={`/hub/library?category=${encodeURIComponent(resource.category.label)}`}
+                className="inline-flex items-center gap-2 text-[#c4a55a]/50 text-[11px] font-bold uppercase tracking-[.15em] hover:text-[#c4a55a] transition-colors no-underline group"
               >
                 <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" /> Go to {resource.category.label}
+              </Link>
+            )}
+
+            {isAdmin && (
+              <Link
+                href={`/admin/library/${resource.id}`}
+                className="ml-auto inline-flex items-center gap-2 bg-[#c4a55a]/10 text-[#c4a55a] px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-[.15em] hover:bg-[#c4a55a]/20 hover:text-[#efd9a8] transition-colors no-underline border border-[#c4a55a]/20"
+              >
+                <Edit size={12} /> Edit Resource
               </Link>
             )}
           </div>
@@ -416,11 +451,12 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
             <MediaSection title="Photos" icon={ImageIcon} count={images.length} color="#C8643F" defaultOpen={images.length > 0 && videos.length === 0}>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {images.map((media: any, idx: number) => (
-                  <div key={media.id || idx} className="rounded-xl overflow-hidden shadow-sm bg-white group cursor-pointer hover:shadow-md transition-shadow">
+                  <div key={media.id || idx} className="rounded-xl overflow-hidden shadow-sm bg-white group hover:shadow-md transition-shadow">
                     <img 
                       src={media.url} 
-                      alt={media.label || 'Resource Photo'} 
-                      className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
+                      alt={media.label || 'Resource Photo'}
+                      onClick={() => setSelectedMedia(media)}
+                      className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                     {media.label && (
@@ -547,6 +583,31 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
           </div>
         </div>
       </main>
+
+      {/* Lightbox Modal */}
+      {selectedMedia && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#21282E]/90 backdrop-blur-sm p-4 md:p-8"
+          onClick={() => setSelectedMedia(null)}
+        >
+          <div className="relative w-full max-w-5xl max-h-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setSelectedMedia(null)} 
+              className="absolute -top-12 right-0 md:-right-10 md:-top-4 text-white hover:text-white/70 bg-black/20 hover:bg-black/40 rounded-full w-10 h-10 flex items-center justify-center transition-colors font-bold"
+            >
+              ✕
+            </button>
+            <img 
+              src={selectedMedia.url} 
+              alt={selectedMedia.label || 'Resource Photo'} 
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" 
+            />
+            {selectedMedia.label && (
+              <p className="mt-4 text-white font-bold tracking-wide">{selectedMedia.label}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

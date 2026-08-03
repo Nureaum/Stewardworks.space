@@ -289,6 +289,12 @@ export default function LibraryAdminPage() {
           >
             + Add Resource
           </Link>
+          <Link 
+            href="/hub/library" 
+            className="bg-[#2f5a37] text-white px-6 py-[11px] rounded-full font-black uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 hover:bg-[#1d3a23] transition-colors shadow-[0_4px_12px_rgba(47,90,55,0.2)] border border-transparent shrink-0 whitespace-nowrap"
+          >
+            Go to Library
+          </Link>
         </div>
       </div>
 

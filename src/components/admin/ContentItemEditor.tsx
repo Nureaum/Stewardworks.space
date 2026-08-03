@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import RichTextEditor from "./RichTextEditor";
 import toast from "react-hot-toast";
-import { ImageIcon, Loader2, X, Music, Video, FileText } from "lucide-react";
+import { ImageIcon, Loader2, X, Music, Video, FileText, ExternalLink } from "lucide-react";
 
 interface ContentItemEditorProps {
   initialData?: any;
@@ -599,6 +599,16 @@ export default function ContentItemEditor({
                               {media.label || "Document File"}
                             </span>
                           </div>
+                        ) : media.media_type === "external_link" || media.media_type === "link" ? (
+                          <div className="flex flex-col items-center justify-center w-full h-full p-4 text-center">
+                            <ExternalLink
+                              className="text-steward-blue mb-2"
+                              size={24}
+                            />
+                            <span className="text-[10px] font-bold text-gray-500 truncate w-full">
+                              {media.label || "Link"}
+                            </span>
+                          </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center w-full h-full p-4 text-center">
                             <Music
@@ -606,7 +616,7 @@ export default function ContentItemEditor({
                               size={24}
                             />
                             <span className="text-[10px] font-bold text-gray-500 truncate w-full">
-                              {media.label || "Audio Link"}
+                              {media.label || "Audio File"}
                             </span>
                           </div>
                         )}
@@ -628,7 +638,7 @@ export default function ContentItemEditor({
           })()}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {activeTab !== "audio" && activeTab !== "links" && (
+            {activeTab !== "links" && (
               <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
                 <h4 className="text-[10px] font-black uppercase tracking-widest mb-4">
                   Upload File
@@ -641,12 +651,14 @@ export default function ContentItemEditor({
                 >
                   {isUploadingGallery ? (
                     <Loader2 className="animate-spin" size={16} />
+                  ) : activeTab === "audio" ? (
+                    <Music size={16} />
                   ) : (
                     <ImageIcon size={16} />
                   )}
                   {isUploadingGallery
                     ? "Uploading..."
-                    : `Upload ${activeTab === "gallery" ? "Photo" : activeTab === "videos" ? "Video" : "Document"}`}
+                    : `Upload ${activeTab === "gallery" ? "Photo" : activeTab === "videos" ? "Video" : activeTab === "pdfs" ? "Document" : "Audio"}`}
                 </button>
                 <input
                   type="file"
