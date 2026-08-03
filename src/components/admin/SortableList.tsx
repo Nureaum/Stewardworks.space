@@ -38,8 +38,25 @@ export function SortableList<T extends { id: string }>({ items, onChange, render
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
+      keyboardCodes: {
+        start: ['Space', 'Enter'],
+        cancel: ['Escape'],
+        end: ['Space', 'Enter'],
+      },
     })
   );
+
+  // Prevent keyboard sensor from activating when user is typing in an input
+  const shouldHandleEvent = (element: Element | null) => {
+    let cur = element;
+    while (cur) {
+      if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(cur.tagName) || (cur as HTMLElement).isContentEditable) {
+        return false;
+      }
+      cur = cur.parentElement;
+    }
+    return true;
+  };
 
   const itemIds = useMemo(() => items.map((item) => item.id), [items]);
   const activeItem = useMemo(() => items.find((item) => item.id === activeId), [activeId, items]);
@@ -79,6 +96,8 @@ export function SortableList<T extends { id: string }>({ items, onChange, render
   );
 
   function handleDragStart(event: DragStartEvent) {
+    const focused = document.activeElement;
+    if (!shouldHandleEvent(focused)) return;
     const { active } = event;
     setActiveId(active.id as string);
   }

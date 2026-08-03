@@ -5,6 +5,9 @@ import RichTextEditor from "./RichTextEditor";
 import toast from "react-hot-toast";
 import { ImageIcon, Loader2, X, Music, Video, FileText, ExternalLink } from "lucide-react";
 
+const isAudioMedia = (m: any) => m.media_type === "audio_link" || m.media_type === "audio" || m.media_type === "audio_url" || (m.media_type === "external_link" && (/\.(mp3|wav|ogg|m4a|flac|aac|wma)(\?|#|$)/i.test(m.url) || (m.label && m.label.startsWith("[Audio] "))));
+const isLinkMedia = (m: any) => (m.media_type === "external_link" || m.media_type === "link") && !isAudioMedia(m);
+
 interface ContentItemEditorProps {
   initialData?: any;
   contentType:
@@ -199,7 +202,7 @@ export default function ContentItemEditor({
         file.type.startsWith("video/")
           ? "video_link"
           : file.type.startsWith("audio/")
-            ? "audio_link"
+            ? "external_link"
             : file.type.includes("pdf") ||
                 file.type.includes("document") ||
                 file.type.includes("msword")
@@ -208,7 +211,7 @@ export default function ContentItemEditor({
 
       setMediaItems((prev) => [
         ...prev,
-        { media_type: mediaType, url: publicUrl, label: file.name },
+        { media_type: mediaType, url: publicUrl, label: mediaType === "external_link" && file.type.startsWith("audio/") ? `[Audio] ${file.name}` : file.name },
       ]);
       toast.success("Media added to gallery!", { id: loadingToast });
     } catch (err: any) {
@@ -223,10 +226,10 @@ export default function ContentItemEditor({
   const handleAddAudio = () => {
     if (!audioUrl.trim()) return;
     const trimmedUrl = audioUrl.trim();
-    console.log('[ContentEditor] Adding audio URL:', trimmedUrl, 'Type: audio_link');
+    console.log('[ContentEditor] Adding audio URL:', trimmedUrl, 'Type: external_link');
     setMediaItems((prev) => [
       ...prev,
-      { media_type: "audio_link", url: trimmedUrl, label: audioLabel.trim() || "" },
+      { media_type: "external_link", url: trimmedUrl, label: audioLabel.trim() ? `[Audio] ${audioLabel.trim()}` : "[Audio] Audio Link" },
     ]);
     setAudioUrl("");
     setAudioLabel("");
@@ -350,8 +353,8 @@ export default function ContentItemEditor({
       gallery: mediaItems.filter(m => m.media_type === "image").length,
       videos: mediaItems.filter(m => m.media_type === "video_link").length,
       pdfs: mediaItems.filter(m => m.media_type === "pdf").length,
-      audio: mediaItems.filter(m => m.media_type === "audio_link" || m.media_type === "audio" || m.media_type === "audio_url").length,
-      links: mediaItems.filter(m => m.media_type === "external_link" || m.media_type === "link").length,
+      audio: mediaItems.filter(isAudioMedia).length,
+      links: mediaItems.filter(isLinkMedia).length,
     };
     
     const tabs = [
@@ -536,10 +539,11 @@ export default function ContentItemEditor({
                       return m.media_type === "video_link";
                     if (activeTab === "pdfs")
                       return m.media_type === "pdf";
-                    if (activeTab === "audio")
-                      return m.media_type === "audio_link" || m.media_type === "audio" || m.media_type === "audio_url";
-                    if (activeTab === "links")
-                      return m.media_type === "external_link" || m.media_type === "link";
+                    else if (activeTab === "audio") {
+                      return isAudioMedia(m);
+                    } else if (activeTab === "links") {
+                      return isLinkMedia(m);
+                    }
                     return false;
                   })
                 : mediaItems;
@@ -599,14 +603,14 @@ export default function ContentItemEditor({
                               {media.label || "Document File"}
                             </span>
                           </div>
-                        ) : media.media_type === "external_link" || media.media_type === "link" ? (
+                        ) : isLinkMedia(media) ? (
                           <div className="flex flex-col items-center justify-center w-full h-full p-4 text-center">
                             <ExternalLink
                               className="text-steward-blue mb-2"
                               size={24}
                             />
                             <span className="text-[10px] font-bold text-gray-500 truncate w-full">
-                              {media.label || "Link"}
+                              {media.label ? media.label.replace('[Audio] ', '') : "Link"}
                             </span>
                           </div>
                         ) : (
@@ -616,7 +620,7 @@ export default function ContentItemEditor({
                               size={24}
                             />
                             <span className="text-[10px] font-bold text-gray-500 truncate w-full">
-                              {media.label || "Audio File"}
+                              {media.label ? media.label.replace('[Audio] ', '') : "Audio File"}
                             </span>
                           </div>
                         )}

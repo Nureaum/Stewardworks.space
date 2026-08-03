@@ -241,12 +241,16 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
     const type = m.media_type?.toLowerCase() || '';
     const url = (m.url || '').toLowerCase();
     const isAudioFile = /\.(mp3|wav|ogg|m4a|flac|aac|wma)(\?|#|$)/i.test(url);
-    return type === 'audio' || type === 'audio_link' || type === 'audio_url' || isAudioFile;
+    const hasAudioLabel = (m.label || '').startsWith('[Audio]');
+    return type === 'audio' || type === 'audio_link' || type === 'audio_url' || isAudioFile || hasAudioLabel;
   }) || [];
 
   const links = resource.media?.filter((m: any) => {
     const type = m.media_type?.toLowerCase() || '';
-    return type === 'link' || type === 'external_link';
+    const url = (m.url || '').toLowerCase();
+    const isAudioFile = /\.(mp3|wav|ogg|m4a|flac|aac|wma)(\?|#|$)/i.test(url);
+    const hasAudioLabel = (m.label || '').startsWith('[Audio]');
+    return (type === 'link' || type === 'external_link') && !isAudioFile && !hasAudioLabel;
   }) || [];
 
   let formattedDate = 'Date TBD';
@@ -515,7 +519,7 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
                           <Music size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-[#21282E] text-sm truncate">{audio.label || `Audio ${idx + 1}`}</p>
+                          <p className="font-bold text-[#21282E] text-sm truncate">{audio.label ? audio.label.replace('[Audio] ', '') : `Audio ${idx + 1}`}</p>
                           <p className="text-[10px] text-[#21282E]/35 font-bold uppercase tracking-wider mt-0.5" style={{ fontFamily: '"Courier New", monospace' }}>
                             {isDirectAudio ? 'Audio File' : 'Audio Link'}
                           </p>
