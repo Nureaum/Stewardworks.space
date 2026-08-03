@@ -21,6 +21,7 @@ interface ShowcaseItem {
   url?: string
   contentItemId?: string
   previewUrl?: string | null
+  projectType?: string | null
 }
 
 /* ── type→color mapping ── */
@@ -38,6 +39,20 @@ const TYPE_LABEL: Record<string, string> = {
   article: '✎ ARTICLE',
   audio: '♫ AUDIO',
   aigen: '✦ AI GEN',
+}
+
+/* ── project type mapping ── */
+const PROJECT_TYPE_LABELS: Record<string, string> = {
+  'A': 'Creative Projects Made with AI',
+  'B': 'AI in the Workplace & Freelancing',
+  'C': 'Nature, Local Landscapes & Resource Use',
+  'D': 'Digital Sovereignty, Rules & Ethics',
+  'E': 'Digital Wellness & Human Connection',
+  'creative_ai': 'Creative Projects Made with AI',
+  'workplace_freelance': 'AI in the Workplace & Freelancing',
+  'nature_resource': 'Nature, Local Landscapes & Resource Use',
+  'digital_sovereignty': 'Digital Sovereignty, Rules & Ethics',
+  'digital_wellness': 'Digital Wellness & Human Connection',
 }
 
 /* ── filter tabs ── */
@@ -310,7 +325,8 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
             if (d && typeof d === 'object' && d.previewUrl) return d.previewUrl;
           } catch {}
           return null;
-        })()
+        })(),
+        projectType: s.project_type
       };
     })
     return dbItems
@@ -1206,6 +1222,13 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
           {item.author} · {item.meta}
         </span>
 
+        {/* Project Type */}
+        {item.projectType && (
+          <span style={{ fontSize: 15, color: 'var(--mu,#a493c9)', display: 'block', marginTop: 4 }}>
+            Project type: {PROJECT_TYPE_LABELS[item.projectType] || item.projectType}
+          </span>
+        )}
+
         <p style={{
           fontSize: 15,
           color: '#fff',
@@ -1404,6 +1427,17 @@ function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
           }}>
             {item.author} · {item.meta}
           </p>
+
+          {/* Project Type */}
+          {item.projectType && (
+            <p style={{
+              fontSize: 15,
+              color: 'var(--mu,#a493c9)',
+              margin: '0 0 16px',
+            }}>
+              Project type: {PROJECT_TYPE_LABELS[item.projectType] || item.projectType}
+            </p>
+          )}
 
           {/* ── type-specific preview ── */}
           {item.type === 'video' && item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be')) ? (
