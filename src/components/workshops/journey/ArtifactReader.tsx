@@ -1139,10 +1139,10 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {media.map(m => (
                   <div key={m.id} style={{ border: '1px solid var(--ln,#3d2668)', borderRadius: 6, overflow: 'hidden', background: 'rgba(0,0,0,.2)', minWidth: 0 }}>
-                    <div style={{ padding: '4px 8px', background: 'var(--pn,#241542)', borderBottom: '1px solid var(--ln,#3d2668)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
-                      <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)' }}>{m.kind.toUpperCase()}</span>
+                    <div style={{ padding: '4px 8px', background: 'var(--pn,#241542)', borderBottom: '1px solid var(--ln,#3d2668)', display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+                      <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', marginTop: '8px' }}>{m.kind.toUpperCase()}</span>
                       {(m.label || m.file_name || m.kind === 'link') && (
-                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--tx,#efe6ff)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--tx,#efe6ff)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4, padding: '4px 0' }}>
                           {m.label || m.file_name || (m.kind === 'link' ? m.url : '')}
                         </span>
                       )}
