@@ -44,9 +44,7 @@ export async function GET(request: Request) {
     query = query.eq('content_type', type)
   }
 
-  if (role !== 'super_admin') {
-    query = query.eq('created_by', profileId)
-  }
+  // Removed restriction so all admins can view all content
 
   const { data, error } = await query
 
