@@ -267,12 +267,23 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 pt-6 pb-12">
           {/* Navigation */}
-          <Link 
-            href="/hub/library" 
-            className="inline-flex items-center gap-2 text-[#c4a55a]/70 text-[11px] font-bold uppercase tracking-[.15em] hover:text-[#c4a55a] transition-colors no-underline mb-10 group"
-          >
-            <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" /> Back to the Stacks
-          </Link>
+          <div className="flex items-center gap-6 mb-10">
+            <Link 
+              href="/hub/library" 
+              className="inline-flex items-center gap-2 text-[#c4a55a]/70 text-[11px] font-bold uppercase tracking-[.15em] hover:text-[#c4a55a] transition-colors no-underline group"
+            >
+              <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" /> Go to Library
+            </Link>
+            
+            {resource.category && (
+              <Link 
+                href={`/hub/library?category=${resource.category.slug || resource.category.id || ''}`}
+                className="inline-flex items-center gap-2 text-[#c4a55a]/70 text-[11px] font-bold uppercase tracking-[.15em] hover:text-[#c4a55a] transition-colors no-underline group"
+              >
+                <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" /> Go to {resource.category.label}
+              </Link>
+            )}
+          </div>
 
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Left: Text content */}
