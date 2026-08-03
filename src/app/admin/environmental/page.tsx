@@ -586,7 +586,9 @@ export default function EnvironmentalAdminPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                           <span style={{ font: "700 14px/1.2 'Exo', sans-serif", color: '#21282E' }}>{s.label}</span>
                         </div>
-                        <div style={{ font: "600 11.5px/1.3 'Exo', sans-serif", color: '#6b6d70', marginTop: '3px' }}>{s.item_description || 'Catalogued source'} · <span style={{ color: '#417C98' }}>{s.url}</span></div>
+                        <div style={{ font: "600 11.5px/1.3 'Exo', sans-serif", color: '#6b6d70', marginTop: '3px' }}>
+                          {s.item_description ? s.item_description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : 'Catalogued source'} · <span style={{ color: '#417C98' }}>{s.url}</span>
+                        </div>
                       </div>
                       <div style={{ textAlign: 'right', flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                         <div>
