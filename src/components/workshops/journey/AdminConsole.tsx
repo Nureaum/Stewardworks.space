@@ -444,6 +444,7 @@ export default function AdminConsole({
   const [ncBlurb, setNcBlurb] = useState('')
   const [ncMeta, setNcMeta] = useState('')
   const [ncPaid, setNcPaid] = useState(true)
+  const [ncProjectType, setNcProjectType] = useState('')
   const [showcaseList, setShowcaseList] = useState<WorkshopShowcase[]>([])
   const [editingShowcaseId, setEditingShowcaseId] = useState<string | null>(null)
   const [showcaseSubTab, setShowcaseSubTab] = useState<'contributor' | 'student'>('contributor')
@@ -994,6 +995,7 @@ export default function AdminConsole({
           meta: finalMeta,
           is_paid: ncPaid,
           theme: 'How to Use AI',
+          project_type: ncProjectType || null,
         })
         setEditingShowcaseId(null)
       } else {
@@ -1007,6 +1009,7 @@ export default function AdminConsole({
           meta: finalMeta,
           is_paid: ncPaid,
           theme: 'How to Use AI',
+          project_type: ncProjectType || null,
         })
       }
 
@@ -1115,6 +1118,7 @@ export default function AdminConsole({
     setNcPreviewFile(null)
     setNcPreviewObjectUrl(parsedPreviewUrl)
     setNcPaid(item.is_paid)
+    setNcProjectType(item.project_type || '')
   }
 
   const handleCancelEdit = () => {
@@ -1126,6 +1130,7 @@ export default function AdminConsole({
     setNcFileToUpload(null)
     setNcBlurb('')
     setNcMeta('')
+    setNcProjectType('')
   }
 
   const handleDeleteShowcase = async (id: string) => {
@@ -2489,6 +2494,38 @@ export default function AdminConsole({
                   rows={3}
                   style={{ ...textareaStyle, fontSize: 22, marginBottom: 12 }} 
                 />
+
+                {/* Project Type Dropdown */}
+                <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>PROJECT TYPE</div>
+                <select
+                  value={ncProjectType}
+                  onChange={e => setNcProjectType(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(0,0,0,0.35)',
+                    border: `2px solid ${ncProjectType ? 'var(--ok,#74f0a0)' : 'var(--ln,#3d2668)'}`,
+                    borderRadius: 6,
+                    color: ncProjectType ? 'var(--tx,#efe6ff)' : 'var(--mu,#a493c9)',
+                    fontSize: 16,
+                    padding: '8px 10px',
+                    marginBottom: 12,
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a493c9' stroke-width='2' fill='none'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 10px center',
+                    paddingRight: 32,
+                  }}
+                >
+                  <option value="">— Select project type (optional) —</option>
+                  <option value="creative_ai">A · Creative Projects Made with AI</option>
+                  <option value="workplace_freelance">B · AI in the Workplace &amp; Freelancing</option>
+                  <option value="nature_local">C · Nature, Local Landscapes &amp; Resource Use</option>
+                  <option value="digital_sovereignty">D · Digital Sovereignty, Rules &amp; Ethics</option>
+                  <option value="digital_wellness">E · Digital Wellness &amp; Human Connection</option>
+                </select>
                 <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
                   CONTRIBUTOR STATUS · <span style={{ opacity: .75 }}>admin-only, hidden from students</span>
                 </div>
