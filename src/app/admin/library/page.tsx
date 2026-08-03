@@ -540,11 +540,11 @@ export default function LibraryAdminPage() {
                         />
                       </td>
                     )}
-                    <td className="px-[28px] py-[18px] whitespace-nowrap">
+                    <td className="px-[28px] py-[18px] max-w-[340px]">
                       <div className="flex flex-col">
-                        <span className="text-[15px] font-[700] text-[#241c12] tracking-tight">{item.title || 'Untitled'}</span>
+                        <span className="text-[15px] font-[700] text-[#241c12] tracking-tight truncate" title={item.title || 'Untitled'}>{item.title || 'Untitled'}</span>
                         {item.category?.label && (
-                          <span className="text-[12.5px] text-[#8a7c66] mt-1">
+                          <span className="text-[12.5px] text-[#8a7c66] mt-1 truncate">
                             {item.category.label}
                           </span>
                         )}
