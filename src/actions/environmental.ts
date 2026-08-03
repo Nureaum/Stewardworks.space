@@ -160,6 +160,7 @@ export async function getAdminEnvironmentalData() {
     .select('id, title, body, category_id, created_at, media:content_media(url)')
     .eq('content_type', 'library_resource')
     .eq('status', 'published')
+    .eq('source_tag', 'student_suggestion')
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
   
@@ -259,6 +260,7 @@ export async function approveSuggestion(sug: any) {
     resource_type: 'article',
     category_id: categoryId,
     status: 'published',
+    source_tag: 'student_suggestion',
     published_at: new Date().toISOString()
   }).select().single();
   

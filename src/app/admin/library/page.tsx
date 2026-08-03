@@ -547,8 +547,12 @@ export default function LibraryAdminPage() {
                     {userRole === 'super_admin' && (
                       <td className="px-[28px] py-[18px] whitespace-nowrap">
                         <div className="flex flex-col">
-                          <span className="text-[13px] font-[700] text-[#2f5a37]">{item.author?.full_name || 'Unknown Admin'}</span>
-                          <span className="text-[11px] text-[#8a7c66] mt-0.5">{item.author?.email}</span>
+                          <span className="text-[13px] font-[700] text-[#2f5a37]">
+                            {item.source_tag === 'student_suggestion' ? 'Student' : (item.author?.full_name || 'Unknown Admin')}
+                          </span>
+                          <span className="text-[11px] text-[#8a7c66] mt-0.5">
+                            {item.source_tag === 'student_suggestion' ? 'Student Suggestion' : item.author?.email}
+                          </span>
                         </div>
                       </td>
                     )}
