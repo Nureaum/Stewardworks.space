@@ -276,17 +276,237 @@ export default function EnvironmentalLiteracyPage() {
   };
   const detailColStyle = { flex: 1, minWidth: 0, overflowY: 'auto' as 'auto', background: '#FBF8F1' };
 
+  // Add responsive CSS styles for mobile/tablet only
+  const responsiveStyles = `
+    @media (max-width: 1024px) {
+      /* Tablet and below: adjust top nav bar */
+      .env-top-nav {
+        flex-wrap: wrap !important;
+        padding: 8px 16px !important;
+        gap: 8px !important;
+      }
+      
+      .env-top-nav > div:nth-child(2) {
+        font-size: 10px !important;
+      }
+      
+      .env-top-nav > div:nth-child(2) > div:first-child {
+        font-size: 10px !important;
+      }
+      
+      .env-top-nav > div:nth-child(2) > div:last-child {
+        font-size: 8px !important;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      /* Mobile: stack everything vertically */
+      .env-intro-section {
+        padding: 16px 16px 2px !important;
+      }
+      
+      .env-intro-section h1 {
+        font-size: 28px !important;
+        margin-top: 8px !important;
+      }
+      
+      .env-intro-section p {
+        font-size: 14px !important;
+        margin-top: 10px !important;
+      }
+      
+      .env-stats-row {
+        flex-direction: column !important;
+        gap: 8px !important;
+        margin-top: 10px !important;
+      }
+      
+      /* Mobile modal adjustments */
+      .env-modal-container {
+        top: 2vh !important;
+        bottom: 2vh !important;
+        width: 96vw !important;
+        border-radius: 12px !important;
+      }
+      
+      .env-modal-body {
+        flex-direction: column !important;
+      }
+      
+      .env-modal-contents {
+        width: 100% !important;
+        max-height: 40vh !important;
+        border-right: none !important;
+        border-bottom: 1px solid rgba(60,42,24,.12) !important;
+      }
+      
+      .env-modal-detail {
+        padding: 20px 18px 32px !important;
+      }
+      
+      .env-modal-header {
+        padding: 12px 16px !important;
+      }
+      
+      .env-modal-header > div:first-child {
+        min-width: 0 !important;
+      }
+      
+      .env-modal-header h2 {
+        font-size: 16px !important;
+      }
+      
+      /* Mobile: top nav - make button smaller */
+      .env-suggest-btn {
+        padding: 6px 10px !important;
+        font-size: 9px !important;
+        letter-spacing: 0.1em !important;
+      }
+      
+      /* Mobile: admin toggle */
+      .env-admin-toggle {
+        padding: 2px !important;
+        gap: 1px !important;
+      }
+      
+      .env-admin-toggle button {
+        padding: 4px 8px !important;
+        font-size: 8px !important;
+      }
+      
+      /* Field notes list items */
+      .env-field-note-item {
+        margin: 0 -8px 4px !important;
+        padding: 12px !important;
+      }
+      
+      .env-field-note-item span:last-child {
+        font-size: 13px !important;
+      }
+      
+      /* Bookmark buttons in list */
+      .env-bookmark-btn-list {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 16px !important;
+      }
+      
+      /* Detail view bookmark button */
+      .env-bookmark-btn-detail {
+        padding: 6px 10px !important;
+        font-size: 9px !important;
+      }
+      
+      /* Gallery images */
+      .env-gallery-main {
+        margin: 16px 0 18px !important;
+        border-radius: 10px !important;
+      }
+      
+      .env-gallery-grid {
+        gap: 8px !important;
+        margin-top: 18px !important;
+      }
+      
+      .env-gallery-grid > div {
+        border-radius: 8px !important;
+      }
+      
+      /* Field facts section */
+      .env-field-facts {
+        margin-top: 18px !important;
+        padding: 4px 14px 6px !important;
+      }
+      
+      .env-field-facts > div:first-child {
+        padding: 10px 0 4px !important;
+      }
+      
+      .env-field-fact-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+        padding: 8px 0 !important;
+      }
+      
+      .env-field-fact-row span:last-child {
+        text-align: left !important;
+        font-size: 13px !important;
+      }
+      
+      /* Sources section */
+      .env-sources a {
+        padding: 10px 12px !important;
+        font-size: 12.5px !important;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      /* Small mobile: even tighter spacing */
+      .env-top-nav {
+        padding: 6px 12px !important;
+      }
+      
+      .env-intro-section {
+        padding: 12px 12px 2px !important;
+      }
+      
+      .env-modal-container {
+        width: 98vw !important;
+        border-radius: 8px !important;
+      }
+      
+      .env-modal-detail {
+        padding: 16px 14px 28px !important;
+      }
+      
+      /* Suggest modal */
+      .env-suggest-modal {
+        width: 96vw !important;
+        padding: 18px 18px 20px !important;
+        border-radius: 12px !important;
+      }
+      
+      .env-suggest-modal-header {
+        padding: 12px 16px !important;
+        gap: 8px !important;
+      }
+      
+      .env-suggest-modal-header > div:first-child > div:first-child {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 16px !important;
+      }
+      
+      .env-suggest-modal-header h3 {
+        font-size: 16px !important;
+      }
+      
+      .env-suggest-modal input,
+      .env-suggest-modal textarea,
+      .env-suggest-modal select {
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+      }
+      
+      .env-suggest-modal textarea {
+        height: 70px !important;
+      }
+    }
+  `;
+
   return (
     <div style={{ minHeight: '100vh', background: 'radial-gradient(120% 90% at 50% -10%, #FCF5DC 0%, #FBF2D2 46%, #F3E6BE 100%)', fontFamily: "'Exo', sans-serif", color: '#241f17', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <style dangerouslySetInnerHTML={{ __html: responsiveStyles }} />
       
-      <div style={{ position: 'sticky', top: 0, zIndex: 40, display: 'flex', alignItems: 'center', gap: '16px', padding: '11px 26px', background: 'rgba(251,242,210,.88)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(60,42,24,.14)' }}>
+      <div className="env-top-nav" style={{ position: 'sticky', top: 0, zIndex: 40, display: 'flex', alignItems: 'center', gap: '16px', padding: '11px 26px', background: 'rgba(251,242,210,.88)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(60,42,24,.14)' }}>
         <a href="/hub" style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#A27532', textDecoration: 'none', font: "700 11px/1 'Courier New',monospace", letterSpacing: '.16em', textTransform: 'uppercase' }}>‹ Back to Hub</a>
         <div style={{ flex: 1, minWidth: 0, textAlign: 'center', lineHeight: 1.25 }}>
           <div style={{ font: "700 11px/1 'Courier New',monospace", letterSpacing: '.22em', textTransform: 'uppercase', color: '#3C2A18' }}>Environmental Literacy</div>
           <div style={{ font: "700 9px/1 'Courier New',monospace", letterSpacing: '.28em', textTransform: 'uppercase', color: '#6b6153', marginTop: '3px', opacity: .8 }}>Field Desk · Est. 2026</div>
         </div>
         {isAdmin && (
-          <div role="group" aria-label="View as" style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', background: 'rgba(60,42,24,.07)', border: '1px solid rgba(60,42,24,.16)', borderRadius: '11px', padding: '3px', gap: '2px' }}>
+          <div role="group" aria-label="View as" className="env-admin-toggle" style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', background: 'rgba(60,42,24,.07)', border: '1px solid rgba(60,42,24,.16)', borderRadius: '11px', padding: '3px', gap: '2px' }}>
             <span style={{ padding: '0 8px 0 4px', font: "700 8px/1 'Courier New',monospace", letterSpacing: '.14em', textTransform: 'uppercase', color: '#6b6153', opacity: .7 }}>View</span>
             <button onClick={() => setIsLibrarian(false)} style={{ all: 'unset', cursor: 'pointer', padding: '5px 12px', borderRadius: '8px', font: "800 9.5px/1 'Exo',sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', background: !isLibrarian ? '#fff' : 'transparent', color: !isLibrarian ? '#3C2A18' : '#8A6238', boxShadow: !isLibrarian ? '0 2px 6px rgba(60,42,24,.1)' : 'none' }}>Reader</button>
             <button onClick={() => setIsLibrarian(true)} style={{ all: 'unset', cursor: 'pointer', padding: '5px 12px', borderRadius: '8px', font: "800 9.5px/1 'Exo',sans-serif", letterSpacing: '.12em', textTransform: 'uppercase', background: isLibrarian ? '#3C2A18' : 'transparent', color: isLibrarian ? '#fff' : '#8A6238', boxShadow: isLibrarian ? '0 2px 6px rgba(60,42,24,.1)' : 'none' }}>Librarian</button>
@@ -295,11 +515,11 @@ export default function EnvironmentalLiteracyPage() {
         {isLibrarian && isAdmin ? (
           <a href="/admin/environmental" style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '8px 14px', background: '#3C2A18', color: '#f3e2b6', textDecoration: 'none', borderRadius: '10px', font: "700 10px/1 'Courier New',monospace", letterSpacing: '.13em', textTransform: 'uppercase' }}>✦ Open admin console ›</a>
         ) : (
-          <button onClick={() => { setSuggestOpen(true); setSent(false); }} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '8px 14px', background: '#A27532', color: '#fff', borderRadius: '10px', font: "700 10px/1 'Courier New',monospace", letterSpacing: '.13em', textTransform: 'uppercase' }}>＋ Suggest a resource</button>
+          <button onClick={() => { setSuggestOpen(true); setSent(false); }} className="env-suggest-btn" style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '8px 14px', background: '#A27532', color: '#fff', borderRadius: '10px', font: "700 10px/1 'Courier New',monospace", letterSpacing: '.13em', textTransform: 'uppercase' }}>＋ Suggest a resource</button>
         )}
       </div>
 
-      <div style={{ position: 'relative', width: '100%', maxWidth: '1100px', margin: '0 auto', padding: '20px 26px 2px' }}>
+      <div className="env-intro-section" style={{ position: 'relative', width: '100%', maxWidth: '1100px', margin: '0 auto', padding: '20px 26px 2px' }}>
         {introExpanded && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ font: "700 11px/1 'Courier New',monospace", letterSpacing: '.3em', textTransform: 'uppercase', color: '#A27532' }}>Imperial County · The Salton Sea Bioregion</div>
@@ -308,7 +528,7 @@ export default function EnvironmentalLiteracyPage() {
             <p style={{ maxWidth: '560px', margin: '10px auto 0', font: "600 12.5px/1.55 'Exo',sans-serif", color: '#241f17', opacity: .85 }}>Click any feature in the scene to read its field notes — and get to know the ground you're standing on.</p>
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '14px' }} className="env-stats-row">
           <div style={{ font: "700 10.5px/1 'Courier New',monospace", letterSpacing: '.18em', textTransform: 'uppercase', color: '#6b6153', opacity: .82 }}>{catalog.length} field stations · {catalog.reduce((acc, c) => acc + c.entries.length, 0)} field notes catalogued</div>
           <button onClick={() => setIntroExpanded(!introExpanded)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '999px', border: '1px solid rgba(60,42,24,.2)', background: 'rgba(255,255,255,.55)', font: "700 9px/1 'Courier New',monospace", letterSpacing: '.14em', textTransform: 'uppercase', color: '#3C2A18' }}>{introExpanded ? 'HIDE INTRO ▴' : 'SHOW INTRO ▾'}</button>
         </div>
@@ -330,8 +550,8 @@ export default function EnvironmentalLiteracyPage() {
       {open && activeCat && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(30,22,10,.5)', backdropFilter: 'blur(3px)', animation: 'el-fadein .25s ease' }} onClick={closeDialog}></div>
-          <div style={containerStyle} onClick={e => e.stopPropagation()}>
-            <div style={headerStyle}>
+          <div className="env-modal-container" style={containerStyle} onClick={e => e.stopPropagation()}>
+            <div className="env-modal-header" style={headerStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '13px', minWidth: 0 }}>
                 <div style={{ width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(255,255,255,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', color: '#fff' }}>{activeCat.mark}</div>
                 <div style={{ minWidth: 0 }}>
@@ -342,8 +562,8 @@ export default function EnvironmentalLiteracyPage() {
               <button onClick={closeDialog} style={{ all: 'unset', cursor: 'pointer', width: '34px', height: '34px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.16)', color: '#fff', fontSize: '17px' }}>✕</button>
             </div>
 
-            <div style={bodyWrapStyle}>
-              <div className="el-scroll" style={contentsColStyle}>
+            <div className="env-modal-body" style={bodyWrapStyle}>
+              <div className="el-scroll env-modal-contents" style={contentsColStyle}>
                 <p style={{ margin: '0 0 20px', fontSize: '15px', lineHeight: 1.6, color: '#6e5f49' }}>{activeCat.intro}</p>
                 <div style={{ font: "700 10px/1 'Courier New',monospace", letterSpacing: '.2em', textTransform: 'uppercase', color: '#A27532', marginBottom: '12px' }}>Field notes · {activeEntries.length}</div>
                 
@@ -353,7 +573,7 @@ export default function EnvironmentalLiteracyPage() {
                   const isSubmitting = isSubmittingBookmark === bookmarkUrl;
                   
                   return (
-                    <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '0 -14px 4px' }}>
+                    <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '0 -14px 4px' }} className="env-field-note-item">
                       <button onClick={() => setEntryId(e.id)} style={{ all: 'unset', flex: 1, display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', borderRadius: '12px', cursor: 'pointer', boxSizing: 'border-box', background: entryId === e.id ? '#fff' : 'transparent', boxShadow: entryId === e.id ? '0 6px 16px rgba(60,42,24,.08)' : 'none', border: entryId === e.id ? `1px solid ${activeCat.color}` : '1px solid transparent' }}>
                         <span style={{ font: "700 12px/1 'Courier New',monospace", color: '#A27532', flex: '0 0 auto', marginTop: '2px' }}>0{i + 1}</span>
                         <span style={{ flex: 1, minWidth: 0 }}>
@@ -367,6 +587,7 @@ export default function EnvironmentalLiteracyPage() {
                           onClick={(ev) => { ev.stopPropagation(); toggleFieldNoteBookmark(e, activeCat.topic); }}
                           disabled={isSubmitting}
                           title={isBookmarked ? 'Remove bookmark' : 'Save to bookmarks'}
+                          className="env-bookmark-btn-list"
                           style={{
                             all: 'unset',
                             cursor: isSubmitting ? 'wait' : 'pointer',
@@ -394,7 +615,7 @@ export default function EnvironmentalLiteracyPage() {
                 })}
               </div>
 
-              <div className="el-scroll" style={detailColStyle}>
+              <div className="el-scroll env-modal-detail" style={detailColStyle}>
                 {activeEntry ? (
                   <div style={{ padding: '26px 28px 40px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -411,6 +632,7 @@ export default function EnvironmentalLiteracyPage() {
                             onClick={() => toggleFieldNoteBookmark(activeEntry, activeCat.topic)}
                             disabled={isSubmitting}
                             title={isBookmarked ? 'Remove bookmark' : 'Save to bookmarks'}
+                            className="env-bookmark-btn-detail"
                             style={{
                               all: 'unset',
                               cursor: isSubmitting ? 'wait' : 'pointer',
@@ -439,7 +661,7 @@ export default function EnvironmentalLiteracyPage() {
                     <h2 style={{ fontFamily: "'Baloo 2',cursive", fontWeight: 800, fontSize: 'clamp(24px,3vw,32px)', lineHeight: 1.05, color: '#3C2A18', margin: '10px 0 0' }}>{activeEntry.t}</h2>
 
                     {activeEntry.gallery_ids && activeEntry.gallery_ids.length > 0 ? (
-                      <div style={{ margin: '20px 0 22px', borderRadius: '14px', overflow: 'hidden', aspectRatio: '16/8', border: '1px solid rgba(60,42,24,.18)', position: 'relative' }}>
+                      <div className="env-gallery-main" style={{ margin: '20px 0 22px', borderRadius: '14px', overflow: 'hidden', aspectRatio: '16/8', border: '1px solid rgba(60,42,24,.18)', position: 'relative' }}>
                         {(() => {
                           const mainUrl = activeEntry.gallery_ids[0];
                           const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(mainUrl) || mainUrl.includes('youtube.com') || mainUrl.includes('youtu.be');
@@ -467,7 +689,7 @@ export default function EnvironmentalLiteracyPage() {
                     ))}
 
                     {activeEntry.gallery_ids && activeEntry.gallery_ids.length > 1 && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginTop: '24px', marginBottom: '10px' }}>
+                      <div className="env-gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginTop: '24px', marginBottom: '10px' }}>
                         {activeEntry.gallery_ids.slice(1).map((url: string, i: number) => {
                           const isVideo = /\.(mp4|webm|mov)(\?|#|$)/i.test(url) || url.includes('youtube.com') || url.includes('youtu.be');
                           const isAudio = /\.(mp3|wav|ogg|aac|flac)(\?|#|$)/i.test(url);
@@ -487,10 +709,10 @@ export default function EnvironmentalLiteracyPage() {
                     )}
 
                     {activeEntry.f.length > 0 && (
-                      <div style={{ marginTop: '24px', borderRadius: '14px', background: '#F5EDD6', border: '1px solid rgba(60,42,24,.16)', padding: '6px 18px 8px' }}>
+                      <div className="env-field-facts" style={{ marginTop: '24px', borderRadius: '14px', background: '#F5EDD6', border: '1px solid rgba(60,42,24,.16)', padding: '6px 18px 8px' }}>
                         <div style={{ font: "700 10px/1 'Courier New',monospace", letterSpacing: '.16em', textTransform: 'uppercase', color: '#A27532', padding: '12px 0 4px' }}>Field facts</div>
                         {activeEntry.f.map((f: any, i: number) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', padding: '9px 0', borderTop: '1px solid rgba(60,42,24,.1)' }}>
+                          <div key={i} className="env-field-fact-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', padding: '9px 0', borderTop: '1px solid rgba(60,42,24,.1)' }}>
                             <span style={{ font: "700 11px/1.4 'Courier New',monospace", letterSpacing: '.05em', textTransform: 'uppercase', color: '#6e5f49' }}>{f.k || f[0]}</span>
                             <span style={{ fontSize: '14px', fontWeight: 600, color: '#3C2A18', textAlign: 'right' }}>{f.v || f[1]}</span>
                           </div>
@@ -499,7 +721,7 @@ export default function EnvironmentalLiteracyPage() {
                     )}
 
                     {activeEntry.src?.length > 0 && (
-                      <div style={{ marginTop: '22px' }}>
+                      <div className="env-sources" style={{ marginTop: '22px' }}>
                         <div style={{ font: "700 10px/1 'Courier New',monospace", letterSpacing: '.16em', textTransform: 'uppercase', color: '#A27532', marginBottom: '10px' }}>Original sources</div>
                         {activeEntry.src.map((s: any, i: number) => (
                           <a key={i} href={s.url || s[1]} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '12px 15px', marginBottom: '8px', borderRadius: '11px', background: '#FBF8F1', border: '1px solid rgba(60,42,24,.16)', textDecoration: 'none', color: '#3C2A18' }}>
@@ -526,8 +748,8 @@ export default function EnvironmentalLiteracyPage() {
       {suggestOpen && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(30,22,10,.5)', backdropFilter: 'blur(3px)', animation: 'el-fadein .25s ease' }} onClick={() => setSuggestOpen(false)}></div>
-          <div className="el-scroll" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 65, width: 'min(560px,94vw)', maxHeight: '92vh', overflow: 'auto', background: '#F5EDD6', borderRadius: '18px', boxShadow: '0 40px 90px -30px rgba(30,22,10,.7)', border: '1px solid rgba(60,42,24,.3)', animation: 'el-modalin .34s cubic-bezier(.22,1,.36,1)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '15px 20px', background: 'linear-gradient(120deg,#A27532,#8a5f28)' }}>
+          <div className="el-scroll env-suggest-modal" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 65, width: 'min(560px,94vw)', maxHeight: '92vh', overflow: 'auto', background: '#F5EDD6', borderRadius: '18px', boxShadow: '0 40px 90px -30px rgba(30,22,10,.7)', border: '1px solid rgba(60,42,24,.3)', animation: 'el-modalin .34s cubic-bezier(.22,1,.36,1)' }} onClick={e => e.stopPropagation()}>
+            <div className="env-suggest-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '15px 20px', background: 'linear-gradient(120deg,#A27532,#8a5f28)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', color: '#fff' }}>＋</div>
                 <div>

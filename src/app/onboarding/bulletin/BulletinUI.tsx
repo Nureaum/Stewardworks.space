@@ -96,6 +96,8 @@ export default function BulletinUI({ updates, events }: { updates: BulletinUpdat
         .bulletin-popup-inner {
           max-width: 520px;
           width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
           position: relative;
           background: #FFFDF7;
           border: 1px solid #ECDFC6;
@@ -107,6 +109,8 @@ export default function BulletinUI({ updates, events }: { updates: BulletinUpdat
         .bulletin-flyer-inner {
           max-width: 600px;
           width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
           animation: lbIn .28s ease both;
         }
         @media (max-width: 768px) {
