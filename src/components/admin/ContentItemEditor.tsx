@@ -133,21 +133,31 @@ export default function ContentItemEditor({
     const loadingToast = toast.loading("Uploading thumbnail...");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/admin/upload-media", {
+      const res = await fetch("/api/admin/upload-media/presigned", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, bucketName: "content-uploads" }),
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to get upload URL");
+      }
 
-      const { publicUrl } = await res.json();
+      const { token, filePath, publicUrl } = await res.json();
+
+      const { supabase } = await import("@/utils/supabase/client");
+      const { error: uploadError } = await supabase.storage
+        .from("content-uploads")
+        .uploadToSignedUrl(filePath, token, file);
+
+      if (uploadError) throw uploadError;
+
       setThumbnailUrl(publicUrl);
       toast.success("Thumbnail uploaded!", { id: loadingToast });
     } catch (err: any) {
-      toast.error("Failed to upload thumbnail", { id: loadingToast });
+      console.error("Upload error:", err);
+      toast.error(err.message || "Failed to upload thumbnail", { id: loadingToast });
     } finally {
       setIsUploadingThumbnail(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -164,17 +174,27 @@ export default function ContentItemEditor({
     const loadingToast = toast.loading("Uploading media...");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/admin/upload-media", {
+      const res = await fetch("/api/admin/upload-media/presigned", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, bucketName: "content-uploads" }),
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to get upload URL");
+      }
 
-      const { publicUrl, type } = await res.json();
+      const { token, filePath, publicUrl } = await res.json();
+
+      // Upload directly to Supabase S3 bucket using the presigned URL token
+      const { supabase } = await import("@/utils/supabase/client");
+      const { error: uploadError } = await supabase.storage
+        .from("content-uploads")
+        .uploadToSignedUrl(filePath, token, file);
+
+      if (uploadError) throw uploadError;
+
       const mediaType =
         file.type.startsWith("video/")
           ? "video_link"
@@ -192,7 +212,8 @@ export default function ContentItemEditor({
       ]);
       toast.success("Media added to gallery!", { id: loadingToast });
     } catch (err: any) {
-      toast.error("Failed to upload image", { id: loadingToast });
+      console.error("Upload error:", err);
+      toast.error(err.message || "Failed to upload file", { id: loadingToast });
     } finally {
       setIsUploadingGallery(false);
       if (galleryInputRef.current) galleryInputRef.current.value = "";
