@@ -4189,7 +4189,7 @@ export default function AdminConsole({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
                     <SortableList
                       items={entryMediaList}
-                      onReorder={async (newOrder) => {
+                      onChange={async (newOrder) => {
                         setEntryMediaList(newOrder);
                         try {
                           await reorderEntryMedia(selEntry.id, newOrder.map((m, idx) => ({ id: m.id, sort_order: idx + 1 })));
