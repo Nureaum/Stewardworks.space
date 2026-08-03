@@ -193,9 +193,7 @@ export async function getCohorts() {
       `)
       .order('start_date', { ascending: false })
 
-    if (profile.role !== 'super_admin') {
-      query = query.eq('created_by', profile.id)
-    }
+    // Removed restriction so all admins can view all cohorts
 
     const { data: cohorts, error: cohortsError } = await query
 
