@@ -201,8 +201,82 @@ export default function JourneyClient({
   }, [engagements, cohortId])
 
   return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Responsive styles for mobile/tablet - Journey Page */
+        @media (max-width: 768px) {
+          .journey-wrapper {
+            padding: 8px !important;
+          }
+          
+          .journey-monitor-frame {
+            transform-origin: center center;
+          }
+          
+          .journey-header-wrap {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+            padding: 8px 12px !important;
+          }
+          
+          .journey-header-back {
+            font-size: 7px !important;
+            padding: 5px 7px !important;
+          }
+          
+          .journey-header-title {
+            font-size: 8px !important;
+          }
+          
+          .journey-header-controls {
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+          }
+          
+          .journey-role-toggle button {
+            font-size: 7px !important;
+            padding: 6px 8px !important;
+          }
+          
+          .journey-traffic-lights {
+            gap: 5px !important;
+          }
+          
+          .journey-traffic-lights span {
+            width: 9px !important;
+            height: 9px !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .journey-wrapper {
+            padding: 6px !important;
+          }
+          
+          .journey-header-back {
+            font-size: 6px !important;
+            padding: 4px 6px !important;
+          }
+          
+          .journey-header-title {
+            font-size: 7px !important;
+          }
+          
+          .journey-role-toggle button {
+            font-size: 6px !important;
+            padding: 5px 7px !important;
+          }
+          
+          .journey-traffic-lights span {
+            width: 8px !important;
+            height: 8px !important;
+          }
+        }
+      `}} />
     <div
-      className="font-retro"
+      className="font-retro journey-wrapper"
       style={{
         minHeight: '100vh',
         width: '100%',
@@ -214,6 +288,7 @@ export default function JourneyClient({
       }}
     >
       <MonitorFrame
+        className="journey-monitor-frame"
         header={
           <div
             style={{
@@ -223,6 +298,7 @@ export default function JourneyClient({
             }}
           >
             <div
+              className="journey-header-wrap"
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -236,7 +312,7 @@ export default function JourneyClient({
                 <a
                   href={`/hub/pilot-workshops/${cohortId}`}
                   title="Back to cohort"
-                  className="font-pixel"
+                  className="font-pixel journey-header-back"
                   style={{
                     fontSize: 8,
                     color: '#6f5e8f',
@@ -250,7 +326,7 @@ export default function JourneyClient({
                   ◄ COHORT
                 </a>
                 <div
-                  className="font-pixel"
+                  className="font-pixel journey-header-title"
                   style={{
                     fontSize: 9,
                     letterSpacing: 1,
@@ -264,10 +340,10 @@ export default function JourneyClient({
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 'none' }}>
+              <div className="journey-header-controls" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 'none' }}>
                 {/* Student / Admin toggle */}
                 {isAdmin && (
-                  <div style={{ display: 'flex', border: '2px solid #cbb98f', borderRadius: 6, overflow: 'hidden' }}>
+                  <div className="journey-role-toggle" style={{ display: 'flex', border: '2px solid #cbb98f', borderRadius: 6, overflow: 'hidden' }}>
                     <button
                       onClick={() => setRole('student')}
                       className="font-pixel"
@@ -299,7 +375,7 @@ export default function JourneyClient({
                   </div>
                 )}
                 {/* Traffic light dots */}
-                <div style={{ display: 'flex', gap: 7 }}>
+                <div className="journey-traffic-lights" style={{ display: 'flex', gap: 7 }}>
                   <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e06a5a' }} />
                   <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#e0b84a' }} />
                   <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#5fbf7a' }} />
@@ -511,5 +587,6 @@ export default function JourneyClient({
       {/* Toast */}
       <RetroToast message={toast} onClose={clearToast} />
     </div>
+    </>
   )
 }

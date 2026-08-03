@@ -117,7 +117,140 @@ export default function CharacterSelect({
   }
 
   return (
-    <div style={{ maxWidth: '1060px', margin: '0 auto', paddingTop: 4, paddingBottom: 'clamp(14px, 3vw, 30px)', paddingLeft: 'clamp(14px, 3vw, 26px)', paddingRight: 'clamp(14px, 3vw, 26px)' }}>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Responsive styles for CharacterSelect Page */
+        @media (max-width: 768px) {
+          .char-select-wrapper {
+            padding: 12px 10px !important;
+          }
+          
+          .char-select-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 12px 14px !important;
+          }
+          
+          .char-select-title {
+            font-size: 16px !important;
+          }
+          
+          .char-select-minimize-btn {
+            font-size: 10px !important;
+            padding: 10px 12px !important;
+            align-self: flex-start !important;
+          }
+          
+          .char-select-preview-panel {
+            flex: 1 1 100% !important;
+            max-width: 100% !important;
+            min-width: 100% !important;
+          }
+          
+          .char-select-custom-panel {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+          }
+          
+          .char-select-grid {
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 8px !important;
+          }
+          
+          .char-select-grid button {
+            padding: 10px 6px 12px !important;
+          }
+          
+          .char-select-grid .char-name {
+            font-size: 9px !important;
+          }
+          
+          .char-select-grid .char-kind {
+            font-size: 11px !important;
+          }
+          
+          .char-select-options-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+          
+          .char-select-option-box {
+            padding: 14px 16px !important;
+          }
+          
+          .char-select-option-title {
+            font-size: 10px !important;
+          }
+          
+          .char-select-option-desc {
+            font-size: 14px !important;
+          }
+          
+          .char-select-buttons-wrap {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          
+          .char-select-buttons-wrap button {
+            width: 100% !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .char-select-wrapper {
+            padding: 10px 8px !important;
+          }
+          
+          .char-select-header {
+            padding: 10px 12px !important;
+          }
+          
+          .char-select-title {
+            font-size: 14px !important;
+          }
+          
+          .char-select-minimize-btn {
+            font-size: 9px !important;
+            padding: 8px 10px !important;
+          }
+          
+          .char-select-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 6px !important;
+          }
+          
+          .char-select-grid button {
+            padding: 8px 4px 10px !important;
+          }
+          
+          .char-select-grid .char-sprite-wrapper {
+            height: 50px !important;
+          }
+          
+          .char-select-grid .char-name {
+            font-size: 8px !important;
+            margin-top: 6px !important;
+          }
+          
+          .char-select-grid .char-kind {
+            font-size: 10px !important;
+          }
+          
+          .char-select-option-box {
+            padding: 12px 14px !important;
+          }
+          
+          .char-select-option-title {
+            font-size: 9px !important;
+          }
+          
+          .char-select-option-desc {
+            font-size: 13px !important;
+            margin-bottom: 10px !important;
+          }
+        }
+      `}} />
+    <div className="char-select-wrapper" style={{ maxWidth: '1060px', margin: '0 auto', paddingTop: 4, paddingBottom: 'clamp(14px, 3vw, 30px)', paddingLeft: 'clamp(14px, 3vw, 26px)', paddingRight: 'clamp(14px, 3vw, 26px)' }}>
       
       {/* (1) Minimizable Header */}
       <div
@@ -129,7 +262,7 @@ export default function CharacterSelect({
           overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '13px 16px' }}>
+        <div className="char-select-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '13px 16px' }}>
           <div style={{ minWidth: 0 }}>
             <div
               className="font-pixel"
@@ -138,7 +271,7 @@ export default function CharacterSelect({
               ▚ PILOT WORKSHOPS · INSERT COIN ▚
             </div>
             <div
-              className="font-pixel"
+              className="font-pixel char-select-title"
               style={{
                 fontFamily: "'Press Start 2P', monospace",
                 fontSize: 'clamp(13px, 3vw, 22px)',
@@ -155,7 +288,7 @@ export default function CharacterSelect({
             type="button"
             onClick={() => setSelectMin(!selectMin)}
             title="Show / hide customization options"
-            className="font-pixel"
+            className="font-pixel char-select-minimize-btn"
             style={{
               fontSize: 12,
               color: 'var(--mu, #a493c9)',
@@ -190,6 +323,7 @@ export default function CharacterSelect({
         
         {/* Left: Preview Panel */}
         <div
+          className="char-select-preview-panel"
           style={{
             flex: '1 1 280px',
             minWidth: 250,
@@ -317,14 +451,14 @@ export default function CharacterSelect({
         </div>
 
         {/* Right: Customization */}
-        <div style={{ flex: '2 1 420px', minWidth: 290, display: 'flex', flexDirection: 'column', gap: 15 }}>
+        <div className="char-select-custom-panel" style={{ flex: '2 1 420px', minWidth: 290, display: 'flex', flexDirection: 'column', gap: 15 }}>
           
           {/* Character Grid */}
           <div>
             <div className="font-pixel" style={{ fontSize: 10, color: 'var(--gold, #ffd23f)', letterSpacing: 1, marginBottom: 14 }}>
               ✦ PICK A STEWARD · 12 TRAVELERS
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+            <div className="char-select-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
               {CHARACTER_ORDER.map((k) => {
                 const char = CHARACTERS[k]
                 const isSel = charKey === k
@@ -360,7 +494,7 @@ export default function CharacterSelect({
                         ✓
                       </div>
                     )}
-                    <div style={{ height: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <div className="char-sprite-wrapper" style={{ height: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                       <PixelSprite
                         characterKey={k}
                         accent={accent}
@@ -368,10 +502,10 @@ export default function CharacterSelect({
                         style={{ filter: 'drop-shadow(0 3px 0 rgba(0,0,0,.4))' }}
                       />
                     </div>
-                    <div className="font-pixel" style={{ fontSize: 10, color: 'var(--tx, #efe6ff)', marginTop: 8 }}>
+                    <div className="font-pixel char-name" style={{ fontSize: 10, color: 'var(--tx, #efe6ff)', marginTop: 8 }}>
                       {char.name}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--mu, #a493c9)', marginTop: 3, lineHeight: 1.2 }}>
+                    <div className="char-kind" style={{ fontSize: 12, color: 'var(--mu, #a493c9)', marginTop: 3, lineHeight: 1.2 }}>
                       {char.kind}
                     </div>
                   </button>
@@ -406,12 +540,12 @@ export default function CharacterSelect({
           {/* Options Grid */}
           
             {!selectMin && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(188px, 1fr))', gap: 11 }}>
+            <div className="char-select-options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(188px, 1fr))', gap: 11 }}>
             
             {/* Signal Aura */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--p, #ff5fd2)', marginBottom: 6 }}>◈ SIGNAL AURA</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>Tints outfit & trail glow</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--p, #ff5fd2)', marginBottom: 6 }}>◈ SIGNAL AURA</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>Tints outfit & trail glow</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {ACCENTS.map((a) => (
                   <button
@@ -433,9 +567,9 @@ export default function CharacterSelect({
             </div>
 
             {/* Field Tint (People only) */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold, #ffd23f)', marginBottom: 6 }}>◐ FIELD TINT</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Skin tone' : '(Human travelers only)'}</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--gold, #ffd23f)', marginBottom: 6 }}>◐ FIELD TINT</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Skin tone' : '(Human travelers only)'}</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {/* Default tint button */}
                 <button
@@ -469,9 +603,9 @@ export default function CharacterSelect({
             </div>
 
             {/* Headgear (People only) */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--s, #45d6ff)', marginBottom: 6 }}>▲ HEADGEAR</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Hats & visors' : '(Human travelers only)'}</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--s, #45d6ff)', marginBottom: 6 }}>▲ HEADGEAR</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Hats & visors' : '(Human travelers only)'}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {HEADGEAR_META.map(([k, label]) => {
                   const isActive = headgear === k
@@ -502,9 +636,9 @@ export default function CharacterSelect({
             </div>
 
             {/* Loadout (All) */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--ok, #74f0a0)', marginBottom: 6 }}>❒ FIELD KIT · LOADOUT</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>Determines your path</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--ok, #74f0a0)', marginBottom: 6 }}>❒ FIELD KIT · LOADOUT</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>Determines your path</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {GEAR_META.map(([k, label]) => {
                   const isActive = loadout === k
@@ -535,9 +669,9 @@ export default function CharacterSelect({
             </div>
 
             {/* Outfit (People only) */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold, #ffd23f)', marginBottom: 6 }}>✚ OUTFIT</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Outerwear' : '(Human travelers only)'}</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--gold, #ffd23f)', marginBottom: 6 }}>✚ OUTFIT</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Outerwear' : '(Human travelers only)'}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {OUTFIT_META.map(([k, label]) => {
                   const isActive = outfit === k
@@ -568,9 +702,9 @@ export default function CharacterSelect({
             </div>
 
             {/* Hair Style (People only) */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--p, #ff5fd2)', marginBottom: 6 }}>✦ HAIR STYLE</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Cut & shape' : '(Human travelers only)'}</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--p, #ff5fd2)', marginBottom: 6 }}>✦ HAIR STYLE</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Cut & shape' : '(Human travelers only)'}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {HAIR_META.map(([k, label]) => {
                   const isActive = hair === k
@@ -601,9 +735,9 @@ export default function CharacterSelect({
             </div>
 
             {/* Hair Color (People only) */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--p, #ff5fd2)', marginBottom: 6 }}>✿ HAIR COLOR</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Dye & shade' : '(Human travelers only)'}</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--p, #ff5fd2)', marginBottom: 6 }}>✿ HAIR COLOR</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Dye & shade' : '(Human travelers only)'}</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setHairColor('default')}
@@ -643,9 +777,9 @@ export default function CharacterSelect({
             </div>
 
             {/* Facial Hair (People only) */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold, #ffd23f)', marginBottom: 6 }}>⌇ FACIAL HAIR</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Beards & staches' : '(Human travelers only)'}</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--gold, #ffd23f)', marginBottom: 6 }}>⌇ FACIAL HAIR</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Beards & staches' : '(Human travelers only)'}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {FACIAL_META.map(([k, label]) => {
                   const isActive = facial === k
@@ -676,9 +810,9 @@ export default function CharacterSelect({
             </div>
 
             {/* Companion (People only) */}
-            <div style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
-              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--ok, #74f0a0)', marginBottom: 6 }}>❀ COMPANION</div>
-              <div style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Desert friend' : '(Human travelers only)'}</div>
+            <div className="char-select-option-box" style={{ border: '2px solid var(--ln, #3d2668)', borderRadius: 10, background: 'rgba(0,0,0,.2)', padding: '16px 18px', opacity: isHuman ? 1 : 0.4, pointerEvents: isHuman ? 'auto' : 'none' }}>
+              <div className="font-pixel char-select-option-title" style={{ fontSize: 11, color: 'var(--ok, #74f0a0)', marginBottom: 6 }}>❀ COMPANION</div>
+              <div className="char-select-option-desc" style={{ fontSize: 15, color: 'var(--mu, #a493c9)', marginBottom: 12 }}>{isHuman ? 'Desert friend' : '(Human travelers only)'}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {COMPANION_META.map(([k, label]) => {
                   const isActive = companion === k
@@ -721,7 +855,7 @@ export default function CharacterSelect({
       )}
 
       {/* (4) Begin / Return Buttons */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 26, flexWrap: 'wrap' }}>
+      <div className="char-select-buttons-wrap" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 26, flexWrap: 'wrap' }}>
         {hasChar && (
           <button
             onClick={() => router.push(`/hub/pilot-workshops/${cohortId}/journey`)}
@@ -763,6 +897,7 @@ export default function CharacterSelect({
       </div>
 
     </div>
+    </>
   )
 }
 

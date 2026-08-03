@@ -39,3 +39,42 @@
   background: #c98a3d;
   color: #fff;
 }
+
+@media (max-width: 850px) {
+  .session-header-row {
+    flex-wrap: wrap !important;
+  }
+  .session-header-row > div {
+    flex-wrap: wrap !important;
+  }
+  .session-editorial-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .session-quotes-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .session-integration-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+  .session-integration-grid > div:nth-child(2) {
+    height: 44px !important;
+  }
+  .mobile-rotate-arrow {
+    display: inline-block;
+    transform: rotate(90deg);
+  }
+  .session-photos-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .session-panels-grid {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .session-hero {
+    padding: 24px 6% 24px !important;
+  }
+  .session-hero-title {
+    font-size: 32px !important;
+  }
+}

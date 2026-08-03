@@ -42,7 +42,7 @@ export default function TraceabilityBoardClient({ integrations, areaStats, sessi
       <div style={{ padding: '44px 24px 0', maxWidth: 1000, margin: '0 auto', animation: 'fadeUp .4s ease both' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, letterSpacing: '.22em', color: '#a07b4d', textTransform: 'uppercase' }}>Traceability board</div>
-          <div style={{ fontSize: 42, fontWeight: 700, color: '#4a3728', marginTop: 6, letterSpacing: '-.02em' }}>You Said &rarr; We Did</div>
+          <div className="session-hero-title" style={{ fontSize: 42, fontWeight: 700, color: '#4a3728', marginTop: 6, letterSpacing: '-.02em' }}>You Said &rarr; We Did</div>
           <p style={{ fontFamily: 'var(--font-newsreader)', fontStyle: 'italic', fontSize: 18, color: '#8a6f4d', maxWidth: 600, margin: '10px auto 0' }}>Every idea we heard, traced to exactly where it shaped the project. Integrity is call and response.</p>
         </div>
 
@@ -74,13 +74,13 @@ export default function TraceabilityBoardClient({ integrations, areaStats, sessi
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {grp.items.map((it: any, j: number) => (
-                <div key={j} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 1.1fr', background: '#fbf5ea', borderRadius: 14, overflow: 'hidden', boxShadow: '0 8px 20px rgba(60,40,20,.1)' }}>
+                <div key={j} className="session-integration-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 44px 1.1fr', background: '#fbf5ea', borderRadius: 14, overflow: 'hidden', boxShadow: '0 8px 20px rgba(60,40,20,.1)' }}>
                   <div style={{ padding: '18px 22px', borderLeft: `5px solid ${it.areaColor}` }}>
                     <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 9.5, letterSpacing: '.12em', color: '#a07b4d', textTransform: 'uppercase' }}>{it.kind} &middot; {it.source}</div>
                     <p style={{ fontFamily: 'var(--font-newsreader)', fontSize: 16.5, lineHeight: 1.5, color: '#4a3728', margin: '8px 0 0' }}>&ldquo;{it.quote}&rdquo;</p>
                     <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, color: '#8a6f4d', marginTop: 8 }}>&mdash; {it.who}</div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4e8d3', color: it.areaColor, fontSize: 22, fontWeight: 700 }}>&rarr;</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4e8d3', color: it.areaColor, fontSize: 22, fontWeight: 700 }}><span className="mobile-rotate-arrow">&rarr;</span></div>
                   <div style={{ padding: '18px 22px', background: '#f4e8d3' }}>
                     <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 9.5, letterSpacing: '.12em', color: '#a07b4d', textTransform: 'uppercase' }}>We built</div>
                     <p style={{ fontSize: 15, lineHeight: 1.55, color: '#4a3728', margin: '8px 0 0' }}>{it.integration}</p>

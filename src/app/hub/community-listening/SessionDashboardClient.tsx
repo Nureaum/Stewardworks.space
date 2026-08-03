@@ -30,7 +30,7 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
   return (
     <div style={{ backgroundColor: '#fdfbfa', minHeight: '100vh', fontFamily: 'var(--font-space-grotesk)' }}>
       {/* Top Bar for Session */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, padding: '12px 24px', backgroundColor: '#fdfbfa', borderBottom: '1px solid #efe4cf', boxShadow: '0 4px 20px rgba(90,58,34,.05)' }}>
+      <div className="session-header-row" style={{ position: 'sticky', top: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, padding: '12px 24px', backgroundColor: '#fdfbfa', borderBottom: '1px solid #efe4cf', boxShadow: '0 4px 20px rgba(90,58,34,.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
           <Link href="/hub/community-listening" style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11.5, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a86c28', fontWeight: 600 }}>&larr; Listening Wall</Link>
           <div style={{ width: 1, height: 26, background: 'rgba(122,90,52,.22)' }}></div>
@@ -52,11 +52,11 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
         {layout === 'editorial' ? (
           <div style={{ animation: 'fadeUp .4s ease both' }}>
             {/* hero */}
-            <div style={{ position: 'relative', background: session.accent || '#c98a3d', color: '#fff', padding: '44px 8% 32px', overflow: 'hidden' }}>
+            <div className="session-hero" style={{ position: 'relative', background: session.accent || '#c98a3d', color: '#fff', padding: '44px 8% 32px', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg,rgba(255,255,255,.16),rgba(0,0,0,.14))', pointerEvents: 'none' }}></div>
               <div style={{ position: 'relative', maxWidth: 1080, margin: '0 auto' }}>
                 <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, letterSpacing: '.22em', textTransform: 'uppercase', opacity: .85 }}>Community Listening Session</div>
-                <div style={{ fontSize: 48, fontWeight: 700, marginTop: 6, letterSpacing: '-.02em' }}>{session.location}</div>
+                <div className="session-hero-title" style={{ fontSize: 48, fontWeight: 700, marginTop: 6, letterSpacing: '-.02em' }}>{session.location}</div>
                 <div style={{ fontFamily: 'var(--font-newsreader)', fontStyle: 'italic', fontSize: 21, marginTop: 4, opacity: .95 }}>{session.tagline}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 20, fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11.5 }}>
                   <span style={{ background: 'rgba(255,255,255,.2)', padding: '6px 12px', borderRadius: 20 }}>{dateStr}</span>
@@ -71,7 +71,7 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
 
             <div style={{ maxWidth: 1080, margin: '-20px auto 0', padding: '0 24px' }}>
               {/* narrative + sentiment */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 22, alignItems: 'start' }}>
+              <div className="session-editorial-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 22, alignItems: 'start' }}>
                 <div style={{ background: '#fbf5ea', borderRadius: 16, padding: '28px 30px', boxShadow: '0 14px 34px rgba(60,40,20,.14)' }}>
                   <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a07b4d' }}>The narrative</div>
                   <p style={{ fontFamily: 'var(--font-newsreader)', fontSize: 18.5, lineHeight: 1.62, color: '#4a3728', margin: '12px 0 0', textWrap: 'pretty' }}>{session.narrative}</p>
@@ -105,7 +105,7 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
               {/* quotes */}
               <div style={{ marginTop: 30 }}>
                 <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a07b4d', marginBottom: 14 }}>In their words</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+                <div className="session-quotes-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                   {quotes.map((q: any, i: number) => (
                     <div key={i} style={{ background: '#fbf5ea', borderRadius: 16, padding: '24px 26px', boxShadow: '0 10px 26px rgba(60,40,20,.12)', position: 'relative' }}>
                       <div style={{ fontFamily: 'var(--font-newsreader)', fontSize: 32, color: session.accent || '#c98a3d', lineHeight: 0, height: 16 }}>&ldquo;</div>
@@ -132,13 +132,13 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
                   <p style={{ fontFamily: 'var(--font-newsreader)', fontStyle: 'italic', fontSize: 15, color: '#c9b191', margin: '6px 0 22px' }}>Each suggestion traced to exactly where it shaped the project.</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     {integrations.map((s: any, i: number) => (
-                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 44px 1.1fr', gap: 0, alignItems: 'stretch', background: '#5c4632', borderRadius: 14, overflow: 'hidden' }}>
+                      <div key={i} className="session-integration-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 44px 1.1fr', gap: 0, alignItems: 'stretch', background: '#5c4632', borderRadius: 14, overflow: 'hidden' }}>
                         <div style={{ padding: '18px 20px' }}>
                           <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 9.5, letterSpacing: '.14em', color: '#c9b191', textTransform: 'uppercase' }}>They said</div>
                           <p style={{ fontFamily: 'var(--font-newsreader)', fontSize: 16, lineHeight: 1.5, color: '#fbf5ea', margin: '6px 0 0' }}>&ldquo;{s.quote}&rdquo;</p>
                           <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, color: '#a58e6f', marginTop: 8 }}>&mdash; {s.voice || 'Participant'}</div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e0b357', fontSize: 22 }}>&rarr;</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e0b357', fontSize: 22 }}><span className="mobile-rotate-arrow">&rarr;</span></div>
                         <div style={{ padding: '18px 20px', background: '#fbf5ea' }}>
                           <div style={{ display: 'inline-block', background: s.project_areas?.color || '#8a7a5c', color: '#fff', padding: '4px 11px', borderRadius: 20, fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, letterSpacing: '.04em', fontWeight: 600 }}>{s.project_areas?.name}</div>
                           <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#4a3728', margin: '10px 0 0' }}>{s.integration_note}</p>
@@ -150,7 +150,7 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
               )}
 
               {/* photos + barriers */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 22, marginTop: 26 }}>
+              <div className="session-photos-grid" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 22, marginTop: 26 }}>
                 <div>
                   <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a07b4d', marginBottom: 12 }}>From the room</div>
                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
@@ -196,7 +196,7 @@ export default function SessionDashboardClient({ session, quotes, photos, integr
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 16, marginTop: 18 }}>
+            <div className="session-panels-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 16, marginTop: 18 }}>
               {/* gauges */}
               <div style={{ gridColumn: 'span 4', background: '#fbf5ea', borderRadius: 14, padding: '20px 22px', boxShadow: '0 10px 24px rgba(60,40,20,.1)' }}>
                 <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#a07b4d' }}>Orientation toward AI</div>

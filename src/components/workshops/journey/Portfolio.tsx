@@ -489,12 +489,208 @@ export default function Portfolio({
     return '#ffd23f'
   }
 
+  /* ── Certificate download handler ── */
+  async function handleDownloadCertificate() {
+    if (delivPct < 75) return
+    
+    setIsDownloadingPDF(true)
+    try {
+      const playerName = user?.fullName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) || character.player_name || character.character_key.toUpperCase()
+      const characterKey = character.character_key
+      const accent = character.accent_color || '#ffd23f'
+      
+      // Fetch latest certificate settings from database
+      const certResponse = await fetch(`/api/workshops/${cohortId}/certificate-settings`)
+      const latestCertSettings = certResponse.ok ? await certResponse.json() : certSettings
+      
+      // Build character sprite URI
+      let characterSpriteUri = ''
+      try {
+        const { buildSpriteUri } = await import('@/components/workshops/journey/PixelSprite')
+        characterSpriteUri = buildSpriteUri(
+          characterKey,
+          accent,
+          {
+            gear: (character as any).gear || 'none',
+            outfit: (character as any).outfit || 'plain'
+          }
+        )
+      } catch (e) {
+        console.error('Failed to build sprite URI:', e)
+      }
+
+      // Build deliverables data
+      const deliverables = days.slice(0, 3).map((day, idx) => {
+        const submission = submissions.find((s: any) => s.workshop_day_id === day.id)
+        const userTitle = submission?.title || (day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`
+        return {
+          title: userTitle.toUpperCase(),
+          url: ''
+        }
+      })
+
+      // Client-side PDF generation using html2canvas + jsPDF (same as VictoryScreen)
+      const [html2canvasModule, jsPDFModule] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ])
+      const html2canvas = html2canvasModule.default
+      const { jsPDF } = jsPDFModule
+
+      // Import the shared buildClientCertHTML function
+      const { buildClientCertHTML } = await import('@/components/workshops/journey/VictoryScreen')
+      
+      // Create a hidden container with the certificate HTML
+      const container = document.createElement('div')
+      container.style.position = 'fixed'
+      container.style.left = '-9999px'
+      container.style.top = '0'
+      container.style.width = '794px'
+      container.style.zIndex = '-1'
+      container.innerHTML = buildClientCertHTML({
+        playerName,
+        characterKey,
+        certOrg: latestCertSettings.certOrg || certSettings.certOrg,
+        certFacilitator: latestCertSettings.certFacilitator || certSettings.certFacilitator,
+        certFacTitle: latestCertSettings.certFacTitle || certSettings.certFacTitle,
+        certSponsor: latestCertSettings.certSponsor || certSettings.certSponsor,
+        certSponsorOrg: latestCertSettings.certSponsorOrg || certSettings.certSponsorOrg,
+        certMessage: latestCertSettings.certMessage || certSettings.certMessage,
+        deliverables,
+        characterSpriteUri
+      })
+      document.body.appendChild(container)
+
+      // Wait for fonts and images to load
+      await document.fonts.ready
+      const images = container.querySelectorAll('img')
+      await Promise.all(Array.from(images).map(img => 
+        new Promise<void>((resolve) => {
+          if (img.complete) { resolve(); return }
+          img.onload = () => resolve()
+          img.onerror = () => resolve()
+        })
+      ))
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      const contentHeight = container.scrollHeight || container.offsetHeight || 1123
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f7f1e0',
+        width: 794,
+        height: contentHeight,
+      })
+
+      document.body.removeChild(container)
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageWidth = 210
+      const pageHeight = 297
+      const imgAspect = canvas.width / canvas.height
+      
+      let imgW = pageWidth
+      let imgH = pageWidth / imgAspect
+      
+      if (imgH > pageHeight) {
+        imgH = pageHeight
+        imgW = pageHeight * imgAspect
+      }
+      
+      const xOffset = (pageWidth - imgW) / 2
+      pdf.addImage(imgData, 'PNG', xOffset, 0, imgW, imgH)
+      pdf.save(`certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`)
+    } catch (error) {
+      console.error('Error downloading certificate:', error)
+      alert('Failed to download certificate. Check browser console for details.')
+    } finally {
+      setIsDownloadingPDF(false)
+    }
+  }
+
   /* ===== RENDER ===== */
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%', maxWidth: 1080, margin: '0 auto', padding: 'clamp(16px,3vw,30px) clamp(12px,3vw,24px)' }}>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Responsive styles for Portfolio Page */
+        @media (max-width: 768px) {
+          .portfolio-wrapper {
+            padding: 12px 10px !important;
+          }
+          
+          .portfolio-chia-header {
+            flex-direction: column !important;
+            gap: 12px !important;
+            padding: 14px !important;
+          }
+          
+          .portfolio-chia-sprite {
+            width: 80px !important;
+            height: 100px !important;
+          }
+          
+          .portfolio-chia-info {
+            min-width: auto !important;
+          }
+          
+          .portfolio-chia-title {
+            font-size: 18px !important;
+          }
+          
+          .portfolio-deliverables-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+          
+          .portfolio-deliverable-card {
+            padding: 12px !important;
+          }
+          
+          .portfolio-shelf-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+          
+          .portfolio-asset-preview {
+            max-width: 100% !important;
+            max-height: 200px !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .portfolio-wrapper {
+            padding: 10px 8px !important;
+          }
+          
+          .portfolio-chia-header {
+            padding: 12px !important;
+            gap: 10px !important;
+          }
+          
+          .portfolio-chia-sprite {
+            width: 60px !important;
+            height: 75px !important;
+          }
+          
+          .portfolio-chia-title {
+            font-size: 16px !important;
+          }
+          
+          .portfolio-deliverables-grid {
+            gap: 8px !important;
+          }
+          
+          .portfolio-deliverable-card {
+            padding: 10px !important;
+          }
+        }
+      `}} />
+    <div className="portfolio-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%', maxWidth: 1080, margin: '0 auto', padding: 'clamp(16px,3vw,30px) clamp(12px,3vw,24px)' }}>
 
       {/* ── Section A: Chia Guardian Header ── */}
       <div
+        className="portfolio-chia-header"
         style={{
           border: '2px solid var(--ok,#74f0a0)',
           borderRadius: 12,
@@ -514,11 +710,12 @@ export default function Portfolio({
             alt="" 
             width={120} 
             height={150} 
+            className="portfolio-chia-sprite"
             style={{ imageRendering: 'pixelated', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.4))' }} 
           />
         </div>
         {/* Right side info */}
-        <div style={{ flex: 1, minWidth: 200 }}>
+        <div className="portfolio-chia-info" style={{ flex: 1, minWidth: 200 }}>
           <div
             className="font-pixel"
             style={{ fontSize: 12, color: 'var(--ok,#74f0a0)', letterSpacing: 1, marginBottom: 4 }}
@@ -526,7 +723,7 @@ export default function Portfolio({
             ❀ MY CHIA GUARDIAN
           </div>
           <div
-            className="font-pixel"
+            className="font-pixel portfolio-chia-title"
             style={{ fontSize: 'clamp(20px,2.5vw,28px)', color: '#fff', marginBottom: 6 }}
           >
             {userRole === 'guest' ? engPct : chiaPct}% GROWN
@@ -600,6 +797,7 @@ export default function Portfolio({
         </div>
 
         <div
+          className="portfolio-deliverables-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3,1fr)',
@@ -615,6 +813,7 @@ export default function Portfolio({
             return (
               <div
                 key={dayNum}
+                className="portfolio-deliverable-card"
                 style={{
                   border: '2px solid var(--ln,#3d2668)',
                   borderRadius: 8,
@@ -779,6 +978,7 @@ export default function Portfolio({
 
         {/* ── Section C.1: Shelf Columns ── */}
         <div
+          className="portfolio-shelf-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))',
@@ -1867,126 +2067,6 @@ export default function Portfolio({
         </div>
       )}
     </div>
+    </>
   )
-
-  // Certificate download handler
-  async function handleDownloadCertificate() {
-    if (delivPct < 75) return
-    
-    setIsDownloadingPDF(true)
-    try {
-      const playerName = user?.fullName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) || character.player_name || character.character_key.toUpperCase()
-      const characterKey = character.character_key
-      const accent = character.accent_color || '#ffd23f'
-      
-      // Fetch latest certificate settings from database
-      const certResponse = await fetch(`/api/workshops/${cohortId}/certificate-settings`)
-      const latestCertSettings = certResponse.ok ? await certResponse.json() : certSettings
-      
-      // Build character sprite URI
-      let characterSpriteUri = ''
-      try {
-        const { buildSpriteUri } = await import('@/components/workshops/journey/PixelSprite')
-        characterSpriteUri = buildSpriteUri(
-          characterKey,
-          accent,
-          {
-            gear: (character as any).gear || 'none',
-            outfit: (character as any).outfit || 'plain'
-          }
-        )
-      } catch (e) {
-        console.error('Failed to build sprite URI:', e)
-      }
-
-      // Build deliverables data
-      const deliverables = days.slice(0, 3).map((day, idx) => {
-        const submission = submissions.find((s: any) => s.workshop_day_id === day.id)
-        const userTitle = submission?.title || (day as any).deliverable_title?.toUpperCase() || day.title?.toUpperCase() || `DAY ${day.day_number} DELIVERABLE`
-        return {
-          title: userTitle.toUpperCase(),
-          url: ''
-        }
-      })
-
-      // Client-side PDF generation using html2canvas + jsPDF (same as VictoryScreen)
-      const [html2canvasModule, jsPDFModule] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf')
-      ])
-      const html2canvas = html2canvasModule.default
-      const { jsPDF } = jsPDFModule
-
-      // Import the shared buildClientCertHTML function
-      const { buildClientCertHTML } = await import('@/components/workshops/journey/VictoryScreen')
-
-      // Create a hidden container with the certificate HTML
-      const container = document.createElement('div')
-      container.style.position = 'fixed'
-      container.style.left = '-9999px'
-      container.style.top = '0'
-      container.style.width = '794px'
-      container.style.zIndex = '-1'
-      container.innerHTML = buildClientCertHTML({
-        playerName,
-        characterKey,
-        certOrg: latestCertSettings.certOrg || certSettings.certOrg,
-        certFacilitator: latestCertSettings.certFacilitator || certSettings.certFacilitator,
-        certFacTitle: latestCertSettings.certFacTitle || certSettings.certFacTitle,
-        certSponsor: latestCertSettings.certSponsor || certSettings.certSponsor,
-        certSponsorOrg: latestCertSettings.certSponsorOrg || certSettings.certSponsorOrg,
-        certMessage: latestCertSettings.certMessage || certSettings.certMessage,
-        deliverables,
-        characterSpriteUri
-      })
-      document.body.appendChild(container)
-
-      // Wait for fonts and images to load
-      await document.fonts.ready
-      const images = container.querySelectorAll('img')
-      await Promise.all(Array.from(images).map(img => 
-        new Promise<void>((resolve) => {
-          if (img.complete) { resolve(); return }
-          img.onload = () => resolve()
-          img.onerror = () => resolve()
-        })
-      ))
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      const contentHeight = container.scrollHeight || container.offsetHeight || 1123
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#f7f1e0',
-        width: 794,
-        height: contentHeight,
-      })
-
-      document.body.removeChild(container)
-
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const pageWidth = 210
-      const pageHeight = 297
-      const imgAspect = canvas.width / canvas.height
-      
-      let imgW = pageWidth
-      let imgH = pageWidth / imgAspect
-      
-      if (imgH > pageHeight) {
-        imgH = pageHeight
-        imgW = pageHeight * imgAspect
-      }
-      
-      const xOffset = (pageWidth - imgW) / 2
-      pdf.addImage(imgData, 'PNG', xOffset, 0, imgW, imgH)
-      pdf.save(`certificate-${playerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`)
-
-    } catch (error) {
-      console.error('Error downloading certificate:', error)
-      alert('Failed to download certificate. Check browser console for details.')
-    } finally {
-      setIsDownloadingPDF(false)
-    }
-  }
 }
