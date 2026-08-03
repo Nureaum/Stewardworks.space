@@ -27,7 +27,32 @@ export default function HelpdeskUI({
   const [askOpen, setAskOpen] = useState(false);
   const [list, setList] = useState<'faq' | 'mine' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loungeScale, setLoungeScale] = useState(1);
   const router = useRouter();
+  
+  // Handle responsive scaling for lounge scene (matches hub page behavior)
+  React.useEffect(() => {
+    if (view !== 'lounge') return;
+    
+    const handleResize = () => {
+      // Only apply scaling on mobile/tablet (same breakpoint as CSS)
+      if (window.innerWidth <= 768) {
+        // Calculate scale to fit scene (1180px wide) into viewport
+        // Account for top nav and intro text (approximately 180px)
+        const availableHeight = window.innerHeight - 180;
+        const scaleX = window.innerWidth / 1180;
+        const scaleY = availableHeight / 626;
+        const scale = Math.min(scaleX, scaleY, 1); // Never scale up, only down
+        setLoungeScale(scale);
+      } else {
+        setLoungeScale(1);
+      }
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [view]);
 
   const handleAskSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -114,19 +139,224 @@ export default function HelpdeskUI({
         
         .concierge-hover { transition: transform .18s ease, filter .18s ease; }
         .concierge-hover:hover { transform: translateX(-50%) translateY(-6px); filter: drop-shadow(0 18px 24px rgba(80,52,20,.28)); }
+        
+        /* Responsive styles for mobile/tablet */
+        @media (max-width: 768px) {
+          .helpdesk-wrapper {
+            padding: 0 !important;
+            min-height: 100vh !important;
+          }
+          
+          .hd-top-nav {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 16px 20px !important;
+            gap: 12px !important;
+          }
+          
+          .hd-view-toggle {
+            order: 2 !important;
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          
+          .hd-back-link {
+            order: 1 !important;
+          }
+          
+          .hd-admin-section {
+            order: 3 !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+          }
+          
+          .hd-admin-section > span {
+            text-align: center !important;
+            font-size: 10px !important;
+          }
+          
+          .hd-lounge-container {
+            position: fixed !important;
+            inset: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding-top: 180px !important;
+          }
+          
+          .hd-lounge-scene-wrapper {
+            position: relative !important;
+            width: 1180px !important;
+            height: 626px !important;
+            flex: none !important;
+            transform-origin: center center !important;
+            overflow: hidden !important;
+          }
+          
+          .hd-lounge-scene-inner {
+            transform: none !important;
+            transform-origin: top center !important;
+            height: 626px !important;
+            width: 100% !important;
+          }
+          
+          .hd-lounge-intro {
+            position: fixed !important;
+            top: 120px !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 10 !important;
+            padding: 0 16px !important;
+            margin-bottom: 0 !important;
+          }
+          
+          .hd-lounge-intro p {
+            font-size: 13px !important;
+          }
+          
+          .hd-lounge-intro > div:first-child {
+            padding: 6px 14px !important;
+          }
+          
+          .hd-lounge-intro > div:first-child span:last-child {
+            font-size: 10px !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .helpdesk-wrapper {
+            padding: 0 !important;
+          }
+          
+          .hd-top-nav {
+            padding: 12px 16px !important;
+            gap: 10px !important;
+          }
+          
+          .hd-back-link {
+            font-size: 10px !important;
+          }
+          
+          .hd-view-toggle button {
+            font-size: 12px !important;
+            padding: 7px 16px !important;
+          }
+          
+          .hd-lounge-intro {
+            top: 100px !important;
+            padding: 0 12px !important;
+          }
+          
+          .hd-lounge-intro > div:first-child span:last-child {
+            font-size: 9px !important;
+            letter-spacing: 0.12em !important;
+          }
+          
+          .hd-lounge-container {
+            padding-top: 160px !important;
+          }
+          
+          .hd-classic-grid {
+            grid-template-columns: 1fr !important;
+            padding: 0 16px !important;
+            gap: 20px !important;
+          }
+          
+          .hd-sidebar {
+            position: static !important;
+            width: 100% !important;
+          }
+          
+          .hd-classic-header {
+            padding: 24px 28px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          
+          .hd-classic-header h1 {
+            font-size: 28px !important;
+          }
+          
+          .hd-classic-header button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          
+          .hd-classic-content {
+            padding: 20px 24px 28px !important;
+          }
+          
+          .hd-classic-tabs {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          
+          .hd-classic-tabs > div:first-child {
+            width: 100% !important;
+          }
+          
+          .hd-classic-tabs > div:last-child {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+          
+          .hd-modal-content {
+            padding: 20px 20px !important;
+            margin: 20px 12px !important;
+            max-width: 100% !important;
+          }
+          
+          .hd-modal-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          
+          .hd-modal-header h2 {
+            font-size: 22px !important;
+          }
+          
+          .hd-thread-container {
+            padding: 20px 12px !important;
+            max-width: 100% !important;
+          }
+          
+          .hd-thread-card {
+            padding: 24px 20px !important;
+          }
+          
+          .hd-thread-card h2 {
+            font-size: 24px !important;
+          }
+          
+          .hd-ask-form {
+            padding: 24px 24px 24px !important;
+            max-width: 100% !important;
+            margin: 20px 12px !important;
+          }
+          
+          .hd-ask-form h2 {
+            font-size: 24px !important;
+          }
+        }
       `}} />
       <div className="helpdesk-wrapper">
         <div style={{position:'absolute',top:'-190px',left:'50%',transform:'translateX(-50%)',width:'1300px',height:'820px',pointerEvents:'none',zIndex:0,background:'radial-gradient(ellipse 46% 44% at 50% 32%, rgba(255,241,206,.9) 0%, rgba(255,232,180,.34) 42%, rgba(255,232,180,0) 72%)'}}></div>
 
-        <div style={{position:'relative',zIndex:2,maxWidth:'1180px',margin:'0 auto',padding:'22px 32px 0',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',flexWrap:'wrap'}}>
-          <Link href="/hub" style={{fontFamily:"'Space Mono',monospace",fontSize:'12px',letterSpacing:'.14em',textTransform:'uppercase',color:'#8A6A3E',textDecoration:'none',display:'flex',alignItems:'center',gap:'8px'}}>
+        <div className="hd-top-nav" style={{position:'relative',zIndex:2,maxWidth:'1180px',margin:'0 auto',padding:'22px 32px 0',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',flexWrap:'wrap'}}>
+          <Link href="/hub" className="hd-back-link" style={{fontFamily:"'Space Mono',monospace",fontSize:'12px',letterSpacing:'.14em',textTransform:'uppercase',color:'#8A6A3E',textDecoration:'none',display:'flex',alignItems:'center',gap:'8px'}}>
             &larr; Back to Hub
           </Link>
-          <div style={{display:'inline-flex',background:'#F1E7D0',border:'1px solid #E7D6B7',borderRadius:'13px',padding:'4px',gap:'3px',boxShadow:'0 8px 20px -16px rgba(80,52,20,.5)'}}>
+          <div className="hd-view-toggle" style={{display:'inline-flex',background:'#F1E7D0',border:'1px solid #E7D6B7',borderRadius:'13px',padding:'4px',gap:'3px',boxShadow:'0 8px 20px -16px rgba(80,52,20,.5)'}}>
             <button onClick={() => setView('lounge')} style={seg(view === 'lounge')}>Lounge</button>
             <button onClick={() => setView('classic')} style={seg(view === 'classic')}>List View</button>
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+          <div className="hd-admin-section" style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <span style={{fontFamily:"'Space Mono',monospace",fontSize:'11px',letterSpacing:'.12em',textTransform:'uppercase',color:'#A38A5E'}}>StewardWorks Members &middot; account required</span>
             {isAdmin && (
               <Link href="/admin/helpdesk" style={{display:'inline-block',background:'#B85C3E',color:'#fff',textDecoration:'none',fontFamily:"'Fredoka',sans-serif",fontWeight:600,fontSize:'13.5px',padding:'6px 14px',borderRadius:'10px',boxShadow:'0 8px 16px -8px rgba(184,92,62,.6)'}}>Admin Settings</Link>
@@ -137,7 +367,7 @@ export default function HelpdeskUI({
         {view === 'classic' && (
           <div>
             <div style={{position:'relative',zIndex:2,maxWidth:'1180px',margin:'20px auto 0',padding:'0 32px'}}>
-              <div style={{background:'linear-gradient(135deg,#FFFBF2 0%,#FBF1DC 100%)',border:'1px solid #E7D6B7',borderRadius:'26px',padding:'34px 38px',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'24px',flexWrap:'wrap',boxShadow:'0 30px 60px -40px rgba(80,52,20,.5)'}}>
+              <div className="hd-classic-header" style={{background:'linear-gradient(135deg,#FFFBF2 0%,#FBF1DC 100%)',border:'1px solid #E7D6B7',borderRadius:'26px',padding:'34px 38px',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'24px',flexWrap:'wrap',boxShadow:'0 30px 60px -40px rgba(80,52,20,.5)'}}>
                 <div style={{flex:1,minWidth:'260px'}}>
                   <div style={{display:'inline-flex',alignItems:'center',gap:'8px',background:'#F7E7DF',border:'1px solid #EDCFC2',borderRadius:'999px',padding:'6px 14px',marginBottom:'16px'}}>
                     <span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#B85C3E'}}></span>
@@ -150,8 +380,8 @@ export default function HelpdeskUI({
               </div>
             </div>
 
-            <div style={{position:'relative',zIndex:2,maxWidth:'1180px',margin:'26px auto 0',padding:'0 32px',display:'grid',gridTemplateColumns:'280px minmax(0,1fr)',gap:'26px',alignItems:'start'}}>
-              <div style={{display:'flex',flexDirection:'column',gap:'18px',position:'sticky',top:'20px'}}>
+            <div className="hd-classic-grid" style={{position:'relative',zIndex:2,maxWidth:'1180px',margin:'26px auto 0',padding:'0 32px',display:'grid',gridTemplateColumns:'280px minmax(0,1fr)',gap:'26px',alignItems:'start'}}>
+              <div className="hd-sidebar" style={{display:'flex',flexDirection:'column',gap:'18px',position:'sticky',top:'20px'}}>
                 <div style={{background:'#FFFBF2',border:'1px solid #E7D6B7',borderRadius:'20px',padding:'20px',boxShadow:'0 20px 44px -34px rgba(80,52,20,.5)'}}>
                   <div style={{fontFamily:"'Space Mono',monospace",fontSize:'11px',letterSpacing:'.14em',textTransform:'uppercase',color:'#A38A5E',marginBottom:'14px'}}>Categories</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'3px'}}>
@@ -170,8 +400,8 @@ export default function HelpdeskUI({
                 </div>
               </div>
 
-              <div style={{background:'linear-gradient(180deg,#FFFDF7 0%,#FCF6E7 100%)',border:'1px solid #EBDCC0',borderRadius:'24px',padding:'26px 30px 34px',boxShadow:'0 34px 70px -44px rgba(80,52,20,.55)',color:'#3B2E20'}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',flexWrap:'wrap',marginBottom:'26px'}}>
+              <div className="hd-classic-content" style={{background:'linear-gradient(180deg,#FFFDF7 0%,#FCF6E7 100%)',border:'1px solid #EBDCC0',borderRadius:'24px',padding:'26px 30px 34px',boxShadow:'0 34px 70px -44px rgba(80,52,20,.55)',color:'#3B2E20'}}>
+                <div className="hd-classic-tabs" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',flexWrap:'wrap',marginBottom:'26px'}}>
                   <div style={{display:'inline-flex',background:'#F1E7D0',borderRadius:'14px',padding:'4px',gap:'3px'}}>
                     <button onClick={() => setTab('faq')} style={seg(tab === 'faq')}>Frequently Asked</button>
                     <button onClick={() => setTab('mine')} style={seg(tab === 'mine')}>My Questions</button>
@@ -253,8 +483,8 @@ export default function HelpdeskUI({
 
 
         {view === 'lounge' && (
-          <div style={{position:'relative',zIndex:2,maxWidth:'1180px',margin:'22px auto 0',padding:'0 32px'}}>
-            <div style={{textAlign:'center',marginBottom:'16px'}}>
+          <div className="hd-lounge-container" style={{position:'relative',zIndex:2,maxWidth:'1180px',margin:'22px auto 0',padding:'0 32px'}}>
+            <div className="hd-lounge-intro" style={{textAlign:'center',marginBottom:'16px'}}>
               <div style={{display:'inline-flex',alignItems:'center',gap:'9px',background:'#FFFBF2',border:'1px solid #E7D6B7',borderRadius:'999px',padding:'7px 16px'}}>
                 <span style={{width:'8px',height:'8px',borderRadius:'50%',background:'#B85C3E'}}></span>
                 <span style={{fontFamily:"'Space Mono',monospace",fontSize:'11px',letterSpacing:'.14em',textTransform:'uppercase',color:'#B07C2F',fontWeight:700}}>Help &amp; Support Lounge</span>
@@ -262,7 +492,8 @@ export default function HelpdeskUI({
               <p style={{margin:'10px 0 0',fontSize:'14.5px',color:'#8A7A63'}}>Make yourself comfortable. Settle onto a couch to browse, or step up to the concierge to ask.</p>
             </div>
 
-            <div style={{position:'relative',width:'100%',height:'626px',borderRadius:'30px',overflow:'hidden',border:'1px solid #E0CDA9',boxShadow:'0 44px 90px -48px rgba(80,52,20,.65), inset 0 0 0 1px rgba(255,255,255,.45)'}}>
+            <div className="hd-lounge-scene-wrapper" style={{position:'relative',width:'100%',borderRadius:'30px',overflow:'hidden',border:'1px solid #E0CDA9',boxShadow:'0 44px 90px -48px rgba(80,52,20,.65), inset 0 0 0 1px rgba(255,255,255,.45)',transform:`scale(${loungeScale})`,transformOrigin:'center center'}}>
+              <div className="hd-lounge-scene-inner" style={{position:'relative',width:'100%',height:'626px',transform:'scale(1)',transformOrigin:'top center'}}>
               <div style={{position:'absolute',top:0,left:0,right:0,height:'376px',background:'linear-gradient(180deg,#F6ECD3 0%,#EFE1C2 100%)'}}></div>
               <div style={{position:'absolute',top:'-130px',left:'50%',transform:'translateX(-50%)',width:'860px',height:'540px',background:'radial-gradient(ellipse 50% 50% at 50% 42%, rgba(255,244,214,.9), rgba(255,244,214,0) 70%)',pointerEvents:'none'}}></div>
               <div style={{position:'absolute',top:'366px',left:0,right:0,height:'12px',background:'#E3D1AC',boxShadow:'0 2px 6px rgba(80,52,20,.12)'}}></div>
@@ -373,15 +604,16 @@ export default function HelpdeskUI({
                 <div style={{position:'absolute',bottom:'24px',right:0,width:'42px',height:'96px',background:'#B0603F',borderRadius:'20px',boxShadow:'inset 6px 0 0 rgba(0,0,0,.06)'}}></div>
               </button>
 
-              <div style={{position:'absolute',bottom:'16px',left:'24px',fontFamily:"'Space Mono',monospace",fontSize:'10px',letterSpacing:'.1em',textTransform:'uppercase',color:'#8A6A3E',background:'rgba(255,251,242,.72)',border:'1px solid #E7D6B7',borderRadius:'999px',padding:'6px 13px'}}>Tap a couch or the concierge</div>
+              <div className="hd-scene-instruction" style={{position:'absolute',bottom:'16px',left:'24px',fontFamily:"'Space Mono',monospace",fontSize:'10px',letterSpacing:'.1em',textTransform:'uppercase',color:'#8A6A3E',background:'rgba(255,251,242,.72)',border:'1px solid #E7D6B7',borderRadius:'999px',padding:'6px 13px'}}>Tap a couch or the concierge</div>
+              </div>
             </div>
           </div>
         )}
 
         {list && (
           <div style={{position:'fixed',inset:0,zIndex:52,background:'rgba(45,30,12,.72)',backdropFilter:'blur(5px)',display:'flex',justifyContent:'center',overflowY:'auto',padding:'40px 20px'}}>
-            <div style={{maxWidth:'820px',width:'100%',height:'fit-content',background:'linear-gradient(180deg,#FFFDF7,#FCF6E7)',borderRadius:'24px',padding:'26px 30px 32px',color:'#3B2E20',animation:'hdIn .3s ease both',boxShadow:'0 40px 90px -34px rgba(0,0,0,.7)',borderTop:'5px solid #B85C3E'}}>
-              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'16px',marginBottom:'20px'}}>
+            <div className="hd-modal-content" style={{maxWidth:'820px',width:'100%',height:'fit-content',background:'linear-gradient(180deg,#FFFDF7,#FCF6E7)',borderRadius:'24px',padding:'26px 30px 32px',color:'#3B2E20',animation:'hdIn .3s ease both',boxShadow:'0 40px 90px -34px rgba(0,0,0,.7)',borderTop:'5px solid #B85C3E'}}>
+              <div className="hd-modal-header" style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'16px',marginBottom:'20px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
                   <span style={{width:'44px',height:'44px',borderRadius:'13px',background:'#F0E1B8',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'19px',color:'#B07C2F'}}>{list === 'mine' ? '\u{1F4AC}' : '\u2605'}</span>
                   <div>
@@ -461,11 +693,11 @@ export default function HelpdeskUI({
 
         {thread && (
           <div style={{position:'fixed',inset:0,zIndex:50,background:'rgba(45,30,12,.72)',backdropFilter:'blur(5px)',display:'flex',justifyContent:'center',overflowY:'auto',padding:'40px 20px'}}>
-            <div style={{maxWidth:'760px',width:'100%',animation:'hdIn .3s ease both'}}>
+            <div className="hd-thread-container" style={{maxWidth:'760px',width:'100%',animation:'hdIn .3s ease both'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
                 <button onClick={() => setThread(null)} style={{background:'rgba(255,255,255,.14)',border:'1px solid rgba(255,255,255,.2)',color:'#FBF1DA',cursor:'pointer',fontFamily:"'Space Mono',monospace",fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',padding:'9px 16px',borderRadius:'999px'}}>&larr; Back to Help Desk</button>
               </div>
-              <div style={{background:'linear-gradient(180deg,#FFFDF7,#FCF6E7)',borderRadius:'22px',padding:'30px 32px',color:'#3B2E20',boxShadow:'0 30px 70px -30px rgba(0,0,0,.6)',position:'relative',overflow:'hidden'}}>
+              <div className="hd-thread-card" style={{background:'linear-gradient(180deg,#FFFDF7,#FCF6E7)',borderRadius:'22px',padding:'30px 32px',color:'#3B2E20',boxShadow:'0 30px 70px -30px rgba(0,0,0,.6)',position:'relative',overflow:'hidden'}}>
                 <div style={{position:'absolute',top:0,left:0,right:0,height:'4px',background:'linear-gradient(90deg,#B85C3E,#C79A3C)'}}></div>
                 <div style={{display:'flex',gap:'10px',marginBottom:'18px',flexWrap:'wrap'}}>
                   <span style={{fontFamily:"'Space Mono',monospace",fontSize:'10px',letterSpacing:'.08em',textTransform:'uppercase',color:'#B07C2F',background:'#F6ECCF',borderRadius:'8px',padding:'5px 11px'}}>{thread.category}</span>
@@ -505,7 +737,7 @@ export default function HelpdeskUI({
 
         {askOpen && (
           <div style={{position:'fixed',inset:0,zIndex:55,background:'rgba(45,30,12,.74)',backdropFilter:'blur(5px)',display:'flex',justifyContent:'center',overflowY:'auto',padding:'40px 20px'}}>
-            <form onSubmit={handleAskSubmit} style={{maxWidth:'640px',width:'100%',background:'#fff',borderRadius:'24px',padding:'32px 34px 30px',color:'#3B2E20',animation:'hdIn .3s ease both',boxShadow:'0 40px 90px -34px rgba(0,0,0,.7)',height:'fit-content'}}>
+            <form onSubmit={handleAskSubmit} className="hd-ask-form" style={{maxWidth:'640px',width:'100%',background:'#fff',borderRadius:'24px',padding:'32px 34px 30px',color:'#3B2E20',animation:'hdIn .3s ease both',boxShadow:'0 40px 90px -34px rgba(0,0,0,.7)',height:'fit-content'}}>
               <h2 style={{fontFamily:"'Fredoka',sans-serif",fontWeight:600,fontSize:'28px',margin:'0 0 6px',color:'#33271A'}}>Ask a Question</h2>
               <p style={{margin:'0 0 24px',fontSize:'14.5px',color:'#7A6A50'}}>Get help from staff and instructors. Provide as much detail as possible.</p>
               <label htmlFor="title" style={{display:'block',fontFamily:"'Nunito',sans-serif",fontWeight:700,fontSize:'13.5px',color:'#4E4230',marginBottom:'8px'}}>Question Title</label>

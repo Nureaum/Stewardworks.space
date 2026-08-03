@@ -1128,7 +1128,7 @@ export default function ClientProfile({
               </div>
             </div>
                  {/* Onboarding Answers / Editing */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(206px,1fr))', gap: '11px', marginTop: '22px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%, 206px), 1fr))', gap: '11px', marginTop: '22px' }}>
               
               {/* Why I'm Here Card */}
               <div style={{ background: 'rgba(254,250,224,.09)', border: '1px solid rgba(254,250,224,.16)', borderRadius: '13px', padding: '13px 15px' }}>
@@ -1292,7 +1292,7 @@ export default function ClientProfile({
               </span>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '12px' }}>
               {[1, 2, 3].map(dayNum => {
                 const day = workshopDays.find((d: any) => d.day_number === dayNum);
                 const progress = day ? progressRows.find((p: any) => p.workshop_day_id === day.id) : null;
@@ -1545,7 +1545,7 @@ export default function ClientProfile({
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#417C98', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     STEWARD LIBRARY <span style={{ background: 'rgba(65,124,152,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedResources.length}</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
                     {bookmarkedResources.map(b => (
                       <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'LIBRARY', _color: '#417C98', _bg: '#EBF4F8', _url: (b.id?.startsWith('http') || b.id?.startsWith('/')) ? b.id : `/hub/library/${b.id}`, _status: b.bookmarkStatus, _source: domain(b.external_url || b.url) })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -1568,7 +1568,7 @@ export default function ClientProfile({
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#A27532', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     WORKSHOPS <span style={{ background: 'rgba(162,117,50,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{workshopBookmarks.length}</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
                     {workshopBookmarks.map(b => {
                       const isStudentShowcase = b.source?.toLowerCase().includes('student');
                       const isContributor = b.source?.toLowerCase().includes('showcase') && !isStudentShowcase;
@@ -1615,7 +1615,7 @@ export default function ClientProfile({
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#2E5534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     WORKFORCE PATHWAYS <span style={{ background: 'rgba(46,85,52,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedWorkforce.length}</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
                     {bookmarkedWorkforce.map(b => (
                       <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKFORCE', _color: '#2E5534', _bg: '#EAF2EB', _url: b.url, _vaultUrl: b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, _status: b.bookmarkStatus, _source: b.source || domain(b.url) })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -1638,7 +1638,7 @@ export default function ClientProfile({
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#ff6a2e', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     JOBS QUEST <span style={{ background: 'rgba(255,106,46,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedJobs.length}</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
                     {bookmarkedJobs.map(b => (
                       <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FFF0E6', border: '1.5px solid rgba(255,106,46,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, title: b.title.replace(/^Job:\s*/, ''), _kind: 'JOB', _color: '#ff6a2e', _bg: '#FFF0E6', _url: b.url || '/hub/workforce-pathways?jobs=true#wf-jobs', _status: b.bookmarkStatus, _source: b.source, _viewLabel: b.url ? 'Apply →' : 'View Jobs →' })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -1661,7 +1661,7 @@ export default function ClientProfile({
                   <div style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.15em', color: '#4B8B9B', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     ENVIRONMENTAL BOOKMARKS <span style={{ background: 'rgba(75,139,155,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedEnvironmental.length}</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
                     {bookmarkedEnvironmental.map(b => (
                       <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF3F5', border: '1.5px solid rgba(75,139,155,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'ENVIRONMENTAL', _color: '#4B8B9B', _bg: '#EAF3F5', _url: `/hub/environmental-literacy?entry=${b.url}`, _status: b.bookmarkStatus, _source: b.source })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -1695,7 +1695,7 @@ export default function ClientProfile({
             No generations yet. Create AI art in the <Link href="/hub/ai-lab" style={{ color: '#417C98', textDecoration: 'underline' }}>AI Lab</Link>!
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: '12px', marginBottom: '30px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 240px), 1fr))', gap: '12px', marginBottom: '30px' }}>
             {generations.map(g => {
               // Check if URL is an image based on extension (allow query params) or path patterns
               const isImageUrl = g.url && (
@@ -1826,7 +1826,7 @@ export default function ClientProfile({
                 </div>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '15px' }}>
                 {allSuggestions.map(s => {
                   const isEnv = s.kind === 'env_suggestion';
                   const isWf = s.kind === 'wf_suggestion';
@@ -1969,7 +1969,7 @@ export default function ClientProfile({
             No notes, prompts, or mini deliverables yet. Add them from the <Link href="/hub/pilot-workshops" style={{ color: '#417C98', textDecoration: 'underline' }}>Workshops</Link> or <Link href="/hub/ai-lab" style={{ color: '#417C98', textDecoration: 'underline' }}>AI Lab</Link>!
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 280px), 1fr))', gap: '12px' }}>
             {/* Notes */}
             {notes.map(n => (
               <div
@@ -2819,3 +2819,4 @@ export default function ClientProfile({
     </div>
   );
 }
+

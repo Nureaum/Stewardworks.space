@@ -1377,7 +1377,7 @@ export default function CozyHubRoom({
 
       {/*  progress meter + chia  */}
       <div style={{"display":"flex","gap":"24px","flexWrap":"wrap","alignItems":"stretch","marginBottom":"30px","opacity": isProgressTransitioning ? "0.5" : "1","transition":"opacity 0.3s ease"}}>
-        <div style={{"flex":"1","minWidth":"280px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.12)","borderRadius":"16px","padding":"22px","boxShadow":"0 12px 26px rgba(0,0,0,.08)"}}>
+        <div style={{"flex":"1","minWidth":"min(100%, 280px)","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.12)","borderRadius":"16px","padding":"22px","boxShadow":"0 12px 26px rgba(0,0,0,.08)"}}>
           <div style={{"display":"flex","justifyContent":"space-between","alignItems":"baseline","marginBottom":"14px"}}>
             <span style={{"fontFamily":"'DM Mono',monospace","fontSize":"11px","letterSpacing":".18em","color":"#8a5a2e"}}>OVERALL PROGRESS</span>
             <span style={{"fontSize":"32px","fontWeight":"700","color":"#3a2412"}}>{isGuest ? `${globalEngagement || 0}%` : progressPct}</span>
@@ -1386,14 +1386,14 @@ export default function CozyHubRoom({
             <div style={isGuest ? { width: `${globalEngagement || 0}%`, height: '100%', background: 'linear-gradient(90deg, #417C98, #5aA0C0)', borderRadius: '10px', transition: 'width 0.6s ease' } : progressBarStyle}></div>
           </div>
           {/* Deliverables + Engagement breakdown */}
-          <div style={{"display":"flex","gap":"10px","marginBottom":"12px"}}>
+          <div style={{"display":"flex","gap":"10px","marginBottom":"12px","flexWrap":"wrap"}}>
             {!isGuest && (
-            <div style={{"flex":"1","background":"rgba(46,85,52,.1)","borderRadius":"11px","padding":"12px 14px"}}>
+            <div style={{"flex":"1","minWidth":"120px","background":"rgba(46,85,52,.1)","borderRadius":"11px","padding":"12px 14px"}}>
               <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".12em","color":"#2E5534"}}>DELIVERABLES</div>
               <div style={{"fontSize":"22px","fontWeight":"700","color":"#2E5534","marginTop":"3px"}}>{Math.min(progress - (globalEngagement || 0), 75)}% <span style={{"fontSize":"12px","fontWeight":"400","color":"#6b8a6f"}}>/ 75%</span></div>
             </div>
             )}
-            <div style={{"flex":"1","background":"rgba(65,124,152,.1)","borderRadius":"11px","padding":"12px 14px"}}>
+            <div style={{"flex":"1","minWidth":"120px","background":"rgba(65,124,152,.1)","borderRadius":"11px","padding":"12px 14px"}}>
               <div style={{"fontFamily":"'DM Mono',monospace","fontSize":"10px","letterSpacing":".12em","color":"#356074"}}>ENGAGEMENT</div>
               <div style={{"fontSize":"22px","fontWeight":"700","color":"#356074","marginTop":"3px"}}>{globalEngagement || 0}% <span style={{"fontSize":"12px","fontWeight":"400","color":"#6a8a9a"}}>/ 25%</span></div>
             </div>
@@ -1403,7 +1403,7 @@ export default function CozyHubRoom({
           </div>
         </div>
         {/*  golden chia statue visual  */}
-        <div style={{"width":"200px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.12)","borderRadius":"16px","padding":"18px","boxShadow":"0 12px 26px rgba(0,0,0,.08)","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"flex-end"}}>
+        <div style={{"flex":"1 1 200px","maxWidth":"240px","background":"#FEFAE0","border":"1.5px solid rgba(33,40,46,.12)","borderRadius":"16px","padding":"18px","boxShadow":"0 12px 26px rgba(0,0,0,.08)","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"flex-end","margin":"0 auto"}}>
           <div style={{"position":"relative","width":"150px","height":"250px"}}>
             {/* Shadow */}
             <div style={{"position":"absolute","left":"50%","bottom":"0","transform":"translateX(-50%)","width":"120px","height":"16px","background":"radial-gradient(ellipse,rgba(0,0,0,.22),transparent 70%)","filter":"blur(3px)"}}></div>

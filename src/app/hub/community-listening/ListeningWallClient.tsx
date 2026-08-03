@@ -11,6 +11,28 @@ export default function ListeningWallClient({ sessions, isAdmin }: { sessions: a
   const [hoverFrame, setHoverFrame] = useState<number | null>(null);
   const [hoverCork, setHoverCork] = useState(false);
   const [hoverContinue, setHoverContinue] = useState(false);
+  const [wallScale, setWallScale] = useState(1);
+  
+  // Handle responsive scaling for wall scene (matches hub/helpdesk page behavior)
+  React.useEffect(() => {
+    const handleResize = () => {
+      // Only apply scaling on mobile/tablet (≤768px)
+      if (window.innerWidth <= 768) {
+        // Scene dimensions: assume ~1400px wide × ~600px tall (adjust based on actual wall dimensions)
+        const availableHeight = window.innerHeight - 220; // Account for top bar and intro
+        const scaleX = window.innerWidth / 1400;
+        const scaleY = availableHeight / 600;
+        const scale = Math.min(scaleX, scaleY, 1); // Never scale up, only down
+        setWallScale(scale);
+      } else {
+        setWallScale(1);
+      }
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const participantTotal = sessions.reduce((sum, s) => sum + (s.participants || 0), 0);
   const sessionCount = sessions.length;
@@ -60,10 +82,199 @@ export default function ListeningWallClient({ sessions, isAdmin }: { sessions: a
   });
 
   return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes lampGlow {
+          0%, 100% { background: linear-gradient(180deg,#fff4e2,#ffe2bd); box-shadow: 0 0 16px 6px rgba(255,210,140,.75), 0 0 32px 12px rgba(255,210,140,.45); }
+          33% { background: linear-gradient(180deg,#ffeef4,#ffd2e6); box-shadow: 0 0 16px 6px rgba(255,176,206,.75), 0 0 32px 12px rgba(255,176,206,.45); }
+          66% { background: linear-gradient(180deg,#f4eeff,#ddccff); box-shadow: 0 0 16px 6px rgba(196,166,255,.75), 0 0 32px 12px rgba(196,166,255,.45); }
+        }
+        @keyframes lampHalo {
+          0%, 100% { background: radial-gradient(circle, rgba(255,210,140,.55), rgba(255,210,140,0) 70%); }
+          33% { background: radial-gradient(circle, rgba(255,176,206,.55), rgba(255,176,206,0) 70%); }
+          66% { background: radial-gradient(circle, rgba(196,166,255,.55), rgba(196,166,255,0) 70%); }
+        }
+        
+        /* Responsive styles for mobile/tablet */
+        @media (max-width: 768px) {
+          .cl-wall-container {
+            position: fixed !important;
+            inset: 0 !important;
+            padding-top: 220px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden !important;
+          }
+          
+          .cl-wall-scene {
+            position: relative !important;
+            width: 1400px !important;
+            height: 600px !important;
+            flex: none !important;
+            transform-origin: center center !important;
+          }
+          
+          .cl-top-bar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 50 !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 8px 12px !important;
+            gap: 8px !important;
+            background: rgba(246, 217, 178, 0.98) !important;
+            backdrop-filter: blur(8px) !important;
+          }
+          
+          .cl-top-bar > div:first-child {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 8px !important;
+            flex-wrap: wrap !important;
+          }
+          
+          .cl-top-bar > div:first-child > div:last-child {
+            display: none !important;
+          }
+          
+          .cl-top-bar > div:last-child {
+            flex-direction: row !important;
+            gap: 6px !important;
+            flex-wrap: wrap !important;
+          }
+          
+          .cl-top-bar a {
+            font-size: 9px !important;
+            padding: 6px 10px !important;
+            white-space: nowrap !important;
+          }
+          
+          .cl-intro-section {
+            position: fixed !important;
+            top: 90px !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 40 !important;
+            padding: 0 12px !important;
+            background: rgba(246, 217, 178, 0.95) !important;
+            backdrop-filter: blur(6px) !important;
+            padding-bottom: 8px !important;
+          }
+          
+          .cl-intro-section > div {
+            padding: 8px 12px !important;
+            position: relative !important;
+          }
+          
+          .cl-intro-section h1 {
+            font-size: 22px !important;
+            margin-top: 2px !important;
+            line-height: 1.1 !important;
+          }
+          
+          .cl-intro-section p {
+            font-size: 11px !important;
+            line-height: 1.35 !important;
+            margin-top: 5px !important;
+          }
+          
+          .cl-intro-section .subtitle {
+            font-size: 8px !important;
+            letter-spacing: 0.14em !important;
+          }
+          
+          .cl-intro-section .stats {
+            font-size: 9px !important;
+            margin-top: 8px !important;
+          }
+          
+          .cl-intro-section .minimize-btn {
+            position: absolute !important;
+            top: 8px !important;
+            right: 12px !important;
+            font-size: 8px !important;
+            padding: 4px 8px !important;
+          }
+          
+          .cl-intro-collapsed {
+            padding: 8px 12px !important;
+          }
+          
+          .cl-intro-collapsed h2 {
+            font-size: 16px !important;
+          }
+          
+          .cl-intro-collapsed .expand-btn {
+            font-size: 9px !important;
+            padding: 5px 10px !important;
+          }
+          
+          .cl-bottom-bar {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 50 !important;
+            padding: 8px 12px !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .cl-wall-container {
+            padding-top: 200px !important;
+          }
+          
+          .cl-top-bar {
+            padding: 6px 10px !important;
+            gap: 6px !important;
+          }
+          
+          .cl-top-bar a {
+            font-size: 8px !important;
+            padding: 5px 8px !important;
+          }
+          
+          .cl-intro-section {
+            top: 80px !important;
+            padding: 0 10px !important;
+          }
+          
+          .cl-intro-section > div {
+            padding: 6px 10px !important;
+          }
+          
+          .cl-intro-section h1 {
+            font-size: 18px !important;
+          }
+          
+          .cl-intro-section p {
+            font-size: 10px !important;
+          }
+          
+          .cl-intro-section .subtitle {
+            font-size: 7px !important;
+          }
+          
+          .cl-intro-section .stats {
+            font-size: 8px !important;
+          }
+          
+          .cl-intro-section .minimize-btn {
+            top: 6px !important;
+            right: 10px !important;
+            font-size: 7px !important;
+            padding: 3px 6px !important;
+          }
+        }
+      `}} />
     <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: '#f6d9b2', backgroundImage: 'linear-gradient(178deg,#f6d9b2 0%,#f2cb9c 48%,#eec091 100%)', color: '#4a3728' }}>
       
       {/* TOP BAR */}
-      <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, padding: '15px 34px', borderBottom: '1px solid rgba(122,90,52,.24)', position: 'relative', zIndex: 30 }}>
+      <div className="cl-top-bar" style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, padding: '15px 34px', borderBottom: '1px solid rgba(122,90,52,.24)', position: 'relative', zIndex: 30 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
           <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11.5, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a86c28', fontWeight: 600 }}>&larr; Back to Hub</Link>
           <div style={{ width: 1, height: 34, background: 'rgba(122,90,52,.22)' }}></div>
@@ -82,7 +293,7 @@ export default function ListeningWallClient({ sessions, isAdmin }: { sessions: a
       </div>
 
       {/* INTRO */}
-      <div style={{ flex: 'none', position: 'relative', zIndex: 20 }}>
+      <div className="cl-intro-section" style={{ flex: 'none', position: 'relative', zIndex: 20 }}>
         {introOpen ? (
           <div style={{ textAlign: 'center', padding: '18px 24px 12px', position: 'relative' }}>
             <div style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: '#b1852f', fontWeight: 600 }}>Imperial County &middot; Colonias &middot; The Salton Sea Bioregion</div>
@@ -102,8 +313,8 @@ export default function ListeningWallClient({ sessions, isAdmin }: { sessions: a
       </div>
 
       {/* WALL ROOM */}
-      <div style={{ position: 'relative', flex: 1, minHeight: 470, overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0 }}>
+      <div className="cl-wall-container" style={{ position: 'relative', flex: 1, minHeight: 470, overflow: 'hidden' }}>
+        <div className="cl-wall-scene" style={{ position: 'absolute', inset: 0, transform: `scale(${wallScale})`, transformOrigin: 'center center' }}>
           {/* wallpaper */}
           <div style={{ position: 'absolute', inset: 0, backgroundColor: '#e7d5b2', backgroundImage: 'radial-gradient(circle at 14px 14px, rgba(150,108,58,.09) 2px, transparent 3px), radial-gradient(circle at 42px 42px, rgba(150,108,58,.07) 2px, transparent 3px), linear-gradient(90deg, rgba(120,84,44,.035) 1px, transparent 1px)', backgroundSize: '56px 56px, 56px 56px, 28px 28px', boxShadow: 'inset 0 44px 90px rgba(120,84,44,.16), inset 0 -18px 60px rgba(120,84,44,.12)' }}></div>
           
@@ -226,7 +437,7 @@ export default function ListeningWallClient({ sessions, isAdmin }: { sessions: a
       
       {/* ================= BOTTOM BAR ================= */}
       {isAdmin && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 22px', background: 'linear-gradient(180deg,rgba(74,55,40,0) 0%, rgba(74,55,40,.06) 100%)', pointerEvents: 'none' }}>
+        <div className="cl-bottom-bar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 22px', background: 'linear-gradient(180deg,rgba(74,55,40,0) 0%, rgba(74,55,40,.06) 100%)', pointerEvents: 'none' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, pointerEvents: 'auto' }}>
             <div style={{ display: 'flex', gap: 0, background: '#3a2a1e', padding: 5, borderRadius: 12, boxShadow: '0 6px 16px rgba(0,0,0,.22)', alignItems: 'center' }}>
               <span style={{ fontFamily: 'var(--font-ibm-plex-mono)', fontSize: 10, letterSpacing: '.14em', color: '#b89a72', padding: '0 10px 0 6px' }}>PREVIEW AS</span>
@@ -237,5 +448,6 @@ export default function ListeningWallClient({ sessions, isAdmin }: { sessions: a
         </div>
       )}
     </div>
+    </>
   );
 }

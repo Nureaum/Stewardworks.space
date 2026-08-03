@@ -288,6 +288,8 @@ export default function EnvironmentalLiteracyPage() {
       
       .env-top-nav > div:nth-child(2) {
         font-size: 10px !important;
+        order: 3 !important;
+        flex: 1 1 100% !important;
       }
       
       .env-top-nav > div:nth-child(2) > div:first-child {
@@ -297,9 +299,52 @@ export default function EnvironmentalLiteracyPage() {
       .env-top-nav > div:nth-child(2) > div:last-child {
         font-size: 8px !important;
       }
+      
+      .env-top-nav > a:first-child {
+        order: 1 !important;
+      }
+      
+      .env-top-nav > button,
+      .env-top-nav > a:last-child,
+      .env-top-nav > div[role="group"] {
+        order: 2 !important;
+      }
     }
     
     @media (max-width: 768px) {
+      /* Mobile: completely restructure top nav */
+      .env-top-nav {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 10px 14px !important;
+        gap: 10px !important;
+      }
+      
+      .env-top-nav > a:first-child {
+        order: 1 !important;
+        align-self: flex-start !important;
+      }
+      
+      .env-top-nav > div:nth-child(2) {
+        order: 2 !important;
+        text-align: center !important;
+        flex: none !important;
+      }
+      
+      .env-top-nav > button,
+      .env-top-nav > a:last-child {
+        order: 3 !important;
+        width: 100% !important;
+        justify-content: center !important;
+        flex: none !important;
+      }
+      
+      .env-top-nav > div[role="group"] {
+        order: 3 !important;
+        width: 100% !important;
+        justify-content: center !important;
+      }
+      
       /* Mobile: stack everything vertically */
       .env-intro-section {
         padding: 16px 16px 2px !important;
@@ -312,13 +357,29 @@ export default function EnvironmentalLiteracyPage() {
       
       .env-intro-section p {
         font-size: 14px !important;
+        line-height: 1.5 !important;
         margin-top: 10px !important;
+      }
+      
+      .env-intro-section > div:first-child {
+        padding: 0 8px !important;
       }
       
       .env-stats-row {
         flex-direction: column !important;
         gap: 8px !important;
         margin-top: 10px !important;
+        padding: 0 8px !important;
+      }
+      
+      .env-stats-row > div:first-child {
+        font-size: 9px !important;
+        text-align: center !important;
+      }
+      
+      .env-stats-row > button {
+        font-size: 8px !important;
+        padding: 5px 10px !important;
       }
       
       /* Mobile modal adjustments */
@@ -358,20 +419,28 @@ export default function EnvironmentalLiteracyPage() {
       
       /* Mobile: top nav - make button smaller */
       .env-suggest-btn {
-        padding: 6px 10px !important;
+        padding: 8px 12px !important;
         font-size: 9px !important;
         letter-spacing: 0.1em !important;
+        gap: 5px !important;
+        white-space: nowrap !important;
       }
       
       /* Mobile: admin toggle */
       .env-admin-toggle {
         padding: 2px !important;
         gap: 1px !important;
+        width: 100% !important;
       }
       
       .env-admin-toggle button {
         padding: 4px 8px !important;
         font-size: 8px !important;
+        flex: 1 !important;
+      }
+      
+      .env-admin-toggle span {
+        font-size: 7px !important;
       }
       
       /* Field notes list items */
@@ -444,11 +513,45 @@ export default function EnvironmentalLiteracyPage() {
     @media (max-width: 640px) {
       /* Small mobile: even tighter spacing */
       .env-top-nav {
-        padding: 6px 12px !important;
+        padding: 8px 10px !important;
+        gap: 8px !important;
+      }
+      
+      .env-top-nav > a:first-child {
+        font-size: 9px !important;
+        letter-spacing: 0.12em !important;
+      }
+      
+      .env-top-nav > div:nth-child(2) > div:first-child {
+        font-size: 9px !important;
+        letter-spacing: 0.18em !important;
+      }
+      
+      .env-top-nav > div:nth-child(2) > div:last-child {
+        font-size: 7px !important;
       }
       
       .env-intro-section {
         padding: 12px 12px 2px !important;
+      }
+      
+      .env-intro-section h1 {
+        font-size: 24px !important;
+      }
+      
+      .env-intro-section p {
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+      }
+      
+      .env-intro-section > div:first-child > div:first-child {
+        font-size: 9px !important;
+        letter-spacing: 0.2em !important;
+      }
+      
+      .env-suggest-btn {
+        padding: 7px 10px !important;
+        font-size: 8px !important;
       }
       
       .env-modal-container {

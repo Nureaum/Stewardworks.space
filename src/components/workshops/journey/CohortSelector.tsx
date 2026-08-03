@@ -113,7 +113,7 @@ export default function CohortSelector({ cohorts, registrations }: CohortSelecto
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      width: 380,
+                      width: 'min(calc(100vw - 40px), 380px)',
                       flexShrink: 0,
                       background: isLoading ? '#1a0f2e' : 'linear-gradient(to right, #110a20, #180e2a)',
                       border: '2px solid #3d2668',

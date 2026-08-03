@@ -51,6 +51,7 @@ export default function JourneyHeader({
           justifyContent: 'space-between',
           padding: '8px clamp(12px, 2.5vw, 22px)',
           gap: 12,
+          flexWrap: 'wrap',
         }}
       >
         {/* Center: Logo + Title */}
@@ -178,7 +179,7 @@ export default function JourneyHeader({
         }}
       >
         {/* Left: AI Lab */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+        <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'flex-start' }}>
           <a
             href={`/hub/ai-lab${cohortId ? '?cohortId=' + cohortId : ''}`}
             className="font-pixel"
@@ -201,7 +202,7 @@ export default function JourneyHeader({
         </div>
 
         {/* Center: Journey, My Portfolio */}
-        <div style={{ flex: 2, display: 'flex', gap: 10, justifyContent: 'center' }}>
+        <div style={{ flex: '2 1 auto', display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <ArcadeButton
             active={activeTab === 'journey'}
             color="var(--p, #ff5fd2)"
@@ -219,7 +220,7 @@ export default function JourneyHeader({
         </div>
 
         {/* Right: Contributor Showcase, Student Showcase */}
-        <div style={{ flex: 1, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <div style={{ flex: '1 1 auto', display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <ArcadeButton
             active={activeTab === 'showcase'}
             color="var(--gold, #ffd23f)"

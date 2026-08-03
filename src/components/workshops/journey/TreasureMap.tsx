@@ -207,7 +207,7 @@ export default function TreasureMap({
       </div>
 
       {/* ── The Map ── */}
-      <div style={{ position: 'relative', width: '100%', maxWidth: 1000, margin: '12px auto 0', aspectRatio: '1000/390', minHeight: 300 }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 1000, margin: '12px auto 0', aspectRatio: '1000/390', minHeight: 150 }}>
         {/* Twinkles */}
         <div className="retro-twinkle" style={{ position: 'absolute', left: '12%', top: '12%', width: 4, height: 4, background: 'var(--s, #45d6ff)' }} />
         <div className="retro-twinkle" style={{ position: 'absolute', left: '40%', top: '8%', width: 3, height: 3, background: '#fff', animationDuration: '3.1s' }} />
