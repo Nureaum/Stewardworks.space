@@ -353,8 +353,8 @@ function SortableUpdateItem({ update, updatesBulkMode, selectedUpdateIds, toggle
   const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 1, opacity: isDragging ? 0.9 : 1 };
 
   return (
-    <div ref={setNodeRef} style={style} className={`flex justify-between items-start gap-3 p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${updatesBulkMode && selectedUpdateIds.has(update.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'} ${isDragging ? 'shadow-lg ring-2 ring-[#B85C3E]/40 border-[#B85C3E]/40' : ''}`}>
-      <div {...attributes} {...listeners} className="mt-1 text-[#b5a995] hover:text-[#B85C3E] cursor-grab active:cursor-grabbing">
+    <div ref={setNodeRef} style={style} className={`flex flex-row items-start gap-3 p-3 sm:p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${updatesBulkMode && selectedUpdateIds.has(update.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'} ${isDragging ? 'shadow-lg ring-2 ring-[#B85C3E]/40 border-[#B85C3E]/40' : ''}`}>
+      <div {...attributes} {...listeners} className="mt-1 text-[#b5a995] hover:text-[#B85C3E] cursor-grab active:cursor-grabbing shrink-0">
         <GripVertical size={18} />
       </div>
       {updatesBulkMode && (
@@ -366,16 +366,16 @@ function SortableUpdateItem({ update, updatesBulkMode, selectedUpdateIds, toggle
         />
       )}
       <div className="flex-1 min-w-0">
-        <span className="text-[10px] font-mono tracking-widest text-[#B85C3E] bg-[#F7E7DF] px-2 py-1 rounded-full mb-2 inline-block">{update.tag}</span>
-        <h4 className="font-[700] text-[15px] mb-1">{update.title}</h4>
-        <p className="text-[12px] text-[#7c6f5a] line-clamp-2">{update.body}</p>
+        <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-[#B85C3E] bg-[#F7E7DF] px-2 py-1 rounded-full mb-1 sm:mb-2 inline-block">{update.tag}</span>
+        <h4 className="font-[700] text-[13px] sm:text-[15px] mb-1 break-words leading-tight">{update.title}</h4>
+        <p className="text-[10px] sm:text-[12px] text-[#7c6f5a] line-clamp-2 break-words leading-tight">{update.body}</p>
       </div>
       {!updatesBulkMode && (
         <div className="flex flex-col gap-1 shrink-0">
-          <button onClick={() => handleEditUpdate(update)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
-            <Pencil size={16} />
+          <button onClick={() => handleEditUpdate(update)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-1.5 sm:p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+            <Pencil size={14} className="sm:w-4 sm:h-4" />
           </button>
-          <button onClick={() => handleDeleteUpdate(update.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+          <button onClick={() => handleDeleteUpdate(update.id)} className="text-red-400 hover:text-red-600 p-1.5 sm:p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
             <Trash2 size={16} />
           </button>
         </div>
@@ -389,8 +389,8 @@ function SortableEventItem({ event, eventsBulkMode, selectedEventIds, toggleEven
   const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 1, opacity: isDragging ? 0.9 : 1 };
 
   return (
-    <div ref={setNodeRef} style={style} className={`flex justify-between items-start gap-3 p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${eventsBulkMode && selectedEventIds.has(event.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'} ${isDragging ? 'shadow-lg ring-2 ring-[#B85C3E]/40 border-[#B85C3E]/40' : ''}`}>
-      <div {...attributes} {...listeners} className="mt-1 text-[#b5a995] hover:text-[#B85C3E] cursor-grab active:cursor-grabbing">
+    <div ref={setNodeRef} style={style} className={`flex flex-row items-start gap-3 p-3 sm:p-4 rounded-xl border bg-[#fdf8ea] transition-colors ${eventsBulkMode && selectedEventIds.has(event.id) ? 'border-red-300 bg-red-50' : 'border-[#785a32]/10'} ${isDragging ? 'shadow-lg ring-2 ring-[#B85C3E]/40 border-[#B85C3E]/40' : ''}`}>
+      <div {...attributes} {...listeners} className="mt-1 text-[#b5a995] hover:text-[#B85C3E] cursor-grab active:cursor-grabbing shrink-0">
         <GripVertical size={18} />
       </div>
       {eventsBulkMode && (
@@ -401,23 +401,23 @@ function SortableEventItem({ event, eventsBulkMode, selectedEventIds, toggleEven
           className="mt-1 w-4 h-4 accent-[#B85C3E] shrink-0 cursor-pointer"
         />
       )}
-      <div className="flex gap-3 flex-1 min-w-0">
+      <div className="flex flex-row gap-2 sm:gap-3 flex-1 min-w-0">
         {event.image_url && (
-          <div className="w-[60px] h-[60px] rounded-lg shrink-0 border border-[#785a32]/20 bg-cover bg-center shadow-sm" style={{ backgroundImage: `url(${event.image_url})` }} />
+          <div className="w-[50px] h-[50px] sm:w-[60px] sm:h-[60px] rounded-lg shrink-0 border border-[#785a32]/20 bg-cover bg-center shadow-sm" style={{ backgroundImage: `url(${event.image_url})` }} />
         )}
-        <div>
-          <span className="text-[10px] font-mono tracking-widest text-gray-100 bg-[#3B2E20] px-2 py-1 rounded-full mb-2 inline-block">{event.badge}</span>
-          <h4 className="font-[700] text-[15px] mb-1">{event.title}</h4>
-          <p className="text-[12px] text-[#7c6f5a]">📅 {event.event_date} · 🕒 {event.event_time}</p>
-          <p className="text-[12px] text-[#7c6f5a]">📍 {event.location}</p>
+        <div className="min-w-0 flex-1">
+          <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-gray-100 bg-[#3B2E20] px-2 py-1 rounded-full mb-1 sm:mb-2 inline-block">{event.badge}</span>
+          <h4 className="font-[700] text-[13px] sm:text-[15px] mb-1 break-words leading-tight">{event.title}</h4>
+          <p className="text-[10px] sm:text-[12px] text-[#7c6f5a] break-words leading-tight">📅 {event.event_date} · 🕒 {event.event_time}</p>
+          <p className="text-[10px] sm:text-[12px] text-[#7c6f5a] break-words leading-tight">📍 {event.location}</p>
         </div>
       </div>
       {!eventsBulkMode && (
         <div className="flex flex-col gap-1 shrink-0">
-          <button onClick={() => handleEditEvent(event)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
-            <Pencil size={16} />
+          <button onClick={() => handleEditEvent(event)} className="text-[#8a7c66] hover:text-[#5c4f3c] p-1.5 sm:p-2 bg-white rounded-md border border-[#785a32]/10 shadow-sm transition-colors" title="Edit">
+            <Pencil size={14} className="sm:w-4 sm:h-4" />
           </button>
-          <button onClick={() => handleDeleteEvent(event.id)} className="text-red-400 hover:text-red-600 p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
+          <button onClick={() => handleDeleteEvent(event.id)} className="text-red-400 hover:text-red-600 p-1.5 sm:p-2 bg-white rounded-md border border-red-100 shadow-sm transition-colors" title="Delete">
             <Trash2 size={16} />
           </button>
         </div>
@@ -1012,31 +1012,31 @@ export default function AdminAnnouncementsPage() {
   const phoneLabelClass = phoneRinging ? 'text-[#f2c14e]' : 'text-white/40';
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full font-exo text-[#241c12] animate-in fade-in duration-300">
-      <main className="flex-1 overflow-y-auto p-8 lg:p-12">
-        <div className="flex justify-between items-start flex-wrap gap-4 mb-8">
-          <div>
-            <h1 className="m-0 text-[30px] font-[800] tracking-[0.01em]">HUB ANNOUNCEMENTS</h1>
-            <p className="m-0 mt-[6px] font-mono text-[11px] tracking-[0.2em] text-[#9c8d76]">THE WALL PHONE · MESSAGES TO HUB MEMBERS</p>
+    <div className="flex-1 flex flex-col min-w-0 h-full font-exo text-[#241c12] animate-in fade-in duration-300 overflow-x-hidden">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pt-20 lg:pt-8 lg:p-12">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-8">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[24px] lg:text-[30px] font-[800] tracking-[0.01em] break-words">HUB ANNOUNCEMENTS</h1>
+            <p className="m-0 mt-[6px] font-mono text-[10px] lg:text-[11px] tracking-[0.2em] text-[#9c8d76] break-words">THE WALL PHONE · MESSAGES TO HUB MEMBERS</p>
           </div>
-          <div className="flex items-center gap-4">
-            <button onClick={() => setShowDemoVideoModal(true)} className="font-bold text-[13px] text-[#5c4f3c] bg-white border border-[#785a32]/20 px-4 py-2 rounded-full shadow-[0_3px_10px_rgba(120,90,50,0.08)] hover:bg-[#f6ebd4] transition-colors">
+          <div className="flex items-center gap-2 lg:gap-4 flex-wrap">
+            <button onClick={() => setShowDemoVideoModal(true)} className="font-bold text-[11px] lg:text-[13px] text-[#5c4f3c] bg-white border border-[#785a32]/20 px-3 lg:px-4 py-2 rounded-full shadow-[0_3px_10px_rgba(120,90,50,0.08)] hover:bg-[#f6ebd4] transition-colors whitespace-nowrap">
               Manage Demo Video
             </button>
-            <button onClick={() => setShowPdfModal(true)} className="font-bold text-[13px] text-[#5c4f3c] bg-white border border-[#785a32]/20 px-4 py-2 rounded-full shadow-[0_3px_10px_rgba(120,90,50,0.08)] hover:bg-[#f6ebd4] transition-colors">
+            <button onClick={() => setShowPdfModal(true)} className="font-bold text-[11px] lg:text-[13px] text-[#5c4f3c] bg-white border border-[#785a32]/20 px-3 lg:px-4 py-2 rounded-full shadow-[0_3px_10px_rgba(120,90,50,0.08)] hover:bg-[#f6ebd4] transition-colors whitespace-nowrap">
               Manage Program PDFs
             </button>
-            <Link href="/admin/about" className="font-bold text-[13px] text-white bg-steward-green px-4 py-2 rounded-full shadow-md hover:bg-[#2c8a4a] transition-colors">
+            <Link href="/admin/about" className="font-bold text-[11px] lg:text-[13px] text-white bg-steward-green px-3 lg:px-4 py-2 rounded-full shadow-md hover:bg-[#2c8a4a] transition-colors whitespace-nowrap">
               Edit Learn More / Contact Us
             </Link>
-            <div className="flex items-center gap-[8px] bg-white border border-[#785a32]/[0.16] rounded-full px-4 py-2 shadow-[0_3px_10px_rgba(120,90,50,0.08)]">
+            <div className="flex items-center gap-[8px] bg-white border border-[#785a32]/[0.16] rounded-full px-3 lg:px-4 py-2 shadow-[0_3px_10px_rgba(120,90,50,0.08)]">
               <span className="w-2 h-2 rounded-full bg-[#2c8a4a] shadow-[0_0_0_3px_rgba(44,138,74,0.18)] animate-pulse"></span>
-              <span className="font-bold text-[12.5px] text-[#3a6b46] tracking-[0.08em]">LIVE ON HUB</span>
+              <span className="font-bold text-[11px] lg:text-[12.5px] text-[#3a6b46] tracking-[0.08em] whitespace-nowrap">LIVE ON HUB</span>
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1.35fr_1fr] gap-[22px] items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-[22px] items-start">
           
           {/* Left Column: Post Announcement & List */}
           <div className="flex flex-col gap-[22px]">
@@ -1246,7 +1246,7 @@ export default function AdminAnnouncementsPage() {
                 Manage the PDFs shown on the Hub page (e.g. Stewardworks Principles, Credo).
               </div>
 
-              <div className="grid lg:grid-cols-2 gap-6 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {/* Upload/Edit Form */}
                 <div className="bg-[#fdfaf0] border border-[#785a32]/20 rounded-xl p-5">
                   <div className="mb-4">
@@ -1391,21 +1391,21 @@ export default function AdminAnnouncementsPage() {
         )}
 
         {/* Public Bulletin Management */}
-        <div className="mt-[22px] bg-white rounded-[20px] p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08]">
-          <div className="flex items-center justify-between gap-[14px] flex-wrap mb-[4px]">
+        <div className="mt-[22px] bg-white rounded-[20px] p-4 lg:p-[26px] shadow-[0_12px_30px_rgba(120,90,50,0.1)] border border-[#785a32]/[0.08]">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-[4px]">
             <div className="flex items-center gap-[9px]">
               <Globe size={18} className="text-blue-500" />
-              <div className="font-[800] text-[16px]">Public Bulletin Editor</div>
+              <div className="font-[800] text-[15px] lg:text-[16px]">Public Bulletin Editor</div>
             </div>
-            <a href="/onboarding/bulletin" target="_blank" rel="noopener noreferrer" className="font-mono text-[11px] tracking-[0.02em] text-[#8a6a2a] no-underline bg-[#fbf0da] border border-[#c8963e]/30 rounded-full px-[14px] py-[7px] hover:bg-[#f6e5c3] transition-colors">
+            <a href="/onboarding/bulletin" target="_blank" rel="noopener noreferrer" className="font-mono text-[10px] lg:text-[11px] tracking-[0.02em] text-[#8a6a2a] no-underline bg-[#fbf0da] border border-[#c8963e]/30 rounded-full px-[12px] lg:px-[14px] py-[7px] hover:bg-[#f6e5c3] transition-colors break-all">
               stewardworks.space/onboarding/bulletin ↗
             </a>
           </div>
-          <div className="text-[13.5px] text-[#8a7c66] mb-[20px] max-w-[660px]">
+          <div className="text-[13px] lg:text-[13.5px] text-[#8a7c66] mb-[20px] max-w-[660px]">
             The public-facing page people see before they join — open to everyone, no login.
           </div>
           
-          <div className="grid lg:grid-cols-2 gap-[32px] items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-[32px] items-start">
             
             {/* Updates Column */}
             <div>
@@ -1418,7 +1418,7 @@ export default function AdminAnnouncementsPage() {
                     Editing Mode
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <div>
                     <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">TAG (e.g. Onboarding)</label>
                     <input value={upTag} onChange={(e) => setUpTag(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
@@ -1586,7 +1586,7 @@ export default function AdminAnnouncementsPage() {
                   <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">EVENT TITLE</label>
                   <input value={evTitle} onChange={(e) => setEvTitle(e.target.value)} className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <div>
                     <label className="font-mono text-[10px] tracking-[0.18em] text-[#9c8d76] block mb-1">DATE STRING</label>
                     <input value={evDate} onChange={(e) => setEvDate(e.target.value)} placeholder="Thu, Jul 17, 2026" className="w-full p-2 rounded-lg border border-[#785a32]/20 bg-white text-sm outline-none" />

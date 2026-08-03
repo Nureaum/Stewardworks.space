@@ -316,13 +316,11 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
 
 
 
-return (<>
-
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  return (
+    <div className="arcade-theme-wrapper">
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
 <style dangerouslySetInnerHTML={{__html: `
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:#0a1c48}
@@ -380,6 +378,70 @@ return (<>
   .ar-rte h3{fontFamily:'Press Start 2P',monospace;fontSize:12px;margin:18px 0 8px;color:#ffdd2e;line-height:1.55}
   .ar-rte strong,.ar-rte b{color:#fff}
   .ar-rte em,.ar-rte i{color:#ffe6b0}
+  @media (max-width: 850px) {
+    .arcade-customizer-grid, .arcade-controls-grid {
+      grid-template-columns: 1fr !important;
+    }
+    .arcade-vault-row {
+      flex-wrap: wrap !important;
+    }
+    .arcade-vault-row > a {
+      min-width: 60% !important;
+    }
+    .arcade-popup-body {
+      flex-direction: column !important;
+    }
+    .arcade-popup-body > div:first-child {
+      flex: 0 0 auto !important;
+      max-height: 200px !important;
+      border-right: none !important;
+      border-bottom: 4px solid #1c1526 !important;
+    }
+  }
+  
+  /* Responsive fixes for mobile/tablet */
+  @media (max-width: 768px) {
+    .arcade-customize-header {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 8px !important;
+      padding: 10px 12px !important;
+    }
+    
+    .arcade-customize-title {
+      font-size: 8px !important;
+    }
+    
+    .arcade-customize-controls {
+      width: 100% !important;
+      justify-content: space-between !important;
+    }
+    
+    .arcade-minimize-info {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+      padding: 10px 12px !important;
+    }
+    
+    .arcade-edit-button {
+      align-self: stretch !important;
+      justify-content: center !important;
+      font-size: 7px !important;
+      padding: 8px 10px !important;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .arcade-customize-title {
+      font-size: 7px !important;
+      letter-spacing: .3px !important;
+    }
+    
+    .arcade-customize-step {
+      font-size: 6px !important;
+    }
+  }
 `}} />
 
 
@@ -464,7 +526,7 @@ return (<>
         </>)}
 
         {custMax && (<>
-        <div style={{display: "grid", gridTemplateColumns: "262px 1fr", gap: "16px", padding: "18px", alignItems: "stretch"}}>
+        <div className="arcade-customizer-grid" style={{display: "grid", gridTemplateColumns: "262px 1fr", gap: "16px", padding: "18px", alignItems: "stretch"}}>
           {/* stage */}
           <div style={{display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", padding: "16px 12px 10px", background: "linear-gradient(#163a90,#2a55a8)", border: "4px solid #1c1526", boxShadow: "inset 0 0 0 3px #3a68b8", minHeight: "340px"}}>
             <div style={{flex: "1"}}></div>
@@ -473,7 +535,7 @@ return (<>
             <div style={{marginTop: "14px", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#a9c8ff", letterSpacing: ".4px", textAlign: "center", lineHeight: "1.9"}}>{charSummary}</div>
           </div>
           {/* controls grid */}
-          <div style={{display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "14px", alignContent: "start"}}>
+          <div className="arcade-controls-grid" style={{display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "14px", alignContent: "start"}}>
             <div style={{gridColumn: "1 / -1", background: "#1d4490", border: "3px solid #1c1526", borderRadius: "7px", padding: "12px 13px"}}>
               <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "var(--muted)", letterSpacing: ".5px", marginBottom: "9px"}}>BODY</div>
               <div style={{display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "11px"}}>
@@ -592,7 +654,8 @@ return (<>
       </div>
 
       {mapIsMap && (<>
-      <div style={{position: "relative", width: "100%", aspectRatio: "16/9", minHeight: "400px", border: "4px solid #1c1526", boxShadow: "5px 5px 0 rgba(18,12,26,.42)", borderRadius: "9px", overflow: "hidden"}}>
+      <div className="arcade-map-scroll-wrapper" style={{width: "100%", overflowX: "auto", border: "4px solid #1c1526", boxShadow: "5px 5px 0 rgba(18,12,26,.42)", borderRadius: "9px"}}>
+        <div style={{position: "relative", width: "100%", minWidth: "800px", aspectRatio: "16/9", minHeight: "400px", overflow: "hidden"}}>
         <svg viewBox="0 0 256 144" preserveAspectRatio="none" style={{position: "absolute", inset: "0", width: "100%", height: "100%", zIndex: "0", imageRendering: "pixelated", shapeRendering: "crispEdges"}}>
           <defs>
             <pattern id="ar-dither" width="4" height="4" patternUnits="userSpaceOnUse">
@@ -710,6 +773,7 @@ return (<>
           <div style={{animation: "ar-bob 1s steps(2) infinite"}}><PixelHero form={charForm} skin={charSkin} outfit={charOutfit} hairStyle={charHairStyle} hairColor={charHairColor} hatColor={charHatColor} hatType={charHatType} gear={charStageGear} style={{width: "32px", height: "42px", display: "block"}} /></div>
         </div>
       </div>
+      </div>
       <div style={{display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "12px", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "var(--muted)", letterSpacing: ".5px"}}>
         <span>YOUR HERO WALKS TO WHATEVER STOP YOU HOVER OR OPEN</span>
         <span style={{color: "#ffdd2e"}}>▶ CLICK A TILE TO READ ITS FIELD NOTES</span>
@@ -725,7 +789,7 @@ return (<>
               <span style={{display: "block", fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "var(--paper)", lineHeight: "1.4"}}>{r.name}</span>
               <span style={{display: "block", fontSize: "17px", lineHeight: "1.2", color: "var(--muted)", marginTop: "5px"}}>{r.blurb}</span>
             </span>
-            <span style={{flex: "0 0 auto", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "var(--muted)"}}>{r.notes} ▸</span>
+            <span style={{flex: "0 0 auto", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "var(--muted)"}}>{r.notes > 0 ? `${r.notes} NOTES ▸` : 'VIEW ▸'}</span>
           </button>
         </React.Fragment>))}
         {showSummitTile && (<>
@@ -883,7 +947,7 @@ return (<>
                   </div>
                   <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
                     {s.links.map((l: any, i: number) => (<React.Fragment key={i}>
-                      <div style={l.rowStyle}>
+                      <div className="arcade-vault-row" style={l.rowStyle}>
                         <button onClick={l.onToggle} title="Bookmark to My Jobs Shelf" style={l.bmStyle}>{l.bmIcon}</button>
                         <a href={l.url} target="_blank" rel="noopener" style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "3px", textDecoration: "none"}}>
                           <span style={{fontFamily: "'VT323',monospace", fontSize: "23px", lineHeight: "1.1", color: "var(--paper)"}}>{l.label}</span>
@@ -973,7 +1037,7 @@ return (<>
       {shelfHas && (<>
       <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
         {shelfItems.map((l: any, i: number) => (<React.Fragment key={i}>
-          <div style={l.rowStyle}>
+          <div className="arcade-vault-row" style={l.rowStyle}>
             <button onClick={l.onToggle} title="Remove from My Jobs Shelf" style={l.bmStyle}>{l.bmIcon}</button>
             <a href={l.url} target="_blank" rel="noopener" style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "3px", textDecoration: "none"}}>
               <span style={{fontFamily: "'VT323',monospace", fontSize: "23px", lineHeight: "1.1", color: "var(--paper)"}}>{l.label}</span>
@@ -1112,7 +1176,7 @@ return (<>
         </div>
         <button onClick={onClosePopup} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", width: "32px", height: "32px", background: "#10285e", color: popColor, border: "3px solid #1c1526", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Press Start 2P',monospace", fontSize: "11px", flex: "0 0 auto"}}>✕</button>
       </div>
-      <div style={{flex: "1", minHeight: "0", display: "flex"}}>
+      <div className="arcade-popup-body" style={{flex: "1", minHeight: "0", display: "flex"}}>
         <div className="arc-scroll" style={{flex: "0 0 300px", minWidth: "0", overflowY: "auto", padding: "16px 14px", background: "#0f2a60", borderRight: "4px solid #1c1526"}}>
           <p style={{margin: "0 0 14px", fontSize: "18px", lineHeight: "1.35", color: "#e6f0ff"}}>{popBlurb}</p>
           <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: popColor, letterSpacing: ".5px", marginBottom: "11px"}}>FIELD NOTES · {popEntryCount}</div>
@@ -1288,5 +1352,5 @@ return (<>
 
 
 
-</>);
+</div>);
 }

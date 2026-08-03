@@ -307,7 +307,7 @@ export default function LibraryResourceDetailPage({ params }: { params: { id: st
             
             {resource.category && (
               <Link 
-                href={`/hub/library?category=${encodeURIComponent(resource.category.label)}`}
+                href={`/hub/library?category=${encodeURIComponent(resource.category.slug || resource.category.id)}`}
                 className="inline-flex items-center gap-2 text-[#c4a55a]/50 text-[11px] font-bold uppercase tracking-[.15em] hover:text-[#c4a55a] transition-colors no-underline group"
               >
                 <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" /> Go to {resource.category.label}

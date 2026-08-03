@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Lock, ChevronLeft, Image as ImageIcon, Users, BookOpen, Layers, Map, MessageSquare, Beaker, ChevronDown, Megaphone, BarChart3, Heart } from 'lucide-react';
+import { Lock, ChevronLeft, Image as ImageIcon, Users, BookOpen, Layers, Map, MessageSquare, Beaker, ChevronDown, Megaphone, BarChart3, Heart, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { AdminLoadingProvider } from '@/context/AdminLoadingContext';
@@ -16,6 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isCheckingRole, setIsCheckingRole] = useState(true);
   const [isProgramsOpen, setIsProgramsOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     async function checkAdminRole() {
@@ -152,9 +153,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FBF4E1] bg-[radial-gradient(rgba(120,90,50,.06)_1px,transparent_1px)] bg-[size:22px_22px] font-exo">
+    <div className="flex h-screen overflow-hidden bg-[#FBF4E1] bg-[radial-gradient(rgba(120,90,50,.06)_1px,transparent_1px)] bg-[size:22px_22px] font-exo max-w-full overflow-x-hidden">
+      {/* Mobile Hamburger Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 w-12 h-12 rounded-xl bg-gradient-to-b from-[#201811] to-[#150f08] border border-[#e2b54a]/[0.14] flex items-center justify-center shadow-lg"
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? (
+          <X className="text-[#e2b54a]" size={24} />
+        ) : (
+          <Menu className="text-[#e2b54a]" size={24} />
+        )}
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar */}
-      <aside className="w-[246px] h-screen shrink-0 z-20 relative flex flex-col bg-gradient-to-b from-[#201811] to-[#150f08] border-r border-[#e2b54a]/[0.14] pt-[22px] px-4 pb-4">
+      <aside className={`
+        w-[246px] h-screen shrink-0 z-40 flex flex-col bg-gradient-to-b from-[#201811] to-[#150f08] border-r border-[#e2b54a]/[0.14] pt-[22px] px-4 pb-4
+        lg:translate-x-0 transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        fixed lg:relative
+      `}>
         <div className="flex flex-col items-center pt-[6px] pb-[22px] border-b border-white/[0.06] mb-4">
           <div className="w-[56px] h-[56px] rounded-[15px] bg-[#e2b54a]/[0.13] flex items-center justify-center mb-3">
             <Lock className="text-[#e2b54a]" size={26} />
@@ -178,6 +205,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.href}
                 href={item.href}
                 prefetch={true}
+                onClick={() => setIsMobileMenuOpen(false)}
                 className={`w-full flex items-center gap-3 px-[14px] py-[10px] rounded-[10px] font-bold text-[13.5px] transition-all border ${
                   isActive 
                     ? 'bg-[#2a2218] text-[#e2b54a] border-[#e2b54a]/20 shadow-sm' 
@@ -224,6 +252,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       key={item.href}
                       href={item.href}
                       prefetch={true}
+                      onClick={() => setIsMobileMenuOpen(false)}
                       className={`w-full flex items-center gap-3 px-[14px] py-[8px] rounded-[8px] font-bold text-[13px] transition-all ${
                         isActive 
                           ? 'bg-[#2a2218] text-[#e2b54a]' 
@@ -240,13 +269,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </nav>
         
-        <Link href="/hub" className="mt-[14px] flex items-center justify-center gap-[8px] p-[13px] rounded-[12px] bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-[#211609] font-[800] text-[12.5px] tracking-[0.14em] no-underline shadow-[0_6px_16px_rgba(0,0,0,0.35)] transition-opacity hover:opacity-90">
+        <Link 
+          href="/hub" 
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="mt-[14px] flex items-center justify-center gap-[8px] p-[13px] rounded-[12px] bg-gradient-to-b from-[#c8963e] to-[#a97a2c] text-[#211609] font-[800] text-[12.5px] tracking-[0.14em] no-underline shadow-[0_6px_16px_rgba(0,0,0,0.35)] transition-opacity hover:opacity-90">
           <ChevronLeft size={16} /> BACK TO HUB
         </Link>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative z-30">
+      <div className="flex-1 w-full lg:w-auto flex flex-col overflow-y-auto bg-transparent relative z-10">
         <AdminLoadingProvider>
           {children}
         </AdminLoadingProvider>

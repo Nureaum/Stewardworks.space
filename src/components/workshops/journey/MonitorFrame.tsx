@@ -6,15 +6,17 @@ interface MonitorFrameProps {
   children: React.ReactNode
   header?: React.ReactNode
   showScanlines?: boolean
+  className?: string
 }
 
 /**
  * Wraps the game content in a retro CRT monitor bezel.
  * The tan/cream outer frame with the dark screen inside.
  */
-export default function MonitorFrame({ children, header, showScanlines = true }: MonitorFrameProps) {
+export default function MonitorFrame({ children, header, showScanlines = true, className }: MonitorFrameProps) {
   return (
     <div
+      className={className}
       style={{
         width: '100%',
         maxWidth: 1220,

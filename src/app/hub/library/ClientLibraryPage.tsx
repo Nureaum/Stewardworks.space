@@ -89,6 +89,40 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
   const [flipNext, setFlipNext] = useState(false);
   const [flipPrev, setFlipPrev] = useState(false);
 
+  // Responsive scaling state
+  const [shelfScale, setShelfScale] = useState(1);
+
+  // Calculate responsive scale for mobile/tablet
+  useEffect(() => {
+    const updateScale = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      
+      // Only apply scaling on mobile/tablet (≤768px)
+      if (vw <= 768) {
+        // Library cabinet dimensions: approximately 1120px wide × 800px tall
+        const sceneWidth = 1120;
+        const sceneHeight = 800;
+        
+        // For mobile, calculate available space
+        const availableHeight = vh - 200; // Account for top bar and padding
+        
+        const scaleX = vw / sceneWidth;
+        const scaleY = availableHeight / sceneHeight;
+        
+        // Use the smaller scale to fit everything
+        const scale = Math.min(scaleX, scaleY, 1);
+        setShelfScale(scale);
+      } else {
+        setShelfScale(1);
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   // Check for category parameter in URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -97,10 +131,8 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
       const match = initialCategories.find(c => c.slug === categorySlug || c.id === categorySlug);
       if (match) {
         setCat(match.id);
-        setView('catalog');
       } else {
         setCat(categorySlug);
-        setView('catalog');
       }
     }
   }, [initialCategories]);
@@ -553,6 +585,191 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         .card-preview-body li { margin-bottom: 2px; }
         .card-preview-body a { color: #417C98; }
         .card-preview-body blockquote { border-left: 3px solid rgba(162,117,50,.4); margin: 0 0 6px; padding-left: 10px; color: rgba(33,40,46,.65); font-style: italic; }
+        
+        /* Responsive styles for Open Book on mobile */
+        @media (max-width: 768px) {
+          .library-book-wrapper {
+            padding: 4px 8px 12px !important;
+          }
+          
+          .library-book-container {
+            width: 100% !important;
+            max-width: calc(100vw - 16px) !important;
+          }
+          
+          .library-book-binding {
+            padding: 10px !important;
+          }
+          
+          .library-book-pages {
+            min-height: 360px !important;
+          }
+          
+          .library-book-page {
+            padding: 24px 20px !important;
+            min-height: 320px !important;
+          }
+          
+          .library-book-page h2 {
+            font-size: 24px !important;
+          }
+          
+          .library-book-page h3 {
+            font-size: 18px !important;
+          }
+          
+          .library-book-page p {
+            font-size: 13px !important;
+          }
+          
+          .library-book-page > div[style*="minHeight: '380px'"] {
+            min-height: 320px !important;
+          }
+          
+          /* Navigation buttons */
+          button[title="Previous page"],
+          button[title="Next page"] {
+            width: 38px !important;
+            height: 38px !important;
+            font-size: 19px !important;
+          }
+          
+          button[title="Previous page"] {
+            left: -14px !important;
+          }
+          
+          button[title="Next page"] {
+            right: -14px !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .library-book-wrapper {
+            padding: 4px 4px 10px !important;
+          }
+          
+          .library-book-container {
+            max-width: calc(100vw - 8px) !important;
+          }
+          
+          .library-book-binding {
+            padding: 8px !important;
+          }
+          
+          .library-book-pages {
+            min-height: 300px !important;
+          }
+          
+          .library-book-page {
+            padding: 18px 16px !important;
+            min-height: 280px !important;
+          }
+          
+          .library-book-page h2 {
+            font-size: 20px !important;
+          }
+          
+          .library-book-page h3 {
+            font-size: 16px !important;
+          }
+          
+          .library-book-page p {
+            font-size: 12px !important;
+          }
+          
+          .library-book-page > div[style*="minHeight: '380px'"] {
+            min-height: 280px !important;
+          }
+          
+          /* Navigation buttons smaller */
+          button[title="Previous page"],
+          button[title="Next page"] {
+            width: 34px !important;
+            height: 34px !important;
+            font-size: 17px !important;
+          }
+          
+          button[title="Previous page"] {
+            left: -12px !important;
+          }
+          
+          button[title="Next page"] {
+            right: -12px !important;
+          }
+        }
+        
+        /* Responsive styles for Library */
+        @media (max-width: 768px) {
+          .library-top-bar {
+            position: relative !important;
+            z-index: 10 !important;
+            padding: 8px 12px !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          
+          .library-top-bar a,
+          .library-top-bar button {
+            font-size: 10px !important;
+            padding: 6px 10px !important;
+            white-space: nowrap !important;
+          }
+          
+          .library-top-bar input {
+            font-size: 11px !important;
+            padding: 6px 10px !important;
+            width: 140px !important;
+            max-width: 40vw !important;
+          }
+          
+          .library-top-bar select {
+            font-size: 10px !important;
+            padding: 6px 10px !important;
+            width: 140px !important;
+          }
+          
+          .library-intro-section {
+            display: none !important;
+          }
+          
+          .library-shelf-container {
+            position: fixed !important;
+            inset: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding-top: 80px !important;
+          }
+          
+          .library-shelf-scene {
+            transform-origin: center center !important;
+          }
+          
+          .library-category-content,
+          .library-list-content {
+            padding-top: 26px !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .library-top-bar {
+            padding: 6px 10px !important;
+            gap: 6px !important;
+          }
+          
+          .library-top-bar a,
+          .library-top-bar button {
+            font-size: 9px !important;
+            padding: 5px 8px !important;
+          }
+          
+          .library-top-bar input {
+            font-size: 10px !important;
+            width: 120px !important;
+          }
+        }
       `}} />
       <div style={{ minHeight: '100vh', backgroundColor: '#FEFAE0', backgroundImage: 'radial-gradient(rgba(45,75,62,.06) 1px, transparent 1px)', backgroundSize: '22px 22px', fontFamily: '"Exo", sans-serif', color: '#21282E', position: 'relative', overflowX: 'hidden', paddingBottom: '80px' }}>
         
@@ -560,7 +777,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         <div style={{ position: 'absolute', top: '-120px', left: '50%', transform: 'translateX(-50%)', width: '900px', height: '520px', background: 'radial-gradient(ellipse at center, rgba(255,215,0,.16), rgba(255,215,0,0) 68%)', pointerEvents: 'none', zIndex: 0 }}></div>
 
         {/* TOP BAR */}
-        <div style={{ position: 'relative', zIndex: 5, display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', padding: '18px 26px', borderBottom: '1px solid rgba(33,40,46,.08)', background: 'rgba(254,250,224,.82)', backdropFilter: 'blur(6px)' }}>
+        <div className="library-top-bar" style={{ position: 'relative', zIndex: 5, display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', padding: '18px 26px', borderBottom: '1px solid rgba(33,40,46,.08)', background: 'rgba(254,250,224,.82)', backdropFilter: 'blur(6px)' }}>
           <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: '7px', textDecoration: 'none', color: '#21282E', opacity: .55, fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.12em' }}>← Back to Hub</Link>
           <div onClick={() => { setCat(null); setQ(''); setType('all'); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
             <div style={{ width: '34px', height: '42px', background: 'linear-gradient(135deg,#A27532,#7c531f)', borderRadius: '3px 5px 5px 3px', boxShadow: 'inset -4px 0 6px -2px rgba(0,0,0,.4),inset 3px 0 4px -2px rgba(255,255,255,.3)', position: 'relative', borderLeft: '4px solid #5e3d16' }}></div>
@@ -656,8 +873,9 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
 
         {/* ======================= HOME: SHELF ======================= */}
         {showShelf && (
-          <div style={{ position: 'relative', zIndex: 2, maxWidth: '1120px', margin: '0 auto', padding: '38px 26px 0', animation: 'sl-fade 0.3s ease' }}>
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <div className="library-shelf-container" style={{ position: 'relative', zIndex: 2, maxWidth: '1120px', margin: '0 auto', padding: '38px 26px 0', animation: 'sl-fade 0.3s ease' }}>
+            <div className="library-shelf-scene" style={{ transform: `scale(${shelfScale})`, transformOrigin: 'top center' }}>
+            <div className="library-intro-section" style={{ textAlign: 'center', marginBottom: '30px' }}>
               <div style={{ fontFamily: '"Courier New", monospace', fontSize: '11px', letterSpacing: '.4em', textTransform: 'uppercase', color: '#A27532', fontWeight: 700 }}>A Reading Room of Resources</div>
               <h1 style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-.02em', margin: '10px 0 8px' }}>Pull a book from the shelf</h1>
               <p style={{ maxWidth: '620px', margin: '0 auto', fontSize: '16px', lineHeight: 1.6, color: 'rgba(33,40,46,.65)' }}>Every shelf is a topic, every spine a category from the curriculum. Choose one to browse its links — filter by type{isAdmin ? ', or use Librarian Mode to add your own' : ''}.</p>
@@ -914,6 +1132,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                 <div style={{ width: '46px', height: '16px', background: 'linear-gradient(180deg,#4a3220,#2e1d10)', borderRadius: '0 0 8px 8px', boxShadow: '0 6px 8px -3px rgba(0,0,0,.5)' }}></div>
               </div>
             </div>
+            </div>
           </div>
         )}
 
@@ -949,7 +1168,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
 
         {/* ======================= CATEGORY BANNER ======================= */}
         {showCategory && currentCat && (
-          <div style={{ position: 'relative', zIndex: 2, maxWidth: '1000px', margin: '0 auto', padding: '26px 26px 0', animation: 'sl-fade 0.3s ease' }}>
+          <div className="library-category-content" style={{ position: 'relative', zIndex: 2, maxWidth: '1000px', margin: '0 auto', padding: '26px 26px 0', animation: 'sl-fade 0.3s ease' }}>
             <button onClick={() => setCat(null)} style={{ display: 'flex', alignItems: 'center', gap: '7px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(33,40,46,.6)', fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '16px', padding: 0 }}>← Back to the shelves</button>
             <div style={{ background: currentCat.headerBg, borderRadius: '14px', padding: '28px 30px', color: '#f4ead0', position: 'relative', overflow: 'hidden', boxShadow: '0 18px 34px -16px rgba(0,0,0,.5)' }}>
               <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '14px', background: 'rgba(0,0,0,.22)' }}></div>
@@ -1048,7 +1267,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
 
         {/* ======================= RESOURCE LIST ======================= */}
         {showList && (
-          <div style={{ position: 'relative', zIndex: 2, maxWidth: '1000px', margin: '0 auto', padding: '18px 26px 0', animation: 'sl-fade 0.3s ease' }}>
+          <div className="library-list-content" style={{ position: 'relative', zIndex: 2, maxWidth: '1000px', margin: '0 auto', padding: '18px 26px 0', animation: 'sl-fade 0.3s ease' }}>
             {currentResources.length > 0 ? (
               <>
                 {/* Cards / Open Book Toggle */}
@@ -1146,7 +1365,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: r.sourceTag === 'contributor' ? '#2E5534' : r.sourceTag === 'student' ? '#3da87a' : r.sourceTag === 'vault' ? '#7653b8' : r.sourceTag === 'partner' ? '#c06e30' : '#4088b8', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', padding: '2px 5px', borderRadius: '3px', whiteSpace: 'nowrap' }}>★ {r.sourceTag}</span>
                             )}
                             <span style={{ flex: 1 }}></span>
-                            <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)' }}>{r.source}</span>
+                            <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px', flex: '0 1 auto' }}>{r.source}</span>
                             {r.bookmarked ? (
                               <button onClick={r.onBookmark} title="Remove bookmark" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E' }}>★</button>
                             ) : (
@@ -1173,24 +1392,24 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                   };
 
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '4px 0 12px' }}>
-                      <div style={{ position: 'relative', width: 'min(900px, 98%)' }}>
+                    <div className="library-book-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '4px 0 12px' }}>
+                      <div className="library-book-container" style={{ position: 'relative', width: 'min(900px, 98%)' }}>
                         {/* Book binding/cover */}
-                        <div style={{ background: 'linear-gradient(180deg,#5b3f29,#42301d)', borderRadius: '12px', padding: '15px', boxShadow: '0 30px 50px -22px rgba(0,0,0,.55)', border: '1px solid #2e1d10', position: 'relative' }}>
+                        <div className="library-book-binding" style={{ background: 'linear-gradient(180deg,#5b3f29,#42301d)', borderRadius: '12px', padding: '15px', boxShadow: '0 30px 50px -22px rgba(0,0,0,.55)', border: '1px solid #2e1d10', position: 'relative' }}>
                           {/* Gold inset border */}
                           <div style={{ position: 'absolute', inset: '9px', border: '1.5px solid rgba(231,205,134,.32)', borderRadius: '8px', pointerEvents: 'none', zIndex: 6 }}></div>
                           {/* Book pages container */}
-                          <div style={{ position: 'relative', display: 'flex', background: '#f4ead0', borderRadius: '3px', minHeight: '440px', boxShadow: 'inset 0 0 44px rgba(120,90,40,.2)', perspective: '2000px' }}>
+                          <div className="library-book-pages" style={{ position: 'relative', display: 'flex', background: '#f4ead0', borderRadius: '3px', minHeight: '440px', boxShadow: 'inset 0 0 44px rgba(120,90,40,.2)', perspective: '2000px' }}>
                             {/* Center spine shadow */}
                             <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '48px', background: 'linear-gradient(90deg,rgba(0,0,0,0),rgba(80,55,20,.26) 44%,rgba(80,55,20,.34) 50%,rgba(80,55,20,.26) 56%,rgba(0,0,0,0))', zIndex: 3, pointerEvents: 'none' }}></div>
 
                             {/* Left page */}
-                            <div style={{ flex: 1, padding: '30px 36px', position: 'relative', zIndex: 1, backgroundImage: 'repeating-linear-gradient(transparent,transparent 33px,rgba(65,124,152,.07) 34px)' }}>
+                            <div className="library-book-page" style={{ flex: 1, minWidth: 0, padding: '30px 36px', position: 'relative', zIndex: 1, backgroundImage: 'repeating-linear-gradient(transparent,transparent 33px,rgba(65,124,152,.07) 34px)' }}>
                               {renderPage(leftPage)}
                             </div>
 
                             {/* Right page */}
-                            <div style={{ flex: 1, padding: '30px 36px', position: 'relative', zIndex: 1, backgroundImage: 'repeating-linear-gradient(transparent,transparent 33px,rgba(65,124,152,.07) 34px)' }}>
+                            <div className="library-book-page" style={{ flex: 1, minWidth: 0, padding: '30px 36px', position: 'relative', zIndex: 1, backgroundImage: 'repeating-linear-gradient(transparent,transparent 33px,rgba(65,124,152,.07) 34px)' }}>
                               {renderPage(rightPage)}
                             </div>
 
