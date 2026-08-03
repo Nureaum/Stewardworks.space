@@ -2520,12 +2520,12 @@ export default function AdminConsole({
                     paddingRight: 32,
                   }}
                 >
-                  <option value="">— Select project type (optional) —</option>
-                  <option value="creative_ai">A · Creative Projects Made with AI</option>
-                  <option value="workplace_freelance">B · AI in the Workplace &amp; Freelancing</option>
-                  <option value="nature_local">C · Nature, Local Landscapes &amp; Resource Use</option>
-                  <option value="digital_sovereignty">D · Digital Sovereignty, Rules &amp; Ethics</option>
-                  <option value="digital_wellness">E · Digital Wellness &amp; Human Connection</option>
+                  <option value="" style={{ background: 'var(--bg,#14101f)', color: 'var(--tx,#efe6ff)' }}>— Select project type (optional) —</option>
+                  <option value="creative_ai" style={{ background: 'var(--bg,#14101f)', color: 'var(--tx,#efe6ff)' }}>A · Creative Projects Made with AI</option>
+                  <option value="workplace_freelance" style={{ background: 'var(--bg,#14101f)', color: 'var(--tx,#efe6ff)' }}>B · AI in the Workplace &amp; Freelancing</option>
+                  <option value="nature_local" style={{ background: 'var(--bg,#14101f)', color: 'var(--tx,#efe6ff)' }}>C · Nature, Local Landscapes &amp; Resource Use</option>
+                  <option value="digital_sovereignty" style={{ background: 'var(--bg,#14101f)', color: 'var(--tx,#efe6ff)' }}>D · Digital Sovereignty, Rules &amp; Ethics</option>
+                  <option value="digital_wellness" style={{ background: 'var(--bg,#14101f)', color: 'var(--tx,#efe6ff)' }}>E · Digital Wellness &amp; Human Connection</option>
                 </select>
                 <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>
                   CONTRIBUTOR STATUS · <span style={{ opacity: .75 }}>admin-only, hidden from students</span>
