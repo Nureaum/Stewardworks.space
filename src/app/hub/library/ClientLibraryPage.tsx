@@ -31,7 +31,11 @@ function darken(hex: string, amt: number) {
 }
 
 function domain(u: string) {
-  try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
+  try { 
+    const hostname = new URL(u).hostname.replace(/^www\./, ''); 
+    if (hostname.includes('supabase.co')) return '';
+    return hostname;
+  } catch (e) { return ''; }
 }
 
 function chunk<T>(a: T[], n: number) {
