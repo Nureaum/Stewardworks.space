@@ -1239,7 +1239,17 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                 </div>
                 <h2 style={{ fontSize: '25px', fontWeight: 900, lineHeight: 1.18, letterSpacing: '-.01em', margin: '0 0 12px', maxWidth: '88%' }}>{decoratedDetail.title}</h2>
                 <div style={{ fontFamily: '"Courier New", monospace', fontSize: '12px', color: 'rgba(33,40,46,.6)', marginBottom: '14px' }}>Shelf — {decoratedDetail.catName}</div>
-                <p style={{ fontSize: '14.5px', lineHeight: 1.65, color: 'rgba(33,40,46,.82)', margin: '0 0 14px' }}>{decoratedDetail.note}</p>
+                <p style={{ 
+                  fontSize: '14.5px', 
+                  lineHeight: 1.65, 
+                  color: 'rgba(33,40,46,.82)', 
+                  margin: '0 0 14px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 5,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>{decoratedDetail.note}</p>
                 <div style={{ fontFamily: '"Courier New", monospace', fontSize: '12px', color: 'rgba(33,40,46,.55)', borderTop: '1px solid rgba(33,40,46,.15)', paddingTop: '12px' }}>Source — {decoratedDetail.source || 'Local'}</div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', padding: '16px 26px 22px' }}>
