@@ -619,6 +619,7 @@ export interface WorkshopShowcase {
   meta: string | null;
   theme: string | null;
   is_paid: boolean;
+  project_type: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
