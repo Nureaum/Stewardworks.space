@@ -137,6 +137,7 @@ export async function addShowcaseItem(cohortId: string, data: {
   meta?: string
   theme?: string
   is_paid?: boolean
+  project_type?: string | null
 }) {
   console.log('=== START addShowcaseItem ===')
   console.log('Input data:', { cohortId, ...data })
@@ -387,6 +388,7 @@ export async function updateShowcaseItem(itemId: string, data: {
   meta?: string
   theme?: string
   is_paid?: boolean
+  project_type?: string | null
 }) {
   const { userId } = await auth()
   if (!userId) throw new Error('Authentication required')
