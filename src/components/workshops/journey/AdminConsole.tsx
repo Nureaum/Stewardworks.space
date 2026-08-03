@@ -1855,12 +1855,13 @@ export default function AdminConsole({
                               // Persist
                               await reorderEntries(sec.id, newOrder.map((en, idx) => ({ id: en.id, sort_order: idx })));
                             }}
-                            renderItem={(en: any, isDragging: boolean) => {
+                            renderItem={(en: any, isDragging: boolean, dragHandleProps: any) => {
                               const ei = (sec.entries || []).findIndex((e: any) => e.id === en.id);
                               return (
                                 <div style={{ display: 'flex', alignItems: 'stretch', gap: 6, marginBottom: 8, background: isDragging ? 'rgba(255,210,63,.06)' : 'transparent', borderRadius: 8 }}>
                                   <div
-                                    style={{ display: 'flex', alignItems: 'center', paddingLeft: 4, paddingRight: 2, color: 'var(--mu,#a493c9)', cursor: 'grab', opacity: 0.5 }}
+                                    {...dragHandleProps}
+                                    style={{ display: 'flex', alignItems: 'center', paddingLeft: 4, paddingRight: 2, color: 'var(--mu,#a493c9)', cursor: 'grab', opacity: 0.5, touchAction: 'none' }}
                                     title="Drag to reorder"
                                   >
                                     <GripVertical size={14} />
@@ -4234,11 +4235,12 @@ export default function AdminConsole({
                           console.error('Failed to reorder media', err);
                         }
                       }}
-                      renderItem={(m: any, isDragging: boolean) => (
+                      renderItem={(m: any, isDragging: boolean, dragHandleProps: any) => (
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: isDragging ? 'rgba(255,210,63,.06)' : 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#3d2668)', borderRadius: 8, padding: '10px 14px', overflow: 'hidden', boxShadow: isDragging ? '0 8px 20px -8px rgba(0,0,0,.6)' : 'none' }}>
                           <div
                             className="sortable-drag-handle"
                             title="Drag to reorder"
+                            {...dragHandleProps}
                             style={{ 
                               cursor: 'grab', 
                               padding: '2px 0 0 0', 
@@ -4246,7 +4248,8 @@ export default function AdminConsole({
                               alignItems: 'flex-start', 
                               color: 'var(--mu,#a493c9)',
                               opacity: 0.5,
-                              marginTop: 4
+                              marginTop: 4,
+                              touchAction: 'none',
                             }}
                           >
                             <GripVertical size={14} />
