@@ -3955,7 +3955,7 @@ export default function AdminConsole({
                         
                         {(() => {
                           const bodyParts = (selEntry.body || '').split('<!--BLOCK-->')
-                          const blocks = bodyParts.filter(Boolean)
+                          const blocks = bodyParts
                           return (
                             <AdditionalBlocksEditor
                               blocks={blocks}
