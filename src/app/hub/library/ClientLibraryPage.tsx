@@ -302,6 +302,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         cat: catId,
         type: resType,
         note: stripHtml(r.body),
+        bodyHtml: r.body || null,
         date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
         peerReviewed: r.peer_reviewed || false,
         sourceTag: r.source_tag || null,
@@ -545,6 +546,13 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         @keyframes pageflip-prev { from { transform: rotateY(0deg); } to { transform: rotateY(168deg); } }
         @keyframes sl-glow { 0%,100% { box-shadow: 0 0 0 3px #3e2a1a, 0 0 10px 2px rgba(231,205,134,.55), 0 2px 4px rgba(0,0,0,.5); } 50% { box-shadow: 0 0 0 3px #3e2a1a, 0 0 20px 6px rgba(231,205,134,.9), 0 2px 4px rgba(0,0,0,.5); } }
         .sl-placeholder::placeholder { color: rgba(33,40,46,.4); }
+        .card-preview-body h1, .card-preview-body h2, .card-preview-body h3 { font-size: 15px; font-weight: 800; margin: 0 0 4px; color: #21282E; }
+        .card-preview-body p { margin: 0 0 6px; }
+        .card-preview-body strong, .card-preview-body b { font-weight: 700; color: #21282E; }
+        .card-preview-body ul, .card-preview-body ol { margin: 0 0 6px; padding-left: 18px; }
+        .card-preview-body li { margin-bottom: 2px; }
+        .card-preview-body a { color: #417C98; }
+        .card-preview-body blockquote { border-left: 3px solid rgba(162,117,50,.4); margin: 0 0 6px; padding-left: 10px; color: rgba(33,40,46,.65); font-style: italic; }
       `}} />
       <div style={{ minHeight: '100vh', backgroundColor: '#FEFAE0', backgroundImage: 'radial-gradient(rgba(45,75,62,.06) 1px, transparent 1px)', backgroundSize: '22px 22px', fontFamily: '"Exo", sans-serif', color: '#21282E', position: 'relative', overflowX: 'hidden', paddingBottom: '80px' }}>
         
@@ -1243,17 +1251,34 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                 </div>
                 <h2 style={{ fontSize: '25px', fontWeight: 900, lineHeight: 1.18, letterSpacing: '-.01em', margin: '0 0 12px', maxWidth: '88%' }}>{decoratedDetail.title}</h2>
                 <div style={{ fontFamily: '"Courier New", monospace', fontSize: '12px', color: 'rgba(33,40,46,.6)', marginBottom: '14px' }}>Shelf — {decoratedDetail.catName}</div>
-                <p style={{ 
-                  fontSize: '14.5px', 
-                  lineHeight: 1.65, 
-                  color: 'rgba(33,40,46,.82)', 
-                  margin: '0 0 14px',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 5,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>{decoratedDetail.note}</p>
+                {decoratedDetail.bodyHtml ? (
+                  <div
+                    className="card-preview-body"
+                    dangerouslySetInnerHTML={{ __html: decoratedDetail.bodyHtml }}
+                    style={{
+                      fontSize: '14px',
+                      lineHeight: 1.6,
+                      color: 'rgba(33,40,46,.82)',
+                      margin: '0 0 14px',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 6,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  />
+                ) : decoratedDetail.note ? (
+                  <p style={{
+                    fontSize: '14.5px',
+                    lineHeight: 1.65,
+                    color: 'rgba(33,40,46,.82)',
+                    margin: '0 0 14px',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 5,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>{decoratedDetail.note}</p>
+                ) : null}
                 <div style={{ fontFamily: '"Courier New", monospace', fontSize: '12px', color: 'rgba(33,40,46,.55)', borderTop: '1px solid rgba(33,40,46,.15)', paddingTop: '12px' }}>Source — {decoratedDetail.source || 'Local'}</div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', padding: '16px 26px 22px' }}>
