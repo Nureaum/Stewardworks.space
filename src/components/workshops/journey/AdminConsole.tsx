@@ -32,7 +32,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import RichEditor from './RichEditor'
-import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia, updateEntryMedia } from '@/app/actions/workshops/entry-media'
+import { createEntryMedia, deleteEntryMedia, getEntryMedia, uploadEntryMedia, updateEntryMedia, reorderEntryMedia } from '@/app/actions/workshops/entry-media'
 import { createPrinciple, updatePrinciple, deletePrinciple } from '@/app/actions/workshops/principles'
 import { addShowcaseItem, updateShowcaseItem, deleteShowcaseItem, getShowcaseItems, seedShowcaseItems, getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
 import { getShowcaseSettings, updateShowcaseSettings } from '@/app/actions/workshops/showcase_settings'
@@ -4187,11 +4187,36 @@ export default function AdminConsole({
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
-                    {entryMediaList.map(m => (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#3d2668)', borderRadius: 8, padding: '10px 14px', overflow: 'hidden' }}>
-                        <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', flex: 'none', background: 'rgba(255,210,63,.1)', padding: '5px 7px', borderRadius: 4, marginTop: 4 }}>
-                          {m.kind.toUpperCase()}
-                        </span>
+                    <SortableList
+                      items={entryMediaList}
+                      onReorder={async (newOrder) => {
+                        setEntryMediaList(newOrder);
+                        try {
+                          await reorderEntryMedia(selEntry.id, newOrder.map((m, idx) => ({ id: m.id, sort_order: idx + 1 })));
+                        } catch (err) {
+                          console.error('Failed to reorder media', err);
+                        }
+                      }}
+                      renderItem={(m: any, isDragging: boolean) => (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: isDragging ? 'rgba(255,210,63,.06)' : 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#3d2668)', borderRadius: 8, padding: '10px 14px', overflow: 'hidden', boxShadow: isDragging ? '0 8px 20px -8px rgba(0,0,0,.6)' : 'none' }}>
+                          <div
+                            className="sortable-drag-handle"
+                            title="Drag to reorder"
+                            style={{ 
+                              cursor: 'grab', 
+                              padding: '2px 0 0 0', 
+                              display: 'flex', 
+                              alignItems: 'flex-start', 
+                              color: 'var(--mu,#a493c9)',
+                              opacity: 0.5,
+                              marginTop: 4
+                            }}
+                          >
+                            <GripVertical size={14} />
+                          </div>
+                          <span className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', flex: 'none', background: 'rgba(255,210,63,.1)', padding: '5px 7px', borderRadius: 4, marginTop: 4 }}>
+                            {m.kind.toUpperCase()}
+                          </span>
                         
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <input
@@ -4265,7 +4290,8 @@ export default function AdminConsole({
                         
                         <button onClick={() => handleRemoveMedia(m.id, selEntry.id)} style={{ fontSize: 14, color: 'var(--warn,#ff7a7a)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', flex: 'none', marginTop: 2 }} title="Remove">✕</button>
                       </div>
-                    ))}
+                    )}
+                    />
                   </div>
                 )}
                 <div style={{ marginTop: 14, fontSize: 13, color: 'var(--mu,#a493c9)', lineHeight: 1.4 }}>
