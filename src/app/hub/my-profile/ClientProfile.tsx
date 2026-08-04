@@ -390,7 +390,34 @@ export default function ClientProfile({
               created_at: e.created_at,
               cohort_id: e.cohort_id || progressData.selectedCohortId
             }));
-          setWorkshopBookmarks(bookmarkEngagements);
+
+          // Cross-check showcase bookmarks against active library resources.
+          // If a showcase bookmark's url points to a library resource that has been deleted,
+          // mark it as [UNAVAILABLE] so the profile shows the "Removed" card.
+          try {
+            const libRes = await fetch('/api/public/library-resources', { cache: 'no-store' });
+            const libData = await libRes.json();
+            const activeLibraryIds: Set<string> = new Set(
+              (libData.resources || []).map((r: any) => r.id)
+            );
+            const checkedBookmarks = bookmarkEngagements.map((b: any) => {
+              if (!b.url) return b;
+              // Extract library resource UUID from URL like /hub/library/{uuid}
+              const libraryMatch = b.url.match(/\/hub\/library\/([0-9a-fA-F-]{36})/);
+              if (libraryMatch) {
+                const resourceId = libraryMatch[1];
+                if (!activeLibraryIds.has(resourceId)) {
+                  // Resource has been deleted — mark as unavailable
+                  return { ...b, title: `${b.title} [UNAVAILABLE]` };
+                }
+              }
+              return b;
+            });
+            setWorkshopBookmarks(checkedBookmarks);
+          } catch {
+            // Fallback: set bookmarks without cross-check
+            setWorkshopBookmarks(bookmarkEngagements);
+          }
           
           // Use NEW multi-cohort API structure for progress calculation
           // The API already calculates totalProgress correctly (deliverables + engagement)
@@ -1560,7 +1587,13 @@ export default function ClientProfile({
                           </div>
                           <div style={{ fontSize: '22px', marginBottom: '4px' }}>🗑️</div>
                           <div style={{ fontWeight: 700, color: '#9a8a7a', fontSize: '13px', lineHeight: 1.3, textDecoration: 'line-through', marginBottom: '6px' }}>{cleanTitle}</div>
-                          <div style={{ fontSize: '11px', color: '#b09070', lineHeight: 1.5 }}>This resource has been removed by an admin and is no longer available.</div>
+                          <div style={{ fontSize: '11px', color: '#b09070', lineHeight: 1.5, marginBottom: '12px' }}>This resource has been removed by an admin and is no longer available.</div>
+                          <button
+                            onClick={() => confirmDeleteEngagement(b.engagementId || b.id, 'bookmark', cleanTitle, true, 'library', null, 0, b.bookmarkStatus)}
+                            style={{ fontSize: '11px', fontFamily: '"DM Mono", monospace', letterSpacing: '.08em', background: 'rgba(192,57,43,.08)', color: '#c0392b', border: '1px solid rgba(192,57,43,.25)', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer' }}
+                          >
+                            ✕ Remove from Profile
+                          </button>
                         </div>
                       );
                       return (
@@ -1601,7 +1634,13 @@ export default function ClientProfile({
                           </div>
                           <div style={{ fontSize: '22px', marginBottom: '4px' }}>🗑️</div>
                           <div style={{ fontWeight: 700, color: '#9a8a7a', fontSize: '13px', lineHeight: 1.3, textDecoration: 'line-through', marginBottom: '6px' }}>{cleanTitle}</div>
-                          <div style={{ fontSize: '11px', color: '#b09070', lineHeight: 1.5 }}>This resource has been removed by an admin and is no longer available.</div>
+                          <div style={{ fontSize: '11px', color: '#b09070', lineHeight: 1.5, marginBottom: '12px' }}>This resource has been removed by an admin and is no longer available.</div>
+                          <button
+                            onClick={() => confirmDeleteEngagement(b.id, 'bookmark', cleanTitle, false, b.source || '', null, 0, b.status)}
+                            style={{ fontSize: '11px', fontFamily: '"DM Mono", monospace', letterSpacing: '.08em', background: 'rgba(192,57,43,.08)', color: '#c0392b', border: '1px solid rgba(192,57,43,.25)', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer' }}
+                          >
+                            ✕ Remove from Profile
+                          </button>
                         </div>
                       );
                       return (
