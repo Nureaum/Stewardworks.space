@@ -213,6 +213,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   }
   
   revalidatePath('/hub/library', 'layout')
+  revalidatePath('/hub/my-profile', 'layout')
   revalidatePath('/hub/bilingual-media', 'layout')
   revalidatePath('/hub/pilot-workshops', 'layout')
   revalidatePath('/hub/environmental-literacy', 'layout')

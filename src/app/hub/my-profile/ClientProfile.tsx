@@ -459,7 +459,7 @@ export default function ClientProfile({
       if (libBookmarks.length === 0) {
         setBookmarkedResources([]);
       } else {
-        const res = await fetch('/api/public/library-resources');
+        const res = await fetch('/api/public/library-resources', { cache: 'no-store' });
         const data = await res.json();
         if (data.resources) {
           // Match bookmarks to resources - handle multiple URL formats:
