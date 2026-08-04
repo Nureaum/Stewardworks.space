@@ -155,6 +155,18 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
   const id = params.id
 
+  // 1. Fetch the library item to get its title and url before deleting
+  const { data: itemToDelete, error: fetchError } = await supabase
+    .from('content_items')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  console.log(`[DELETE API] Pre-fetch raw data:`, itemToDelete ? JSON.stringify(itemToDelete).substring(0, 500) : 'NULL');
+  console.log(`[DELETE API] Pre-fetch keys:`, itemToDelete ? Object.keys(itemToDelete) : 'NO DATA');
+  if (fetchError) console.error('[DELETE API] Pre-fetch error:', JSON.stringify(fetchError));
+
+  // 2. Delete the library item
   const { error } = await supabase
     .from('content_items')
     .update({ 
@@ -165,6 +177,40 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  
+  // Dual-deletion: Check if this library resource is linked to a Contribution Showcase item
+  // If so, soft-delete it so it disappears from the Showcase as well
+  try {
+    console.log(`[DELETE API] Starting dual-deletion check for library item ID: ${id}`);
+    console.log(`[DELETE API] Library item title fetched: "${itemToDelete?.title}"`);
+    
+    const metaPayload = JSON.stringify({ isDeleted: true });
+    
+    // Fallback: soft delete by matching title
+    if (itemToDelete?.title) {
+      console.log(`[DELETE API] Attempting to soft-delete workshop_showcase item with title: "${itemToDelete.title}"`);
+      const { data: updateData, error: showcaseError } = await supabase
+        .from('workshop_showcase')
+        .update({ meta: metaPayload })
+        .eq('title', itemToDelete.title)
+        .select();
+        
+      if (showcaseError) {
+        console.error('[DELETE API] Supabase error during workshop_showcase update:', showcaseError);
+      } else {
+        console.log(`[DELETE API] Successfully soft-deleted ${updateData?.length || 0} matching items in workshop_showcase.`);
+        if (updateData?.length) {
+          console.log(`[DELETE API] Updated showcase items:`, updateData.map(d => d.id));
+        } else {
+          console.log(`[DELETE API] WARNING: No items found in workshop_showcase with title "${itemToDelete.title}". Dual-deletion skipped.`);
+        }
+      }
+    } else {
+      console.log(`[DELETE API] Cannot perform title match because itemToDelete.title is missing/null.`);
+    }
+  } catch (err) {
+    console.error('[DELETE API] Exception soft-deleting linked showcase item:', err);
+  }
   
   revalidatePath('/hub/library', 'layout')
   revalidatePath('/hub/bilingual-media', 'layout')

@@ -13,7 +13,7 @@ export default function LibraryAdminPage() {
   const [processing, setProcessing] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   
-  const [deleteModalState, setDeleteModalState] = useState<{isOpen: boolean, id: string | null}>({ isOpen: false, id: null })
+  const [deleteModalState, setDeleteModalState] = useState<{isOpen: boolean, id: string | null, message?: string}>({ isOpen: false, id: null })
   
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -79,7 +79,12 @@ export default function LibraryAdminPage() {
   }, [])
 
   const confirmDelete = (id: string) => {
-    setDeleteModalState({ isOpen: true, id })
+    const item = items.find(i => i.id === id);
+    const isShowcase = item?.category?.label === 'How to Use AI';
+    const message = isShowcase
+      ? "Warning: This resource originated from the Contribution Showcase. Deleting it here will also permanently remove it from the Contribution Showcase and Student views. Are you sure?"
+      : "Are you sure you want to delete this resource? This action cannot be undone.";
+    setDeleteModalState({ isOpen: true, id, message })
   }
 
   const handleDelete = async () => {
@@ -797,8 +802,9 @@ export default function LibraryAdminPage() {
 
       <ConfirmModal
         isOpen={deleteModalState.isOpen}
-        onClose={() => setDeleteModalState({ isOpen: false, id: null })}
+        onClose={() => setDeleteModalState({ isOpen: false, id: null, message: undefined })}
         onConfirm={handleDelete}
+        message={deleteModalState.message}
       />
 
       {/* Bulk Delete Confirmation Modal */}
