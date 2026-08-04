@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect, useRef } from 'react'
+import { Play, Pause, ExternalLink, X, Maximize2, Minimize2, Edit2, Check, GripVertical, Trash2, Video, Search, ChevronDown, CheckCircle2, Heart, Award, ArrowUpRight, Copy, Link as LinkIcon, Loader2 } from 'lucide-react'
 import type { WorkshopShowcase, WorkshopEngagement } from '@/types/workshops'
 import { getAllGenerations, addEngagement, uploadCreationImage } from '@/app/actions/workshops/engagement'
 import { getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
