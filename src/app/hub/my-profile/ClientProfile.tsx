@@ -488,14 +488,15 @@ export default function ClientProfile({
           const placeholders = stillUnmatched.map((b: any) => ({
             id: b.item_id || b.id,
             engagementId: b.id,
-            title: b.title || 'Bookmarked Resource',
+            title: `${b.title || 'Bookmarked Resource'} [UNAVAILABLE]`,
             external_url: b.item_id?.startsWith('http') ? b.item_id : '',
             body: '',
             category: null,
             media: [],
             created_at: new Date().toISOString(),
             bookmarkStatus: b.status || 'pending',
-            reviewNote: b.review_note || null
+            reviewNote: b.review_note || null,
+            _isDeleted: true
           }));
           
           // Attach status and review_note from bookmark engagement records
@@ -1550,17 +1551,27 @@ export default function ClientProfile({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
                     {bookmarkedResources.map(b => {
                       const isUnavailable = b.title && b.title.endsWith('[UNAVAILABLE]');
+                      const cleanTitle = isUnavailable ? b.title.replace(' [UNAVAILABLE]', '') : b.title;
+                      if (isUnavailable) return (
+                        <div key={b.id} style={{ background: 'repeating-linear-gradient(135deg,#f8f0e8,#f8f0e8 6px,#fdf5eb 6px,#fdf5eb 12px)', border: '1.5px dashed rgba(180,130,80,.35)', borderRadius: '13px', padding: '15px 16px', boxShadow: 'none', opacity: 0.85 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                            <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#9E9E9E', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>LIBRARY</span>
+                            <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#c0392b', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REMOVED</span>
+                          </div>
+                          <div style={{ fontSize: '22px', marginBottom: '4px' }}>🗑️</div>
+                          <div style={{ fontWeight: 700, color: '#9a8a7a', fontSize: '13px', lineHeight: 1.3, textDecoration: 'line-through', marginBottom: '6px' }}>{cleanTitle}</div>
+                          <div style={{ fontSize: '11px', color: '#b09070', lineHeight: 1.5 }}>This resource has been removed by an admin and is no longer available.</div>
+                        </div>
+                      );
                       return (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: isUnavailable ? '#f0f0f0' : '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer', opacity: isUnavailable ? 0.7 : 1 }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'LIBRARY', _color: '#417C98', _bg: '#EBF4F8', _url: (b.id?.startsWith('http') || b.id?.startsWith('/')) ? b.id : `/hub/library/${b.id}`, _status: b.bookmarkStatus, _source: domain(b.external_url || b.url), _isUnavailable: isUnavailable })}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'LIBRARY', _color: '#417C98', _bg: '#EBF4F8', _url: (b.id?.startsWith('http') || b.id?.startsWith('/')) ? b.id : `/hub/library/${b.id}`, _status: b.bookmarkStatus, _source: domain(b.external_url || b.url), _isUnavailable: false })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#417C98', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>LIBRARY</span>
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
                           {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all', textDecoration: isUnavailable ? 'line-through' : 'none' }}>
-                          {isUnavailable ? b.title.replace(' [UNAVAILABLE]', '') : b.title}
-                        </div>
+                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
                         <div style={{ fontSize: '12px', color: '#5a8a9a', marginTop: '7px' }}>{domain(b.external_url || b.url)}</div>
                       </div>
                     )})}
@@ -1581,20 +1592,29 @@ export default function ClientProfile({
                       const tagLabel = isStudentShowcase ? 'STUDENT SHOWCASE' : isContributor ? 'CONTRIBUTOR' : 'WORKSHOP';
                       const tagColor = isStudentShowcase ? '#ff5fd2' : isContributor ? '#45d6ff' : '#A27532';
                       const isUnavailable = b.title && b.title.endsWith('[UNAVAILABLE]');
+                      const cleanTitle = isUnavailable ? b.title.replace(' [UNAVAILABLE]', '') : b.title;
+                      if (isUnavailable) return (
+                        <div key={b.id} style={{ background: 'repeating-linear-gradient(135deg,#f8f0e8,#f8f0e8 6px,#fdf5eb 6px,#fdf5eb 12px)', border: '1.5px dashed rgba(180,130,80,.35)', borderRadius: '13px', padding: '15px 16px', boxShadow: 'none', opacity: 0.85 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                            <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#9E9E9E', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>{tagLabel}</span>
+                            <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#c0392b', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REMOVED</span>
+                          </div>
+                          <div style={{ fontSize: '22px', marginBottom: '4px' }}>🗑️</div>
+                          <div style={{ fontWeight: 700, color: '#9a8a7a', fontSize: '13px', lineHeight: 1.3, textDecoration: 'line-through', marginBottom: '6px' }}>{cleanTitle}</div>
+                          <div style={{ fontSize: '11px', color: '#b09070', lineHeight: 1.5 }}>This resource has been removed by an admin and is no longer available.</div>
+                        </div>
+                      );
                       return (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: isUnavailable ? '#f0f0f0' : '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer', opacity: isUnavailable ? 0.7 : 1 }} onClick={() => setSelectedResourceItem({ ...b, _kind: tagLabel, _color: tagColor, _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source, _cohortId: b.cohort_id, content: b.content || b.note || '', _isUnavailable: isUnavailable })}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: tagLabel, _color: tagColor, _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source, _cohortId: b.cohort_id, content: b.content || b.note || '', _isUnavailable: false })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: tagColor, color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>{tagLabel}</span>
                           {b.status === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
                           {b.status === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.status === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all', textDecoration: isUnavailable ? 'line-through' : 'none' }}>
+                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>
                           {(() => {
                             let displayTitle = b.title;
-                            if (isUnavailable) {
-                              displayTitle = displayTitle.replace(' [UNAVAILABLE]', '');
-                            }
                             if (displayTitle && displayTitle.includes('/library/')) {
                               displayTitle = 'Library Resource';
                             } else if (displayTitle && displayTitle.match(/^[0-9a-fA-F-]{36}$/)) {

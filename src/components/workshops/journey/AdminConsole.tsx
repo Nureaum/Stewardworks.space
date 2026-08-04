@@ -1141,7 +1141,7 @@ export default function AdminConsole({
 
   const handleDeleteShowcase = async (id: string) => {
     setConfirmDialog({
-      message: 'Delete this showcase item? This cannot be undone.',
+      message: '⚠️ Warning: Deleting this contribution will also permanently remove it from the Library and all Student views. This cannot be undone.',
       onConfirm: async () => {
         setConfirmDialog(null)
         setIsSaving(true)
