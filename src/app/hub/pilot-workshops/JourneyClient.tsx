@@ -83,7 +83,9 @@ export default function JourneyClient({
   const [activeDay, setActiveDay] = useState<number>(1)
   const [visited, setVisited] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<string | null>(null)
-  const [engagements, setEngagements] = useState<WorkshopEngagement[]>(initialEngagements)
+  const [engagements, setEngagements] = useState<WorkshopEngagement[]>(initialEngagements || [])
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, title: string, percentage: number } | null>(null)
+  const [isDeletingItem, setIsDeletingItem] = useState(false)
   const [victoryVisible, setVictoryVisible] = useState(false)
   const [defaultTopicId, setDefaultTopicId] = useState<string | null>(null)
   const [bankedPrinciples, setBankedPrinciples] = useState(initialBankedPrinciples)
@@ -206,28 +208,11 @@ export default function JourneyClient({
   }, [showToast])
 
   const handleUpdateEngagement = useCallback(async (id: string, updates: { title?: string, content?: string, url?: string }) => {
-    console.log('[JourneyClient (root)] handleUpdateEngagement CALLED')
-    console.log('[JourneyClient (root)] id:', id)
-    console.log('[JourneyClient (root)] updates:', updates)
-    
     try {
-      console.log('[JourneyClient (root)] Calling updateEngagement action...')
       const updated = await updateEngagement(id, updates)
-      console.log('[JourneyClient (root)] updateEngagement returned:', updated)
-      
-      console.log('[JourneyClient (root)] Updating local state...')
-      setEngagements(prev => {
-        const newState = prev.map(e => (e.id === id ? updated : e))
-        console.log('[JourneyClient (root)] New engagements state:', newState)
-        return newState
-      })
-      
-      console.log('[JourneyClient (root)] Showing success toast')
+      setEngagements(prev => prev.map(e => (e.id === id ? updated : e)))
       showToast('Item updated successfully')
     } catch (e: any) {
-      console.error('[JourneyClient (root)] Error updating item:', e)
-      console.error('[JourneyClient (root)] Error message:', e.message)
-      console.error('[JourneyClient (root)] Error stack:', e.stack)
       showToast('Error updating item')
       throw e
     }
@@ -236,12 +221,7 @@ export default function JourneyClient({
   const submittingRef = React.useRef<Set<string>>(new Set());
 
   const handleBookmark = useCallback(async (key: string, title: string, source: string, url?: string, content?: string) => {
-    console.log('[DEBUG handleBookmark] Called:', { key, title, source, url, content });
-    // Use the unique key (day.id-entry.id) as the identifier to prevent duplicates across days
-    if (submittingRef.current.has(key)) {
-      console.log('[DEBUG handleBookmark] Already submitting, skipping');
-      return;
-    }
+    if (submittingRef.current.has(key)) return;
     
     // Check for existing bookmark using the URL which contains the unique topic ID
     const existingBookmark = url 
@@ -249,26 +229,32 @@ export default function JourneyClient({
       : engagements.find(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
     
     if (existingBookmark) {
-      console.log('[DEBUG handleBookmark] Existing bookmark found:', existingBookmark);
-      if (existingBookmark.status === 'pending') {
-        showToast('Already bookmarked! Pending admin approval.')
-      } else if (existingBookmark.status === 'approved') {
-        showToast('Already bookmarked and approved!')
-      } else {
-        showToast('Already bookmarked!')
-      }
+      const percentage = existingBookmark.status === 'approved' ? 1 : 0;
+      setItemToDelete({ id: existingBookmark.id, title: existingBookmark.title, percentage });
       return
     }
     
-    console.log('[DEBUG handleBookmark] No existing bookmark, creating new...');
     submittingRef.current.add(key);
     try {
       await handleAddEngagement('bookmark', title, source, url, content)
-      console.log('[DEBUG handleBookmark] Success!');
     } finally {
       submittingRef.current.delete(key);
     }
-  }, [engagements, showToast, handleAddEngagement])
+  }, [engagements, handleAddEngagement])
+
+  const executeDeleteEngagement = async () => {
+    if (!itemToDelete) return
+    setIsDeletingItem(true)
+    try {
+      await handleRemoveEngagement(itemToDelete.id)
+      showToast('Bookmark removed')
+    } catch (e) {
+      showToast('Error removing bookmark')
+    } finally {
+      setIsDeletingItem(false)
+      setItemToDelete(null)
+    }
+  }
 
   return (
     <div
@@ -595,6 +581,76 @@ export default function JourneyClient({
       >
         STEWARDWORKS.SPACE · PILOT WORKSHOPS · THE STEWARD&apos;S JOURNEY
       </div>
+
+      {/* Confirmation Popup for Deletion/Unbookmarking */}
+      {itemToDelete && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 11000,
+            background: 'rgba(20,12,4,.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 'clamp(12px,4vw,40px)',
+            animation: 'fadeIn .18s ease'
+          }}
+        >
+          <div
+            style={{
+              width: '100%', maxWidth: 400,
+              background: '#FEFAE0',
+              borderRadius: '8px',
+              padding: '24px',
+              boxShadow: '0 24px 60px rgba(0,0,0,.35), 0 0 0 1px rgba(138,90,46,.15)',
+              animation: 'slideUp .2s ease',
+              textAlign: 'center'
+            }}
+          >
+            <h3 style={{ margin: '0 0 16px', color: '#21282E', fontSize: '18px', fontWeight: 700, fontFamily: '"Exo", sans-serif' }}>
+              Unbookmark Resource?
+            </h3>
+            <p style={{ margin: '0 0 24px', color: '#5c4f3c', fontSize: '15px', lineHeight: 1.5, fontFamily: 'sans-serif' }}>
+              This will reduce your engagement percentage by <strong>{itemToDelete.percentage}%</strong> for removing &quot;<strong>{itemToDelete.title}</strong>&quot; from your profile.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={() => setItemToDelete(null)}
+                disabled={isDeletingItem}
+                style={{
+                  padding: '10px 20px',
+                  background: 'transparent',
+                  color: '#5c4f3c',
+                  border: '1.5px solid rgba(138,90,46,.25)',
+                  borderRadius: '8px',
+                  fontFamily: '"Exo", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeDeleteEngagement}
+                disabled={isDeletingItem}
+                style={{
+                  padding: '10px 20px',
+                  background: 'rgba(200,50,50,.08)',
+                  color: '#c03030',
+                  border: '1.5px solid rgba(200,50,50,.3)',
+                  borderRadius: '8px',
+                  fontFamily: '"Exo", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isDeletingItem ? 'wait' : 'pointer',
+                  opacity: isDeletingItem ? 0.6 : 1
+                }}
+              >
+                {isDeletingItem ? '⏳' : 'Unbookmark'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

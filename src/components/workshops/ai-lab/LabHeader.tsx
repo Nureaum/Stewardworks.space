@@ -13,21 +13,28 @@ const PRINCIPLE_TIPS = [
   "Consent over Convenience: Just because you can scrape, generate, or remix doesn't mean you should. Ask first. Credit always.",
 ];
 
-export default function LabHeader({ day, profilePct, chiaStage, userCharacter, daysComplete = 0, bankedPrinciplesCount = 0, totalPrinciples = 6 }: { day: number, profilePct: number, chiaStage: number, userCharacter?: any, daysComplete?: number, bankedPrinciplesCount?: number, totalPrinciples?: number }) {
+export default function LabHeader({ day, profilePct, chiaStage, userCharacter, daysComplete = 0, bankedPrinciplesCount = 0, totalPrinciples = 6, principles = [] }: { day: number, profilePct: number, chiaStage: number, userCharacter?: any, daysComplete?: number, bankedPrinciplesCount?: number, totalPrinciples?: number, principles?: any[] }) {
   const [tipIndex, setTipIndex] = useState(0);
   const [tipKey, setTipKey] = useState(0);
   
   const handleMascotClick = () => {
-    setTipIndex((prev) => (prev + 1) % PRINCIPLE_TIPS.length);
+    // Use dynamic principles if available, otherwise fall back to static tips
+    const maxTips = principles.length > 0 ? principles.length : PRINCIPLE_TIPS.length;
+    setTipIndex((prev) => (prev + 1) % maxTips);
     setTipKey((prev) => prev + 1);
   };
+
+  // Get the current tip from principles or fall back to static tips
+  const currentTip = principles.length > 0 
+    ? `${principles[tipIndex]?.name}: ${principles[tipIndex]?.description || ''}` 
+    : PRINCIPLE_TIPS[tipIndex];
 
   const chiaStageNames = ['Bare bust', 'Sprouting', 'Filling in', 'Leafy crown', 'Lush mane', 'Full bloom ❀'];
   const playerName = userCharacter?.player_name || (userCharacter?.character_key ? CHARACTERS[userCharacter.character_key]?.name : 'NAYELI');
   const playerGear = userCharacter?.loadout ? (GEAR_META.find(g => g[0] === userCharacter.loadout)?.[1] || 'TRAVEL LIGHT') : 'CAMERA RIG';
   
   return (
-    <div style={{ position: 'relative', border: '2px solid #28432f', borderRadius: 10, overflow: 'hidden', background: 'linear-gradient(180deg,#0a1a13,#0d1512)', height: 'clamp(230px, 28vh, 260px)', marginBottom: 14 }}>
+    <div style={{ position: 'relative', border: '2px solid #28432f', borderRadius: 10, overflow: 'visible', background: 'linear-gradient(180deg,#0a1a13,#0d1512)', height: 'auto', minHeight: 'clamp(260px, 32vh, 320px)', paddingBottom: '20px', marginBottom: 14 }}>
       <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(90deg,rgba(77,255,160,.06) 0 1px,transparent 1px 42px),repeating-linear-gradient(0deg,rgba(77,255,160,.045) 0 1px,transparent 1px 42px)' }}></div>
       
       {/* Player info - top left */}
@@ -39,7 +46,7 @@ export default function LabHeader({ day, profilePct, chiaStage, userCharacter, d
       </div>
 
       {/* Interactive mascot - center */}
-      <div style={{ position: 'absolute', left: '50%', bottom: 34, transform: 'translateX(-50%)', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, width: 'min(75%,480px)' }}>
+      <div style={{ position: 'relative', left: '50%', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, width: 'min(92%,680px)', maxWidth: '92%', marginTop: '40px', marginBottom: '20px' }}>
         <div 
           key={tipKey}
           style={{ 
@@ -47,13 +54,15 @@ export default function LabHeader({ day, profilePct, chiaStage, userCharacter, d
             background: '#0c1a13', 
             border: '2px solid #4dffa0', 
             borderRadius: 9, 
-            padding: '9px 12px', 
+            padding: '14px 18px', 
             boxShadow: '0 0 16px rgba(77,255,160,.25)',
-            animation: 'popin 0.25s ease'
+            animation: 'popin 0.25s ease',
+            width: '100%',
+            minHeight: '60px'
           }}
         >
-          <div style={{ fontSize: 15, color: '#d6ffe0', lineHeight: 1.35, textAlign: 'center', fontFamily: "'VT323', monospace" }}>
-            {PRINCIPLE_TIPS[tipIndex]}
+          <div style={{ fontSize: 15, color: '#d6ffe0', lineHeight: 1.5, textAlign: 'center', fontFamily: "'VT323', monospace", wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
+            {currentTip}
           </div>
           <div style={{ position: 'absolute', left: '50%', bottom: -8, transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '8px solid #4dffa0' }}></div>
         </div>
@@ -108,7 +117,7 @@ export default function LabHeader({ day, profilePct, chiaStage, userCharacter, d
       </div>
 
       {/* Right monitors with animations */}
-      <div style={{ position: 'absolute', right: 16, bottom: 36, zIndex: 2, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+      <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 2, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
         <div style={{ width: 30, height: 78, background: '#0f1a15', border: '2px solid #28432f', borderRadius: 3, padding: 5, display: 'flex', flexDirection: 'column', gap: 5 }}>
           <span style={{ height: 4, background: '#4dffa0', animation: 'blink 1.2s steps(1) infinite' }}></span>
           <span style={{ height: 4, background: '#ffd23f', animation: 'blink 0.9s steps(1) infinite 0.3s' }}></span>
@@ -126,7 +135,7 @@ export default function LabHeader({ day, profilePct, chiaStage, userCharacter, d
 
       {/* Ground elements */}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 26, height: 8, background: 'linear-gradient(180deg,#2b4a3c,#16261f)', zIndex: 1 }}></div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 26, background: '#0a120e', borderTop: '2px solid #28432f', zIndex: 1 }}></div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 26, background: '#0a120e', borderTop: '2px solid #28432f', zIndex: 1, borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}></div>
 
       <style jsx>{`
         @keyframes bob {

@@ -6,6 +6,7 @@ import { getAllGenerations, addEngagement, uploadCreationImage } from '@/app/act
 import { getStudentShowcaseDeliverables } from '@/app/actions/workshops/showcase'
 import { getShowcaseSettings, updateShowcaseSettings } from '@/app/actions/workshops/showcase_settings'
 import { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
+import toast from 'react-hot-toast'
 
 /* ── local item shape ── */
 interface ShowcaseItem {
@@ -348,6 +349,11 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
   const isBookmarked = (item: ShowcaseItem) =>
     engagements.some(e => e.kind === 'bookmark' && e.title === item.title && e.status !== 'rejected')
 
+  const getBookmarkSource = (item: { title: string }) => {
+    const eng = engagements.find(e => e.kind === 'bookmark' && e.title === item.title && e.status !== 'rejected')
+    return eng ? eng.source : null;
+  }
+
   const previewItem = useMemo(() =>
     preview ? allItems.find(c => c.id === preview) ?? null : null
   , [preview, allItems])
@@ -382,6 +388,33 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
       return { ...item, type: detectedType, previewUrl };
     })
   }, [studentItems])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const itemTitle = searchParams.get('itemTitle');
+      if (itemTitle) {
+        if (activeViewMode === 'contributors' && allItems.length > 0) {
+          const item = allItems.find(i => i.title === itemTitle);
+          if (item && !preview) {
+            setPreview(item.id);
+            // Optional: Clean up URL so refresh doesn't pop it up again
+            const url = new URL(window.location.href);
+            url.searchParams.delete('itemTitle');
+            window.history.replaceState({}, '', url);
+          }
+        } else if (activeViewMode === 'students' && processedStudentItems.length > 0) {
+          const item = processedStudentItems.find(i => i.title === itemTitle);
+          if (item && !studentDetail) {
+            setStudentDetail(item);
+            const url = new URL(window.location.href);
+            url.searchParams.delete('itemTitle');
+            window.history.replaceState({}, '', url);
+          }
+        }
+      }
+    }
+  }, [activeViewMode, allItems, processedStudentItems, preview, studentDetail]);
 
   const filteredStudentItems = useMemo(() => {
     const tab = FILTER_TABS.find(t => t.key === filter)
@@ -524,6 +557,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
             key={item.id}
             item={item}
             bookmarked={isBookmarked(item)}
+            bookmarkSource={getBookmarkSource(item)}
             onOpen={() => setPreview(item.id)}
             onBookmark={() => onBookmark && onBookmark('contrib-' + item.id, item.title, 'Showcase · ' + item.theme, item.url || undefined, item.previewUrl ? JSON.stringify({ previewUrl: item.previewUrl }) : undefined)}
           />
@@ -1090,6 +1124,7 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
         <PreviewModal
           item={previewItem}
           bookmarked={isBookmarked(previewItem)}
+          bookmarkSource={getBookmarkSource(previewItem)}
           onClose={() => setPreview(null)}
           onBookmark={() => onBookmark && onBookmark('contrib-' + previewItem.id, previewItem.title, 'Showcase · ' + previewItem.theme, previewItem.url || undefined, previewItem.previewUrl ? JSON.stringify({ previewUrl: previewItem.previewUrl }) : undefined)}
         />
@@ -1101,9 +1136,10 @@ export default function Showcase({ showcaseItems = [], engagements = [], onBookm
 /* ═══════════════════════════════════════════════════════════════
    ContributionCard
    ═══════════════════════════════════════════════════════════════ */
-function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
+function ContributionCard({ item, bookmarked, bookmarkSource, onOpen, onBookmark }: {
   item: ShowcaseItem
   bookmarked: boolean
+  bookmarkSource?: string | null
   onOpen: () => void
   onBookmark: () => void
 }) {
@@ -1268,7 +1304,16 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
           </button>
 
           <button
-            onClick={(e) => { e.stopPropagation(); onBookmark() }}
+            onClick={(e) => { 
+              if (bookmarkSource === 'library') {
+                if (e && e.stopPropagation) e.stopPropagation();
+                toast('Already bookmarked in Library', { icon: '★' });
+                return;
+              }
+              e.stopPropagation(); 
+              onBookmark(); 
+            }}
+            title={bookmarkSource === 'library' ? 'Bookmarked in Library' : bookmarked ? 'Remove bookmark' : 'Bookmark this creation'}
             style={{
               width: 34,
               height: 34,
@@ -1276,7 +1321,8 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
               border: '2px solid var(--s,#45d6ff)',
               background: bookmarked ? 'var(--s,#45d6ff)' : 'transparent',
               color: bookmarked ? '#12081e' : 'var(--s,#45d6ff)',
-              cursor: 'pointer',
+              cursor: bookmarkSource === 'library' ? 'not-allowed' : 'pointer',
+              opacity: bookmarkSource === 'library' ? 0.6 : 1,
               fontSize: 16,
               display: 'flex',
               alignItems: 'center',
@@ -1295,9 +1341,10 @@ function ContributionCard({ item, bookmarked, onOpen, onBookmark }: {
 /* ═══════════════════════════════════════════════════════════════
    PreviewModal
    ═══════════════════════════════════════════════════════════════ */
-function PreviewModal({ item, bookmarked, onClose, onBookmark }: {
+function PreviewModal({ item, bookmarked, bookmarkSource, onClose, onBookmark }: {
   item: ShowcaseItem
   bookmarked: boolean
+  bookmarkSource?: string | null
   onClose: () => void
   onBookmark: () => void
 }) {

@@ -187,3 +187,51 @@ export async function fetchUserBookmarks(itemType?: string) {
   }
   return data || [];
 }
+
+export async function fetchShowcaseBookmarks() {
+  const { userId } = await auth();
+  if (!userId) return [];
+  const supabase = createServerSupabaseClient();
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_user_id', userId)
+    .maybeSingle();
+
+  if (!profile) return [];
+
+  const { data: activeCohort } = await supabase
+    .from('cohorts')
+    .select('id')
+    .in('status', ['open', 'completed'])
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!activeCohort) return [];
+
+  const { data, error } = await supabase
+    .from('workshop_engagement')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .eq('cohort_id', activeCohort.id)
+    .eq('kind', 'bookmark')
+    .ilike('source', '%Showcase%');
+
+  if (error) {
+    console.error(`Error fetching showcase bookmarks:`, error);
+    return [];
+  }
+
+  return (data || []).map(eng => ({
+    id: eng.id,
+    item_id: eng.url,
+    item_type: eng.source,
+    user_id: userId,
+    status: eng.status,
+    review_note: eng.review_note,
+    title: eng.title,
+    content: eng.content
+  }));
+}

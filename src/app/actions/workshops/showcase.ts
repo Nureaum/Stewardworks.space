@@ -21,9 +21,20 @@ export async function getShowcaseItems(cohortId: string) {
     return []
   }
   
+  let validData = data || [];
+  validData = validData.filter((d: any) => {
+    if (!d.meta) return true;
+    try {
+      const parsed = JSON.parse(d.meta);
+      return !parsed.isDeleted;
+    } catch {
+      return true;
+    }
+  });
+  
   // Backfill content_item_id if the column doesn't exist or is null
-  if (data && data.length > 0) {
-    const missingIds = data.filter((d: any) => !d.content_item_id).map((d: any) => d.title)
+  if (validData.length > 0) {
+    const missingIds = validData.filter((d: any) => !d.content_item_id).map((d: any) => d.title)
     if (missingIds.length > 0) {
       const { data: libraryItems } = await supabase
         .from('content_items')
@@ -34,7 +45,7 @@ export async function getShowcaseItems(cohortId: string) {
         .order('created_at', { ascending: false })
         
       if (libraryItems && libraryItems.length > 0) {
-        data.forEach((d: any) => {
+        validData.forEach((d: any) => {
           if (!d.content_item_id) {
             const match = libraryItems.find((l: any) => l.title === d.title)
             if (match) {
@@ -46,7 +57,7 @@ export async function getShowcaseItems(cohortId: string) {
     }
   }
   
-  return data || []
+  return validData || []
 }
 
 /**
@@ -420,17 +431,65 @@ export async function deleteShowcaseItem(itemId: string) {
   
   const supabase = createServerSupabaseClient()
   
-  const { error } = await supabase
+  // 1. Fetch the item first so we know its title and url
+  const { data: item } = await supabase
     .from('workshop_showcase')
-    .delete()
+    .select('*')
     .eq('id', itemId)
-  
-  if (error) {
-    console.error('Delete showcase item error:', error)
-    throw new Error(`Failed to delete showcase item: ${error.message}`)
+    .single()
+
+  if (item) {
+    // 2. Soft-delete the showcase item by setting meta
+    const { error } = await supabase
+      .from('workshop_showcase')
+      .update({ meta: JSON.stringify({ isDeleted: true }) })
+      .eq('id', itemId)
+    
+    if (error) {
+      console.error('Delete showcase item error:', error)
+      throw new Error(`Failed to delete showcase item: ${error.message}`)
+    }
+
+    // 3. Find the exact library item ID (either from column or by matching title+tag for legacy items)
+    let libraryItemId = item.content_item_id;
+    if (!libraryItemId) {
+      const { data: libItem } = await supabase
+        .from('content_items')
+        .select('id')
+        .eq('title', item.title)
+        .eq('source_tag', 'contributor')
+        .single();
+      if (libItem) libraryItemId = libItem.id;
+    }
+
+    // 4. Soft-delete the exact library resource
+    if (libraryItemId) {
+      const { error: libraryError } = await supabase
+        .from('content_items')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', libraryItemId);
+        
+      if (libraryError) {
+        console.error('Failed to soft-delete library item:', libraryError);
+      }
+    }
+
+    // 5. Mark EXACT associated student bookmarks as unavailable by matching exact URLs
+    // We append [UNAVAILABLE] to the title so the frontend can easily detect it
+    const urlsToMatch = [item.url];
+    if (libraryItemId) {
+      urlsToMatch.push(`/hub/library/${libraryItemId}`);
+    }
+
+    await supabase
+      .from('workshop_engagement')
+      .update({ title: `${item.title} [UNAVAILABLE]` })
+      .eq('kind', 'bookmark')
+      .in('url', urlsToMatch);
   }
   
   revalidatePath('/hub/pilot-workshops')
+  revalidatePath('/hub/library')
   return true
 }
 

@@ -387,7 +387,8 @@ export default function ClientProfile({
               source: e.source || 'Workshops',
               status: e.status || 'pending',
               reviewNote: e.review_note || null,
-              created_at: e.created_at
+              created_at: e.created_at,
+              cohort_id: e.cohort_id || progressData.selectedCohortId
             }));
           setWorkshopBookmarks(bookmarkEngagements);
           
@@ -637,7 +638,8 @@ export default function ClientProfile({
   }, [activeCohortId, loadWorkshopData]);
 
   // Edit/Delete handlers for notes and generations
-  const calculateItemPercentage = (kind: string, source: string, content: string | null) => {
+  const calculateItemPercentage = (kind: string, source: string, content: string | null, status?: string) => {
+    if (status && status !== 'approved') return 0;
     let points = 0;
     const k = kind.toLowerCase();
     if (k === 'bookmark' || k === 'note') points = 1;
@@ -661,13 +663,13 @@ export default function ClientProfile({
     return points;
   };
 
-  const confirmDeleteEngagement = (id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark' | 'suggestion', title: string, isBookmark: boolean, source: string = '', content: string | null = null, customPercentage?: number) => {
+  const confirmDeleteEngagement = (id: string, kind: 'note' | 'prompt' | 'generation' | 'bookmark' | 'suggestion', title: string, isBookmark: boolean, source: string = '', content: string | null = null, customPercentage?: number, status?: string) => {
     setItemToDelete({
       id,
       kind,
       title,
       isBookmark,
-      percentage: customPercentage !== undefined ? customPercentage : calculateItemPercentage(kind, source, content)
+      percentage: customPercentage !== undefined ? customPercentage : calculateItemPercentage(kind, source, content, status)
     });
   };
 
@@ -1546,18 +1548,22 @@ export default function ClientProfile({
                     STEWARD LIBRARY <span style={{ background: 'rgba(65,124,152,.1)', padding: '2px 6px', borderRadius: '4px', fontSize: '9px' }}>{bookmarkedResources.length}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
-                    {bookmarkedResources.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'LIBRARY', _color: '#417C98', _bg: '#EBF4F8', _url: (b.id?.startsWith('http') || b.id?.startsWith('/')) ? b.id : `/hub/library/${b.id}`, _status: b.bookmarkStatus, _source: domain(b.external_url || b.url) })}>
+                    {bookmarkedResources.map(b => {
+                      const isUnavailable = b.title && b.title.endsWith('[UNAVAILABLE]');
+                      return (
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: isUnavailable ? '#f0f0f0' : '#EBF4F8', border: '1.5px solid rgba(65,124,152,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer', opacity: isUnavailable ? 0.7 : 1 }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'LIBRARY', _color: '#417C98', _bg: '#EBF4F8', _url: (b.id?.startsWith('http') || b.id?.startsWith('/')) ? b.id : `/hub/library/${b.id}`, _status: b.bookmarkStatus, _source: domain(b.external_url || b.url), _isUnavailable: isUnavailable })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#417C98', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>LIBRARY</span>
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
                           {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
+                        <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all', textDecoration: isUnavailable ? 'line-through' : 'none' }}>
+                          {isUnavailable ? b.title.replace(' [UNAVAILABLE]', '') : b.title}
+                        </div>
                         <div style={{ fontSize: '12px', color: '#5a8a9a', marginTop: '7px' }}>{domain(b.external_url || b.url)}</div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </div>
               )}
@@ -1574,17 +1580,21 @@ export default function ClientProfile({
                       const isContributor = b.source?.toLowerCase().includes('showcase') && !isStudentShowcase;
                       const tagLabel = isStudentShowcase ? 'STUDENT SHOWCASE' : isContributor ? 'CONTRIBUTOR' : 'WORKSHOP';
                       const tagColor = isStudentShowcase ? '#ff5fd2' : isContributor ? '#45d6ff' : '#A27532';
+                      const isUnavailable = b.title && b.title.endsWith('[UNAVAILABLE]');
                       return (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: tagLabel, _color: tagColor, _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source, content: b.content || b.note || '' })}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: isUnavailable ? '#f0f0f0' : '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer', opacity: isUnavailable ? 0.7 : 1 }} onClick={() => setSelectedResourceItem({ ...b, _kind: tagLabel, _color: tagColor, _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source, _cohortId: b.cohort_id, content: b.content || b.note || '', _isUnavailable: isUnavailable })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: tagColor, color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>{tagLabel}</span>
                           {b.status === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
                           {b.status === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.status === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>
+                        <div style={{ fontWeight: 700, color: '#4a3a2a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all', textDecoration: isUnavailable ? 'line-through' : 'none' }}>
                           {(() => {
                             let displayTitle = b.title;
+                            if (isUnavailable) {
+                              displayTitle = displayTitle.replace(' [UNAVAILABLE]', '');
+                            }
                             if (displayTitle && displayTitle.includes('/library/')) {
                               displayTitle = 'Library Resource';
                             } else if (displayTitle && displayTitle.match(/^[0-9a-fA-F-]{36}$/)) {
@@ -1932,7 +1942,7 @@ export default function ClientProfile({
                         )}
 
                         <button 
-                          onClick={() => confirmDeleteEngagement(s.id, 'suggestion', s.title, false, s.source || '', null, s.status === 'approved' ? 2 : 0)}
+                          onClick={() => confirmDeleteEngagement(s.id, 'suggestion', s.title, false, s.source || '', null, s.status === 'approved' ? 2 : 0, s.status)}
                           disabled={isDeletingItem && itemToDelete?.id === s.id}
                           style={{
                             background: 'none', border: 'none', color: '#b56d6d', fontSize: '12px', fontWeight: 600,
@@ -2235,7 +2245,7 @@ export default function ClientProfile({
                     style={{ padding: '9px 16px', background: 'rgba(162,117,50,.1)', color: '#8a5a2e', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: 'pointer' }}
                   >✏️ Edit</button>
                   <button
-                    onClick={() => confirmDeleteEngagement(selectedNoteItem.id, selectedNoteItem.itemType, selectedNoteItem.title, false, selectedNoteItem.source || '', selectedNoteItem.content || null)}
+                    onClick={() => confirmDeleteEngagement(selectedNoteItem.id, selectedNoteItem.itemType, selectedNoteItem.title, false, selectedNoteItem.source || '', selectedNoteItem.content || null, undefined, selectedNoteItem.status)}
                     disabled={isDeletingItem}
                     style={{ padding: '9px 16px', background: 'rgba(200,50,50,.08)', color: '#c03030', border: '1.5px solid rgba(200,50,50,.3)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: isDeletingItem ? 'wait' : 'pointer', opacity: isDeletingItem ? 0.6 : 1 }}
                   >{isDeletingItem ? '⏳' : '🗑️'} Delete</button>
@@ -2445,19 +2455,31 @@ export default function ClientProfile({
                   )}
                   {r._kind !== 'WORKFORCE' && r._url && (
                     <button
-                      onClick={() => window.open(r._url, '_blank')}
+                      onClick={() => {
+                        if (r._isUnavailable) return;
+                        const safeTitle = r.title ? encodeURIComponent(r.title.replace(' [UNAVAILABLE]', '')) : '';
+                        if (r._kind === 'CONTRIBUTOR' && r._cohortId) {
+                          window.open(`/hub/pilot-workshops/${r._cohortId}/journey?tab=showcase&itemTitle=${safeTitle}`, '_blank');
+                        } else if (r._kind === 'STUDENT SHOWCASE' && r._cohortId) {
+                          window.open(`/hub/pilot-workshops/${r._cohortId}/journey?tab=studentshowcase&itemTitle=${safeTitle}`, '_blank');
+                        } else {
+                          window.open(r._url, '_blank');
+                        }
+                      }}
+                      disabled={r._isUnavailable}
                       style={{
                         padding: '12px 22px',
-                        background: '#2E5534', color: '#fff', border: 'none',
+                        background: r._isUnavailable ? '#999' : '#2E5534', 
+                        color: '#fff', border: 'none',
                         borderRadius: '8px', fontFamily: '"Exo", sans-serif',
                         fontSize: '14px', fontWeight: 700,
-                        cursor: 'pointer', 
+                        cursor: r._isUnavailable ? 'not-allowed' : 'pointer', 
                         transition: 'opacity .15s'
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                      onMouseEnter={e => { if (!r._isUnavailable) e.currentTarget.style.opacity = '0.85' }}
+                      onMouseLeave={e => { if (!r._isUnavailable) e.currentTarget.style.opacity = '1' }}
                     >
-                      {r._viewLabel || 'Open Resource ↗'}
+                      {r._isUnavailable ? 'Resource Unavailable' : (r._viewLabel || 'Open Resource ↗')}
                     </button>
                   )}
                   {r._kind === 'GENERATION' && (
@@ -2477,7 +2499,7 @@ export default function ClientProfile({
                   )}
                   {r._kind === 'GENERATION' && (
                     <button
-                      onClick={() => confirmDeleteEngagement(r.id, 'generation', r.title, false, r.source || r._source || '', r.content || null)}
+                      onClick={() => confirmDeleteEngagement(r.id, 'generation', r.title, false, r.source || r._source || '', r.content || null, undefined, r._status || r.status)}
                       disabled={isDeletingItem}
                       style={{
                         padding: '12px 22px',
@@ -2494,7 +2516,7 @@ export default function ClientProfile({
                   )}
                   {(r._kind === 'LIBRARY' || r._kind === 'WORKFORCE' || r._kind === 'JOB' || r._kind === 'ENVIRONMENTAL' || r._kind === 'BOOKMARK' || r._kind === 'SHOWCASE' || r._kind === 'WORKSHOP' || r._kind === 'CONTRIBUTOR' || r._kind === 'STUDENT SHOWCASE') && r.id && (
                     <button
-                      onClick={() => confirmDeleteEngagement(r.engagementId || r.id, ['WORKSHOP', 'CONTRIBUTOR', 'STUDENT SHOWCASE'].includes(r._kind) ? 'bookmark' : 'note', r.title, ['LIBRARY', 'WORKFORCE', 'JOB', 'ENVIRONMENTAL', 'BOOKMARK'].includes(r._kind), r.source || r._source || '', r.content || null)}
+                      onClick={() => confirmDeleteEngagement(r.engagementId || r.id, ['WORKSHOP', 'CONTRIBUTOR', 'STUDENT SHOWCASE'].includes(r._kind) ? 'bookmark' : 'note', r.title, ['LIBRARY', 'WORKFORCE', 'JOB', 'ENVIRONMENTAL', 'BOOKMARK'].includes(r._kind), r.source || r._source || '', r.content || null, undefined, r._status || r.status)}
                       disabled={isDeletingItem}
                       style={{
                         padding: '12px 22px',

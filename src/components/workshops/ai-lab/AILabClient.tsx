@@ -191,7 +191,7 @@ export default function AILabClient({
 
                 {studentView === 'lab' && (
                   <div>
-                    <LabHeader day={day} profilePct={profilePct} chiaStage={chiaStage} userCharacter={userCharacter} daysComplete={daysComplete} bankedPrinciplesCount={bankedPrinciples.length} totalPrinciples={principles.length} />
+                    <LabHeader day={day} profilePct={profilePct} chiaStage={chiaStage} userCharacter={userCharacter} daysComplete={daysComplete} bankedPrinciplesCount={bankedPrinciples.length} totalPrinciples={principles.length} principles={principles} />
                     
                     {/* Session control bar */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 }}>

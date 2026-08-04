@@ -156,6 +156,17 @@ export default async function JourneyPage({ params, searchParams }: Props) {
   }))
 
 
+  // Filter out soft-deleted showcase items
+  const validShowcaseItems = (showcaseItems || []).filter((item: any) => {
+    if (!item.meta) return true
+    try {
+      const parsed = JSON.parse(item.meta)
+      return !parsed.isDeleted
+    } catch {
+      return true
+    }
+  })
+
   return (
     <JourneyClient
       cohortId={cohortId}
@@ -168,7 +179,7 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       bankedPrinciples={bankedPrinciples || []}
       allBankedPrinciples={allBankedPrinciples || []}
       initialEngagements={initialEngagements || []}
-      showcaseItems={showcaseItems || []}
+      showcaseItems={validShowcaseItems}
       submissions={submissions || []}
       isAdmin={isAdmin}
       profileId={profile.id}

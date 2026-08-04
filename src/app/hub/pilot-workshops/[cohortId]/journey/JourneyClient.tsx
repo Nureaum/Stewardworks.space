@@ -82,6 +82,8 @@ export default function JourneyClient({
   const [victoryVisible, setVictoryVisible] = useState(false)
 
   const [engagements, setEngagements] = useState<WorkshopEngagement[]>(initialEngagements)
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, title: string, percentage: number } | null>(null)
+  const [isDeletingItem, setIsDeletingItem] = useState(false)
   const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null)
   const [bankedPrinciples, setBankedPrinciples] = useState(initialBankedPrinciples)
 
@@ -178,13 +180,8 @@ export default function JourneyClient({
       : engagements.find(e => e.kind === 'bookmark' && e.title === title && e.status !== 'rejected')
 
     if (existingBookmark) {
-      if (existingBookmark.status === 'pending') {
-        setToast('Already bookmarked! Pending admin approval.')
-      } else if (existingBookmark.status === 'approved') {
-        setToast('Already bookmarked and approved!')
-      } else {
-        setToast('Already bookmarked!')
-      }
+      const percentage = existingBookmark.status === 'approved' ? 1 : 0;
+      setItemToDelete({ id: existingBookmark.id, title: existingBookmark.title, percentage });
       return
     }
 
@@ -199,6 +196,20 @@ export default function JourneyClient({
       submittingRef.current.delete(key)
     }
   }, [engagements, cohortId])
+
+  const executeDeleteEngagement = async () => {
+    if (!itemToDelete) return
+    setIsDeletingItem(true)
+    try {
+      await handleRemoveEngagement(itemToDelete.id)
+      setToast('Bookmark removed')
+    } catch (e) {
+      setToast('Error removing bookmark')
+    } finally {
+      setIsDeletingItem(false)
+      setItemToDelete(null)
+    }
+  }
 
   return (
     <>

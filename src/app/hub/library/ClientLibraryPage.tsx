@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { toggleBookmark as toggleDbBookmark, fetchUserBookmarks } from '@/app/actions/bookmarks';
+import { toggleBookmark as toggleDbBookmark, fetchUserBookmarks, fetchShowcaseBookmarks } from '@/app/actions/bookmarks';
 
 const TYPES = [
   { id: 'video',   label: 'Video',      code: 'VI', color: '#7A2E2E' },
@@ -82,7 +82,9 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
   const [form, setForm] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resources, setResources] = useState<any[]>(initialResources);
-  const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
+  const [bookmarks, setBookmarks] = useState<Record<string, any>>({});
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, title: string, percentage: number } | null>(null);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
   const [isNavigatingToProfile, setIsNavigatingToProfile] = useState(false);
   const [listMode, setListMode] = useState<'cards' | 'book'>('cards');
   const [bookSpread, setBookSpread] = useState(0);
@@ -137,23 +139,30 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
     }
   }, [initialCategories]);
 
+  const [showcaseBookmarks, setShowcaseBookmarks] = useState<any[]>([]);
+
   useEffect(() => {
-    fetchUserBookmarks('library').then(data => {
-      const bm: Record<string, boolean> = {};
-      data.forEach((b: any) => {
+    Promise.all([
+      fetchUserBookmarks('library'),
+      fetchShowcaseBookmarks()
+    ]).then(([libraryData, showcaseData]) => {
+      setShowcaseBookmarks(showcaseData);
+      
+      const bm: Record<string, any> = {};
+      libraryData.forEach((b: any) => {
         const itemId = b.item_id || '';
         // Handle all URL formats: /hub/library/{uuid}, just uuid, or external URL
         if (itemId.startsWith('/hub/library/')) {
-          bm[itemId.replace('/hub/library/', '')] = true;
+          bm[itemId.replace('/hub/library/', '')] = b;
         } else {
-          bm[itemId] = true;
+          bm[itemId] = b;
         }
       });
       // Also match by resource external_url for legacy bookmarks
       if (resources.length > 0) {
-        data.forEach((b: any) => {
+        libraryData.forEach((b: any) => {
           const match = resources.find(r => r.external_url === b.item_id || r.id === b.item_id);
-          if (match) bm[match.id] = true;
+          if (match) bm[match.id] = b;
         });
       }
       setBookmarks(bm);
@@ -164,16 +173,26 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
     if (e && e.stopPropagation) e.stopPropagation();
     const isBookmarked = !!bookmarks[id];
     
-    // Optimistic update
+    if (isBookmarked) {
+      // Instead of toggling, open the deletion modal
+      const bData = bookmarks[id];
+      const status = bData?.status || 'approved';
+      const percentage = status === 'approved' ? 1 : 0;
+      const res = resources.find(r => r.id === id);
+      const title = res?.title || `Resource ${id}`;
+      
+      setItemToDelete({ id, title, percentage });
+      return;
+    }
+    
+    // Optimistic update for adding a bookmark
     setBookmarks(prev => {
       const next = { ...prev };
-      if (next[id]) delete next[id];
-      else next[id] = true;
+      next[id] = { status: 'pending' }; // Dummy object for optimistic UI
       return next;
     });
 
     try {
-      // Find the resource to get title and URL
       const res = resources.find(r => r.id === id);
       await toggleDbBookmark(
         id, 
@@ -182,21 +201,43 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
         `/hub/library/${id}`
       );
       
-      // Show success message
-      if (!isBookmarked) {
-        toast.success('Bookmark request submitted! Awaiting admin approval.');
-      } else {
-        toast.success('Bookmark removed.');
-      }
+      toast.success('Bookmark request submitted! Awaiting admin approval.');
     } catch (err) {
-      // Revert if failed
       toast.error('Failed to save bookmark.');
       setBookmarks(prev => {
         const next = { ...prev };
-        if (isBookmarked) next[id] = true;
-        else delete next[id];
+        delete next[id];
         return next;
       });
+    }
+  };
+
+  const executeDeleteEngagement = async () => {
+    if (!itemToDelete) return;
+    setIsDeletingItem(true);
+    const { id } = itemToDelete;
+    
+    try {
+      const res = resources.find(r => r.id === id);
+      await toggleDbBookmark(
+        id, 
+        'library', 
+        res?.title || `Resource ${id}`,
+        `/hub/library/${id}`
+      );
+      
+      setBookmarks(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      
+      toast.success('Bookmark removed.');
+      setItemToDelete(null);
+    } catch (err) {
+      toast.error('Failed to remove bookmark.');
+    } finally {
+      setIsDeletingItem(false);
     }
   };
   
@@ -411,6 +452,7 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
   const decorate = (r: any) => {
     const t = TYPE_MAP[r.type] || TYPE_MAP['other'];
     const c = cm[r.cat] || {};
+    const showcaseBookmarkMatch = showcaseBookmarks.find(sb => sb.title === r.title);
     return {
       ...r,
       typeLabel: t.label || r.type, 
@@ -420,8 +462,16 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
       catName: c.name || 'Unknown Shelf', 
       code: c.code || '',
       bookmarked: !!bookmarks[r.id],
-      notBookmarked: !bookmarks[r.id],
-      onBookmark: (e: any) => toggleBookmark(r.id, e),
+      bookmarkedInShowcase: !!showcaseBookmarkMatch,
+      notBookmarked: !bookmarks[r.id] && !showcaseBookmarkMatch,
+      onBookmark: (e: any) => {
+        if (showcaseBookmarkMatch) {
+          if (e && e.stopPropagation) e.stopPropagation();
+          toast('Already bookmarked in the Showcase', { icon: '★' });
+          return;
+        }
+        toggleBookmark(r.id, e);
+      },
       onOpen: () => setDetail(r),
       onClose: () => setDetail(null),
       stop: (e: any) => { if (e && e.stopPropagation) e.stopPropagation(); }
@@ -1294,7 +1344,9 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: r.sourceTag === 'contributor' ? '#2E5534' : r.sourceTag === 'student' ? '#3da87a' : r.sourceTag === 'vault' ? '#7653b8' : r.sourceTag === 'partner' ? '#c06e30' : '#4088b8', color: '#fff', fontFamily: '"Courier New", monospace', fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', padding: '2px 5px', borderRadius: '3px', whiteSpace: 'nowrap', flexShrink: 0 }}>★ {r.sourceTag}</span>
                           )}
                           <span style={{ flex: 1 }}></span>
-                          {r.bookmarked ? (
+                          {r.bookmarkedInShowcase ? (
+                            <button onClick={r.onBookmark} title="Bookmarked in Showcase" style={{ background: 'none', border: 'none', cursor: 'not-allowed', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E', flexShrink: 0, opacity: 0.6 }}>★</button>
+                          ) : r.bookmarked ? (
                             <button onClick={r.onBookmark} title="Remove bookmark" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E', flexShrink: 0 }}>★</button>
                           ) : (
                             <button onClick={r.onBookmark} title="Bookmark to My Shelf" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: 'rgba(33,40,46,.3)', flexShrink: 0 }}>☆</button>
@@ -1366,7 +1418,9 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                             )}
                             <span style={{ flex: 1 }}></span>
                             <span style={{ fontFamily: '"Courier New", monospace', fontSize: '10px', color: 'rgba(33,40,46,.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px', flex: '0 1 auto' }}>{r.source}</span>
-                            {r.bookmarked ? (
+                            {r.bookmarkedInShowcase ? (
+                              <button onClick={r.onBookmark} title="Bookmarked in Showcase" style={{ background: 'none', border: 'none', cursor: 'not-allowed', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E', opacity: 0.6 }}>★</button>
+                            ) : r.bookmarked ? (
                               <button onClick={r.onBookmark} title="Remove bookmark" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: '#C9A44E' }}>★</button>
                             ) : (
                               <button onClick={r.onBookmark} title="Bookmark to My Shelf" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px', lineHeight: 1, color: 'rgba(33,40,46,.3)' }}>☆</button>
@@ -1502,7 +1556,9 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', padding: '16px 26px 22px' }}>
                 <Link href={`/hub/library/${decoratedDetail.rawId}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: '#2E5534', color: '#FEFAE0', textDecoration: 'none', padding: '12px 20px', borderRadius: '7px', fontWeight: 800, fontSize: '14px', boxShadow: '0 3px 0 #1d3a23' }}>Open Resource ↗</Link>
-                {decoratedDetail.bookmarked ? (
+                {decoratedDetail.bookmarkedInShowcase ? (
+                  <button onClick={decoratedDetail.onBookmark} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'linear-gradient(180deg,#e3c878,#c39f4a)', color: '#3a2a14', border: 'none', padding: '12px 18px', borderRadius: '7px', fontWeight: 800, fontSize: '14px', cursor: 'not-allowed', fontFamily: '"Exo", sans-serif', boxShadow: 'inset 0 1px 1px rgba(255,255,255,.5)', opacity: 0.7 }}>★ Bookmarked (Showcase)</button>
+                ) : decoratedDetail.bookmarked ? (
                   <button onClick={decoratedDetail.onBookmark} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'linear-gradient(180deg,#e3c878,#c39f4a)', color: '#3a2a14', border: 'none', padding: '12px 18px', borderRadius: '7px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', fontFamily: '"Exo", sans-serif', boxShadow: 'inset 0 1px 1px rgba(255,255,255,.5)' }}>★ Bookmarked</button>
                 ) : (
                   <button onClick={decoratedDetail.onBookmark} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'none', border: '1.5px solid rgba(162,117,50,.55)', color: '#A27532', padding: '11px 17px', borderRadius: '7px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', fontFamily: '"Exo", sans-serif' }}>☆ Bookmark</button>
@@ -1794,6 +1850,76 @@ export default function ClientLibraryPage({ initialResources, initialCategories 
                 <button onClick={() => setSuggestionDetail(null)} style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid rgba(33,40,46,.15)', background: '#fff', color: '#21282E', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer' }}>Close</button>
                 <button onClick={() => handleSuggestionAction(suggestionDetail.id, 'approved')} disabled={suggestionProcessing === suggestionDetail.id} style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#2E5534', color: '#FEFAE0', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: suggestionProcessing === suggestionDetail.id ? 'wait' : 'pointer', opacity: suggestionProcessing === suggestionDetail.id ? 0.6 : 1, boxShadow: '0 3px 0 #1d3a23' }}>Approve</button>
                 <button onClick={() => handleSuggestionAction(suggestionDetail.id, 'rejected')} disabled={suggestionProcessing === suggestionDetail.id} style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid rgba(220,80,80,.3)', background: '#fff', color: '#c04040', fontFamily: '"Exo", sans-serif', fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '.06em', cursor: suggestionProcessing === suggestionDetail.id ? 'wait' : 'pointer', opacity: suggestionProcessing === suggestionDetail.id ? 0.6 : 1 }}>Reject</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Popup for Deletion/Unbookmarking */}
+        {itemToDelete && (
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 11000,
+              background: 'rgba(20,12,4,.65)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 'clamp(12px,4vw,40px)',
+              animation: 'fadeIn .18s ease'
+            }}
+          >
+            <div
+              style={{
+                width: '100%', maxWidth: 400,
+                background: '#FEFAE0',
+                borderRadius: '8px',
+                padding: '24px',
+                boxShadow: '0 24px 60px rgba(0,0,0,.35), 0 0 0 1px rgba(138,90,46,.15)',
+                animation: 'slideUp .2s ease',
+                textAlign: 'center'
+              }}
+            >
+              <h3 style={{ margin: '0 0 16px', color: '#21282E', fontSize: '18px', fontWeight: 700 }}>
+                Unbookmark Resource?
+              </h3>
+              <p style={{ margin: '0 0 24px', color: '#5c4f3c', fontSize: '15px', lineHeight: 1.5 }}>
+                This will reduce your engagement percentage by <strong>{itemToDelete.percentage}%</strong> for removing &quot;<strong>{itemToDelete.title}</strong>&quot; from your profile.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => setItemToDelete(null)}
+                  disabled={isDeletingItem}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'transparent',
+                    color: '#5c4f3c',
+                    border: '1.5px solid rgba(138,90,46,.25)',
+                    borderRadius: '8px',
+                    fontFamily: '"Exo", sans-serif',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeDeleteEngagement}
+                  disabled={isDeletingItem}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'rgba(200,50,50,.08)',
+                    color: '#c03030',
+                    border: '1.5px solid rgba(200,50,50,.3)',
+                    borderRadius: '8px',
+                    fontFamily: '"Exo", sans-serif',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: isDeletingItem ? 'wait' : 'pointer',
+                    opacity: isDeletingItem ? 0.6 : 1
+                  }}
+                >
+                  {isDeletingItem ? '⏳' : 'Unbookmark'}
+                </button>
               </div>
             </div>
           </div>

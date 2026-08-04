@@ -918,8 +918,14 @@ export default function AdminConsole({
     })
   }
 
-  const handleUpdatePrinciple = (principleId: string, field: string, value: string) => {
-    saveField(() => updatePrinciple(principleId, { [field]: value } as any))
+  const handleUpdatePrinciple = async (principleId: string, field: string, value: string) => {
+    await saveField(async () => {
+      await updatePrinciple(principleId, { [field]: value } as any)
+      // Update local state to reflect changes immediately
+      setPrinciplesList(prev => prev.map(p => 
+        p.id === principleId ? { ...p, [field]: value } : p
+      ))
+    })
   }
 
   const handleDeletePrinciple = async (principleId: string) => {
@@ -2827,22 +2833,20 @@ export default function AdminConsole({
                   <button
                     onClick={async () => {
                       setShowHistory(true);
-                      if (historyItems.length === 0) {
-                        setIsLoadingHistory(true);
-                        try {
-                          const [allSubs, allEngs] = await Promise.all([
-                            getSubmissionsForReview(cohortId, 'all'),
-                            getAllEngagementsHistory(cohortId)
-                          ]);
-                          const merged = [...allSubs, ...allEngs].sort(
-                            (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
-                          );
-                          setHistoryItems(merged);
-                        } catch (e) {
-                          console.error('Failed to load history', e);
-                        } finally {
-                          setIsLoadingHistory(false);
-                        }
+                      setIsLoadingHistory(true);
+                      try {
+                        const [allSubs, allEngs] = await Promise.all([
+                          getSubmissionsForReview(cohortId, 'all'),
+                          getAllEngagementsHistory(cohortId)
+                        ]);
+                        const merged = [...allSubs, ...allEngs].sort(
+                          (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
+                        );
+                        setHistoryItems(merged);
+                      } catch (e) {
+                        console.error('Failed to load history', e);
+                      } finally {
+                        setIsLoadingHistory(false);
                       }
                     }}
                     style={{
@@ -2856,15 +2860,39 @@ export default function AdminConsole({
                       cursor: 'pointer',
                     }}
                   >⏱ HISTORY</button>
-                  <span style={{
-                    fontFamily: "'VT323'",
-                    fontSize: 18,
-                    letterSpacing: '.5px',
-                    color: '#141019',
-                    background: 'var(--gold,#c9a85f)',
-                    borderRadius: 20,
-                    padding: '4px 14px',
-                  }}>{pendingSubmissions.length} PENDING</span>
+                  <button 
+                    onClick={async () => {
+                      setShowHistory(false);
+                      setIsLoadingApprovals(true);
+                      try {
+                        const [subs, engs, progress] = await Promise.all([
+                          getSubmissionsForReview(cohortId, 'submitted'),
+                          getPendingEngagements(cohortId),
+                          getParticipantsProgress(cohortId)
+                        ]);
+                        const allPending = [...subs, ...engs].sort(
+                          (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
+                        );
+                        setPendingSubmissions(allPending);
+                        setParticipantsProgress(progress);
+                      } catch (e) {
+                        console.error('Failed to load approvals', e);
+                      } finally {
+                        setIsLoadingApprovals(false);
+                      }
+                    }}
+                    style={{
+                      fontFamily: "'VT323'",
+                      fontSize: 18,
+                      letterSpacing: '.5px',
+                      color: !showHistory ? '#141019' : 'var(--gold,#c9a85f)',
+                      background: !showHistory ? 'var(--gold,#c9a85f)' : 'transparent',
+                      border: !showHistory ? '2px solid var(--gold,#c9a85f)' : '2px solid var(--ln,#3a3352)',
+                      borderRadius: 20,
+                      padding: '4px 14px',
+                      cursor: 'pointer'
+                    }}
+                  >{pendingSubmissions.length} PENDING</button>
                   <div style={{ display: 'flex', gap: 3, border: '2px solid var(--ln,#3a3352)', borderRadius: 7, padding: 3, background: '#181324', marginLeft: 'auto' }}>
                     <button
                       onClick={() => { setShowHistory(false); setApprovalView('log'); }}
