@@ -413,10 +413,20 @@ export default function ClientProfile({
                   if (!activeLibraryIds.has(resourceId)) {
                     return { ...b, title: `${b.title} [UNAVAILABLE]` };
                   }
+                  // Library resource exists, don't check showcase
+                  return b;
                 }
               }
               
-              // 2. Otherwise, check if the showcase item exists by title
+              // 2. For workshop/showcase bookmarks (no library URL), check if the showcase item exists by title
+              // Skip this check if the bookmark is from library, workforce, or environmental sources
+              const sourceLC = (b.source || '').toLowerCase();
+              if (sourceLC.includes('library') || sourceLC === 'workforce' || sourceLC === 'environmental' || sourceLC.includes('steward library')) {
+                // This is a library/workforce/environmental bookmark - keep it (don't check showcase)
+                return b;
+              }
+              
+              // Only mark as unavailable if it's a showcase bookmark and not found
               if (!activeShowcaseTitles.has(b.title)) {
                 return { ...b, title: `${b.title} [UNAVAILABLE]` };
               }
