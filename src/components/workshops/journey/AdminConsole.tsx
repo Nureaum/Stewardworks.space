@@ -448,6 +448,7 @@ export default function AdminConsole({
   const [showcaseList, setShowcaseList] = useState<WorkshopShowcase[]>([])
   const [editingShowcaseId, setEditingShowcaseId] = useState<string | null>(null)
   const [showcaseSubTab, setShowcaseSubTab] = useState<'contributor' | 'student'>('contributor')
+  const [studentShowcaseFilter, setStudentShowcaseFilter] = useState<'active' | 'archived'>('active')
   const [studentShowcaseItems, setStudentShowcaseItems] = useState<any[]>([])
   const [isLoadingStudentShowcase, setIsLoadingStudentShowcase] = useState(false)
   const [showcaseSettings, setShowcaseSettings] = useState<any>(null)
@@ -2246,7 +2247,13 @@ export default function AdminConsole({
               {/* Student Showcase Tab */}
               {showcaseSubTab === 'student' && (
                 <div style={{ border: '2px solid #ff5fd2', borderRadius: 12, padding: 24, background: 'rgba(255,95,210,.03)' }}>
-                  <div className="font-pixel" style={{ fontSize: 14, color: '#ff5fd2', marginBottom: 18 }}>★ STUDENT SHOWCASE ITEMS</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                    <div className="font-pixel" style={{ fontSize: 14, color: '#ff5fd2' }}>★ STUDENT SHOWCASE ITEMS</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => setStudentShowcaseFilter('active')} className="font-pixel" style={{ fontSize: 9, padding: '6px 12px', borderRadius: 5, background: studentShowcaseFilter === 'active' ? '#ff5fd2' : 'transparent', color: studentShowcaseFilter === 'active' ? '#12081e' : '#ff5fd2', border: '1px solid #ff5fd2', cursor: 'pointer' }}>ACTIVE</button>
+                      <button onClick={() => setStudentShowcaseFilter('archived')} className="font-pixel" style={{ fontSize: 9, padding: '6px 12px', borderRadius: 5, background: studentShowcaseFilter === 'archived' ? '#ff5fd2' : 'transparent', color: studentShowcaseFilter === 'archived' ? '#12081e' : '#ff5fd2', border: '1px solid #ff5fd2', cursor: 'pointer' }}>ARCHIVED</button>
+                    </div>
+                  </div>
                   {isLoadingStudentShowcase ? (
                     <div style={{ padding: 20, textAlign: 'center', color: 'var(--mu,#9990ab)' }}>Loading student showcase...</div>
                   ) : studentShowcaseItems.length === 0 ? (
@@ -2255,7 +2262,12 @@ export default function AdminConsole({
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {studentShowcaseItems.map((item: any) => {
+                      {studentShowcaseItems
+                        .filter((item: any) => {
+                          const isVisible = (() => { try { const d = JSON.parse(item.content || '{}'); return d.showcaseVisible === true; } catch { return false; } })();
+                          return studentShowcaseFilter === 'archived' ? !isVisible : isVisible;
+                        })
+                        .map((item: any) => {
                         const isVisible = (() => { try { const d = JSON.parse(item.content || '{}'); return d.showcaseVisible === true; } catch { return false; } })();
                         const isFormSubmission = item.source === 'Student Showcase';
                         const statusColor = item.status === 'approved' ? '#74f0a0' : item.status === 'rejected' ? '#ff8a4a' : '#ffd23f';
