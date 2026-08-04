@@ -523,24 +523,42 @@ export default function ClientProfile({
           // New format: /hub/library/{uuid}
           // Legacy format: just the uuid
           // Older format: external URL
+          
+          console.log('[DEBUG] libBookmarks:', JSON.stringify(libBookmarks, null, 2));
+          console.log('[DEBUG] library resources fetched:', data.resources.length);
+          if (data.resources.length > 0) {
+            console.log('[DEBUG] Sample resource (first 2):', JSON.stringify(data.resources.slice(0, 2).map((r: any) => ({ id: r.id, title: r.title, external_url: r.external_url })), null, 2));
+          }
+
           const matched = data.resources.filter((r: any) => 
             libBookmarks.some((b: any) => {
               const itemId = b.item_id || '';
-              return itemId === r.id || 
-                     itemId === `/hub/library/${r.id}` || 
-                     itemId === r.external_url;
+              const matchId = itemId === r.id;
+              const matchPath = itemId === `/hub/library/${r.id}`;
+              const matchExt = itemId === r.external_url;
+              
+              if (matchId || matchPath || matchExt) {
+                 console.log(`[DEBUG] MATCHED: Bookmark "${b.title}" (item_id: ${itemId}) matches Resource "${r.title}" (id: ${r.id}, ext: ${r.external_url}). matchId=${matchId}, matchPath=${matchPath}, matchExt=${matchExt}`);
+                 return true;
+              }
+              return false;
             })
           );
+          console.log('[DEBUG] matched library resources:', matched.length);
           
           // For any bookmarks still unmatched, create placeholder cards from engagement data
           const matchedIds = new Set(matched.map((r: any) => r.id));
           const stillUnmatched = libBookmarks.filter((b: any) => {
             const itemId = b.item_id || '';
-            return !matched.some((r: any) => 
+            const isUnmatched = !matched.some((r: any) => 
               itemId === r.id || 
               itemId === `/hub/library/${r.id}` || 
               itemId === r.external_url
             );
+            if (isUnmatched) {
+              console.log(`[DEBUG] UNMATCHED: Bookmark "${b.title}" (item_id: ${itemId}) could not find any match in library resources.`);
+            }
+            return isUnmatched;
           });
           const placeholders = stillUnmatched.map((b: any) => ({
             id: b.item_id || b.id,

@@ -205,6 +205,28 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
           console.log(`[DELETE API] WARNING: No items found in workshop_showcase with title "${itemToDelete.title}". Dual-deletion skipped.`);
         }
       }
+      
+      // Also mark ALL associated bookmarks as unavailable (both from Library and Showcase)
+      const urlsToMatch = [`/hub/library/${id}`];
+      if (itemToDelete?.external_url) {
+        urlsToMatch.push(itemToDelete.external_url);
+      }
+      if (updateData?.length) {
+        updateData.forEach((d: any) => {
+          urlsToMatch.push(d.id);
+          if (d.url) urlsToMatch.push(d.url);
+        });
+      }
+      
+      const { error: engagementError } = await supabase
+        .from('workshop_engagement')
+        .update({ title: `${itemToDelete.title} [UNAVAILABLE]` })
+        .eq('kind', 'bookmark')
+        .in('url', urlsToMatch);
+        
+      if (engagementError) {
+        console.error('[DELETE API] Failed to mark bookmarks as unavailable:', engagementError);
+      }
     } else {
       console.log(`[DELETE API] Cannot perform title match because itemToDelete.title is missing/null.`);
     }

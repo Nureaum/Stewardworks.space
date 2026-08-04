@@ -476,7 +476,7 @@ export async function deleteShowcaseItem(itemId: string) {
 
     // 5. Mark EXACT associated student bookmarks as unavailable by matching exact URLs
     // We append [UNAVAILABLE] to the title so the frontend can easily detect it
-    const urlsToMatch = [item.url];
+    const urlsToMatch = [item.id, item.url].filter(Boolean);
     if (libraryItemId) {
       urlsToMatch.push(`/hub/library/${libraryItemId}`);
     }
