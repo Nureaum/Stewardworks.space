@@ -396,7 +396,7 @@ export default function ClientProfile({
           // This ensures that if admin deletes the original contribution, the user sees it as REMOVED.
           try {
             const [libRes, activeShowcaseItems] = await Promise.all([
-              fetch('/api/public/library-resources', { cache: 'no-store' }),
+              fetch(`/api/public/library-resources?_t=${Date.now()}`, { cache: 'no-store' }),
               progressData.selectedCohortId ? getShowcaseItems(progressData.selectedCohortId) : Promise.resolve([])
             ]);
             
@@ -506,7 +506,7 @@ export default function ClientProfile({
       if (libBookmarks.length === 0) {
         setBookmarkedResources([]);
       } else {
-        const res = await fetch('/api/public/library-resources', { cache: 'no-store' });
+        const res = await fetch(`/api/public/library-resources?_t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
         if (data.resources) {
           // Match bookmarks to resources - handle multiple URL formats:
