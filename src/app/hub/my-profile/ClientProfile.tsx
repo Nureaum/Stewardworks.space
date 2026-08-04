@@ -9,6 +9,7 @@ import { fetchUserBookmarks } from '@/app/actions/bookmarks';
 import { fetchAllWorkforceEntries, fetchUserPicks } from '@/app/admin/workforce-pathways/actions';
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content';
 import { addEngagement, updateEngagement, removeEngagement, uploadNoteImage } from '@/app/actions/workshops/engagement';
+import { getShowcaseItems } from '@/app/actions/workshops/showcase';
 import RetroToast from '@/components/workshops/journey/RetroToast';
 import { PixelSprite } from '@/components/workshops/journey';
 import RichTextEditor from '@/components/admin/RichTextEditor';
@@ -391,31 +392,50 @@ export default function ClientProfile({
               cohort_id: e.cohort_id || progressData.selectedCohortId
             }));
 
-          // Cross-check showcase bookmarks against active library resources.
-          // If a showcase bookmark's url points to a library resource that has been deleted,
-          // mark it as [UNAVAILABLE] so the profile shows the "Removed" card.
+          // Cross-check showcase bookmarks against active showcase items and library items.
+          // This ensures that if admin deletes the original contribution, the user sees it as REMOVED.
           try {
-            const libRes = await fetch('/api/public/library-resources', { cache: 'no-store' });
+            const [libRes, activeShowcaseItems] = await Promise.all([
+              fetch('/api/public/library-resources', { cache: 'no-store' }),
+              progressData.selectedCohortId ? getShowcaseItems(progressData.selectedCohortId) : Promise.resolve([])
+            ]);
+            
             const libData = await libRes.json();
-            const activeLibraryIds: Set<string> = new Set(
-              (libData.resources || []).map((r: any) => r.id)
-            );
+            const activeLibraryIds = new Set((libData.resources || []).map((r: any) => r.id));
+            const activeShowcaseTitles = new Set(activeShowcaseItems.map((s: any) => s.title));
+            
             const checkedBookmarks = bookmarkEngagements.map((b: any) => {
-              if (!b.url) return b;
-              // Extract library resource UUID from URL like /hub/library/{uuid}
-              const libraryMatch = b.url.match(/\/hub\/library\/([0-9a-fA-F-]{36})/);
-              if (libraryMatch) {
-                const resourceId = libraryMatch[1];
-                if (!activeLibraryIds.has(resourceId)) {
-                  // Resource has been deleted — mark as unavailable
-                  return { ...b, title: `${b.title} [UNAVAILABLE]` };
+              // 1. If it has a library URL format, check if it exists in the active library resources
+              if (b.url) {
+                const libraryMatch = b.url.match(/\/hub\/library\/([0-9a-fA-F-]{36})/);
+                if (libraryMatch) {
+                  const resourceId = libraryMatch[1];
+                  if (!activeLibraryIds.has(resourceId)) {
+                    return { ...b, title: `${b.title} [UNAVAILABLE]` };
+                  }
                 }
               }
+              
+              // 2. Otherwise, check if the showcase item exists by title
+              if (!activeShowcaseTitles.has(b.title)) {
+                return { ...b, title: `${b.title} [UNAVAILABLE]` };
+              }
+              
               return b;
             });
-            setWorkshopBookmarks(checkedBookmarks);
+            
+            // Deduplicate by title to fix any accidental double-clicks before loading state was added
+            const uniqueBookmarks = [];
+            const seenTitles = new Set();
+            for (const b of checkedBookmarks) {
+              if (!seenTitles.has(b.title)) {
+                seenTitles.add(b.title);
+                uniqueBookmarks.push(b);
+              }
+            }
+            setWorkshopBookmarks(uniqueBookmarks);
           } catch {
-            // Fallback: set bookmarks without cross-check
+            // Fallback
             setWorkshopBookmarks(bookmarkEngagements);
           }
           
@@ -1589,7 +1609,7 @@ export default function ClientProfile({
                           <div style={{ fontWeight: 700, color: '#9a8a7a', fontSize: '13px', lineHeight: 1.3, textDecoration: 'line-through', marginBottom: '6px' }}>{cleanTitle}</div>
                           <div style={{ fontSize: '11px', color: '#b09070', lineHeight: 1.5, marginBottom: '12px' }}>This resource has been removed by an admin and is no longer available.</div>
                           <button
-                            onClick={() => confirmDeleteEngagement(b.engagementId || b.id, 'bookmark', cleanTitle, true, 'library', null, 0, b.bookmarkStatus)}
+                            onClick={() => confirmDeleteEngagement(b.engagementId || b.id, 'bookmark', cleanTitle, true, 'library', null, undefined, b.bookmarkStatus)}
                             style={{ fontSize: '11px', fontFamily: '"DM Mono", monospace', letterSpacing: '.08em', background: 'rgba(192,57,43,.08)', color: '#c0392b', border: '1px solid rgba(192,57,43,.25)', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer' }}
                           >
                             ✕ Remove from Profile
@@ -1636,7 +1656,7 @@ export default function ClientProfile({
                           <div style={{ fontWeight: 700, color: '#9a8a7a', fontSize: '13px', lineHeight: 1.3, textDecoration: 'line-through', marginBottom: '6px' }}>{cleanTitle}</div>
                           <div style={{ fontSize: '11px', color: '#b09070', lineHeight: 1.5, marginBottom: '12px' }}>This resource has been removed by an admin and is no longer available.</div>
                           <button
-                            onClick={() => confirmDeleteEngagement(b.id, 'bookmark', cleanTitle, false, b.source || '', null, 0, b.status)}
+                            onClick={() => confirmDeleteEngagement(b.id, 'bookmark', cleanTitle, false, b.source || '', null, undefined, b.status)}
                             style={{ fontSize: '11px', fontFamily: '"DM Mono", monospace', letterSpacing: '.08em', background: 'rgba(192,57,43,.08)', color: '#c0392b', border: '1px solid rgba(192,57,43,.25)', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer' }}
                           >
                             ✕ Remove from Profile

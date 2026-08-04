@@ -76,7 +76,7 @@ const FILTER_TABS: FilterTab[] = [
 interface ShowcaseProps {
   showcaseItems?: WorkshopShowcase[]
   engagements?: WorkshopEngagement[]
-  onBookmark?: (key: string, title: string, source: string, url?: string, content?: string) => void
+  onBookmark?: (key: string, title: string, source: string, url?: string, content?: string) => Promise<void> | void
   cohortId?: string
   onlyStudents?: boolean
   onlyContributors?: boolean
@@ -1141,8 +1141,9 @@ function ContributionCard({ item, bookmarked, bookmarkSource, onOpen, onBookmark
   bookmarked: boolean
   bookmarkSource?: string | null
   onOpen: () => void
-  onBookmark: () => void
+  onBookmark: () => Promise<void> | void
 }) {
+  const [isBookmarking, setIsBookmarking] = useState(false)
   const clr = TYPE_COLOR[item.type] || '#45d6ff'
 
   return (
@@ -1304,14 +1305,20 @@ function ContributionCard({ item, bookmarked, bookmarkSource, onOpen, onBookmark
           </button>
 
           <button
-            onClick={(e) => { 
+            disabled={isBookmarking}
+            onClick={async (e) => { 
               if (bookmarkSource === 'library') {
                 if (e && e.stopPropagation) e.stopPropagation();
                 toast('Already bookmarked in Library', { icon: '★' });
                 return;
               }
               e.stopPropagation(); 
-              onBookmark(); 
+              setIsBookmarking(true);
+              try {
+                await onBookmark();
+              } finally {
+                setIsBookmarking(false);
+              }
             }}
             title={bookmarkSource === 'library' ? 'Bookmarked in Library' : bookmarked ? 'Remove bookmark' : 'Bookmark this creation'}
             style={{
@@ -1321,8 +1328,8 @@ function ContributionCard({ item, bookmarked, bookmarkSource, onOpen, onBookmark
               border: '2px solid var(--s,#45d6ff)',
               background: bookmarked ? 'var(--s,#45d6ff)' : 'transparent',
               color: bookmarked ? '#12081e' : 'var(--s,#45d6ff)',
-              cursor: bookmarkSource === 'library' ? 'not-allowed' : 'pointer',
-              opacity: bookmarkSource === 'library' ? 0.6 : 1,
+              cursor: bookmarkSource === 'library' ? 'not-allowed' : (isBookmarking ? 'wait' : 'pointer'),
+              opacity: (bookmarkSource === 'library' || isBookmarking) ? 0.6 : 1,
               fontSize: 16,
               display: 'flex',
               alignItems: 'center',
@@ -1330,7 +1337,7 @@ function ContributionCard({ item, bookmarked, bookmarkSource, onOpen, onBookmark
               padding: 0,
             }}
           >
-            {bookmarked ? '★' : '☆'}
+            {isBookmarking ? <Loader2 size={16} className="animate-spin" /> : (bookmarked ? '★' : '☆')}
           </button>
         </div>
       </div>
