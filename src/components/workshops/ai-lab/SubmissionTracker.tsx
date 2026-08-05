@@ -430,7 +430,7 @@ export default function SubmissionTracker({
                 const d = dObj.day_number || (idx + 1);
                 const isActive = d === day;
                 const isBanked = d <= daysComplete;
-                const isLocked = d > daysComplete + 1;
+                const isLocked = false;
                 return (
                   <div 
                     key={d} 

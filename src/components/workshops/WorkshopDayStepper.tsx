@@ -22,16 +22,9 @@ export default function WorkshopDayStepper({ days, cohortId, currentDayNumber }:
     return allTopicsCompleted || (day.progress?.deliverable_status === 'approved')
   }
 
-  // Iterate to override unlocked states
+  // All days are always unlocked (no sequential restriction)
   const enhancedDays = days.map((day, index) => {
-    let isUnlocked = day.unlocked
-    if (!isUnlocked && index > 0) {
-      const previousDay = days[index - 1]
-      if (isDayCompleted(previousDay)) {
-        isUnlocked = true
-      }
-    }
-    return { ...day, isUnlocked, isCompleted: isDayCompleted(day) }
+    return { ...day, isUnlocked: true, isCompleted: isDayCompleted(day) }
   })
 
   return (

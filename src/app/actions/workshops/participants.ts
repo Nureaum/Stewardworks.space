@@ -340,13 +340,11 @@ export async function getWorkshopDashboard(cohortId: string): Promise<DayWithPro
             }
           }
         } else {
-          // Days 2+ unlock based on previous day completion
-          unlocked = await isDayUnlockedForUser(day.id, profile.id, supabase)
+          // Days 2+ are always unlocked (no sequential restriction)
+          unlocked = true
           
-          if (!unlocked) {
-            unlockMessage = `Unlocks after Day ${day.day_number - 1} is submitted`
-          } else if (!progress) {
-            // Create progress row when day becomes unlocked
+          if (!progress) {
+            // Create progress row when day is first accessed
             const { data: newProgress, error: insertError } = await supabase
               .from('workshop_progress')
               .insert({

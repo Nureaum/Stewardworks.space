@@ -256,8 +256,8 @@ export default function TreasureMap({
         {days.map((day, i) => {
           const isDone = i < clampedDays
           const isCurrent = i === clampedDays && !allDone
-          // Guests see all days unlocked (no deliverable requirement)
-          const isLocked = userRole === 'guest' ? false : i > clampedDays
+          // All users see all days unlocked (no deliverable requirement)
+          const isLocked = false
           const nodePos = NODES[i + 1]
           const ring = isDone ? 'var(--ok, #74f0a0)' : isCurrent ? 'var(--p, #ff5fd2)' : 'var(--mu, #a493c9)'
 

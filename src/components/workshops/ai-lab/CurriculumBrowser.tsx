@@ -142,7 +142,7 @@ export default function CurriculumBrowser({
       <div style={{ padding: '14px 14px 0', borderBottom: '2px solid #28432f' }}>
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {[1, 2, 3].map((d) => {
-            const isLocked = d > daysComplete + 1;
+            const isLocked = false;
             return (
               <button
                 key={d}

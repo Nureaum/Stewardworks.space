@@ -100,8 +100,8 @@ export default function JourneyDayList({
           <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexWrap: 'wrap' }}>
             {days.map((d) => {
               const isActive = d.day_number === activeDay;
-              // Guests can access all days freely (no deliverable requirement)
-              const isLocked = userRole === 'guest' ? false : d.day_number > daysComplete + 1;
+              // All users can access all days freely (no deliverable requirement)
+              const isLocked = false;
               return (
                 <button
                   key={d.id}
