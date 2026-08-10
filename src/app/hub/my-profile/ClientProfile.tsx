@@ -46,6 +46,28 @@ export const parseNoteContent = (contentStr: string | null) => {
   return { text: contentStr, html: '', images: [], subType: 'note', version: 1 };
 };
 
+// Helper to extract user note from bookmark content
+const getBookmarkNote = (content: string | null | undefined): string => {
+  if (!content) return '';
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.userNote || '';
+  } catch {
+    return '';
+  }
+};
+
+// Helper to build updated content with user note
+const buildBookmarkContent = (existingContent: string | null | undefined, note: string): string => {
+  if (!existingContent) return JSON.stringify({ userNote: note });
+  try {
+    const parsed = JSON.parse(existingContent);
+    return JSON.stringify({ ...parsed, userNote: note });
+  } catch {
+    return JSON.stringify({ entryKey: existingContent, userNote: note });
+  }
+};
+
 export default function ClientProfile({ 
   initialProfile, 
   chiaProgress = 0, 
@@ -110,6 +132,8 @@ export default function ClientProfile({
   const [noteContent, setNoteContent] = useState('');
   const [activeCohortId, setActiveCohortId] = useState<string | null>(initialCohortId);
   const [toast, setToast] = useState<string | null>(null);
+  const [bookmarkNoteId, setBookmarkNoteId] = useState<string | null>(null);
+  const [bookmarkNoteText, setBookmarkNoteText] = useState('');
 
   // Inline Edit State
   const [isUploading, setIsUploading] = useState(false);
@@ -1748,6 +1772,47 @@ export default function ClientProfile({
                           })()}
                         </div>
                         <div style={{ fontSize: '11px', color: '#A27532', marginTop: '7px' }}>🔖 {b.source?.startsWith('workshop:') ? 'Workshop Portfolio' : b.source}</div>
+                        {/* User bookmark note display */}
+                        {getBookmarkNote(b.content) && bookmarkNoteId !== b.id && (
+                          <div style={{ fontSize: '12px', color: '#8a7a5a', marginTop: '8px', fontStyle: 'italic', lineHeight: 1.4, borderTop: '1px dashed rgba(162,117,50,.2)', paddingTop: '8px' }}>
+                            📝 {getBookmarkNote(b.content)}
+                          </div>
+                        )}
+                        {/* Add/Edit note button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setBookmarkNoteId(bookmarkNoteId === b.id ? null : b.id); setBookmarkNoteText(getBookmarkNote(b.content)); }}
+                          style={{ fontSize: '10px', fontFamily: '"DM Mono", monospace', color: '#A27532', background: 'none', border: 'none', cursor: 'pointer', marginTop: '6px', padding: 0, opacity: 0.7 }}
+                        >
+                          {getBookmarkNote(b.content) ? '✎ Edit Note' : '+ Add Note'}
+                        </button>
+                        {/* Inline note editor */}
+                        {bookmarkNoteId === b.id && (
+                          <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '8px', borderTop: '1px dashed rgba(162,117,50,.2)', paddingTop: '8px' }}>
+                            <textarea
+                              value={bookmarkNoteText}
+                              onChange={(e) => setBookmarkNoteText(e.target.value)}
+                              placeholder="Add a personal note..."
+                              rows={2}
+                              style={{ width: '100%', background: '#fff', border: '1px solid rgba(162,117,50,.3)', borderRadius: 6, padding: '6px 8px', color: '#4a3a2a', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit' }}
+                            />
+                            <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
+                              <button onClick={(e) => { e.stopPropagation(); setBookmarkNoteId(null); }} style={{ fontSize: '10px', fontFamily: '"DM Mono", monospace', padding: '4px 10px', background: '#fff', border: '1px solid rgba(162,117,50,.3)', color: '#A27532', borderRadius: 4, cursor: 'pointer' }}>Cancel</button>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const newContent = buildBookmarkContent(b.content, bookmarkNoteText);
+                                    await updateEngagement(b.id, { content: newContent });
+                                    setWorkshopBookmarks(prev => prev.map(wb => wb.id === b.id ? { ...wb, content: newContent } : wb));
+                                    setBookmarkNoteId(null);
+                                    setToast('Note saved!');
+                                  } catch { setToast('Failed to save note'); }
+                                }}
+                                style={{ fontSize: '10px', fontFamily: '"DM Mono", monospace', padding: '4px 10px', background: '#A27532', border: 'none', color: '#fff', borderRadius: 4, cursor: 'pointer' }}
+                              >Save Note</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       );
                     })}

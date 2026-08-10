@@ -318,11 +318,9 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
                         {activeTab === 'bookmarks' && (
                           <button
                             onClick={() => { setBookmarkNoteId(bookmarkNoteId === item.id ? null : item.id); setBookmarkNoteText(getBookmarkNote(item.content)); }}
-                            className="font-pixel"
-                            style={{ fontSize: 6, padding: '3px 6px', background: getBookmarkNote(item.content) ? 'rgba(69,214,255,.15)' : 'rgba(0,0,0,0.3)', border: `1px solid ${getBookmarkNote(item.content) ? activeColor : 'var(--ln,#28432f)'}`, color: activeColor, borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                          >
-                            {getBookmarkNote(item.content) ? '✎ NOTE' : '+ NOTE'}
-                          </button>
+                            style={{ background: 'none', border: 'none', color: getBookmarkNote(item.content) ? activeColor : 'var(--mu,#77b78d)', cursor: 'pointer', fontSize: 14, opacity: getBookmarkNote(item.content) ? 1 : 0.7, padding: '2px 4px' }}
+                            title={getBookmarkNote(item.content) ? 'Edit note' : 'Add note'}
+                          >📝</button>
                         )}
                         {!isAppResource(item.source) && (
                           <button onClick={() => openEditor(item.kind, item)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 13, opacity: 0.7, padding: '2px 4px' }} title="Edit">✎</button>

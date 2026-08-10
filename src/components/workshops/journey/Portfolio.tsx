@@ -1404,21 +1404,18 @@ export default function Portfolio({
                           <button
                             onClick={(e) => { e.stopPropagation(); setBookmarkNoteId(bookmarkNoteId === item.id ? null : item.id); setBookmarkNoteText(getBookmarkNote(item.content)); }}
                             title={getBookmarkNote(item.content) ? 'Edit note' : 'Add note'}
-                            className="font-pixel"
                             style={{
                               flex: 'none',
-                              background: getBookmarkNote(item.content) ? 'rgba(69,214,255,.15)' : 'transparent',
-                              border: getBookmarkNote(item.content) ? '1px solid var(--s,#45d6ff)' : '1px solid var(--ln,#3d2668)',
-                              color: 'var(--s,#45d6ff)',
-                              fontSize: 9,
+                              background: 'none',
+                              border: 'none',
+                              color: getBookmarkNote(item.content) ? 'var(--s,#45d6ff)' : 'var(--mu,#a493c9)',
+                              fontSize: 13,
                               cursor: 'pointer',
                               lineHeight: 1,
-                              padding: '5px 8px',
-                              borderRadius: 3,
-                              letterSpacing: 0.5,
+                              opacity: getBookmarkNote(item.content) ? 1 : 0.7,
                             }}
                           >
-                            {getBookmarkNote(item.content) ? '✎ NOTE' : '+ NOTE'}
+                            📝
                           </button>
                         )}
                         {!isAppResource(item.source) && (
