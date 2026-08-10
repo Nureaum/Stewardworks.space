@@ -1921,8 +1921,8 @@ export default function Portfolio({
               }
             })()}
             
-            {/* For bookmarks or any item with URL: show clickable link */}
-            {((viewingItem.kind === 'bookmark' && viewingItem.title.startsWith('http')) || viewingItem.url) && (
+            {/* For bookmarks or any item with URL: show clickable link (but not for uploaded files) */}
+            {((viewingItem.kind === 'bookmark' && viewingItem.title.startsWith('http')) || (viewingItem.url && !viewingItem.url.includes('supabase.co/storage'))) && (
               <a 
                 href={viewingItem.url || viewingItem.title} 
                 target="_blank" 
