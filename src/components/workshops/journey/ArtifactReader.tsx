@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react'
 import type { WorkshopDayEntry, SceneConfig, WorkshopPrinciple, WorkshopProgress, WorkshopDeliverableSubmission } from '@/types/workshops'
 import { submitDeliverable } from '@/app/actions/workshops/participants'
 import { getEntryMedia } from '@/app/actions/workshops/entry-media'
-import { uploadCreationImage } from '@/app/actions/workshops/engagement'
+import { uploadCreationImage, addEngagement } from '@/app/actions/workshops/engagement'
 import { getShowcaseItems } from '@/app/actions/workshops/showcase'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 
@@ -69,8 +69,14 @@ function CollapsibleSection({ title, content, readerAccent, marginTop = 16 }: { 
   )
 }
 
-function CollapsibleBlock({ blk, readerAccent, isFirst, allowCollapse = true }: { blk: string, readerAccent: string, isFirst: boolean, allowCollapse?: boolean }) {
+function CollapsibleBlock({ blk, readerAccent, isFirst, allowCollapse = true, cohortId, userRole }: { blk: string, readerAccent: string, isFirst: boolean, allowCollapse?: boolean, cohortId?: string, userRole?: string }) {
   const [isExpanded, setIsExpanded] = React.useState(true);
+  const [miniFormOpen, setMiniFormOpen] = React.useState(false);
+  const [miniTitle, setMiniTitle] = React.useState('');
+  const [miniContent, setMiniContent] = React.useState('');
+  const [miniUrl, setMiniUrl] = React.useState('');
+  const [miniSubmitting, setMiniSubmitting] = React.useState(false);
+  const [miniSubmitted, setMiniSubmitted] = React.useState(false);
 
   let blockType = 'text'
   let blockTitle = ''
@@ -209,6 +215,94 @@ function CollapsibleBlock({ blk, readerAccent, isFirst, allowCollapse = true }: 
                   <span style={{ fontSize: 18, color: 'var(--tx,#efe6ff)', lineHeight: 1.5, flex: 1 }}>{item}</span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      ) : blockType === 'mini_deliverable' ? (
+        <div style={{ marginTop: isFirst ? 0 : 24, paddingTop: isFirst ? 0 : 20, borderTop: isFirst ? 'none' : '1px dashed var(--ln,#3d2668)' }}>
+          {blockTitle && (
+            <div className="font-pixel" style={{ fontSize: 13, color: readerAccent, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 16 }}>
+              ◈ {blockTitle.toUpperCase()}
+            </div>
+          )}
+          {userRole === 'guest' ? (
+            <div style={{ border: `2px dashed ${readerAccent}40`, borderRadius: 10, padding: 20, textAlign: 'center' }}>
+              <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', fontFamily: "'VT323', monospace" }}>You are not allowed to submit mini deliverables</div>
+            </div>
+          ) : miniSubmitted ? (
+            <div style={{ border: `2px solid ${readerAccent}`, borderRadius: 10, padding: 24, textAlign: 'center', background: `${readerAccent}10` }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+              <div className="font-pixel" style={{ fontSize: 11, color: readerAccent, letterSpacing: 1 }}>MINI DELIVERABLE SUBMITTED!</div>
+              <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 6, fontFamily: "'VT323', monospace" }}>Pending teacher approval</div>
+            </div>
+          ) : !miniFormOpen ? (
+            <button
+              onClick={() => setMiniFormOpen(true)}
+              style={{
+                width: '100%', padding: '18px 20px', background: `${readerAccent}12`, border: `2px dashed ${readerAccent}60`,
+                borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { (e.target as HTMLElement).style.background = `${readerAccent}22`; (e.target as HTMLElement).style.borderColor = readerAccent }}
+              onMouseLeave={e => { (e.target as HTMLElement).style.background = `${readerAccent}12`; (e.target as HTMLElement).style.borderColor = `${readerAccent}60` }}
+            >
+              <span style={{ fontSize: 20 }}>🏆</span>
+              <span className="font-pixel" style={{ fontSize: 11, color: readerAccent, letterSpacing: 1 }}>+ ADD MINI DELIVERABLE</span>
+            </button>
+          ) : (
+            <div style={{ border: `2px solid ${readerAccent}`, borderRadius: 10, padding: 20, background: 'rgba(0,0,0,.2)' }}>
+              <div className="font-pixel" style={{ fontSize: 10, color: readerAccent, letterSpacing: 1, marginBottom: 14 }}>🏆 NEW MINI DELIVERABLE</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <input
+                  value={miniTitle}
+                  onChange={e => setMiniTitle(e.target.value)}
+                  placeholder="Title *"
+                  style={{ background: 'rgba(0,0,0,.35)', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, color: 'var(--tx,#efe6ff)', fontFamily: "'VT323', monospace", fontSize: 18, padding: '10px 14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                />
+                <textarea
+                  value={miniContent}
+                  onChange={e => setMiniContent(e.target.value)}
+                  placeholder="Describe your deliverable..."
+                  rows={4}
+                  style={{ background: 'rgba(0,0,0,.35)', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, color: 'var(--tx,#efe6ff)', fontFamily: "'VT323', monospace", fontSize: 16, padding: '10px 14px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
+                />
+                <input
+                  value={miniUrl}
+                  onChange={e => setMiniUrl(e.target.value)}
+                  placeholder="Link / URL (optional)"
+                  style={{ background: 'rgba(0,0,0,.35)', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, color: 'var(--tx,#efe6ff)', fontFamily: "'VT323', monospace", fontSize: 16, padding: '10px 14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => { setMiniFormOpen(false); setMiniTitle(''); setMiniContent(''); setMiniUrl('') }}
+                  className="font-pixel"
+                  style={{ padding: '10px 16px', background: 'transparent', border: `1px solid var(--mu,#a493c9)`, color: 'var(--mu,#a493c9)', borderRadius: 6, cursor: 'pointer', fontSize: 9, letterSpacing: 1 }}
+                >CANCEL</button>
+                <button
+                  onClick={async () => {
+                    if (!miniTitle.trim()) { alert('Please enter a title'); return }
+                    if (!cohortId) { alert('Unable to submit — cohort not found'); return }
+                    setMiniSubmitting(true)
+                    try {
+                      const plainText = miniContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+                      const contentPayload = JSON.stringify({ version: 2, html: miniContent, text: plainText, images: [], subType: 'mini_deliverable' })
+                      await addEngagement(cohortId, 'mini_deliverable', miniTitle, `workshop:${cohortId}`, miniUrl, contentPayload)
+                      setMiniSubmitted(true)
+                      setMiniTitle(''); setMiniContent(''); setMiniUrl('')
+                      setTimeout(() => { setMiniFormOpen(false); setMiniSubmitted(false) }, 2500)
+                    } catch (err) {
+                      console.error('Failed to submit mini deliverable:', err)
+                      alert('Failed to submit. Please try again.')
+                    } finally {
+                      setMiniSubmitting(false)
+                    }
+                  }}
+                  disabled={miniSubmitting}
+                  className="font-pixel"
+                  style={{ padding: '10px 18px', background: readerAccent, border: 'none', color: 'var(--bg,#12081e)', borderRadius: 6, cursor: miniSubmitting ? 'wait' : 'pointer', fontSize: 9, letterSpacing: 1, opacity: miniSubmitting ? 0.6 : 1 }}
+                >{miniSubmitting ? '⏳ SUBMITTING...' : '⬢ SUBMIT'}</button>
+              </div>
             </div>
           )}
         </div>
@@ -499,7 +593,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   return (
                     <div style={{ marginBottom: 24 }}>
                       {blocks.map((blk, idx) => (
-                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} />
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} cohortId={cohortId} userRole={userRole} />
                       ))}
                     </div>
                   )
@@ -633,7 +727,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   return (
                     <>
                       {blocks.map((blk, idx) => (
-                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} allowCollapse={false} />
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} allowCollapse={false} cohortId={cohortId} userRole={userRole} />
                       ))}
                     </>
                   )
@@ -654,7 +748,7 @@ export default function ArtifactReader({ entry, dayId, dayNumber, scene, accent,
                   return (
                     <div style={{ marginBottom: blocks.length > 0 ? 32 : 0 }}>
                       {blocks.map((blk, idx) => (
-                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} />
+                        <CollapsibleBlock key={idx} blk={blk} readerAccent={readerAccent} isFirst={idx === 0} cohortId={cohortId} userRole={userRole} />
                       ))}
                     </div>
                   )

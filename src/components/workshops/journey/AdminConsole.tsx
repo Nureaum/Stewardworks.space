@@ -165,6 +165,11 @@ function SortableBlockItem({ id, idx, blockRawContent, blockType, blockTitle, li
                 className="font-pixel"
                 style={btnStyle(blockType === 'quote')}
               >QUOTE</button>
+              <button
+                onClick={() => updateBlock(blockType === 'mini_deliverable' ? 'text' : 'mini_deliverable', blockTitle, blockType === 'list' ? listItems.join('\n') : blockRawContent)}
+                className="font-pixel"
+                style={btnStyle(blockType === 'mini_deliverable')}
+              >MINI DELIVERABLE</button>
             </div>
           )}
         </div>
@@ -186,7 +191,12 @@ function SortableBlockItem({ id, idx, blockRawContent, blockType, blockTitle, li
             placeholder="Block Title..."
             style={{ ...localInputStyle, fontSize: 16, marginBottom: 8, padding: '10px 12px' }}
           />
-          {blockType === 'list' ? (
+          {blockType === 'mini_deliverable' ? (
+            <div style={{ background: 'rgba(77,255,160,.08)', border: '2px solid rgba(77,255,160,.3)', borderRadius: 8, padding: 16, textAlign: 'center' }}>
+              <div className="font-pixel" style={{ fontSize: 10, color: '#4dffa0', letterSpacing: 1 }}>🏆 MINI DELIVERABLE BLOCK</div>
+              <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 8, fontFamily: "'VT323', monospace" }}>Students will see a button to submit a mini deliverable here.</div>
+            </div>
+          ) : blockType === 'list' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {listItems.map((item: string, i: number) => (
                 <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
