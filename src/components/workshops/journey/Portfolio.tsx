@@ -66,6 +66,28 @@ const parseNoteContent = (contentStr: string | null) => {
 /* ── Helpers ── */
 const ENGPCT: Record<string, number> = { bookmark: 1, note: 1, generation: 2, prompt: 3, mini_deliverable: 4 }
 
+// Helper to extract user note from bookmark content
+const getBookmarkNote = (content: string | null | undefined): string => {
+  if (!content) return '';
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.userNote || '';
+  } catch {
+    return '';
+  }
+};
+
+// Helper to build updated content with user note
+const buildBookmarkContent = (existingContent: string | null | undefined, note: string): string => {
+  if (!existingContent) return JSON.stringify({ userNote: note });
+  try {
+    const parsed = JSON.parse(existingContent);
+    return JSON.stringify({ ...parsed, userNote: note });
+  } catch {
+    return JSON.stringify({ entryKey: existingContent, userNote: note });
+  }
+};
+
 const STATUS_PILL: Record<string, { label: string; color: string }> = {
   not_submitted: { label: 'NOT SUBMITTED', color: '#a493c9' },
   submitted:     { label: 'PENDING REVIEW', color: '#ffd23f' },
@@ -172,6 +194,8 @@ export default function Portfolio({
   const [isUploadingBookmark, setIsUploadingBookmark] = useState(false)
   const bookmarkFileInputRef = useRef<HTMLInputElement>(null)
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
+  const [bookmarkNoteId, setBookmarkNoteId] = useState<string | null>(null)
+  const [bookmarkNoteText, setBookmarkNoteText] = useState('')
 
   // Workforce Pathway Picks State
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([])
@@ -1376,6 +1400,27 @@ export default function Portfolio({
                         >
                           ⤢
                         </button>
+                        {item.kind === 'bookmark' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setBookmarkNoteId(bookmarkNoteId === item.id ? null : item.id); setBookmarkNoteText(getBookmarkNote(item.content)); }}
+                            title={getBookmarkNote(item.content) ? 'Edit note' : 'Add note'}
+                            className="font-pixel"
+                            style={{
+                              flex: 'none',
+                              background: getBookmarkNote(item.content) ? 'rgba(69,214,255,.15)' : 'transparent',
+                              border: getBookmarkNote(item.content) ? '1px solid var(--s,#45d6ff)' : '1px solid var(--ln,#3d2668)',
+                              color: 'var(--s,#45d6ff)',
+                              fontSize: 9,
+                              cursor: 'pointer',
+                              lineHeight: 1,
+                              padding: '5px 8px',
+                              borderRadius: 3,
+                              letterSpacing: 0.5,
+                            }}
+                          >
+                            {getBookmarkNote(item.content) ? '✎ NOTE' : '+ NOTE'}
+                          </button>
+                        )}
                         {!isAppResource(item.source) && (
                           <button
                             onClick={() => {
@@ -1420,6 +1465,37 @@ export default function Portfolio({
                           </div>
                           <div style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', lineHeight: 1.4, wordBreak: 'break-word' }}>
                             {item.review_note}
+                          </div>
+                        </div>
+                      )}
+                      {/* User bookmark note - edit mode */}
+                      {bookmarkNoteId === item.id && item.kind === 'bookmark' && (
+                        <div style={{ padding: '8px 9px', borderTop: '1px dashed var(--ln,#3d2668)', background: 'rgba(69,214,255,.05)' }}>
+                          <div className="font-pixel" style={{ fontSize: 9, color: 'var(--s,#45d6ff)', letterSpacing: 0.5, marginBottom: 5 }}>
+                            MY NOTE
+                          </div>
+                          <textarea
+                            value={bookmarkNoteText}
+                            onChange={(e) => setBookmarkNoteText(e.target.value)}
+                            placeholder="Add a personal note about this bookmark..."
+                            rows={3}
+                            style={{ width: '100%', background: 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#3d2668)', borderRadius: 4, padding: '8px 10px', color: 'var(--tx,#efe6ff)', fontSize: 14, resize: 'vertical', outline: 'none', fontFamily: 'inherit' }}
+                          />
+                          <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
+                            <button onClick={() => setBookmarkNoteId(null)} className="font-pixel" style={{ fontSize: 8, padding: '4px 10px', background: 'transparent', border: '1px solid var(--ln,#3d2668)', color: 'var(--mu,#a493c9)', borderRadius: 3, cursor: 'pointer' }}>CANCEL</button>
+                            <button
+                              onClick={() => { if (onUpdateEngagement) { onUpdateEngagement(item.id, { content: buildBookmarkContent(item.content, bookmarkNoteText) }); } setBookmarkNoteId(null); }}
+                              className="font-pixel"
+                              style={{ fontSize: 8, padding: '4px 10px', background: 'var(--s,#45d6ff)', border: 'none', color: '#12081e', borderRadius: 3, cursor: 'pointer' }}
+                            >SAVE NOTE</button>
+                          </div>
+                        </div>
+                      )}
+                      {/* User bookmark note - display */}
+                      {bookmarkNoteId !== item.id && item.kind === 'bookmark' && getBookmarkNote(item.content) && (
+                        <div style={{ padding: '6px 9px', borderTop: '1px dashed var(--ln,#3d2668)', background: 'rgba(69,214,255,.04)' }}>
+                          <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', lineHeight: 1.4, fontStyle: 'italic' }}>
+                            📝 {getBookmarkNote(item.content)}
                           </div>
                         </div>
                       )}

@@ -22,6 +22,8 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
   const [editContent, setEditContent] = useState('');
   const [editUrl, setEditUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookmarkNoteId, setBookmarkNoteId] = useState<string | null>(null);
+  const [bookmarkNoteText, setBookmarkNoteText] = useState('');
 
   // Filter engagements by kind
   const bookmarks = engagements.filter(e => e.kind === 'bookmark');
@@ -153,6 +155,28 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
       || s.startsWith('day ') 
       || s.includes('instructional') 
       || s.includes('session');
+  };
+
+  // Helper to extract user note from bookmark content
+  const getBookmarkNote = (content: string | null | undefined): string => {
+    if (!content) return '';
+    try {
+      const parsed = JSON.parse(content);
+      return parsed.userNote || '';
+    } catch {
+      return '';
+    }
+  };
+
+  // Helper to build updated content with user note
+  const buildBookmarkContent = (existingContent: string | null | undefined, note: string): string => {
+    if (!existingContent) return JSON.stringify({ userNote: note });
+    try {
+      const parsed = JSON.parse(existingContent);
+      return JSON.stringify({ ...parsed, userNote: note });
+    } catch {
+      return JSON.stringify({ entryKey: existingContent, userNote: note });
+    }
   };
 
   return (
@@ -291,11 +315,57 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
                           </a>
                         )}
                         <button onClick={() => setViewingId(item.id)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 16, opacity: 0.7, padding: '2px 4px' }} title="Expand">⤢</button>
+                        {activeTab === 'bookmarks' && (
+                          <button
+                            onClick={() => { setBookmarkNoteId(bookmarkNoteId === item.id ? null : item.id); setBookmarkNoteText(getBookmarkNote(item.content)); }}
+                            className="font-pixel"
+                            style={{ fontSize: 6, padding: '3px 6px', background: getBookmarkNote(item.content) ? 'rgba(69,214,255,.15)' : 'rgba(0,0,0,0.3)', border: `1px solid ${getBookmarkNote(item.content) ? activeColor : 'var(--ln,#28432f)'}`, color: activeColor, borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            {getBookmarkNote(item.content) ? '✎ NOTE' : '+ NOTE'}
+                          </button>
+                        )}
                         {!isAppResource(item.source) && (
                           <button onClick={() => openEditor(item.kind, item)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 13, opacity: 0.7, padding: '2px 4px' }} title="Edit">✎</button>
                         )}
                         <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', color: '#ff5fd2', cursor: 'pointer', fontSize: 14, opacity: 0.7, padding: '2px 4px' }} title="Delete">×</button>
                       </div>
+                      {/* User bookmark note - edit mode */}
+                      {bookmarkNoteId === item.id && activeTab === 'bookmarks' && (
+                        <div style={{ padding: '8px 10px', borderTop: '1px solid var(--ln,#28432f)', background: 'rgba(69,214,255,.05)', marginTop: 6 }}>
+                          <div className="font-pixel" style={{ fontSize: 7, color: activeColor, letterSpacing: 0.5, marginBottom: 5 }}>MY NOTE</div>
+                          <textarea
+                            value={bookmarkNoteText}
+                            onChange={(e) => setBookmarkNoteText(e.target.value)}
+                            placeholder="Add a personal note..."
+                            rows={2}
+                            style={{ width: '100%', background: 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#28432f)', borderRadius: 4, padding: '6px 8px', color: '#d6ffe0', fontSize: 14, resize: 'vertical', outline: 'none', fontFamily: "'VT323', monospace" }}
+                          />
+                          <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
+                            <button onClick={() => setBookmarkNoteId(null)} className="font-pixel" style={{ fontSize: 6, padding: '3px 8px', background: 'transparent', border: '1px solid var(--ln,#28432f)', color: 'var(--mu,#77b78d)', borderRadius: 3, cursor: 'pointer' }}>CANCEL</button>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const newContent = buildBookmarkContent(item.content, bookmarkNoteText);
+                                  await updateEngagement(item.id, { content: newContent });
+                                  setEngagements(engagements.map(e => e.id === item.id ? { ...e, content: newContent } : e));
+                                  setBookmarkNoteId(null);
+                                  toast.success('Note saved');
+                                } catch { toast.error('Failed to save note'); }
+                              }}
+                              className="font-pixel"
+                              style={{ fontSize: 6, padding: '3px 8px', background: activeColor, border: 'none', color: '#08120d', borderRadius: 3, cursor: 'pointer' }}
+                            >SAVE NOTE</button>
+                          </div>
+                        </div>
+                      )}
+                      {/* User bookmark note - display */}
+                      {bookmarkNoteId !== item.id && activeTab === 'bookmarks' && getBookmarkNote(item.content) && (
+                        <div style={{ padding: '5px 10px', borderTop: '1px solid var(--ln,#28432f)', background: 'rgba(69,214,255,.04)' }}>
+                          <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', lineHeight: 1.4, fontStyle: 'italic', fontFamily: "'VT323', monospace" }}>
+                            📝 {getBookmarkNote(item.content)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
