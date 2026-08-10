@@ -260,8 +260,8 @@ export default function Portfolio({
       let contentToEdit = item.content || item.title;
       if (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable') {
         const parsed = parseNoteContent(item.content);
-        // Use plain text for textarea editing (strip HTML tags)
-        contentToEdit = parsed.text || parsed.html?.replace(/<[^>]*>/g, '') || item.content || item.title;
+        // Use HTML for rich text editor
+        contentToEdit = parsed.html || parsed.text || item.content || item.title;
       }
       
       const draft = { title: item.title, content: contentToEdit, url: item.url || '' }
@@ -297,19 +297,13 @@ export default function Portfolio({
       let contentToSave = editDraft.content;
       
       if (item && (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable')) {
-        // Convert plain text to simple HTML paragraphs
-        const htmlContent = editDraft.content
-          .split('\n')
-          .filter(line => line.trim())
-          .map(line => `<p>${line}</p>`)
-          .join('');
-        
-        const plainText = editDraft.content;
+        // Content is already HTML from RichTextEditor, save in version 2 format
+        const plainText = editDraft.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
         
         // Save in version 2 format for notes/prompts
         contentToSave = JSON.stringify({
           version: 2,
-          html: htmlContent || `<p>${plainText}</p>`,
+          html: editDraft.content || `<p>${plainText}</p>`,
           text: plainText,
           images: [],
           subType: item.kind === 'mini_deliverable' ? 'note' : item.kind
@@ -1944,7 +1938,46 @@ export default function Portfolio({
 
       {editingItem && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setEditingId(null)}>
-          <div style={{ background: '#12081e', border: '2px solid var(--gold,#ffd23f)', borderRadius: 12, padding: 28, width: '90%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <style dangerouslySetInnerHTML={{ __html: `
+            .portfolio-edit-modal .border.rounded-md.shadow-sm.bg-white {
+              background: rgba(0,0,0,.4) !important;
+              border-color: var(--ln,#3d2668) !important;
+            }
+            .portfolio-edit-modal .bg-gray-50 {
+              background: rgba(0,0,0,.3) !important;
+            }
+            .portfolio-edit-modal .text-gray-700 {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-edit-modal .hover\\:bg-gray-200:hover {
+              background: rgba(255,210,63,.2) !important;
+            }
+            .portfolio-edit-modal .bg-gray-200 {
+              background: var(--gold,#ffd23f) !important;
+              color: #12081e !important;
+            }
+            .portfolio-edit-modal .bg-white {
+              background: rgba(0,0,0,.2) !important;
+            }
+            .portfolio-edit-modal .prose {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-edit-modal .prose h1,
+            .portfolio-edit-modal .prose h2,
+            .portfolio-edit-modal .prose h3 {
+              color: var(--gold,#ffd23f) !important;
+            }
+            .portfolio-edit-modal .prose a {
+              color: var(--s,#45d6ff) !important;
+            }
+            .portfolio-edit-modal .prose strong {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-edit-modal .bg-gray-300 {
+              background: var(--ln,#3d2668) !important;
+            }
+          `}} />
+          <div style={{ background: '#12081e', border: '2px solid var(--gold,#ffd23f)', borderRadius: 12, padding: 28, width: '90%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <div className="font-pixel" style={{ fontSize: 14, color: 'var(--gold,#ffd23f)' }}>
                 EDIT {editingItem.kind.toUpperCase()}
@@ -1953,24 +1986,29 @@ export default function Portfolio({
             </div>
             
             <label style={{ display: 'block', marginBottom: 18 }}>
-              <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>Title / Link</div>
+              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>TITLE</div>
               <input 
                 value={editDraft.title}
                 onChange={e => setEditDraft(prev => ({ ...prev, title: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter' && editingItem.kind === 'bookmark') handleSaveEdit(e as any) }}
-                style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 6, fontSize: 17 }}
+                style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '2px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 8, fontSize: 17, outline: 'none' }}
               />
             </label>
 
             {editingItem.kind !== 'bookmark' && (
-              <label style={{ display: 'block', marginBottom: 24 }}>
-                <div style={{ fontSize: 15, color: 'var(--mu,#a493c9)', marginBottom: 8 }}>Notes / Content</div>
-                <textarea 
-                  value={editDraft.content}
-                  onChange={e => setEditDraft(prev => ({ ...prev, content: e.target.value }))}
-                  style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 6, fontSize: 17, minHeight: 120, resize: 'vertical' }}
-                />
-              </label>
+              <div style={{ marginBottom: 24 }}>
+                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>CONTENT</div>
+                <div className="portfolio-edit-modal" style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 8, overflow: 'hidden' }}>
+                  <RichTextEditor 
+                    content={editDraft.content}
+                    onChange={(html) => setEditDraft(prev => ({ ...prev, content: html }))}
+                    onUpload={async (formData) => {
+                      const res = await uploadCreationImage(formData);
+                      return { publicUrl: res, type: 'image' };
+                    }}
+                  />
+                </div>
+              </div>
             )}
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 14 }}>
@@ -1980,10 +2018,9 @@ export default function Portfolio({
                   console.log('[Portfolio Modal] CANCEL button clicked')
                   setEditingId(null)
                 }} 
-                style={{ background: 'transparent', border: '1px solid var(--mu,#a493c9)', color: 'var(--mu,#a493c9)', padding: '10px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} 
-                className="font-pixel"
+                style={{ background: 'transparent', border: '2px solid var(--ln,#3d2668)', color: 'var(--mu,#a493c9)', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontSize: 16, fontWeight: 600 }}
               >
-                CANCEL
+                Cancel
               </button>
               <button 
                 type="button" 
@@ -1994,7 +2031,7 @@ export default function Portfolio({
                   console.log('[Portfolio Modal] editDraft at click time:', editDraft)
                   handleSaveEdit(e)
                 }} 
-                style={{ background: 'var(--gold,#ffd23f)', border: 'none', color: '#12081e', padding: '10px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} 
+                style={{ background: 'var(--gold,#ffd23f)', border: 'none', color: '#12081e', padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }} 
                 className="font-pixel"
               >
                 SAVE CHANGES
