@@ -1206,7 +1206,7 @@ export default function Portfolio({
           className="portfolio-shelf-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))',
+            gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))',
             gap: 12,
             marginTop: 16,
           }}
@@ -1227,9 +1227,9 @@ export default function Portfolio({
                 }}
               >
                 {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderBottom: '2px solid var(--ln,#3d2668)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 10px', borderBottom: '2px solid var(--ln,#3d2668)' }}>
                   <span className="font-pixel" style={{ fontSize: 16, color: col.color, flex: 'none' }}>{col.icon}</span>
-                  <div className="font-pixel" style={{ flex: 1, minWidth: 0, fontSize: 12, color: col.color, letterSpacing: 0.5 }}>
+                  <div className="font-pixel" style={{ flex: 1, minWidth: 0, fontSize: col.label.length > 12 ? 10 : 12, color: col.color, letterSpacing: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {col.label}
                   </div>
                   <span style={{ fontSize: 18, color: 'var(--mu,#a493c9)' }}>

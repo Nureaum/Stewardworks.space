@@ -13,6 +13,7 @@ interface AILabPortfolioTabsProps {
 export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AILabPortfolioTabsProps) {
   const [activeTab, setActiveTab] = useState<'bookmarks' | 'notes' | 'prompts' | 'mini'>('bookmarks');
   const [engagements, setEngagements] = useState(initialEngagements);
+  const [viewingId, setViewingId] = useState<string | null>(null);
   
   // Editor state
   const [isEditing, setIsEditing] = useState(false);
@@ -140,6 +141,8 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
     if (activeTab === 'mini') return minis;
     return [];
   };
+
+  const viewingItem = engagements.find(e => e.id === viewingId);
 
   return (
     <div style={{ 
@@ -276,6 +279,7 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
                             🔗 LINK
                           </a>
                         )}
+                        <button onClick={() => setViewingId(item.id)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 18, opacity: 0.7 }} title="Expand">⤢</button>
                         <button onClick={() => openEditor(item.kind, item)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 14, opacity: 0.7 }} title="Edit">✎</button>
                         <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', color: '#ff5fd2', cursor: 'pointer', fontSize: 16, opacity: 0.7 }} title="Delete">×</button>
                       </div>
@@ -287,6 +291,72 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
           </>
         )}
       </div>
+
+      {/* Viewing Modal */}
+      {viewingItem && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setViewingId(null)}>
+          <div style={{ background: '#08120d', border: `2px solid ${activeColor}`, borderRadius: 12, padding: 28, width: '90%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <div className="font-pixel" style={{ fontSize: 14, color: activeColor }}>
+                VIEW {tabs.find(t => t.id === activeTab)?.label.slice(0, -1)}
+              </div>
+              <button onClick={() => setViewingId(null)} style={{ background: 'none', border: 'none', color: 'var(--mu,#77b78d)', cursor: 'pointer', fontSize: 22 }}>✕</button>
+            </div>
+            
+            <div style={{ fontSize: 22, color: '#d6ffe0', marginBottom: 14, wordBreak: 'break-word', overflowWrap: 'break-word', fontFamily: "'VT323', monospace" }}>{viewingItem.title}</div>
+            
+            <div style={{ fontSize: 15, color: viewingItem.status === 'approved' ? '#4dffa0' : '#ffd23f', marginBottom: 18, fontFamily: "'VT323', monospace" }}>
+              {viewingItem.status === 'approved' ? '✓ APPROVED' : viewingItem.status === 'pending' ? '◔ PENDING' : viewingItem.status.toUpperCase()}
+            </div>
+
+            {viewingItem.url && (
+              <a 
+                href={viewingItem.url} 
+                target="_blank" 
+                rel="noreferrer" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 12, 
+                  textDecoration: 'none', 
+                  border: `2px solid ${activeColor}`, 
+                  borderRadius: 8, 
+                  padding: '14px 16px', 
+                  background: 'rgba(0,0,0,0.3)',
+                  marginBottom: 18
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 16, color: '#d6ffe0', wordBreak: 'break-all', overflowWrap: 'break-word', lineHeight: 1.4, fontFamily: "'VT323', monospace" }}>
+                    {viewingItem.url}
+                  </div>
+                </div>
+                <span className="font-pixel" style={{ fontSize: 12, color: '#08120d', background: activeColor, borderRadius: 4, padding: '8px 12px', flexShrink: 0 }}>
+                  OPEN ↗
+                </span>
+              </a>
+            )}
+
+            {(() => {
+              const parsedContent = parseNoteContent(viewingItem.content);
+              if (parsedContent.version === 2) {
+                return (
+                  <div 
+                    style={{ fontSize: 16, color: 'var(--mu,#77b78d)', marginBottom: 18, lineHeight: 1.5, fontFamily: "'VT323', monospace" }} 
+                    dangerouslySetInnerHTML={{ __html: parsedContent.html }}
+                  />
+                );
+              } else {
+                return (
+                  <div style={{ fontSize: 16, color: 'var(--mu,#77b78d)', marginBottom: 18, whiteSpace: 'pre-wrap', lineHeight: 1.5, fontFamily: "'VT323', monospace" }}>
+                    {parsedContent.text || viewingItem.content}
+                  </div>
+                );
+              }
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

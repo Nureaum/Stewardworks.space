@@ -419,10 +419,10 @@ export default function ClientProfile({
               }
               
               // 2. For workshop/showcase bookmarks (no library URL), check if the showcase item exists by title
-              // Skip this check if the bookmark is from library, workforce, environmental, or workshop portfolio
+              // Skip this check if the bookmark is from library, workforce, environmental, curriculum, or workshop portfolio
               const sourceLC = (b.source || '').toLowerCase();
-              if (sourceLC.includes('library') || sourceLC === 'workforce' || sourceLC === 'environmental' || sourceLC.includes('steward library') || b.source?.startsWith('workshop:')) {
-                // This is a library/workforce/environmental/workshop portfolio bookmark - keep it (don't check showcase)
+              if (sourceLC.includes('library') || sourceLC === 'workforce' || sourceLC === 'environmental' || sourceLC.includes('steward library') || sourceLC === 'curriculum' || b.source?.startsWith('workshop:')) {
+                // This is a library/workforce/environmental/curriculum/workshop portfolio bookmark - keep it (don't check showcase)
                 return b;
               }
               
