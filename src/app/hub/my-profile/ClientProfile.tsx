@@ -1708,7 +1708,7 @@ export default function ClientProfile({
                         </div>
                       );
                       return (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: tagLabel, _color: tagColor, _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source, _cohortId: b.cohort_id, content: b.content || b.note || '', _isUnavailable: false })}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#FDF8ED', border: '1.5px solid rgba(162,117,50,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: tagLabel, _color: tagColor, _bg: '#FDF8ED', _url: b.url, _status: b.status, _source: b.source?.startsWith('workshop:') ? 'Workshop Portfolio' : b.source, _cohortId: b.cohort_id, content: b.content || b.note || '', _isUnavailable: false })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: tagColor, color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>{tagLabel}</span>
                           {b.status === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
@@ -1734,7 +1734,7 @@ export default function ClientProfile({
                             return displayTitle;
                           })()}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#A27532', marginTop: '7px' }}>🔖 {b.source}</div>
+                        <div style={{ fontSize: '11px', color: '#A27532', marginTop: '7px' }}>🔖 {b.source?.startsWith('workshop:') ? 'Workshop Portfolio' : b.source}</div>
                       </div>
                       );
                     })}

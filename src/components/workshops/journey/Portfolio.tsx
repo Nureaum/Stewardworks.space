@@ -292,8 +292,29 @@ export default function Portfolio({
     }
     
     try {
-      // Get the original item to check if it needs version 2 format
+      // Get the original item
       const item = engagements.find(e => e.id === editingId)
+      
+      // Check if user uploaded a new file for bookmark
+      if (item && item.kind === 'bookmark' && bookmarkFileToUpload) {
+        setIsUploadingBookmark(true)
+        const formData = new FormData()
+        formData.append('file', bookmarkFileToUpload)
+        
+        try {
+          const publicUrl = await uploadCreationImage(formData)
+          // Update URL with new uploaded file URL
+          editDraft.url = publicUrl
+          setBookmarkFileToUpload(null)
+        } catch (err) {
+          console.error('Failed to upload new file:', err)
+          alert('Failed to upload new file. Please try again.')
+          return
+        } finally {
+          setIsUploadingBookmark(false)
+        }
+      }
+      
       let contentToSave = editDraft.content;
       
       if (item && (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable' || (item.kind === 'bookmark' && editDraft.content.trim()))) {
@@ -1995,14 +2016,59 @@ export default function Portfolio({
             </label>
             
             {editingItem.kind === 'bookmark' && editingItem.url && (
-              <label style={{ display: 'block', marginBottom: 18 }}>
-                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>URL</div>
-                <input 
-                  value={editDraft.url}
-                  onChange={e => setEditDraft(prev => ({ ...prev, url: e.target.value }))}
-                  style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '2px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 8, fontSize: 17, outline: 'none' }}
-                />
-              </label>
+              <div style={{ marginBottom: 18 }}>
+                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>
+                  {editDraft.url?.includes('supabase.co/storage') ? 'UPLOADED FILE' : 'URL'}
+                </div>
+                
+                {editDraft.url?.includes('supabase.co/storage') ? (
+                  <>
+                    {/* Show image preview for uploaded files */}
+                    <div style={{ marginBottom: 12 }}>
+                      <img 
+                        src={editDraft.url} 
+                        alt="Uploaded file" 
+                        style={{ 
+                          width: '100%', 
+                          maxHeight: 200, 
+                          objectFit: 'contain', 
+                          borderRadius: 8, 
+                          border: '2px solid var(--ln,#3d2668)', 
+                          background: 'rgba(0,0,0,.3)' 
+                        }} 
+                      />
+                    </div>
+                    
+                    {/* Option to change file */}
+                    <input type="file" accept="image/*,video/*,audio/*" hidden ref={bookmarkFileInputRef} onChange={handleBookmarkFileChange} />
+                    <button
+                      type="button"
+                      onClick={() => bookmarkFileInputRef.current?.click()}
+                      disabled={isUploadingBookmark}
+                      className="font-pixel"
+                      style={{
+                        width: '100%',
+                        fontSize: 11,
+                        color: 'var(--s,#45d6ff)',
+                        background: 'rgba(69,214,255,.1)',
+                        border: '2px dashed var(--s,#45d6ff)',
+                        borderRadius: 8,
+                        padding: '12px',
+                        cursor: isUploadingBookmark ? 'wait' : 'pointer',
+                        opacity: isUploadingBookmark ? 0.5 : 1,
+                      }}
+                    >
+                      {isUploadingBookmark ? 'UPLOADING...' : bookmarkFileToUpload ? `✓ NEW FILE SELECTED: ${bookmarkFileToUpload.name}` : '↑ CLICK TO CHANGE FILE'}
+                    </button>
+                  </>
+                ) : (
+                  <input 
+                    value={editDraft.url}
+                    onChange={e => setEditDraft(prev => ({ ...prev, url: e.target.value }))}
+                    style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '2px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 8, fontSize: 17, outline: 'none' }}
+                  />
+                )}
+              </div>
             )}
 
             {(editingItem.kind !== 'bookmark' || editingItem.content) && (
