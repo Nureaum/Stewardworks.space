@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { addEngagement, removeEngagement, updateEngagementContent } from '@/app/actions/workshops/engagement';
+import { addEngagement, removeEngagement, updateEngagement } from '@/app/actions/workshops/engagement';
 import toast from 'react-hot-toast';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 
@@ -94,7 +94,7 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
 
       if (editingId) {
         // Update
-        await updateEngagementContent(editingId, contentPayload);
+        await updateEngagement(editingId, { title: editTitle, url: editUrl, content: contentPayload });
         setEngagements(engagements.map(e => e.id === editingId ? { ...e, title: editTitle, url: editUrl, content: contentPayload } : e));
         toast.success('Updated successfully');
       } else {
