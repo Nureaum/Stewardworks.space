@@ -1235,10 +1235,6 @@ export default function Portfolio({
                   <span style={{ fontSize: 18, color: 'var(--mu,#a493c9)' }}>
                     {items.length}
                   </span>
-                </div>
-
-                {/* Input row */}
-                <div style={{ padding: '11px 12px', display: 'flex', gap: 7 }}>
                   <button
                     onClick={() => {
                       if (col.kind === 'note') {
@@ -1254,27 +1250,24 @@ export default function Portfolio({
                         setShowBookmarkEditor(true)
                       }
                     }}
+                    title={`Add ${col.label.toLowerCase()}`}
                     className="font-pixel"
                     style={{
-                      flex: 1,
-                      minWidth: 0,
-                      background: 'rgba(0,0,0,.4)',
-                      border: '2px solid var(--ln,#3d2668)',
-                      borderRadius: 5,
+                      flex: 'none',
+                      background: 'rgba(0,0,0,.2)',
+                      border: `1px solid ${col.color}`,
+                      borderRadius: 4,
                       color: col.color,
-                      fontSize: 11,
-                      padding: '11px 12px',
+                      padding: '4px 6px',
                       cursor: 'pointer',
-                      textAlign: 'left',
+                      fontSize: 10,
+                      marginLeft: 4,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 8,
-                      letterSpacing: 0.5,
-                      minHeight: '44px',
+                      gap: 4,
                     }}
                   >
-                    <span style={{ fontSize: 16, flexShrink: 0 }}>{col.icon}</span>
-                    <span style={{ flex: 1, lineHeight: 1.3, wordBreak: 'break-word' }}>CLICK TO ADD {col.kind === 'note' ? 'NOTE' : col.kind === 'prompt' ? 'PROMPT' : col.kind === 'mini_deliverable' ? 'MINI DELIVERABLE' : 'BOOKMARK'}</span>
+                    + ADD
                   </button>
                 </div>
 
