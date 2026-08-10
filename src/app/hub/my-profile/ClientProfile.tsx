@@ -1707,6 +1707,47 @@ export default function ClientProfile({
                         </div>
                         <div style={{ fontWeight: 700, color: '#2a4a5a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
                         <div style={{ fontSize: '12px', color: '#5a8a9a', marginTop: '7px' }}>{domain(b.external_url || b.url)}</div>
+                        {/* User bookmark note display */}
+                        {getBookmarkNote(b.content) && bookmarkNoteId !== b.id && (
+                          <div style={{ fontSize: '12px', color: '#6a8a9a', marginTop: '8px', fontStyle: 'italic', lineHeight: 1.4, borderTop: '1px dashed rgba(65,124,152,.2)', paddingTop: '8px' }}>
+                            📝 {getBookmarkNote(b.content)}
+                          </div>
+                        )}
+                        {/* Add/Edit note button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setBookmarkNoteId(bookmarkNoteId === b.id ? null : b.id); setBookmarkNoteText(getBookmarkNote(b.content)); }}
+                          style={{ fontSize: '10px', fontFamily: '"DM Mono", monospace', color: '#417C98', background: 'none', border: 'none', cursor: 'pointer', marginTop: '6px', padding: 0, opacity: 0.7 }}
+                        >
+                          {getBookmarkNote(b.content) ? '✎ Edit Note' : '+ Add Note'}
+                        </button>
+                        {/* Inline note editor */}
+                        {bookmarkNoteId === b.id && (
+                          <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '8px', borderTop: '1px dashed rgba(65,124,152,.2)', paddingTop: '8px' }}>
+                            <textarea
+                              value={bookmarkNoteText}
+                              onChange={(e) => setBookmarkNoteText(e.target.value)}
+                              placeholder="Add a personal note..."
+                              rows={2}
+                              style={{ width: '100%', background: '#fff', border: '1px solid rgba(65,124,152,.3)', borderRadius: 6, padding: '6px 8px', color: '#2a3a4a', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit' }}
+                            />
+                            <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
+                              <button onClick={(e) => { e.stopPropagation(); setBookmarkNoteId(null); }} style={{ fontSize: '10px', fontFamily: '"DM Mono", monospace', padding: '4px 10px', background: '#fff', border: '1px solid rgba(65,124,152,.3)', color: '#417C98', borderRadius: 4, cursor: 'pointer' }}>Cancel</button>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const newContent = buildBookmarkContent(b.content, bookmarkNoteText);
+                                    await updateEngagement(b.id, { content: newContent });
+                                    setBookmarkedResources(prev => prev.map(wb => wb.id === b.id ? { ...wb, content: newContent } : wb));
+                                    setBookmarkNoteId(null);
+                                    setToast('Note saved!');
+                                  } catch { setToast('Failed to save note'); }
+                                }}
+                                style={{ fontSize: '10px', fontFamily: '"DM Mono", monospace', padding: '4px 10px', background: '#417C98', border: 'none', color: '#fff', borderRadius: 4, cursor: 'pointer' }}
+                              >Save Note</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )})}
                   </div>
