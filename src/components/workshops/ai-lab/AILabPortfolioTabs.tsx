@@ -293,44 +293,60 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
                 {getActiveData().map(item => {
                   const parsed = parseNoteContent(item.content);
                   return (
-                    <div key={item.id} style={{ background: '#14211b', border: `1px solid var(--ln,#28432f)`, borderRadius: 6, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.2s' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
-                          <div style={{ fontSize: 16, color: '#d6ffe0', fontFamily: "'VT323', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }}>{item.title}</div>
-                          {item.status === 'pending' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#ffd23f22', color: '#ffd23f', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>PENDING</span>}
-                          {item.status === 'approved' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#4dffa022', color: '#4dffa0', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>✓ APPROVED</span>}
-                          {item.status === 'rejected' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#ff5fd222', color: '#ff5fd2', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>✕ REJECTED</span>}
-                        </div>
-                        {!isAppResource(item.source) && (parsed.text || parsed.html || (typeof item.content === 'string' && item.content && !item.content.startsWith('{'))) && (
-                          <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', fontFamily: "'VT323', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {parsed.text || parsed.html || item.content}
+                    <div key={item.id} style={{ background: '#14211b', border: `1px solid var(--ln,#28432f)`, borderRadius: 6, display: 'flex', flexDirection: 'column', transition: 'background 0.2s', overflow: 'hidden' }}>
+                      <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+                            <div style={{ fontSize: 16, color: '#d6ffe0', fontFamily: "'VT323', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }}>{item.title}</div>
+                            {item.status === 'pending' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#ffd23f22', color: '#ffd23f', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>PENDING</span>}
+                            {item.status === 'approved' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#4dffa022', color: '#4dffa0', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>✓ APPROVED</span>}
+                            {item.status === 'rejected' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#ff5fd222', color: '#ff5fd2', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>✕ REJECTED</span>}
                           </div>
-                        )}
+                          {!isAppResource(item.source) && (parsed.text || parsed.html || (typeof item.content === 'string' && item.content && !item.content.startsWith('{'))) && (
+                            <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', fontFamily: "'VT323', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {parsed.text || parsed.html || item.content}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          {item.url && (
+                            <a href={item.url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: activeColor, textDecoration: 'none', fontFamily: "'DM Mono', monospace", background: 'rgba(0,0,0,0.3)', padding: '4px 6px', borderRadius: 4, border: `1px solid ${activeColor}44`, whiteSpace: 'nowrap' }}>
+                              🔗 LINK
+                            </a>
+                          )}
+                          <button onClick={() => setViewingId(item.id)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 16, opacity: 0.7, padding: '2px 4px' }} title="Expand">⤢</button>
+                          {!isAppResource(item.source) && (
+                            <button onClick={() => openEditor(item.kind, item)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 13, opacity: 0.7, padding: '2px 4px' }} title="Edit">✎</button>
+                          )}
+                          <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', color: '#ff5fd2', cursor: 'pointer', fontSize: 14, opacity: 0.7, padding: '2px 4px' }} title="Delete">×</button>
+                        </div>
                       </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                        {item.url && (
-                          <a href={item.url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: activeColor, textDecoration: 'none', fontFamily: "'DM Mono', monospace", background: 'rgba(0,0,0,0.3)', padding: '4px 6px', borderRadius: 4, border: `1px solid ${activeColor}44`, whiteSpace: 'nowrap' }}>
-                            🔗 LINK
-                          </a>
-                        )}
-                        <button onClick={() => setViewingId(item.id)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 16, opacity: 0.7, padding: '2px 4px' }} title="Expand">⤢</button>
-                        {activeTab === 'bookmarks' && (
+
+                      {/* User bookmark note - display */}
+                      {bookmarkNoteId !== item.id && activeTab === 'bookmarks' && getBookmarkNote(item.content) && (
+                        <div style={{ padding: '6px 14px', borderTop: '1px dashed rgba(40,67,47,.4)', background: 'rgba(69,214,255,.02)' }}>
+                          <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', lineHeight: 1.4, fontStyle: 'italic', fontFamily: "'VT323', monospace" }}>
+                            📝 {getBookmarkNote(item.content)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Add/Edit note button */}
+                      {activeTab === 'bookmarks' && bookmarkNoteId !== item.id && (
+                        <div style={{ padding: '0 14px 10px 14px' }}>
                           <button
                             onClick={() => { setBookmarkNoteId(bookmarkNoteId === item.id ? null : item.id); setBookmarkNoteText(getBookmarkNote(item.content)); }}
-                            style={{ background: 'none', border: 'none', color: getBookmarkNote(item.content) ? activeColor : 'var(--mu,#77b78d)', cursor: 'pointer', fontSize: 14, opacity: getBookmarkNote(item.content) ? 1 : 0.7, padding: '2px 4px' }}
-                            title={getBookmarkNote(item.content) ? 'Edit note' : 'Add note'}
-                          >📝</button>
-                        )}
-                        {!isAppResource(item.source) && (
-                          <button onClick={() => openEditor(item.kind, item)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 13, opacity: 0.7, padding: '2px 4px' }} title="Edit">✎</button>
-                        )}
-                        <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', color: '#ff5fd2', cursor: 'pointer', fontSize: 14, opacity: 0.7, padding: '2px 4px' }} title="Delete">×</button>
-                      </div>
+                            style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 13, opacity: 0.7, padding: 0, fontFamily: "'VT323', monospace" }}
+                          >
+                            {getBookmarkNote(item.content) ? '✎ Edit Note' : '+ Add Note'}
+                          </button>
+                        </div>
+                      )}
+
                       {/* User bookmark note - edit mode */}
                       {bookmarkNoteId === item.id && activeTab === 'bookmarks' && (
-                        <div style={{ padding: '8px 10px', borderTop: '1px solid var(--ln,#28432f)', background: 'rgba(69,214,255,.05)', marginTop: 6 }}>
-                          <div className="font-pixel" style={{ fontSize: 7, color: activeColor, letterSpacing: 0.5, marginBottom: 5 }}>MY NOTE</div>
+                        <div style={{ padding: '10px 14px', borderTop: '1px dashed var(--ln,#28432f)', background: 'rgba(69,214,255,.05)' }}>
                           <textarea
                             value={bookmarkNoteText}
                             onChange={(e) => setBookmarkNoteText(e.target.value)}
@@ -338,7 +354,7 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
                             rows={2}
                             style={{ width: '100%', background: 'rgba(0,0,0,.3)', border: '1px solid var(--ln,#28432f)', borderRadius: 4, padding: '6px 8px', color: '#d6ffe0', fontSize: 14, resize: 'vertical', outline: 'none', fontFamily: "'VT323', monospace" }}
                           />
-                          <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
+                          <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
                             <button onClick={() => setBookmarkNoteId(null)} className="font-pixel" style={{ fontSize: 6, padding: '3px 8px', background: 'transparent', border: '1px solid var(--ln,#28432f)', color: 'var(--mu,#77b78d)', borderRadius: 3, cursor: 'pointer' }}>CANCEL</button>
                             <button
                               onClick={async () => {
@@ -353,14 +369,6 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
                               className="font-pixel"
                               style={{ fontSize: 6, padding: '3px 8px', background: activeColor, border: 'none', color: '#08120d', borderRadius: 3, cursor: 'pointer' }}
                             >SAVE NOTE</button>
-                          </div>
-                        </div>
-                      )}
-                      {/* User bookmark note - display */}
-                      {bookmarkNoteId !== item.id && activeTab === 'bookmarks' && getBookmarkNote(item.content) && (
-                        <div style={{ padding: '5px 10px', borderTop: '1px solid var(--ln,#28432f)', background: 'rgba(69,214,255,.04)' }}>
-                          <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', lineHeight: 1.4, fontStyle: 'italic', fontFamily: "'VT323', monospace" }}>
-                            📝 {getBookmarkNote(item.content)}
                           </div>
                         </div>
                       )}
