@@ -2307,32 +2307,65 @@ export default function Portfolio({
                       {/* Card Header */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', background: pathwayColor, borderBottom: '5px solid #1c1526' }}>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 15, color: '#10285e', textShadow: '2px 2px 0 rgba(255,255,255,.35)', lineHeight: 1.4 }}>{klassName}</div>
+                          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 15, color: '#10285e', textShadow: '2px 2px 0 rgba(255,255,255,.35)', lineHeight: 1.4 }}>{character.player_name || klassName}</div>
                           <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#10285e', opacity: .72, marginTop: 8, lineHeight: 1.6 }}>{pathway.name.toUpperCase()} · PATHWAY CARD</div>
                         </div>
                         <span style={{ width: 46, height: 46, flex: '0 0 auto', background: '#10285e', color: pathwayColor, border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Press Start 2P', monospace", fontSize: 15 }}>{pathwayPicks.length}</span>
                       </div>
 
-                      {/* Card Body - Picks Grid */}
-                      <div style={{ padding: '20px 18px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {pathway.stops.map((stop: any, idx: number) => {
-                            const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id)
-                            const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—'
-                            const dotColor = STEP_COLORS[idx % STEP_COLORS.length]
-                            const qData = (QUIZZES as any)[pathway.id]?.[stop.id] || {}
-                            const resultLabel = qData.result || stop.name
-                            return (
-                              <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: '#fff', border: '3px solid #1c1526', borderRadius: 7 }}>
-                                <span style={{ width: 30, height: 30, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dotColor, color: '#10285e', border: '3px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: 12 }}>{pick ? '✦' : '·'}</span>
-                                <span style={{ flex: 1, minWidth: 0 }}>
-                                  <span style={{ display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{resultLabel}</span>
-                                  <span style={{ display: 'block', fontFamily: "'VT323', monospace", fontSize: 22, lineHeight: 1.2, color: pick ? '#10285e' : '#8f88ad', marginTop: 2 }}>{answerLabel}</span>
-                                </span>
-                              </div>
-                            )
-                          })}
+                      {/* Card Body - Avatar panel + Picks Grid */}
+                      <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
+
+                        {/* Left: Character Avatar Panel */}
+                        <div style={{ width: 180, flex: '0 0 180px', background: 'linear-gradient(180deg,#1e2a4a 0%,#10285e 60%,#0d1e45 100%)', borderRight: '5px solid #1c1526', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '24px 12px 16px', gap: 10 }}>
+                          {/* Radial glow behind sprite */}
+                          <div style={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: `radial-gradient(circle, ${pathwayColor}55 0%, transparent 70%)` }} />
+                            <PixelSprite
+                              characterKey={character.character_key}
+                              accent={character.accent_color || '#ffd23f'}
+                              size={96}
+                              opts={{
+                                gear: (character as any).gear || (character as any).loadout || 'none',
+                                outfit: (character as any).outfit || 'plain',
+                              }}
+                            />
+                          </div>
+                          {/* Ground bar */}
+                          <div style={{ width: '80%', height: 5, background: pathwayColor, borderRadius: 3, opacity: 0.6 }} />
+                          {/* Character label */}
+                          <div style={{ textAlign: 'center', marginTop: 4 }}>
+                            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: pathwayColor, letterSpacing: '.08em', lineHeight: 1.7, textTransform: 'uppercase' }}>
+                              {[character.character_key, character.headgear, (character as any).loadout || (character as any).gear]
+                                .filter(Boolean)
+                                .map((s: string) => s.toUpperCase())
+                                .join(' · ')}
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Right: Picks Grid */}
+                        <div style={{ flex: 1, padding: '20px 18px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {pathway.stops.map((stop: any, idx: number) => {
+                              const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id)
+                              const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—'
+                              const dotColor = STEP_COLORS[idx % STEP_COLORS.length]
+                              const qData = (QUIZZES as any)[pathway.id]?.[stop.id] || {}
+                              const resultLabel = qData.result || stop.name
+                              return (
+                                <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: '#fff', border: '3px solid #1c1526', borderRadius: 7 }}>
+                                  <span style={{ width: 30, height: 30, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dotColor, color: '#10285e', border: '3px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: 12 }}>{pick ? '✦' : '·'}</span>
+                                  <span style={{ flex: 1, minWidth: 0 }}>
+                                    <span style={{ display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{resultLabel}</span>
+                                    <span style={{ display: 'block', fontFamily: "'VT323', monospace", fontSize: 22, lineHeight: 1.2, color: pick ? '#10285e' : '#8f88ad', marginTop: 2 }}>{answerLabel}</span>
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+
                       </div>
 
                       {/* Card Footer */}
