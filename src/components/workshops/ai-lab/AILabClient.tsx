@@ -250,7 +250,7 @@ export default function AILabClient({
                           }}
                         />
                       )}
-                      <div style={{ flex: '1.45 1 440px', minWidth: 320, display: 'flex', flexDirection: 'column', gap: 15 }}>
+                      <div style={{ flex: '1 1 330px', minWidth: 290, display: 'flex', flexDirection: 'column', gap: 15 }}>
                         {sandboxVisible && (
                           <GenerationSandbox edenEmbedUrl={edenEmbedUrl} platforms={platforms} />
                         )}

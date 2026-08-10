@@ -1219,7 +1219,11 @@ export default function Portfolio({
             const isAppResource = (source: string | null | undefined) => {
               if (!source) return false;
               const s = source.toLowerCase();
-              return ['curriculum', 'library', 'workforce', 'environmental', 'student showcase', 'quest board'].includes(s) || s.includes('steward library');
+              return ['curriculum', 'library', 'workforce', 'environmental', 'student showcase', 'quest board'].includes(s) 
+                || s.includes('steward library') 
+                || s.startsWith('day ') 
+                || s.includes('instructional') 
+                || s.includes('session');
             };
             return (
               <div
