@@ -11,7 +11,6 @@ interface ContactFormData {
 interface SendEmailResult {
   success: boolean;
   message: string;
-  debug?: string;
 }
 
 export async function sendContactEmail(data: ContactFormData): Promise<SendEmailResult> {
@@ -53,7 +52,6 @@ export async function sendContactEmail(data: ContactFormData): Promise<SendEmail
     return {
       success: false,
       message: 'Email service is not configured. Please contact the administrator.',
-      debug: 'Missing SMTP environment variables',
     };
   }
 
@@ -138,8 +136,7 @@ Sent from StewardWorks Contact Form
     });
     return {
       success: true,
-      message: 'Your message has been sent successfully! We will get back to you soon.',
-      debug: `Message ID: ${info.messageId}`,
+      message: 'Email sent successfully! We will get back to you soon.',
     };
   } catch (error: unknown) {
     const err = error as Error & { code?: string; responseCode?: number };
@@ -152,7 +149,6 @@ Sent from StewardWorks Contact Form
     return {
       success: false,
       message: 'Failed to send email. Please try again later or contact us directly.',
-      debug: `Error: ${err.message} (Code: ${err.code || 'unknown'})`,
     };
   }
 }

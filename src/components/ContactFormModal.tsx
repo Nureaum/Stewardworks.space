@@ -14,7 +14,7 @@ export default function ContactFormModal({ isOpen, onClose }: ContactFormModalPr
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string; debug?: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,11 +34,6 @@ export default function ContactFormModal({ isOpen, onClose }: ContactFormModalPr
           setResult(null);
           onClose();
         }, 2000);
-      }
-
-      // Log debug info to console for admin visibility
-      if (response.debug) {
-        console.log('[Contact Form Debug]', response.debug);
       }
     } catch (err) {
       console.error('[Contact Form] Unexpected error:', err);
