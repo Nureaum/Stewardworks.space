@@ -1025,8 +1025,19 @@ export default function ClientProfile({
   };
 
   const handleAddNote = async () => {
-    const htmlContent = noteEditorRef.current?.innerHTML || noteHtmlContent || noteContent;
-    const plainText = noteEditorRef.current?.innerText || noteContent;
+    const htmlContent = noteHtmlContent || noteContent;
+    // Extract plain text robustly — TipTap on iOS may not fire ref updates,
+    // so we parse the HTML ourselves to get real text content.
+    let plainText = noteContent;
+    if (!plainText.trim() && htmlContent) {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, 'text/html');
+        plainText = doc.body.innerText || doc.body.textContent || '';
+      } catch {
+        plainText = htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+    }
 
     if (!noteTitle.trim() || !plainText.trim()) {
       setToast('⚠ Please enter both title and content');
@@ -3208,7 +3219,6 @@ export default function ClientProfile({
                   onChange={(e) => setNoteTitle(e.target.value)}
                   placeholder="Enter a title..."
                   style={{ width: '100%', padding: '12px 14px', background: '#fff', border: '2px solid rgba(33,40,46,.15)', borderRadius: '8px', fontSize: '15px', color: '#3a2412', outline: 'none' }}
-                  autoFocus
                 />
               </div>
               
@@ -3238,8 +3248,8 @@ export default function ClientProfile({
                 </button>
                 <button 
                   onClick={handleAddNote}
-                  disabled={isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim())}
-                  style={{ background: isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim()) ? '#ccb89a' : (isMiniDeliverable ? '#7c5cbf' : noteType === 'prompt' ? '#DB9B2F' : '#A27532'), border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, color: '#FEFAE0', cursor: isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim()) ? 'not-allowed' : 'pointer' }}
+                  disabled={isSaving || !noteTitle.trim() || (noteHtmlContent.replace(/<[^>]+>/g, '').trim() === '' && !noteContent.trim())}
+                  style={{ background: isSaving || !noteTitle.trim() || (noteHtmlContent.replace(/<[^>]+>/g, '').trim() === '' && !noteContent.trim()) ? '#ccb89a' : (isMiniDeliverable ? '#7c5cbf' : noteType === 'prompt' ? '#DB9B2F' : '#A27532'), border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, color: '#FEFAE0', cursor: isSaving || !noteTitle.trim() || (noteHtmlContent.replace(/<[^>]+>/g, '').trim() === '' && !noteContent.trim()) ? 'not-allowed' : 'pointer' }}
                 >
                   {isSaving ? 'Saving...' : (isMiniDeliverable ? 'Submit Mini Deliverable' : noteType === 'prompt' ? 'Save Prompt' : 'Save Note')}
                 </button>
