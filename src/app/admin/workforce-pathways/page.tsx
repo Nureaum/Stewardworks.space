@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { PATHWAYS as INITIAL_PATHWAYS } from '@/data/workforce-content';
-import { fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, updateWorkforceMeta, upsertWorkforceEntry, deleteWorkforceEntry, uploadImage, fetchWorkforceJobs, upsertWorkforceJob, deleteWorkforceJob, fetchPendingSuggestions, approveSuggestion, dismissSuggestion, updateSuggestion, fetchAllPublishedSources, fetchExternalBoards, upsertExternalBoard, deleteExternalBoard, updateWorkforceEntryOrder } from './actions';
+import { fetchWorkforceCounts, fetchPublishedEntries, fetchWorkforceStructure, updateWorkforceMeta, upsertWorkforceEntry, deleteWorkforceEntry, uploadImage, fetchWorkforceJobs, upsertWorkforceJob, deleteWorkforceJob, fetchPendingSuggestions, approveSuggestion, dismissSuggestion, updateSuggestion, fetchAllPublishedSources, fetchExternalBoards, upsertExternalBoard, deleteExternalBoard, updateWorkforceEntryOrder, fetchJobSuggestions, updateJobSuggestion, approveJobSuggestion, rejectJobSuggestion, fetchJobSuggestionsCount } from './actions';
 import { SortableList } from '@/components/admin/SortableList';
 import { GripVertical } from 'lucide-react';
 import QuizzesEditor from './components/QuizzesEditor';
@@ -31,6 +31,11 @@ export default function WorkforcePathwaysAdminPage() {
   const [externalBoards, setExternalBoards] = useState<any[]>([]);
   const [pathways, setPathways] = useState<any[]>(INITIAL_PATHWAYS);
   const [pendingSuggestions, setPendingSuggestions] = useState<any[]>([]);
+  const [jobSuggestions, setJobSuggestions] = useState<any[]>([]);
+  const [jobSuggestionsCount, setJobSuggestionsCount] = useState(0);
+  const [showJobSugView, setShowJobSugView] = useState(false);
+  const [editingJobSug, setEditingJobSug] = useState<any>(null);
+  const [isSavingJobSug, setIsSavingJobSug] = useState(false);
   const [sources, setSources] = useState<any[]>([]);
   const [srcFilter, setSrcFilter] = useState('all');
 
@@ -64,6 +69,7 @@ export default function WorkforcePathwaysAdminPage() {
       fetchPublishedEntries(pwTab, stopTab).then(data => setPublishedEntries(data));
     } else if (activeTab === 'board') {
       fetchWorkforceJobs().then(data => setJobs(data));
+      fetchJobSuggestions().then(data => setJobSuggestions(data));
     } else if (activeTab === 'external') {
       fetchExternalBoards().then(data => setExternalBoards(data));
     } else if (activeTab === 'suggestions') {
@@ -88,6 +94,10 @@ export default function WorkforcePathwaysAdminPage() {
       } catch (err) {
         console.error("Failed to fetch workforce data:", err);
       }
+      try {
+        const jsc = await fetchJobSuggestionsCount();
+        setJobSuggestionsCount(jsc);
+      } catch (err) {}
     }
     
     fetchCounts();
@@ -531,54 +541,151 @@ export default function WorkforcePathwaysAdminPage() {
 
             {activeTab === 'board' && (
               <div style={{ maxWidth: '1120px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div>
-                    <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '16px', color: 'var(--paper)', letterSpacing: '1px', textShadow: '3px 3px 0 rgba(255,0,77,.4)' }}>QUEST BOARD</div>
-                    <p style={{ margin: '14px 0 0', fontSize: '19px', lineHeight: 1.4, color: 'var(--muted)', maxWidth: '760px' }}>
-                      Staff-curated postings shown beneath each trail's atlas. Keep it short and fresh - the outside boards handle volume.
-                    </p>
-                  </div>
-                  <button type="button" onClick={() => setEditingItem({ kind: 'job', data: {} })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '11px 16px', background: '#ffdd2e', color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', letterSpacing: '.4px', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px' }}>＋ ADD POSTING</button>
-                </div>
-
-                <div style={{ background: '#163a82', border: '4px solid #1c1526', borderRadius: '9px', overflow: 'hidden', marginTop: '24px' }}>
-                  {jobs.map((j, i) => {
-                    const isEnviro = j.pathway_id === 'enviro';
-                    const color = isEnviro ? '#14f0c8' : '#ff6a2e';
-                    const timeAgo = (date: string) => {
-                      const days = Math.floor((new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24));
-                      if (days === 0) return 'Today';
-                      if (days === 1) return '1 day ago';
-                      if (days < 7) return `${days} days ago`;
-                      const weeks = Math.floor(days / 7);
-                      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
-                    };
-                    return (
-                      <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderBottom: i === jobs.length - 1 ? 'none' : '3px solid #10285e' }}>
-                        <span style={{ width: '12px', height: '12px', flex: '0 0 auto', background: color, border: '2px solid #1c1526' }}></span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '19px', color: 'var(--paper)', fontWeight: 500 }}>{j.title}</span>
-                            <span style={{ padding: '3px 6px', background: '#2656a4', color: 'var(--paper)', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '6px' }}>{j.job_type}</span>
-                            <span style={{ padding: '3px 6px', background: color, color: '#10285e', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '6px', textTransform: 'uppercase' }}>{j.pathway_id}</span>
-                          </div>
-                          <div style={{ fontSize: '15px', color: 'var(--muted)', marginTop: '8px' }}>
-                            {j.organization} · {j.location} · {timeAgo(j.created_at)}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px', flex: '0 0 auto' }}>
-                          <button type="button" onClick={() => setEditingItem({ kind: 'job', data: j })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: 'var(--paper)', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>EDIT</button>
-                          <button type="button" onClick={() => setDeletingItem({ id: j.id, title: j.title, kind: 'job' })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: '#ff6b6b', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>REMOVE</button>
-                        </div>
+                {showJobSugView ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '16px', color: '#ff6a2e', letterSpacing: '1px', textShadow: '3px 3px 0 rgba(28,21,38,.4)' }}>JOB SUGGESTIONS</div>
+                        <p style={{ margin: '14px 0 0', fontSize: '19px', lineHeight: 1.4, color: 'var(--muted)', maxWidth: '760px' }}>
+                          Review and approve user-submitted job postings before they go live on the Quest Board.
+                        </p>
                       </div>
-                    );
-                  })}
-                  {jobs.length === 0 && (
-                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: '17px' }}>
-                      No jobs on the quest board.
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flex: '0 0 auto' }}>
+                        <button type="button" onClick={() => setShowJobSugView(false)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '11px 16px', background: '#2656a4', color: 'var(--paper)', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', letterSpacing: '.4px', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px' }}>◀ BACK TO BOARD</button>
+                      </div>
                     </div>
-                  )}
-                </div>
+
+                    <div style={{ background: '#0f2247', border: '4px solid #ff6a2e', borderRadius: '9px', overflow: 'hidden', marginBottom: '22px', boxShadow: '5px 5px 0 rgba(18,12,26,.42)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 18px', background: '#ff6a2e', borderBottom: '4px solid #1c1526' }}>
+                        <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '10px', color: '#10285e' }}>💡 PENDING REVIEW</span>
+                        <span style={{ marginLeft: 'auto', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', color: '#10285e', background: '#1c1526', padding: '4px 8px', border: '2px solid #1c1526' }}>{jobSuggestions.length} PENDING</span>
+                      </div>
+                      {jobSuggestions.length === 0 && (
+                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: '17px' }}>
+                          No pending job suggestions.
+                        </div>
+                      )}
+                      {jobSuggestions.map((s, i) => {
+                        const isEnviro = s.pathway_id === 'enviro';
+                        const color = isEnviro ? '#14f0c8' : '#ffdd2e';
+                        const timeAgo = (date: string) => {
+                          const days = Math.floor((new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24));
+                          if (days === 0) return 'Today';
+                          if (days === 1) return '1 day ago';
+                          if (days < 7) return `${days} days ago`;
+                          const weeks = Math.floor(days / 7);
+                          return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+                        };
+                        return (
+                          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 18px', borderBottom: i === jobSuggestions.length - 1 ? 'none' : '3px solid #10285e', background: '#163a82' }}>
+                            <span style={{ width: '10px', height: '10px', flex: '0 0 auto', background: color, border: '2px solid #1c1526' }}></span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '18px', color: 'var(--paper)', fontWeight: 500 }}>{s.title}</span>
+                                {s.job_type && <span style={{ padding: '3px 6px', background: '#2656a4', color: 'var(--paper)', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '6px' }}>{s.job_type}</span>}
+                                <span style={{ padding: '3px 6px', background: color, color: '#10285e', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '6px', textTransform: 'uppercase' }}>{s.pathway_id}</span>
+                              </div>
+                              <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '5px' }}>
+                                {s.organization && <span>{s.organization}{s.location ? ' · ' + s.location : ''} · </span>}
+                                FROM <strong style={{ color: '#ffdd2e' }}>{s.contributor_name || 'anonymous'}</strong> · {timeAgo(s.created_at)}
+                              </div>
+                              {s.apply_url && (
+                                <a href={s.apply_url} target="_blank" rel="noopener" style={{ display: 'inline-block', marginTop: '5px', fontSize: '13px', color: '#45d4ff', wordBreak: 'break-all' }}>↗ {s.apply_url}</a>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '7px', flex: '0 0 auto', flexDirection: 'column' }}>
+                              <button
+                                type="button"
+                                onClick={() => setEditingJobSug({ ...s })}
+                                style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#ffdd2e', color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)', textAlign: 'center' }}
+                              >EDIT</button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await approveJobSuggestion(s.id);
+                                  const [newSugs, newJobs, newCount] = await Promise.all([fetchJobSuggestions(), fetchWorkforceJobs(), fetchJobSuggestionsCount()]);
+                                  setJobSuggestions(newSugs);
+                                  setJobs(newJobs);
+                                  setJobSuggestionsCount(newCount);
+                                }}
+                                style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#12f0c0', color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)', textAlign: 'center' }}
+                              >✓ OK</button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await rejectJobSuggestion(s.id);
+                                  const [newSugs, newCount] = await Promise.all([fetchJobSuggestions(), fetchJobSuggestionsCount()]);
+                                  setJobSuggestions(newSugs);
+                                  setJobSuggestionsCount(newCount);
+                                }}
+                                style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: '#ff6b6b', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)', textAlign: 'center' }}
+                              >✕ NO</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '16px', color: 'var(--paper)', letterSpacing: '1px', textShadow: '3px 3px 0 rgba(255,0,77,.4)' }}>QUEST BOARD</div>
+                        <p style={{ margin: '14px 0 0', fontSize: '19px', lineHeight: 1.4, color: 'var(--muted)', maxWidth: '760px' }}>
+                          Staff-curated postings shown beneath each trail's atlas. Keep it short and fresh - the outside boards handle volume.
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flex: '0 0 auto' }}>
+                        {jobSuggestionsCount > 0 && (
+                          <button type="button" onClick={() => setShowJobSugView(true)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 14px', background: '#ff6a2e', color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px' }}>
+                            <span style={{ fontSize: '14px' }}>💡</span>
+                            {jobSuggestionsCount} SUGGESTION{jobSuggestionsCount !== 1 ? 'S' : ''}
+                          </button>
+                        )}
+                        <button type="button" onClick={() => setEditingItem({ kind: 'job', data: {} })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '11px 16px', background: '#ffdd2e', color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', letterSpacing: '.4px', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px' }}>＋ ADD POSTING</button>
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#163a82', border: '4px solid #1c1526', borderRadius: '9px', overflow: 'hidden', marginTop: '4px' }}>
+                      {jobs.map((j, i) => {
+                        const isEnviro = j.pathway_id === 'enviro';
+                        const color = isEnviro ? '#14f0c8' : '#ff6a2e';
+                        const timeAgo = (date: string) => {
+                          const days = Math.floor((new Date().getTime() - new Date(date).getTime()) / (1000 * 3600 * 24));
+                          if (days === 0) return 'Today';
+                          if (days === 1) return '1 day ago';
+                          if (days < 7) return `${days} days ago`;
+                          const weeks = Math.floor(days / 7);
+                          return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+                        };
+                        return (
+                          <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderBottom: i === jobs.length - 1 ? 'none' : '3px solid #10285e' }}>
+                            <span style={{ width: '12px', height: '12px', flex: '0 0 auto', background: color, border: '2px solid #1c1526' }}></span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '19px', color: 'var(--paper)', fontWeight: 500 }}>{j.title}</span>
+                                <span style={{ padding: '3px 6px', background: '#2656a4', color: 'var(--paper)', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '6px' }}>{j.job_type}</span>
+                                <span style={{ padding: '3px 6px', background: color, color: '#10285e', border: '2px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: '6px', textTransform: 'uppercase' }}>{j.pathway_id}</span>
+                              </div>
+                              <div style={{ fontSize: '15px', color: 'var(--muted)', marginTop: '8px' }}>
+                                {j.organization} · {j.location} · {timeAgo(j.created_at)}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', flex: '0 0 auto' }}>
+                              <button type="button" onClick={() => setEditingItem({ kind: 'job', data: j })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: 'var(--paper)', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>EDIT</button>
+                              <button type="button" onClick={() => setDeletingItem({ id: j.id, title: j.title, kind: 'job' })} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '7px 10px', background: '#2656a4', color: '#ff6b6b', fontFamily: "'Press Start 2P', monospace", fontSize: '7px', letterSpacing: '.4px', textTransform: 'uppercase', border: '2px solid #1c1526', boxShadow: '2px 2px 0 rgba(18,12,26,.4)' }}>REMOVE</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {jobs.length === 0 && (
+                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: '17px' }}>
+                          No jobs on the quest board.
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -1265,6 +1372,127 @@ export default function WorkforcePathwaysAdminPage() {
                     }
                   }
                 }} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '11px 16px', background: editingItem.kind === 'meta' ? '#ff6a2e' : (editingItem.kind === 'job' ? '#ffdd2e' : '#14f0c8'), color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px', opacity: isSaving ? 0.5 : 1 }}>{isSaving ? 'Saving...' : 'Save ▸ Publish'}</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Edit Job Suggestion Modal ── */}
+      {editingJobSug && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(10,8,20,.72)' }} onClick={() => setEditingJobSug(null)}></div>
+          <div className="awf-scroll" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 75, width: 'min(680px,94vw)', maxHeight: '90vh', overflow: 'auto', background: '#163a82', border: '5px solid #1c1526', boxShadow: '0 0 0 3px #3a3357,12px 12px 0 rgba(0,0,0,.45)', animation: 'awf-pop .18s steps(3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px', background: '#ff6a2e', borderBottom: '4px solid #1c1526' }}>
+              <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '11px', color: '#10285e' }}>EDIT JOB SUGGESTION</div>
+              <button type="button" onClick={() => setEditingJobSug(null)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '30px', height: '30px', background: '#10285e', color: '#ff6a2e', border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Press Start 2P', monospace", fontSize: '10px' }}>✕</button>
+            </div>
+            <div style={{ padding: '20px 18px' }}>
+              {(() => {
+                const labelStyle = { display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: '8px', color: 'var(--muted)', letterSpacing: '.4px', marginBottom: '10px' };
+                const inputStyle = { width: '100%', padding: '12px 13px', background: '#10285e', color: '#f2f6ff', border: '3px solid #1c1526', fontFamily: "'VT323', monospace", fontSize: '19px', outline: 'none' };
+                const ed = editingJobSug;
+                const setEd = (newData: any) => setEditingJobSug(newData);
+                return (
+                  <div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={labelStyle}>JOB TITLE</label>
+                      <input value={ed.title || ''} onChange={e => setEd({ ...ed, title: e.target.value })} placeholder="e.g. Environmental Technician" style={inputStyle}/>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                      <div>
+                        <label style={labelStyle}>TRAIL</label>
+                        <select value={ed.pathway_id || 'creator'} onChange={e => setEd({ ...ed, pathway_id: e.target.value })} style={{ ...inputStyle, appearance: 'none' }}>
+                          <option value="enviro">Environmental Careers</option>
+                          <option value="creator">Content Creator</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>KIND</label>
+                        <select value={ed.job_type || 'Full-time'} onChange={e => setEd({ ...ed, job_type: e.target.value })} style={{ ...inputStyle, appearance: 'none' }}>
+                          <option value="Full-time">Full-time</option>
+                          <option value="Part-time">Part-time</option>
+                          <option value="Seasonal">Seasonal</option>
+                          <option value="Apprenticeship">Apprenticeship</option>
+                          <option value="Contract">Contract</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                      <div>
+                        <label style={labelStyle}>ORGANIZATION</label>
+                        <input value={ed.organization || ''} onChange={e => setEd({ ...ed, organization: e.target.value })} placeholder="Employer name" style={inputStyle}/>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>LOCATION</label>
+                        <input value={ed.location || ''} onChange={e => setEd({ ...ed, location: e.target.value })} placeholder="e.g. El Centro" style={inputStyle}/>
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={labelStyle}>APPLY URL</label>
+                      <input value={ed.apply_url || ''} onChange={e => setEd({ ...ed, apply_url: e.target.value })} placeholder="https://..." style={inputStyle}/>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={labelStyle}>CONTRIBUTOR NAME</label>
+                      <input value={ed.contributor_name || ''} onChange={e => setEd({ ...ed, contributor_name: e.target.value })} placeholder="Submitted by" style={inputStyle}/>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={labelStyle}>NOTE (optional)</label>
+                      <input value={ed.note || ''} onChange={e => setEd({ ...ed, note: e.target.value })} placeholder="Why it's worth a look" style={inputStyle}/>
+                    </div>
+                  </div>
+                );
+              })()}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {editingJobSug.error && <span style={{ color: '#ff6b6b', fontFamily: "'VT323', monospace", fontSize: '15px' }}>{editingJobSug.error}</span>}
+                <button type="button" disabled={isSavingJobSug} onClick={() => setEditingJobSug(null)} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '11px 15px', background: '#2656a4', color: 'var(--paper)', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px', opacity: isSavingJobSug ? 0.5 : 1 }}>Cancel</button>
+                <button type="button" disabled={isSavingJobSug} onClick={async () => {
+                  setIsSavingJobSug(true);
+                  try {
+                    await updateJobSuggestion(editingJobSug.id, {
+                      title: editingJobSug.title || '',
+                      apply_url: editingJobSug.apply_url || '',
+                      contributor_name: editingJobSug.contributor_name || 'anonymous',
+                      pathway_id: editingJobSug.pathway_id || 'creator',
+                      job_type: editingJobSug.job_type || 'Full-time',
+                      organization: editingJobSug.organization || '',
+                      location: editingJobSug.location || '',
+                      note: editingJobSug.note || ''
+                    });
+                    const newSugs = await fetchJobSuggestions();
+                    setJobSuggestions(newSugs);
+                    setEditingJobSug(null);
+                  } catch (err: any) {
+                    setEditingJobSug({ ...editingJobSug, error: err.message || String(err) });
+                  } finally {
+                    setIsSavingJobSug(false);
+                  }
+                }} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '11px 16px', background: '#ffdd2e', color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px', opacity: isSavingJobSug ? 0.5 : 1 }}>{isSavingJobSug ? 'Saving...' : 'Save Changes'}</button>
+                <button type="button" disabled={isSavingJobSug} onClick={async () => {
+                  setIsSavingJobSug(true);
+                  try {
+                    await updateJobSuggestion(editingJobSug.id, {
+                      title: editingJobSug.title || '',
+                      apply_url: editingJobSug.apply_url || '',
+                      contributor_name: editingJobSug.contributor_name || 'anonymous',
+                      pathway_id: editingJobSug.pathway_id || 'creator',
+                      job_type: editingJobSug.job_type || 'Full-time',
+                      organization: editingJobSug.organization || '',
+                      location: editingJobSug.location || '',
+                      note: editingJobSug.note || ''
+                    });
+                    await approveJobSuggestion(editingJobSug.id);
+                    const [newSugs, newJobs, newCount] = await Promise.all([fetchJobSuggestions(), fetchWorkforceJobs(), fetchJobSuggestionsCount()]);
+                    setJobSuggestions(newSugs);
+                    setJobs(newJobs);
+                    setJobSuggestionsCount(newCount);
+                    setEditingJobSug(null);
+                  } catch (err: any) {
+                    setEditingJobSug({ ...editingJobSug, error: err.message || String(err) });
+                  } finally {
+                    setIsSavingJobSug(false);
+                  }
+                }} style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '11px 16px', background: '#12f0c0', color: '#10285e', fontFamily: "'Press Start 2P', monospace", fontSize: '9px', border: '3px solid #1c1526', boxShadow: '3px 3px 0 rgba(18,12,26,.4)', borderRadius: '7px', opacity: isSavingJobSug ? 0.5 : 1 }}>{isSavingJobSug ? 'Saving...' : '✓ Save & Approve'}</button>
               </div>
             </div>
           </div>

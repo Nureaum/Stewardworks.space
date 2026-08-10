@@ -70,6 +70,53 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
 
   const showLibrary = arcadeScreen === 'library';
   const showSummitTile = !!summitChecklist && summitChecklist.length > 0;
+
+  // ── Job Suggestion local state ──
+  const onSubmitJobSuggestion = props.onSubmitJobSuggestion as ((data: any) => Promise<any>) | undefined;
+  const [jobSugOpen, setJobSugOpen] = React.useState(false);
+  const [jobSugDone, setJobSugDone] = React.useState(false);
+  const [jobSugSubmitting, setJobSugSubmitting] = React.useState(false);
+  const [jobSugTitle, setJobSugTitle] = React.useState('');
+  const [jobSugUrl, setJobSugUrl] = React.useState('');
+  const [jobSugContributor, setJobSugContributor] = React.useState('');
+  const [jobSugPathway, setJobSugPathway] = React.useState('creator');
+  const [jobSugType, setJobSugType] = React.useState('Full-time');
+  const [jobSugOrg, setJobSugOrg] = React.useState('');
+  const [jobSugLocation, setJobSugLocation] = React.useState('');
+  const jobSugCanSubmit = jobSugTitle.trim().length > 0 && jobSugUrl.trim().length > 0;
+  const onOpenJobSug = () => { setJobSugOpen(true); setJobSugDone(false); };
+  const onCloseJobSug = () => {
+    setJobSugOpen(false);
+    setJobSugTitle('');
+    setJobSugUrl('');
+    setJobSugContributor('');
+    setJobSugOrg('');
+    setJobSugLocation('');
+    setJobSugSubmitting(false);
+    setJobSugDone(false);
+  };
+  const onDoSubmitJobSug = async () => {
+    if (!jobSugCanSubmit || jobSugSubmitting) return;
+    setJobSugSubmitting(true);
+    try {
+      if (onSubmitJobSuggestion) {
+        await onSubmitJobSuggestion({
+          title: jobSugTitle,
+          apply_url: jobSugUrl,
+          contributor_name: jobSugContributor || 'anonymous',
+          pathway_id: jobSugPathway,
+          job_type: jobSugType,
+          organization: jobSugOrg,
+          location: jobSugLocation,
+        });
+      }
+      setJobSugDone(true);
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setJobSugSubmitting(false);
+    }
+  };
   
   // Celebration stubs
   const celebrating = false;
@@ -813,7 +860,13 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
       <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "16px"}}>
         <button onClick={onBackMap} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "9px 12px", background: "var(--panel)", color: "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>◀ Back to map</button>
         <div style={{flex: "1"}}></div>
-
+        <button
+          type="button"
+          onClick={onOpenJobSug}
+          style={{all: "unset", cursor: "pointer", boxSizing: "border-box", display: "inline-flex", alignItems: "center", gap: "7px", padding: "9px 14px", background: "#ff6a2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "8px", letterSpacing: ".5px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}
+        >
+          <span style={{fontSize: "14px"}}>💡</span> SUGGEST A JOB
+        </button>
       </div>
       <div style={{border: "4px solid #1c1526", boxShadow: "5px 5px 0 rgba(18,12,26,.42)", borderRadius: "9px", background: "#163a82"}}>
         <div style={{display: "flex", alignItems: "center", gap: "12px", padding: "16px 18px", background: "#10285e", borderBottom: "4px solid #1c1526"}}>
@@ -1153,6 +1206,148 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
       </>)}
     </div>
     </>)}
+
+    {/* ── Job Suggestion Modal ── */}
+    {jobSugOpen && (
+      <>
+        <div
+          onClick={onCloseJobSug}
+          style={{position: "fixed", inset: 0, zIndex: 200, background: "rgba(10,8,20,.80)", backdropFilter: "blur(3px)"}}
+        />
+        <div style={{
+          position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+          zIndex: 210, width: "min(620px,94vw)", maxHeight: "90vh", overflow: "auto",
+          background: "#163a82", border: "5px solid #1c1526",
+          boxShadow: "0 0 0 3px #3a3357,12px 12px 0 rgba(0,0,0,.55)"
+        }}>
+          {/* Header */}
+          <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "#ff6a2e", borderBottom: "4px solid #1c1526"}}>
+            <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+              <span style={{width: "28px", height: "28px", background: "#10285e", border: "3px solid #1c1526", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px"}}>💡</span>
+              <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#10285e"}}>SUGGEST A JOB</span>
+            </div>
+            <button type="button" onClick={onCloseJobSug} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", width: "28px", height: "28px", background: "#10285e", color: "#ff6a2e", border: "3px solid #1c1526", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Press Start 2P',monospace", fontSize: "10px"}}>✕</button>
+          </div>
+
+          <div style={{padding: "20px 18px"}}>
+            {jobSugDone ? (
+              /* Success State */
+              <div style={{textAlign: "center", padding: "30px 20px"}}>
+                <div style={{width: "56px", height: "56px", margin: "0 auto 16px", background: "#12f0c0", border: "4px solid #1c1526", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Press Start 2P',monospace", fontSize: "22px", color: "#10285e"}}>✓</div>
+                <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "var(--paper)", marginBottom: "12px"}}>SUGGESTION SENT!</div>
+                <div style={{fontSize: "17px", color: "var(--muted)", lineHeight: "1.5", marginBottom: "22px"}}>Thanks for the tip! The stewards will review it and add it to the Quest Board if it's a great fit.</div>
+                <button type="button" onClick={onCloseJobSug} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "11px 20px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "9px", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>Close ▸</button>
+              </div>
+            ) : (
+              /* Form */
+              <div>
+                <div style={{marginBottom: "6px", padding: "10px 13px", background: "#10285e", border: "2px solid #1c1526", fontSize: "15px", color: "var(--muted)", lineHeight: "1.5"}}>
+                  Know a job that belongs here? Fill in what you know — stewards will verify before it goes live.
+                </div>
+
+                {/* Title */}
+                <div style={{marginTop: "16px", marginBottom: "13px"}}>
+                  <label style={{display: "block", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#8f88ad", letterSpacing: ".4px", marginBottom: "8px"}}>JOB TITLE *</label>
+                  <input
+                    value={jobSugTitle}
+                    onChange={e => setJobSugTitle(e.target.value)}
+                    placeholder="e.g. Environmental Technician"
+                    style={{width: "100%", padding: "11px 13px", background: "#10285e", color: "#f2f6ff", border: "3px solid #1c1526", fontFamily: "'VT323',monospace", fontSize: "20px", outline: "none", boxSizing: "border-box"}}
+                  />
+                </div>
+
+                {/* URL */}
+                <div style={{marginBottom: "13px"}}>
+                  <label style={{display: "block", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#8f88ad", letterSpacing: ".4px", marginBottom: "8px"}}>JOB LINK (URL) *</label>
+                  <input
+                    value={jobSugUrl}
+                    onChange={e => setJobSugUrl(e.target.value)}
+                    placeholder="https://..."
+                    type="url"
+                    style={{width: "100%", padding: "11px 13px", background: "#10285e", color: "#f2f6ff", border: "3px solid #1c1526", fontFamily: "'VT323',monospace", fontSize: "20px", outline: "none", boxSizing: "border-box"}}
+                  />
+                </div>
+
+                {/* Trail + Kind row */}
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "13px"}}>
+                  <div>
+                    <label style={{display: "block", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#8f88ad", letterSpacing: ".4px", marginBottom: "8px"}}>TRAIL</label>
+                    <select
+                      value={jobSugPathway}
+                      onChange={e => setJobSugPathway(e.target.value)}
+                      style={{width: "100%", padding: "11px 13px", background: "#10285e", color: "#f2f6ff", border: "3px solid #1c1526", fontFamily: "'VT323',monospace", fontSize: "20px", outline: "none", appearance: "none" as any, boxSizing: "border-box" as any}}
+                    >
+                      <option value="creator">Content Creator</option>
+                      <option value="enviro">Environmental Careers</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{display: "block", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#8f88ad", letterSpacing: ".4px", marginBottom: "8px"}}>JOB TYPE</label>
+                    <select
+                      value={jobSugType}
+                      onChange={e => setJobSugType(e.target.value)}
+                      style={{width: "100%", padding: "11px 13px", background: "#10285e", color: "#f2f6ff", border: "3px solid #1c1526", fontFamily: "'VT323',monospace", fontSize: "20px", outline: "none", appearance: "none" as any, boxSizing: "border-box" as any}}
+                    >
+                      <option value="Full-time">Full-time</option>
+                      <option value="Part-time">Part-time</option>
+                      <option value="Seasonal">Seasonal</option>
+                      <option value="Apprenticeship">Apprenticeship</option>
+                      <option value="Contract">Contract</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Org + Location row */}
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "13px"}}>
+                  <div>
+                    <label style={{display: "block", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#8f88ad", letterSpacing: ".4px", marginBottom: "8px"}}>ORGANIZATION</label>
+                    <input
+                      value={jobSugOrg}
+                      onChange={e => setJobSugOrg(e.target.value)}
+                      placeholder="Employer name (optional)"
+                      style={{width: "100%", padding: "11px 13px", background: "#10285e", color: "#f2f6ff", border: "3px solid #1c1526", fontFamily: "'VT323',monospace", fontSize: "20px", outline: "none", boxSizing: "border-box"}}
+                    />
+                  </div>
+                  <div>
+                    <label style={{display: "block", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#8f88ad", letterSpacing: ".4px", marginBottom: "8px"}}>LOCATION</label>
+                    <input
+                      value={jobSugLocation}
+                      onChange={e => setJobSugLocation(e.target.value)}
+                      placeholder="e.g. El Centro (optional)"
+                      style={{width: "100%", padding: "11px 13px", background: "#10285e", color: "#f2f6ff", border: "3px solid #1c1526", fontFamily: "'VT323',monospace", fontSize: "20px", outline: "none", boxSizing: "border-box"}}
+                    />
+                  </div>
+                </div>
+
+                {/* Contributor name */}
+                <div style={{marginBottom: "20px"}}>
+                  <label style={{display: "block", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", color: "#8f88ad", letterSpacing: ".4px", marginBottom: "8px"}}>YOUR NAME</label>
+                  <input
+                    value={jobSugContributor}
+                    onChange={e => setJobSugContributor(e.target.value)}
+                    placeholder="How you want to be credited (optional)"
+                    style={{width: "100%", padding: "11px 13px", background: "#10285e", color: "#f2f6ff", border: "3px solid #1c1526", fontFamily: "'VT323',monospace", fontSize: "20px", outline: "none", boxSizing: "border-box"}}
+                  />
+                </div>
+
+                {/* Actions */}
+                <div style={{display: "flex", justifyContent: "flex-end", gap: "10px", paddingTop: "16px", borderTop: "3px dashed #4a4468"}}>
+                  <button type="button" onClick={onCloseJobSug} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", padding: "11px 16px", background: "#2656a4", color: "var(--paper)", fontFamily: "'Press Start 2P',monospace", fontSize: "9px", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>Cancel</button>
+                  <button
+                    type="button"
+                    onClick={onDoSubmitJobSug}
+                    disabled={!jobSugCanSubmit || jobSugSubmitting}
+                    style={{all: "unset", cursor: jobSugCanSubmit && !jobSugSubmitting ? "pointer" : "not-allowed", boxSizing: "border-box", padding: "11px 18px", background: jobSugCanSubmit ? "#ffdd2e" : "#2656a4", color: jobSugCanSubmit ? "#10285e" : "#6f6a88", fontFamily: "'Press Start 2P',monospace", fontSize: "9px", border: "3px solid #1c1526", boxShadow: jobSugCanSubmit ? "3px 3px 0 rgba(18,12,26,.4)" : "none", borderRadius: "7px", opacity: jobSugSubmitting ? 0.6 : 1}}
+                  >
+                    {jobSugSubmitting ? "Sending..." : "✎ Submit Suggestion"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    )}
 
   </div>
   </div>

@@ -11,6 +11,7 @@ import { fetchUserPicks } from '@/app/admin/workforce-pathways/actions'
 import { uploadCreationImage } from '@/app/actions/workshops/engagement'
 import { calculateGlobalEngagement } from '@/lib/progress/calculateGlobalEngagement'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
+import RichTextEditor from '@/components/admin/RichTextEditor'
 import type {
   WorkshopCharacter,
   DayWithSections,
@@ -36,6 +37,30 @@ interface PortfolioProps {
   userId?: string
   userRole?: string
 }
+
+/* ── Parse Note Content Helper ── */
+const parseNoteContent = (contentStr: string | null) => {
+  if (!contentStr) return { text: '', html: '', images: [], subType: 'note', version: 1 };
+  try {
+    const parsed = JSON.parse(contentStr);
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.version === 2) {
+        return parsed;
+      }
+      // Handle legacy or specific JSON payloads
+      return { 
+        text: parsed.text || '', 
+        html: parsed.html || '', 
+        images: parsed.images || [], 
+        subType: parsed.originalKind || parsed.subType || 'note', 
+        version: 1 
+      };
+    }
+  } catch (e) {
+    // legacy format or simple string
+  }
+  return { text: contentStr, html: '', images: [], subType: 'note', version: 1 };
+};
 
 /* ── Helpers ── */
 const ENGPCT: Record<string, number> = { bookmark: 1, note: 1, generation: 2, prompt: 3, mini_deliverable: 4 }
@@ -113,6 +138,21 @@ export default function Portfolio({
   const [promptInput, setPromptInput] = useState('')
   const [isNoteMiniDeliverable, setIsNoteMiniDeliverable] = useState(false)
   const [isPromptMiniDeliverable, setIsPromptMiniDeliverable] = useState(false)
+  
+  // Rich text editor states for notes/prompts
+  const [showNoteEditor, setShowNoteEditor] = useState(false)
+  const [showPromptEditor, setShowPromptEditor] = useState(false)
+  const [richNoteTitle, setRichNoteTitle] = useState('')
+  const [richNoteContent, setRichNoteContent] = useState('')
+  const [richPromptTitle, setRichPromptTitle] = useState('')
+  const [richPromptContent, setRichPromptContent] = useState('')
+  const [isSavingNote, setIsSavingNote] = useState(false)
+  
+  // Bookmark editor states
+  const [showBookmarkEditor, setShowBookmarkEditor] = useState(false)
+  const [richBookmarkTitle, setRichBookmarkTitle] = useState('')
+  const [richBookmarkUrl, setRichBookmarkUrl] = useState('')
+  const [richBookmarkContent, setRichBookmarkContent] = useState('')
 
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -216,7 +256,15 @@ export default function Portfolio({
     const item = engagements.find(e => e.id === id)
     console.log('[Portfolio] Found item:', item)
     if (item) {
-      const draft = { title: item.title, content: item.content || item.title, url: item.url || '' }
+      // Parse content if it's a note/prompt with version 2 format
+      let contentToEdit = item.content || item.title;
+      if (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable') {
+        const parsed = parseNoteContent(item.content);
+        // Use plain text for textarea editing (strip HTML tags)
+        contentToEdit = parsed.text || parsed.html?.replace(/<[^>]*>/g, '') || item.content || item.title;
+      }
+      
+      const draft = { title: item.title, content: contentToEdit, url: item.url || '' }
       console.log('[Portfolio] Setting edit draft:', draft)
       setEditDraft(draft)
       setEditingId(id)
@@ -244,18 +292,42 @@ export default function Portfolio({
     }
     
     try {
+      // Get the original item to check if it's a note/prompt that needs version 2 format
+      const item = engagements.find(e => e.id === editingId)
+      let contentToSave = editDraft.content;
+      
+      if (item && (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable')) {
+        // Convert plain text to simple HTML paragraphs
+        const htmlContent = editDraft.content
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => `<p>${line}</p>`)
+          .join('');
+        
+        const plainText = editDraft.content;
+        
+        // Save in version 2 format for notes/prompts
+        contentToSave = JSON.stringify({
+          version: 2,
+          html: htmlContent || `<p>${plainText}</p>`,
+          text: plainText,
+          images: [],
+          subType: item.kind === 'mini_deliverable' ? 'note' : item.kind
+        });
+      }
+      
       console.log('[Portfolio] Calling onUpdateEngagement with:', {
         id: editingId,
         updates: {
           title: editDraft.title || editDraft.content.slice(0, 50),
-          content: editDraft.content,
+          content: contentToSave,
           url: editDraft.url,
         }
       })
       
       const result = await onUpdateEngagement(editingId, {
         title: editDraft.title || editDraft.content.slice(0, 50),
-        content: editDraft.content,
+        content: contentToSave,
         url: editDraft.url,
       })
       
@@ -389,6 +461,134 @@ export default function Portfolio({
     st.set('')
     if (kind === 'note') setIsNoteMiniDeliverable(false)
     if (kind === 'prompt') setIsPromptMiniDeliverable(false)
+  }
+  
+  // Handler for rich text note submission
+  function handleSubmitRichNote() {
+    if (!richNoteTitle.trim() || !richNoteContent.trim()) return
+    
+    setIsSavingNote(true)
+    const plainText = richNoteContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+    const contentJson = JSON.stringify({
+      version: 2,
+      html: richNoteContent,
+      text: plainText,
+      images: [],
+      subType: 'note'
+    })
+    
+    const finalKind = isNoteMiniDeliverable ? 'mini_deliverable' : 'note'
+    onAddEngagement(finalKind, richNoteTitle.trim(), `workshop:${cohortId}`, undefined, contentJson)
+    
+    setRichNoteTitle('')
+    setRichNoteContent('')
+    setIsNoteMiniDeliverable(false)
+    setShowNoteEditor(false)
+    setIsSavingNote(false)
+  }
+  
+  // Handler for rich text prompt submission
+  function handleSubmitRichPrompt() {
+    if (!richPromptTitle.trim() || !richPromptContent.trim()) return
+    
+    setIsSavingNote(true)
+    const plainText = richPromptContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+    const contentJson = JSON.stringify({
+      version: 2,
+      html: richPromptContent,
+      text: plainText,
+      images: [],
+      subType: 'prompt'
+    })
+    
+    const finalKind = isPromptMiniDeliverable ? 'mini_deliverable' : 'prompt'
+    onAddEngagement(finalKind, richPromptTitle.trim(), `workshop:${cohortId}`, undefined, contentJson)
+    
+    setRichPromptTitle('')
+    setRichPromptContent('')
+    setIsPromptMiniDeliverable(false)
+    setShowPromptEditor(false)
+    setIsSavingNote(false)
+  }
+  
+  // Handler for bookmark submission
+  function handleSubmitBookmark() {
+    if (!richBookmarkUrl.trim() && !bookmarkFileToUpload) return
+    
+    if (bookmarkFileToUpload) {
+      // Handle file upload for bookmark
+      setIsUploadingBookmark(true)
+      const formData = new FormData()
+      formData.append('file', bookmarkFileToUpload)
+      uploadCreationImage(formData)
+        .then((publicUrl) => {
+          const title = richBookmarkTitle.trim() || bookmarkFileToUpload!.name
+          
+          // Save description in version 2 format if provided
+          let contentPayload: string | undefined = undefined
+          if (richBookmarkContent.trim()) {
+            const plainText = richBookmarkContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+            contentPayload = JSON.stringify({
+              version: 2,
+              html: richBookmarkContent,
+              text: plainText,
+              images: [],
+              subType: 'bookmark'
+            })
+          }
+          
+          onAddEngagement('bookmark', title, `workshop:${cohortId}`, publicUrl, contentPayload)
+          setBookmarkFileToUpload(null)
+          setRichBookmarkTitle('')
+          setRichBookmarkUrl('')
+          setRichBookmarkContent('')
+          setShowBookmarkEditor(false)
+        })
+        .catch(err => console.error('Bookmark upload failed:', err))
+        .finally(() => setIsUploadingBookmark(false))
+      return
+    }
+    
+    const url = richBookmarkUrl.trim()
+    let title = richBookmarkTitle.trim()
+    
+    // Auto-generate title if not provided
+    if (!title) {
+      if (url.includes('/library/')) {
+        title = 'Library Resource'
+      } else if (url.includes('/workforce-pathways')) {
+        title = 'Workforce Pathway'
+      } else if (url.startsWith('http')) {
+        try {
+          title = new URL(url).hostname
+        } catch {
+          title = 'Bookmarked Link'
+        }
+      } else if (url.match(/^[0-9a-fA-F-]{36}$/)) {
+        title = 'Bookmarked Resource'
+      } else {
+        title = 'Bookmarked Link'
+      }
+    }
+    
+    // Save description in version 2 format if provided
+    let contentPayload: string | undefined = undefined
+    if (richBookmarkContent.trim()) {
+      const plainText = richBookmarkContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+      contentPayload = JSON.stringify({
+        version: 2,
+        html: richBookmarkContent,
+        text: plainText,
+        images: [],
+        subType: 'bookmark'
+      })
+    }
+    
+    onAddEngagement('bookmark', title, `workshop:${cohortId}`, url, contentPayload)
+    setRichBookmarkTitle('')
+    setRichBookmarkUrl('')
+    setRichBookmarkContent('')
+    setShowBookmarkEditor(false)
   }
 
   function handleBookmarkFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1014,85 +1214,40 @@ export default function Portfolio({
 
                 {/* Input row */}
                 <div style={{ padding: '11px 12px', display: 'flex', gap: 7 }}>
-                  <input
-                    type="text"
-                    value={st?.value || ''}
-                    onChange={e => st?.set(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleAddShelf(col.kind) }}
-                    placeholder={col.kind === 'bookmark' ? 'Paste a Library / Workforce / Showcase link' : col.kind === 'note' ? 'Jot a note or reflection' : 'Paste a prompt worth keeping'}
+                  <button
+                    onClick={() => {
+                      if (col.kind === 'note') {
+                        setIsNoteMiniDeliverable(false)
+                        setShowNoteEditor(true)
+                      } else if (col.kind === 'prompt') {
+                        setIsPromptMiniDeliverable(false)
+                        setShowPromptEditor(true)
+                      } else if (col.kind === 'bookmark') {
+                        setShowBookmarkEditor(true)
+                      }
+                    }}
+                    className="font-pixel"
                     style={{
                       flex: 1,
                       minWidth: 0,
                       background: 'rgba(0,0,0,.4)',
                       border: '2px solid var(--ln,#3d2668)',
                       borderRadius: 5,
-                      color: 'var(--tx,#efe6ff)',
-                      fontSize: 16,
+                      color: col.color,
+                      fontSize: 11,
                       padding: '11px 12px',
-                      outline: 'none',
-                    }}
-                  />
-                  {col.kind === 'bookmark' && (
-                    <>
-                      <input type="file" accept="image/*,video/*,audio/*" hidden ref={bookmarkFileInputRef} onChange={handleBookmarkFileChange} />
-                      <button
-                        onClick={() => bookmarkFileInputRef.current?.click()}
-                        disabled={isUploadingBookmark}
-                        title="Upload file"
-                        className="font-pixel"
-                        style={{
-                          fontSize: 10,
-                          color: 'var(--s,#45d6ff)',
-                          background: 'transparent',
-                          border: '2px solid var(--s,#45d6ff)',
-                          borderRadius: 5,
-                          padding: '0 10px',
-                          cursor: isUploadingBookmark ? 'wait' : 'pointer',
-                          flex: 'none',
-                          opacity: isUploadingBookmark ? 0.5 : 1,
-                        }}
-                      >
-                        ↑
-                      </button>
-                    </>
-                  )}
-                  <button
-                    onClick={() => handleAddShelf(col.kind)}
-                    title={`Add to ${col.label.toLowerCase()}`}
-                    className="font-pixel"
-                    style={{
-                      fontSize: 14,
-                      color: '#12081e',
-                      background: col.color,
-                      border: 'none',
-                      borderRadius: 5,
-                      padding: '0 15px',
                       cursor: 'pointer',
-                      flex: 'none',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      letterSpacing: 0.5,
                     }}
                   >
-                    ＋
+                    <span style={{ fontSize: 16 }}>{col.icon}</span>
+                    <span>CLICK TO ADD {col.kind === 'note' ? 'NOTE' : col.kind === 'prompt' ? 'PROMPT' : 'BOOKMARK'}</span>
                   </button>
                 </div>
-                
-                {(col.kind === 'note' || col.kind === 'prompt') && (
-                  <div 
-                    style={{ padding: '0 12px 10px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }} 
-                    onClick={() => {
-                      if (col.kind === 'note') setIsNoteMiniDeliverable(!isNoteMiniDeliverable)
-                      if (col.kind === 'prompt') setIsPromptMiniDeliverable(!isPromptMiniDeliverable)
-                    }}
-                  >
-                    <input 
-                      type="checkbox" 
-                      checked={col.kind === 'note' ? isNoteMiniDeliverable : isPromptMiniDeliverable} 
-                      onChange={() => {}} 
-                      style={{ width: 16, height: 16, accentColor: 'var(--gold,#ffd23f)', cursor: 'pointer' }} 
-                    />
-                    <span style={{ fontSize: 16, color: 'var(--tx,#efe6ff)' }}>🏆 Submit as Mini Deliverable (+4%)</span>
-                  </div>
-                )}
-
 
                 {/* Scrollable items list */}
                 <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 240, overflowY: 'auto' }}>
@@ -1149,7 +1304,7 @@ export default function Portfolio({
                             })()}
                           </div>
                           <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 4 }}>
-                            {item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[item.kind] || 1}%` : item.status === 'rejected' ? <span style={{ color: 'var(--er,#ff5f5f)' }}>✕ rejected</span> : '🕒 pending'}
+                            {item.source?.startsWith('workshop:') ? 'Workshop Portfolio' : item.source || 'My Shelf'} · {item.status === 'approved' ? `✓ +${ENGPCT[item.kind] || 1}%` : item.status === 'rejected' ? <span style={{ color: 'var(--er,#ff5f5f)' }}>✕ rejected</span> : '🕒 pending'}
                           </div>
                         </div>
                         {item.review_note && (
@@ -1732,9 +1887,24 @@ export default function Portfolio({
             )}
             
             {/* For notes and prompts: show content */}
-            {viewingItem.content && viewingItem.content !== viewingItem.title && viewingItem.kind !== 'generation' && (
-              <div style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 18, whiteSpace: 'pre-wrap', lineHeight: 1.5, maxHeight: '45vh', overflowY: 'auto', paddingRight: 8 }}>{viewingItem.content}</div>
-            )}
+            {viewingItem.content && viewingItem.content !== viewingItem.title && viewingItem.kind !== 'generation' && (() => {
+              const parsedContent = parseNoteContent(viewingItem.content);
+              if (parsedContent.version === 2) {
+                return (
+                  <div 
+                    style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 18, lineHeight: 1.5, maxHeight: '45vh', overflowY: 'auto', paddingRight: 8 }} 
+                    dangerouslySetInnerHTML={{ __html: parsedContent.html }}
+                  />
+                );
+              } else {
+                const displayText = parsedContent.text || viewingItem.content;
+                return (
+                  <div style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 18, whiteSpace: 'pre-wrap', lineHeight: 1.5, maxHeight: '45vh', overflowY: 'auto', paddingRight: 8 }}>
+                    {displayText}
+                  </div>
+                );
+              }
+            })()}
             
             {/* For bookmarks or any item with URL: show clickable link */}
             {((viewingItem.kind === 'bookmark' && viewingItem.title.startsWith('http')) || viewingItem.url) && (
@@ -1766,7 +1936,7 @@ export default function Portfolio({
             )}
             
             <div style={{ marginTop: 26, fontSize: 15, color: 'var(--mu,#a493c9)' }}>
-              Source: {viewingItem.source || 'My Shelf'} · Status: {viewingItem.status}
+              Source: {viewingItem.source?.startsWith('workshop:') ? 'Workshop Portfolio' : viewingItem.source || 'My Shelf'} · Status: {viewingItem.status}
             </div>
           </div>
         </div>
@@ -2061,6 +2231,506 @@ export default function Portfolio({
                   <img src="/images/cert/logo-sdsu-rf.png" alt="SDSU Research Foundation" style={{ height: 38, objectFit: 'contain' }} />
                   <img src="/images/cert/logo-becoming.webp" alt="The Becoming Project" style={{ height: 38, objectFit: 'contain' }} />
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Rich Text Editor Modal for Notes */}
+      {showNoteEditor && (
+        <div 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} 
+          onClick={() => setShowNoteEditor(false)}
+        >
+          <style dangerouslySetInnerHTML={{ __html: `
+            .portfolio-rich-editor .border.rounded-md.shadow-sm.bg-white {
+              background: rgba(0,0,0,.4) !important;
+              border-color: var(--ln,#3d2668) !important;
+            }
+            .portfolio-rich-editor .bg-gray-50 {
+              background: rgba(0,0,0,.3) !important;
+            }
+            .portfolio-rich-editor .text-gray-700 {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-rich-editor .hover\\:bg-gray-200:hover {
+              background: rgba(255,210,63,.2) !important;
+            }
+            .portfolio-rich-editor .bg-gray-200 {
+              background: var(--gold,#ffd23f) !important;
+              color: #12081e !important;
+            }
+            .portfolio-rich-editor .bg-white {
+              background: rgba(0,0,0,.2) !important;
+            }
+            .portfolio-rich-editor .prose {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-rich-editor .prose h1,
+            .portfolio-rich-editor .prose h2,
+            .portfolio-rich-editor .prose h3 {
+              color: var(--gold,#ffd23f) !important;
+            }
+            .portfolio-rich-editor .prose a {
+              color: var(--s,#45d6ff) !important;
+            }
+            .portfolio-rich-editor .prose strong {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-rich-editor .bg-gray-300 {
+              background: var(--ln,#3d2668) !important;
+            }
+          `}} />
+          <div 
+            style={{ background: '#12081e', border: '2px solid var(--gold,#ffd23f)', borderRadius: 12, maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ padding: '20px 24px', borderBottom: '2px solid var(--ln,#3d2668)', position: 'sticky', top: 0, background: '#12081e', zIndex: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="font-pixel" style={{ fontSize: 14, color: 'var(--gold,#ffd23f)' }}>✎ ADD NOTE</div>
+                <button onClick={() => setShowNoteEditor(false)} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 22 }}>✕</button>
+              </div>
+              <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 8 }}>Create a rich text note with formatting, images, and links</div>
+            </div>
+            
+            <div style={{ padding: '20px 24px' }}>
+              {/* Mini Deliverable Checkbox */}
+              <div 
+                style={{ 
+                  marginBottom: 18, 
+                  background: isNoteMiniDeliverable ? 'rgba(255,210,63,.15)' : 'rgba(0,0,0,.3)', 
+                  border: isNoteMiniDeliverable ? '2px solid var(--gold,#ffd23f)' : '2px solid var(--ln,#3d2668)', 
+                  borderRadius: 8, 
+                  padding: '12px 14px', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 12 
+                }} 
+                onClick={() => setIsNoteMiniDeliverable(!isNoteMiniDeliverable)}
+              >
+                <input type="checkbox" checked={isNoteMiniDeliverable} onChange={() => {}} style={{ width: 18, height: 18, accentColor: 'var(--gold,#ffd23f)', cursor: 'pointer' }} />
+                <div>
+                  <div style={{ fontWeight: 700, color: 'var(--tx,#efe6ff)', fontSize: 16 }}>🏆 Submit as Mini Deliverable</div>
+                  {isNoteMiniDeliverable && <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 4 }}>Earn +4% engagement after approval</div>}
+                </div>
+              </div>
+              
+              {/* Title Input */}
+              <div style={{ marginBottom: 18 }}>
+                <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>TITLE *</label>
+                <input 
+                  type="text"
+                  value={richNoteTitle}
+                  onChange={(e) => setRichNoteTitle(e.target.value)}
+                  placeholder="Enter a title for your note..."
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px 14px', 
+                    background: 'rgba(0,0,0,.4)', 
+                    border: '2px solid var(--ln,#3d2668)', 
+                    borderRadius: 8, 
+                    fontSize: 17, 
+                    color: 'var(--tx,#efe6ff)', 
+                    outline: 'none' 
+                  }}
+                  autoFocus
+                />
+              </div>
+              
+              {/* Rich Text Editor */}
+              <div style={{ marginBottom: 20 }}>
+                <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>CONTENT *</label>
+                <div className="portfolio-rich-editor" style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 8, overflow: 'hidden' }}>
+                  <RichTextEditor 
+                    content={richNoteContent}
+                    onChange={(html) => setRichNoteContent(html)}
+                    onUpload={async (formData) => {
+                      const res = await uploadCreationImage(formData);
+                      return { publicUrl: res, type: 'image' };
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={() => setShowNoteEditor(false)} 
+                  style={{ 
+                    background: 'transparent', 
+                    border: '2px solid var(--ln,#3d2668)', 
+                    borderRadius: 8, 
+                    padding: '10px 20px', 
+                    fontSize: 16, 
+                    fontWeight: 600, 
+                    color: 'var(--mu,#a493c9)', 
+                    cursor: 'pointer' 
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSubmitRichNote}
+                  disabled={isSavingNote || !richNoteTitle.trim() || !richNoteContent.trim()}
+                  className="font-pixel"
+                  style={{ 
+                    background: isSavingNote || !richNoteTitle.trim() || !richNoteContent.trim() ? 'var(--mu,#a493c9)' : 'var(--gold,#ffd23f)', 
+                    border: 'none', 
+                    borderRadius: 8, 
+                    padding: '10px 24px', 
+                    fontSize: 12, 
+                    color: '#12081e', 
+                    cursor: isSavingNote || !richNoteTitle.trim() || !richNoteContent.trim() ? 'not-allowed' : 'pointer',
+                    opacity: isSavingNote || !richNoteTitle.trim() || !richNoteContent.trim() ? 0.5 : 1
+                  }}
+                >
+                  {isSavingNote ? 'SAVING...' : (isNoteMiniDeliverable ? 'SUBMIT MINI DELIVERABLE' : 'SAVE NOTE')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Rich Text Editor Modal for Prompts */}
+      {showPromptEditor && (
+        <div 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} 
+          onClick={() => setShowPromptEditor(false)}
+        >
+          <style dangerouslySetInnerHTML={{ __html: `
+            .portfolio-rich-editor .border.rounded-md.shadow-sm.bg-white {
+              background: rgba(0,0,0,.4) !important;
+              border-color: var(--ln,#3d2668) !important;
+            }
+            .portfolio-rich-editor .bg-gray-50 {
+              background: rgba(0,0,0,.3) !important;
+            }
+            .portfolio-rich-editor .text-gray-700 {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-rich-editor .hover\\:bg-gray-200:hover {
+              background: rgba(255,95,210,.2) !important;
+            }
+            .portfolio-rich-editor .bg-gray-200 {
+              background: var(--p,#ff5fd2) !important;
+              color: #12081e !important;
+            }
+            .portfolio-rich-editor .bg-white {
+              background: rgba(0,0,0,.2) !important;
+            }
+            .portfolio-rich-editor .prose {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-rich-editor .prose h1,
+            .portfolio-rich-editor .prose h2,
+            .portfolio-rich-editor .prose h3 {
+              color: var(--p,#ff5fd2) !important;
+            }
+            .portfolio-rich-editor .prose a {
+              color: var(--s,#45d6ff) !important;
+            }
+            .portfolio-rich-editor .prose strong {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-rich-editor .bg-gray-300 {
+              background: var(--ln,#3d2668) !important;
+            }
+          `}} />
+          <div 
+            style={{ background: '#12081e', border: '2px solid var(--p,#ff5fd2)', borderRadius: 12, maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ padding: '20px 24px', borderBottom: '2px solid var(--ln,#3d2668)', position: 'sticky', top: 0, background: '#12081e', zIndex: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="font-pixel" style={{ fontSize: 14, color: 'var(--p,#ff5fd2)' }}>⌘ ADD PROMPT</div>
+                <button onClick={() => setShowPromptEditor(false)} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 22 }}>✕</button>
+              </div>
+              <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 8 }}>Save a prompt with rich formatting for future reference</div>
+            </div>
+            
+            <div style={{ padding: '20px 24px' }}>
+              {/* Mini Deliverable Checkbox */}
+              <div 
+                style={{ 
+                  marginBottom: 18, 
+                  background: isPromptMiniDeliverable ? 'rgba(255,95,210,.15)' : 'rgba(0,0,0,.3)', 
+                  border: isPromptMiniDeliverable ? '2px solid var(--p,#ff5fd2)' : '2px solid var(--ln,#3d2668)', 
+                  borderRadius: 8, 
+                  padding: '12px 14px', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 12 
+                }} 
+                onClick={() => setIsPromptMiniDeliverable(!isPromptMiniDeliverable)}
+              >
+                <input type="checkbox" checked={isPromptMiniDeliverable} onChange={() => {}} style={{ width: 18, height: 18, accentColor: 'var(--p,#ff5fd2)', cursor: 'pointer' }} />
+                <div>
+                  <div style={{ fontWeight: 700, color: 'var(--tx,#efe6ff)', fontSize: 16 }}>🏆 Submit as Mini Deliverable</div>
+                  {isPromptMiniDeliverable && <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 4 }}>Earn +4% engagement after approval</div>}
+                </div>
+              </div>
+              
+              {/* Title Input */}
+              <div style={{ marginBottom: 18 }}>
+                <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--p,#ff5fd2)', marginBottom: 8 }}>TITLE *</label>
+                <input 
+                  type="text"
+                  value={richPromptTitle}
+                  onChange={(e) => setRichPromptTitle(e.target.value)}
+                  placeholder="Enter a title for your prompt..."
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px 14px', 
+                    background: 'rgba(0,0,0,.4)', 
+                    border: '2px solid var(--ln,#3d2668)', 
+                    borderRadius: 8, 
+                    fontSize: 17, 
+                    color: 'var(--tx,#efe6ff)', 
+                    outline: 'none' 
+                  }}
+                  autoFocus
+                />
+              </div>
+              
+              {/* Rich Text Editor */}
+              <div style={{ marginBottom: 20 }}>
+                <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--p,#ff5fd2)', marginBottom: 8 }}>PROMPT CONTENT *</label>
+                <div className="portfolio-rich-editor" style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 8, overflow: 'hidden' }}>
+                  <RichTextEditor 
+                    content={richPromptContent}
+                    onChange={(html) => setRichPromptContent(html)}
+                    onUpload={async (formData) => {
+                      const res = await uploadCreationImage(formData);
+                      return { publicUrl: res, type: 'image' };
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={() => setShowPromptEditor(false)} 
+                  style={{ 
+                    background: 'transparent', 
+                    border: '2px solid var(--ln,#3d2668)', 
+                    borderRadius: 8, 
+                    padding: '10px 20px', 
+                    fontSize: 16, 
+                    fontWeight: 600, 
+                    color: 'var(--mu,#a493c9)', 
+                    cursor: 'pointer' 
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSubmitRichPrompt}
+                  disabled={isSavingNote || !richPromptTitle.trim() || !richPromptContent.trim()}
+                  className="font-pixel"
+                  style={{ 
+                    background: isSavingNote || !richPromptTitle.trim() || !richPromptContent.trim() ? 'var(--mu,#a493c9)' : 'var(--p,#ff5fd2)', 
+                    border: 'none', 
+                    borderRadius: 8, 
+                    padding: '10px 24px', 
+                    fontSize: 12, 
+                    color: '#12081e', 
+                    cursor: isSavingNote || !richPromptTitle.trim() || !richPromptContent.trim() ? 'not-allowed' : 'pointer',
+                    opacity: isSavingNote || !richPromptTitle.trim() || !richPromptContent.trim() ? 0.5 : 1
+                  }}
+                >
+                  {isSavingNote ? 'SAVING...' : (isPromptMiniDeliverable ? 'SUBMIT MINI DELIVERABLE' : 'SAVE PROMPT')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Bookmark Editor Modal */}
+      {showBookmarkEditor && (
+        <div 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} 
+          onClick={() => setShowBookmarkEditor(false)}
+        >
+          <style dangerouslySetInnerHTML={{ __html: `
+            .portfolio-bookmark-editor .border.rounded-md.shadow-sm.bg-white {
+              background: rgba(0,0,0,.4) !important;
+              border-color: var(--ln,#3d2668) !important;
+            }
+            .portfolio-bookmark-editor .bg-gray-50 {
+              background: rgba(0,0,0,.3) !important;
+            }
+            .portfolio-bookmark-editor .text-gray-700 {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-bookmark-editor .hover\\:bg-gray-200:hover {
+              background: rgba(69,214,255,.2) !important;
+            }
+            .portfolio-bookmark-editor .bg-gray-200 {
+              background: var(--s,#45d6ff) !important;
+              color: #12081e !important;
+            }
+            .portfolio-bookmark-editor .bg-white {
+              background: rgba(0,0,0,.2) !important;
+            }
+            .portfolio-bookmark-editor .prose {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-bookmark-editor .prose h1,
+            .portfolio-bookmark-editor .prose h2,
+            .portfolio-bookmark-editor .prose h3 {
+              color: var(--s,#45d6ff) !important;
+            }
+            .portfolio-bookmark-editor .prose a {
+              color: var(--s,#45d6ff) !important;
+            }
+            .portfolio-bookmark-editor .prose strong {
+              color: var(--tx,#efe6ff) !important;
+            }
+            .portfolio-bookmark-editor .bg-gray-300 {
+              background: var(--ln,#3d2668) !important;
+            }
+          `}} />
+          <div 
+            style={{ background: '#12081e', border: '2px solid var(--s,#45d6ff)', borderRadius: 12, maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ padding: '20px 24px', borderBottom: '2px solid var(--ln,#3d2668)', position: 'sticky', top: 0, background: '#12081e', zIndex: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="font-pixel" style={{ fontSize: 14, color: 'var(--s,#45d6ff)' }}>☆ ADD BOOKMARK</div>
+                <button onClick={() => setShowBookmarkEditor(false)} style={{ background: 'none', border: 'none', color: 'var(--mu,#a493c9)', cursor: 'pointer', fontSize: 22 }}>✕</button>
+              </div>
+              <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', marginTop: 8 }}>Bookmark a resource and add your notes about it</div>
+            </div>
+            
+            <div style={{ padding: '20px 24px' }}>
+              {/* Title Input */}
+              <div style={{ marginBottom: 18 }}>
+                <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--s,#45d6ff)', marginBottom: 8 }}>TITLE (OPTIONAL)</label>
+                <input 
+                  type="text"
+                  value={richBookmarkTitle}
+                  onChange={(e) => setRichBookmarkTitle(e.target.value)}
+                  placeholder="Give your bookmark a custom name..."
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px 14px', 
+                    background: 'rgba(0,0,0,.4)', 
+                    border: '2px solid var(--ln,#3d2668)', 
+                    borderRadius: 8, 
+                    fontSize: 17, 
+                    color: 'var(--tx,#efe6ff)', 
+                    outline: 'none' 
+                  }}
+                  autoFocus
+                />
+                <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', marginTop: 6 }}>Leave blank to auto-generate from URL</div>
+              </div>
+              
+              {/* URL Input */}
+              <div style={{ marginBottom: 18 }}>
+                <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--s,#45d6ff)', marginBottom: 8 }}>PASTE URL OR LINK *</label>
+                <input 
+                  type="text"
+                  value={richBookmarkUrl}
+                  onChange={(e) => setRichBookmarkUrl(e.target.value)}
+                  placeholder="https://example.com or /library/resource-id"
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px 14px', 
+                    background: 'rgba(0,0,0,.4)', 
+                    border: '2px solid var(--ln,#3d2668)', 
+                    borderRadius: 8, 
+                    fontSize: 17, 
+                    color: 'var(--tx,#efe6ff)', 
+                    outline: 'none' 
+                  }}
+                />
+              </div>
+              
+              {/* File Upload Option */}
+              <div style={{ marginBottom: 18 }}>
+                <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--s,#45d6ff)', marginBottom: 8 }}>OR UPLOAD FILE</label>
+                <input type="file" accept="image/*,video/*,audio/*" hidden ref={bookmarkFileInputRef} onChange={handleBookmarkFileChange} />
+                <button
+                  onClick={() => bookmarkFileInputRef.current?.click()}
+                  disabled={isUploadingBookmark}
+                  className="font-pixel"
+                  style={{
+                    width: '100%',
+                    fontSize: 11,
+                    color: 'var(--s,#45d6ff)',
+                    background: 'rgba(69,214,255,.1)',
+                    border: '2px dashed var(--s,#45d6ff)',
+                    borderRadius: 8,
+                    padding: '16px',
+                    cursor: isUploadingBookmark ? 'wait' : 'pointer',
+                    opacity: isUploadingBookmark ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  {isUploadingBookmark ? 'UPLOADING...' : bookmarkFileToUpload ? `✓ ${bookmarkFileToUpload.name}` : '↑ CLICK TO UPLOAD FILE'}
+                </button>
+              </div>
+              
+              {/* Rich Text Editor for Description */}
+              <div style={{ marginBottom: 20 }}>
+                <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--s,#45d6ff)', marginBottom: 8 }}>DESCRIPTION / NOTES (OPTIONAL)</label>
+                <div className="portfolio-bookmark-editor" style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 8, overflow: 'hidden' }}>
+                  <RichTextEditor 
+                    content={richBookmarkContent}
+                    onChange={(html) => setRichBookmarkContent(html)}
+                    onUpload={async (formData) => {
+                      const res = await uploadCreationImage(formData);
+                      return { publicUrl: res, type: 'image' };
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--mu,#a493c9)', marginTop: 6 }}>Add notes about why you bookmarked this or what you learned</div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={() => setShowBookmarkEditor(false)} 
+                  style={{ 
+                    background: 'transparent', 
+                    border: '2px solid var(--ln,#3d2668)', 
+                    borderRadius: 8, 
+                    padding: '10px 20px', 
+                    fontSize: 16, 
+                    fontWeight: 600, 
+                    color: 'var(--mu,#a493c9)', 
+                    cursor: 'pointer' 
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSubmitBookmark}
+                  disabled={isUploadingBookmark || (!richBookmarkUrl.trim() && !bookmarkFileToUpload)}
+                  className="font-pixel"
+                  style={{ 
+                    background: isUploadingBookmark || (!richBookmarkUrl.trim() && !bookmarkFileToUpload) ? 'var(--mu,#a493c9)' : 'var(--s,#45d6ff)', 
+                    border: 'none', 
+                    borderRadius: 8, 
+                    padding: '10px 24px', 
+                    fontSize: 12, 
+                    color: '#12081e', 
+                    cursor: isUploadingBookmark || (!richBookmarkUrl.trim() && !bookmarkFileToUpload) ? 'not-allowed' : 'pointer',
+                    opacity: isUploadingBookmark || (!richBookmarkUrl.trim() && !bookmarkFileToUpload) ? 0.5 : 1
+                  }}
+                >
+                  {isUploadingBookmark ? 'SAVING...' : 'SAVE BOOKMARK'}
+                </button>
               </div>
             </div>
           </div>

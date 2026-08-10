@@ -707,3 +707,109 @@ export async function updateWorkforceEntryOrder(items: { id: string; sort_order:
   await Promise.all(updates);
   return { success: true };
 }
+
+// ─── Quest Board Job Suggestions ────────────────────────────────────────────
+
+export async function submitJobSuggestion(data: {
+  title: string;
+  apply_url: string;
+  contributor_name: string;
+  pathway_id: string;
+  job_type: string;
+  organization?: string;
+  location?: string;
+  note?: string;
+}) {
+  const { data: row, error } = await supabase
+    .from('workforce_job_suggestions')
+    .insert({
+      title: data.title,
+      apply_url: data.apply_url || '',
+      contributor_name: data.contributor_name || 'anonymous',
+      pathway_id: data.pathway_id || 'creator',
+      job_type: data.job_type || 'Full-time',
+      organization: data.organization || '',
+      location: data.location || '',
+      note: data.note || '',
+      status: 'pending'
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row;
+}
+
+export async function fetchJobSuggestions() {
+  const { data } = await supabase
+    .from('workforce_job_suggestions')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  return data || [];
+}
+
+export async function fetchJobSuggestionsCount() {
+  const { count } = await supabase
+    .from('workforce_job_suggestions')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+  return count || 0;
+}
+
+export async function updateJobSuggestion(id: string, updates: {
+  title?: string;
+  apply_url?: string;
+  contributor_name?: string;
+  pathway_id?: string;
+  job_type?: string;
+  organization?: string;
+  location?: string;
+  note?: string;
+}) {
+  const { error } = await supabase
+    .from('workforce_job_suggestions')
+    .update(updates)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function approveJobSuggestion(id: string) {
+  // Get the suggestion
+  const { data: sug, error: fetchErr } = await supabase
+    .from('workforce_job_suggestions')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (fetchErr || !sug) throw fetchErr || new Error('Suggestion not found');
+
+  // Insert into workforce_jobs
+  const { error: insertErr } = await supabase
+    .from('workforce_jobs')
+    .insert({
+      title: sug.title,
+      apply_url: sug.apply_url,
+      pathway_id: sug.pathway_id || 'creator',
+      job_type: sug.job_type || 'Full-time',
+      organization: sug.organization || '',
+      location: sug.location || ''
+    });
+  if (insertErr) {
+    console.error("Error inserting into workforce_jobs:", insertErr);
+    throw insertErr;
+  }
+
+  // Mark suggestion as approved
+  const { error: updErr } = await supabase
+    .from('workforce_job_suggestions')
+    .update({ status: 'approved' })
+    .eq('id', id);
+  if (updErr) throw updErr;
+}
+
+export async function rejectJobSuggestion(id: string) {
+  const { error } = await supabase
+    .from('workforce_job_suggestions')
+    .update({ status: 'rejected' })
+    .eq('id', id);
+  if (error) throw error;
+}

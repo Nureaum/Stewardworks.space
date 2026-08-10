@@ -787,10 +787,26 @@ export default function ClientProfile({
   const handleUpdateNote = async (id: string) => {
     if (!editNoteTitle.trim()) return;
     try {
-      await updateEngagement(id, { title: editNoteTitle, content: editNoteContent });
-      // Update local state
-      setNotes(prev => prev.map(n => n.id === id ? { ...n, title: editNoteTitle, content: editNoteContent } : n));
-      setPrompts(prev => prev.map(p => p.id === id ? { ...p, title: editNoteTitle, content: editNoteContent } : p));
+      // Get the original note to preserve its type (note/prompt)
+      const originalNote = [...notes, ...prompts, ...miniDeliverables].find(n => n.id === id);
+      const plainText = editNoteContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      
+      // Save in version 2 format
+      const contentJson = JSON.stringify({
+        version: 2,
+        html: editNoteContent,
+        text: plainText,
+        images: [],
+        subType: originalNote?.itemType || 'note'
+      });
+      
+      await updateEngagement(id, { title: editNoteTitle, content: contentJson });
+      
+      // Update local state with the new JSON content
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, title: editNoteTitle, content: contentJson } : n));
+      setPrompts(prev => prev.map(p => p.id === id ? { ...p, title: editNoteTitle, content: contentJson } : p));
+      setMiniDeliverables(prev => prev.map(m => m.id === id ? { ...m, title: editNoteTitle, content: contentJson } : m));
+      
       setIsEditingNote(false);
       setSelectedNoteItem(null);
       setToast('✏️ Updated successfully');
@@ -2088,64 +2104,78 @@ export default function ClientProfile({
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 280px), 1fr))', gap: '12px' }}>
             {/* Notes */}
-            {notes.map(n => (
-              <div
-                key={n.id}
-                onClick={() => setSelectedNoteItem({ ...n, itemType: 'note' })}
-                className="hover:-translate-y-1 hover:shadow-lg transition-all"
-                style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)', cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#A27532', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>NOTE</span>
-                  {n.status === 'pending' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
-                  )}
-                  {n.status === 'approved' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>
-                  )}
-                  {n.status === 'rejected' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{n.title}</div>
-                {n.content && n.content !== n.title && (
-                  <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
-                    {n.content.length > 100 ? n.content.slice(0, 100) + '…' : n.content}
+            {notes.map(n => {
+              const parsedNote = parseNoteContent(n.content);
+              const previewText = parsedNote.version === 2 
+                ? parsedNote.html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+                : (parsedNote.text || n.content || '');
+              
+              return (
+                <div
+                  key={n.id}
+                  onClick={() => setSelectedNoteItem({ ...n, itemType: 'note' })}
+                  className="hover:-translate-y-1 hover:shadow-lg transition-all"
+                  style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)', cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#A27532', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>NOTE</span>
+                    {n.status === 'pending' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
+                    )}
+                    {n.status === 'approved' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>
+                    )}
+                    {n.status === 'rejected' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
+                    )}
                   </div>
-                )}
-                <div style={{ fontSize: '11px', color: '#7a5a3a' }}>📝 {n.source?.startsWith('workshop:') ? 'Workshop Portfolio' : n.source}</div>
-              </div>
-            ))}
+                  <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{n.title}</div>
+                  {previewText && previewText !== n.title && (
+                    <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
+                      {previewText.length > 100 ? previewText.slice(0, 100) + '…' : previewText}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '11px', color: '#7a5a3a' }}>📝 {n.source?.startsWith('workshop:') ? 'Workshop Portfolio' : n.source}</div>
+                </div>
+              );
+            })}
             
             {/* Prompts */}
-            {prompts.map(p => (
-              <div
-                key={p.id}
-                onClick={() => setSelectedNoteItem({ ...p, itemType: 'prompt' })}
-                className="hover:-translate-y-1 hover:shadow-lg transition-all"
-                style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)', cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#DB9B2F', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>PROMPT</span>
-                  {p.status === 'pending' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
-                  )}
-                  {p.status === 'approved' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>
-                  )}
-                  {p.status === 'rejected' && (
-                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{p.title}</div>
-                {p.content && p.content !== p.title && (
-                  <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
-                    {p.content.length > 100 ? p.content.slice(0, 100) + '…' : p.content}
+            {prompts.map(p => {
+              const parsedPrompt = parseNoteContent(p.content);
+              const previewText = parsedPrompt.version === 2 
+                ? parsedPrompt.html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+                : (parsedPrompt.text || p.content || '');
+              
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => setSelectedNoteItem({ ...p, itemType: 'prompt' })}
+                  className="hover:-translate-y-1 hover:shadow-lg transition-all"
+                  style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.1)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 8px 18px rgba(0,0,0,.06)', cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#DB9B2F', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>PROMPT</span>
+                    {p.status === 'pending' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
+                    )}
+                    {p.status === 'approved' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>
+                    )}
+                    {p.status === 'rejected' && (
+                      <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>
+                    )}
                   </div>
-                )}
-                <div style={{ fontSize: '11px', color: '#7a5a3a' }}>⌘ {p.source?.startsWith('workshop:') ? 'Workshop Portfolio' : p.source}</div>
-              </div>
-            ))}
+                  <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '15px', lineHeight: 1.3, marginBottom: '6px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{p.title}</div>
+                  {previewText && previewText !== p.title && (
+                    <div style={{ fontSize: '13px', color: '#5a4a3a', lineHeight: 1.5, marginBottom: '8px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>
+                      {previewText.length > 100 ? previewText.slice(0, 100) + '…' : previewText}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '11px', color: '#7a5a3a' }}>⌘ {p.source?.startsWith('workshop:') ? 'Workshop Portfolio' : p.source}</div>
+                </div>
+              );
+            })}
 
             {/* Mini Deliverables */}
             {miniDeliverables.map(m => {
@@ -2348,7 +2378,12 @@ export default function ClientProfile({
                     >View in Portfolio ↗</button>
                   )}
                   <button
-                    onClick={() => { setEditNoteTitle(selectedNoteItem.title); setEditNoteContent(selectedNoteItem.content || ''); setIsEditingNote(true); }}
+                    onClick={() => { 
+                      setEditNoteTitle(selectedNoteItem.title);
+                      const parsed = parseNoteContent(selectedNoteItem.content);
+                      setEditNoteContent(parsed.html || parsed.text || '');
+                      setIsEditingNote(true);
+                    }}
                     style={{ padding: '9px 16px', background: 'rgba(162,117,50,.1)', color: '#8a5a2e', border: '1.5px solid rgba(162,117,50,.3)', borderRadius: '8px', fontFamily: '"DM Mono", monospace', fontSize: '11px', cursor: 'pointer' }}
                   >✏️ Edit</button>
                   <button
