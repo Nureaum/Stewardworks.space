@@ -7,7 +7,8 @@ import { useUser } from '@clerk/nextjs'
 import { PixelSprite, buildIconUri } from '@/components/workshops/journey'
 import { DEFAULT_CHARACTER } from './character-data'
 import { PATHWAYS, QUIZZES } from '@/data/workforce-content'
-import { fetchUserPicks } from '@/app/admin/workforce-pathways/actions'
+import { fetchUserPicks, getArcadeAvatar } from '@/app/admin/workforce-pathways/actions'
+import PixelHero from '@/app/hub/workforce-pathways/components/PixelHero'
 import { uploadCreationImage } from '@/app/actions/workshops/engagement'
 import { calculateGlobalEngagement } from '@/lib/progress/calculateGlobalEngagement'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
@@ -201,6 +202,7 @@ export default function Portfolio({
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([])
   const [loadingWorkforcePicks, setLoadingWorkforcePicks] = useState(false)
   const [expandedPathwayCard, setExpandedPathwayCard] = useState<string | null>(null)
+  const [arcadeAvatar, setArcadeAvatar] = useState<any>(null)
 
   // Certificate State
   const [showCertPreview, setShowCertPreview] = useState(false)
@@ -214,13 +216,17 @@ export default function Portfolio({
     certMessage: ''
   })
 
-  // Load workforce pathway picks - uses Clerk user.id
+  // Load workforce pathway picks + arcade avatar - uses Clerk user.id
   const loadWorkforcePicks = useCallback(async () => {
     if (!user?.id) return
     setLoadingWorkforcePicks(true)
     try {
-      const picks = await fetchUserPicks(user.id)
+      const [picks, avatarData] = await Promise.all([
+        fetchUserPicks(user.id),
+        getArcadeAvatar(user.id),
+      ])
       setWorkforcePicks(picks || [])
+      if (avatarData) setArcadeAvatar(avatarData)
     } catch (error) {
       console.error('Failed to load workforce picks:', error)
     } finally {
@@ -2253,6 +2259,14 @@ export default function Portfolio({
               // Build the class label like the arcade summit
               const klassName = pathway.id === 'creator' ? 'CONTENT CREATOR' : 'ENVIRO STEWARD'
 
+              // Build avatar summary line — exact same as VictoryScreen
+              const charIsHuman = arcadeAvatar && (arcadeAvatar.form === 'fem' || arcadeAvatar.form === 'masc' || arcadeAvatar.form === 'enby')
+              const charSummary = arcadeAvatar
+                ? (charIsHuman
+                  ? `${(arcadeAvatar.form || '').toUpperCase()} · ${(arcadeAvatar.hat_type || '').toUpperCase()} · ${(arcadeAvatar.gear || '').toUpperCase()}`
+                  : `${(arcadeAvatar.form || '').toUpperCase()} · NO HAT · ${(arcadeAvatar.gear || '').toUpperCase()}`)
+                : 'ENBY · CAP · CREATOR'
+
               const STEP_COLORS = ['#ffdd2e','#ff6a2e','#ff2e8f','#a855f7','#45d4ff','#12f0c0','#43e97b']
 
               return (
@@ -2304,68 +2318,59 @@ export default function Portfolio({
                       {/* RUN COMPLETE stamp */}
                       <div style={{ position: 'absolute', top: 78, right: 16, zIndex: 3, padding: '8px 13px', background: '#ff2e8f', color: '#fff', border: '4px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: 11, letterSpacing: '.5px', transform: 'rotate(-14deg)', boxShadow: '3px 3px 0 rgba(18,12,26,.4)' }}>RUN COMPLETE</div>
 
+                      {/* sw-float animation */}
+                      <style>{`@keyframes sw-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }`}</style>
+
                       {/* Card Header */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', background: pathwayColor, borderBottom: '5px solid #1c1526' }}>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 15, color: '#10285e', textShadow: '2px 2px 0 rgba(255,255,255,.35)', lineHeight: 1.4 }}>{character.player_name || klassName}</div>
+                          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 15, color: '#10285e', textShadow: '2px 2px 0 rgba(255,255,255,.35)', lineHeight: 1.4 }}>{klassName}</div>
                           <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#10285e', opacity: .72, marginTop: 8, lineHeight: 1.6 }}>{pathway.name.toUpperCase()} · PATHWAY CARD</div>
                         </div>
                         <span style={{ width: 46, height: 46, flex: '0 0 auto', background: '#10285e', color: pathwayColor, border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Press Start 2P', monospace", fontSize: 15 }}>{pathwayPicks.length}</span>
                       </div>
 
-                      {/* Card Body - Avatar panel + Picks Grid */}
-                      <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
-
-                        {/* Left: Character Avatar Panel */}
-                        <div style={{ width: 180, flex: '0 0 180px', background: 'linear-gradient(180deg,#1e2a4a 0%,#10285e 60%,#0d1e45 100%)', borderRight: '5px solid #1c1526', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '24px 12px 16px', gap: 10 }}>
-                          {/* Radial glow behind sprite */}
-                          <div style={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: `radial-gradient(circle, ${pathwayColor}55 0%, transparent 70%)` }} />
-                            <PixelSprite
-                              characterKey={character.character_key}
-                              accent={character.accent_color || '#ffd23f'}
-                              size={96}
-                              opts={{
-                                gear: (character as any).gear || (character as any).loadout || 'none',
-                                outfit: (character as any).outfit || 'plain',
-                              }}
+                      {/* Card Body — exact VictoryScreen layout: 196px avatar + picks grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '196px minmax(0,1fr)', gap: 16, padding: '20px 18px' }}>
+                        {/* Left: Avatar */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '14px 10px 12px', background: 'linear-gradient(#163a90,#2a55a8)', border: '4px solid #1c1526', boxShadow: 'inset 0 0 0 3px #3a68b8' }}>
+                          <div style={{ flex: 1 }} />
+                          <div style={{ animation: 'sw-float 2s ease-in-out infinite' }}>
+                            <PixelHero
+                              form={arcadeAvatar?.form || 'enby'}
+                              skin={arcadeAvatar?.skin || '#e8b07a'}
+                              outfit={arcadeAvatar?.outfit || '#ff2e8f'}
+                              hairStyle={arcadeAvatar?.hair_style || 'auto'}
+                              hairColor={arcadeAvatar?.hair_color || '#3a2a1a'}
+                              hatColor={arcadeAvatar?.hat_color || '#10285e'}
+                              hatType={arcadeAvatar?.hat_type || 'cap'}
+                              gear={arcadeAvatar?.gear || 'creator'}
+                              style={{ width: '150px', height: '196px', display: 'block' }}
                             />
                           </div>
-                          {/* Ground bar */}
-                          <div style={{ width: '80%', height: 5, background: pathwayColor, borderRadius: 3, opacity: 0.6 }} />
-                          {/* Character label */}
-                          <div style={{ textAlign: 'center', marginTop: 4 }}>
-                            <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: pathwayColor, letterSpacing: '.08em', lineHeight: 1.7, textTransform: 'uppercase' }}>
-                              {[character.character_key, character.headgear, (character as any).loadout || (character as any).gear]
-                                .filter(Boolean)
-                                .map((s: string) => s.toUpperCase())
-                                .join(' · ')}
-                            </div>
-                          </div>
+                          <div style={{ width: 140, height: 10, marginTop: 4, background: 'repeating-linear-gradient(90deg,#c98a3e 0 8px,#a86f2c 8px 16px)', border: '3px solid #1c1526' }} />
+                          <div style={{ marginTop: 12, fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#a9c8ff', textAlign: 'center', lineHeight: 1.9 }}>{charSummary}</div>
                         </div>
 
-                        {/* Right: Picks Grid */}
-                        <div style={{ flex: 1, padding: '20px 18px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {pathway.stops.map((stop: any, idx: number) => {
-                              const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id)
-                              const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—'
-                              const dotColor = STEP_COLORS[idx % STEP_COLORS.length]
-                              const qData = (QUIZZES as any)[pathway.id]?.[stop.id] || {}
-                              const resultLabel = qData.result || stop.name
-                              return (
-                                <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: '#fff', border: '3px solid #1c1526', borderRadius: 7 }}>
-                                  <span style={{ width: 30, height: 30, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dotColor, color: '#10285e', border: '3px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: 12 }}>{pick ? '✦' : '·'}</span>
-                                  <span style={{ flex: 1, minWidth: 0 }}>
-                                    <span style={{ display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{resultLabel}</span>
-                                    <span style={{ display: 'block', fontFamily: "'VT323', monospace", fontSize: 22, lineHeight: 1.2, color: pick ? '#10285e' : '#8f88ad', marginTop: 2 }}>{answerLabel}</span>
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
+                        {/* Right: Answer rows */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+                          {pathway.stops.map((stop: any, idx: number) => {
+                            const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id)
+                            const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—'
+                            const dotColor = STEP_COLORS[idx % STEP_COLORS.length]
+                            const qData = (QUIZZES as any)[pathway.id]?.[stop.id] || {}
+                            const resultLabel = qData.result || stop.name
+                            return (
+                              <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: '#fff', border: '3px solid #1c1526', borderRadius: 7 }}>
+                                <span style={{ width: 22, height: 22, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dotColor, color: '#1c1526', border: '2px solid #1c1526', borderRadius: 4, fontFamily: "'Press Start 2P', monospace", fontSize: 8, fontWeight: 700 }}>{pick ? '✦' : '·'}</span>
+                                <span style={{ flex: 1, minWidth: 0 }}>
+                                  <span style={{ display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{stop.name}</span>
+                                  <span style={{ display: 'block', fontFamily: "'VT323', monospace", fontSize: 20, lineHeight: 1.2, color: '#10285e', marginTop: 2 }}>{answerLabel}</span>
+                                </span>
+                              </div>
+                            )
+                          })}
                         </div>
-
                       </div>
 
                       {/* Card Footer */}
