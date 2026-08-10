@@ -2962,37 +2962,15 @@ export default function ClientProfile({
           <div style={{ background: '#FEFAE0', borderRadius: '16px', maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ padding: '24px 28px', borderBottom: '2px solid rgba(33,40,46,.12)', position: 'sticky', top: 0, background: '#FEFAE0', zIndex: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.1em', color: '#3a2412', margin: 0 }}>ADD NEW NOTE / PROMPT / MINI DELIVERABLE</h2>
+                <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.1em', color: isMiniDeliverable ? '#7c5cbf' : noteType === 'prompt' ? '#DB9B2F' : '#A27532', margin: 0 }}>
+                  {isMiniDeliverable ? '🏆 ADD MINI DELIVERABLE' : noteType === 'prompt' ? '⌘ ADD PROMPT' : '✎ ADD NOTE'}
+                </h2>
                 <button onClick={() => setIsAddingNote(false)} style={{ background: 'none', border: 'none', color: '#7a5a3a', fontSize: '24px', cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
               </div>
               <p style={{ fontSize: '13px', color: '#7a5a3a', marginTop: '8px', marginBottom: 0 }}>Your submission will be reviewed by an admin before appearing in your profile.</p>
             </div>
             
             <div style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                <button 
-                  onClick={() => setNoteType('note')}
-                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: noteType === 'note' ? '2px solid #3f5460' : '2px solid rgba(33,40,46,.15)', background: noteType === 'note' ? 'rgba(63,84,96,.1)' : '#fff', color: '#3a2412', fontWeight: noteType === 'note' ? 700 : 400, cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '13px' }}
-                >
-                  📝 NOTE
-                </button>
-                <button 
-                  onClick={() => setNoteType('prompt')}
-                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: noteType === 'prompt' ? '2px solid #DB9B2F' : '2px solid rgba(33,40,46,.15)', background: noteType === 'prompt' ? 'rgba(219,155,47,.1)' : '#fff', color: '#3a2412', fontWeight: noteType === 'prompt' ? 700 : 400, cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '13px' }}
-                >
-                  ⌘ PROMPT
-                </button>
-              </div>
-
-              {/* Mini Deliverable Banner/Checkbox */}
-              <div style={{ marginBottom: '20px', background: isMiniDeliverable ? 'rgba(219,155,47,.15)' : '#fff', border: isMiniDeliverable ? '2px solid #DB9B2F' : '2px solid rgba(33,40,46,.15)', borderRadius: '8px', padding: '12px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all .2s' }} onClick={() => setIsMiniDeliverable(!isMiniDeliverable)}>
-                <input type="checkbox" checked={isMiniDeliverable} onChange={() => {}} style={{ width: 18, height: 18, accentColor: '#DB9B2F', cursor: 'pointer' }} />
-                <div>
-                  <div style={{ fontWeight: 700, color: '#3a2412', fontSize: '14px' }}>Mark as Mini Deliverable</div>
-                  {isMiniDeliverable && <div style={{ fontSize: '12px', color: '#8a5a2e', marginTop: 4 }}>🏆 This will be submitted as a Mini Deliverable. You'll earn +4% engagement after admin approval.</div>}
-                </div>
-              </div>
-
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.1em', color: '#8a5a2e', marginBottom: '8px' }}>TITLE *</label>
                 <input 
@@ -3032,9 +3010,9 @@ export default function ClientProfile({
                 <button 
                   onClick={handleAddNote}
                   disabled={isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim())}
-                  style={{ background: isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim()) ? '#ccb89a' : '#3f5460', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, color: '#FEFAE0', cursor: isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim()) ? 'not-allowed' : 'pointer' }}
+                  style={{ background: isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim()) ? '#ccb89a' : (isMiniDeliverable ? '#7c5cbf' : noteType === 'prompt' ? '#DB9B2F' : '#A27532'), border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '14px', fontWeight: 700, color: '#FEFAE0', cursor: isSaving || !noteTitle.trim() || (!noteHtmlContent.trim() && !noteContent.trim()) ? 'not-allowed' : 'pointer' }}
                 >
-                  {isSaving ? 'Saving...' : (isMiniDeliverable ? 'Submit Mini Deliverable' : `Save ${noteType === 'prompt' ? 'Prompt' : 'Note'}`)}
+                  {isSaving ? 'Saving...' : (isMiniDeliverable ? 'Submit Mini Deliverable' : noteType === 'prompt' ? 'Save Prompt' : 'Save Note')}
                 </button>
               </div>
             </div>

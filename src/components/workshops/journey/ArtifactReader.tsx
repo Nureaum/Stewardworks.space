@@ -245,15 +245,15 @@ function CollapsibleBlock({ blk, readerAccent, isFirst, allowCollapse = true, co
             <button
               onClick={() => setMiniFormOpen(true)}
               style={{
-                width: '100%', padding: '18px 20px', background: `${readerAccent}12`, border: `2px dashed ${readerAccent}60`,
-                borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                transition: 'all 0.2s'
+                width: '100%', padding: '16px 24px', background: `${readerAccent}15`, border: `2px solid ${readerAccent}`,
+                borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                transition: 'all 0.25s ease'
               }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.background = `${readerAccent}22`; (e.target as HTMLElement).style.borderColor = readerAccent }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.background = `${readerAccent}12`; (e.target as HTMLElement).style.borderColor = `${readerAccent}60` }}
+              onMouseEnter={e => { const el = e.currentTarget; el.style.background = readerAccent; el.style.transform = 'translateY(-1px)'; el.querySelectorAll('span').forEach(s => s.style.color = 'var(--bg,#12081e)') }}
+              onMouseLeave={e => { const el = e.currentTarget; el.style.background = `${readerAccent}15`; el.style.transform = 'translateY(0)'; el.querySelectorAll('span').forEach(s => s.style.color = readerAccent) }}
             >
-              <span style={{ fontSize: 20 }}>🏆</span>
-              <span className="font-pixel" style={{ fontSize: 11, color: readerAccent, letterSpacing: 1 }}>+ ADD MINI DELIVERABLE</span>
+              <span style={{ fontSize: 18, color: readerAccent, transition: 'color 0.25s' }}>🏆</span>
+              <span className="font-pixel" style={{ fontSize: 11, color: readerAccent, letterSpacing: 1.5, transition: 'color 0.25s' }}>+ ADD MINI DELIVERABLE</span>
             </button>
           ) : (
             <div style={{ border: `2px solid ${readerAccent}`, borderRadius: 10, padding: 20, background: 'rgba(0,0,0,.2)' }}>
@@ -272,12 +272,6 @@ function CollapsibleBlock({ blk, readerAccent, isFirst, allowCollapse = true, co
                     theme="ailab"
                   />
                 </div>
-                <input
-                  value={miniUrl}
-                  onChange={e => setMiniUrl(e.target.value)}
-                  placeholder="Link / URL (optional)"
-                  style={{ background: 'rgba(0,0,0,.35)', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, color: 'var(--tx,#efe6ff)', fontFamily: "'VT323', monospace", fontSize: 16, padding: '10px 14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
-                />
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
                 <button
