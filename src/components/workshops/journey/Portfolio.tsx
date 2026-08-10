@@ -1214,6 +1214,13 @@ export default function Portfolio({
           {SHELF_COLS.map(col => {
             const items = engByKind[col.kind] || []
             const st = inputState[col.kind]
+            
+            // Helper to determine if an item is a read-only application resource
+            const isAppResource = (source: string | null | undefined) => {
+              if (!source) return false;
+              const s = source.toLowerCase();
+              return ['curriculum', 'library', 'workforce', 'environmental', 'student showcase', 'quest board'].includes(s) || s.includes('steward library');
+            };
             return (
               <div
                 key={col.kind}
@@ -1365,25 +1372,27 @@ export default function Portfolio({
                         >
                           ⤢
                         </button>
-                        <button
-                          onClick={() => {
-                            console.log('[Portfolio] Edit button clicked for item:', item.id)
-                            console.log('[Portfolio] Item data:', item)
-                            handleStartEdit(item.id)
-                          }}
-                          title="Edit"
-                          style={{
-                            flex: 'none',
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--gold,#ffd23f)',
-                            fontSize: 13,
-                            cursor: 'pointer',
-                            lineHeight: 1,
-                          }}
-                        >
-                          ✎
-                        </button>
+                        {!isAppResource(item.source) && (
+                          <button
+                            onClick={() => {
+                              console.log('[Portfolio] Edit button clicked for item:', item.id)
+                              console.log('[Portfolio] Item data:', item)
+                              handleStartEdit(item.id)
+                            }}
+                            title="Edit"
+                            style={{
+                              flex: 'none',
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--gold,#ffd23f)',
+                              fontSize: 13,
+                              cursor: 'pointer',
+                              lineHeight: 1,
+                            }}
+                          >
+                            ✎
+                          </button>
+                        )}
                         <button
                           onClick={() => onRemoveEngagement(item.id)}
                           title="Remove"

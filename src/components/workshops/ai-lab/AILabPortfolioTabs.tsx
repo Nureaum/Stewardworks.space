@@ -144,6 +144,13 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
 
   const viewingItem = engagements.find(e => e.id === viewingId);
 
+  // Helper to determine if an item is a read-only application resource
+  const isAppResource = (source: string | null | undefined) => {
+    if (!source) return false;
+    const s = source.toLowerCase();
+    return ['curriculum', 'library', 'workforce', 'environmental', 'student showcase', 'quest board'].includes(s) || s.includes('steward library');
+  };
+
   return (
     <div style={{ 
       marginTop: 14, 
@@ -187,7 +194,7 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
       </div>
 
       {/* Content Area */}
-      <div style={{ padding: 18, minHeight: 300 }}>
+      <div style={{ padding: 18, maxHeight: 420, overflowY: 'auto' }}>
         {isEditing ? (
           <div style={{ background: '#14211b', border: `2px solid ${activeColor}`, borderRadius: 8, padding: 20 }}>
             <div className="font-pixel" style={{ fontSize: 10, color: activeColor, marginBottom: 16 }}>
@@ -258,30 +265,32 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
                 {getActiveData().map(item => {
                   const parsed = parseNoteContent(item.content);
                   return (
-                    <div key={item.id} style={{ background: '#14211b', border: `1px solid var(--ln,#28432f)`, borderRadius: 6, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12, transition: 'background 0.2s' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ fontSize: 16, color: '#d6ffe0', fontFamily: "'VT323', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
-                          {item.status === 'pending' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#ffd23f22', color: '#ffd23f', borderRadius: 4 }}>PENDING</span>}
-                          {item.status === 'approved' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#4dffa022', color: '#4dffa0', borderRadius: 4 }}>✓ APPROVED</span>}
-                          {item.status === 'rejected' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#ff5fd222', color: '#ff5fd2', borderRadius: 4 }}>✕ REJECTED</span>}
+                    <div key={item.id} style={{ background: '#14211b', border: `1px solid var(--ln,#28432f)`, borderRadius: 6, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.2s' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+                          <div style={{ fontSize: 16, color: '#d6ffe0', fontFamily: "'VT323', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }}>{item.title}</div>
+                          {item.status === 'pending' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#ffd23f22', color: '#ffd23f', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>PENDING</span>}
+                          {item.status === 'approved' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#4dffa022', color: '#4dffa0', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>✓ APPROVED</span>}
+                          {item.status === 'rejected' && <span className="font-pixel" style={{ fontSize: 6, padding: '2px 5px', background: '#ff5fd222', color: '#ff5fd2', borderRadius: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>✕ REJECTED</span>}
                         </div>
-                        {(parsed.text || parsed.html || (typeof item.content === 'string' && item.content && !item.content.startsWith('{'))) && (
+                        {!isAppResource(item.source) && (parsed.text || parsed.html || (typeof item.content === 'string' && item.content && !item.content.startsWith('{'))) && (
                           <div style={{ fontSize: 13, color: 'var(--mu,#77b78d)', fontFamily: "'VT323', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {parsed.text || parsed.html || item.content}
                           </div>
                         )}
                       </div>
                       
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                         {item.url && (
-                          <a href={item.url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: activeColor, textDecoration: 'none', fontFamily: "'DM Mono', monospace", background: 'rgba(0,0,0,0.3)', padding: '4px 8px', borderRadius: 4, border: `1px solid ${activeColor}44` }}>
+                          <a href={item.url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: activeColor, textDecoration: 'none', fontFamily: "'DM Mono', monospace", background: 'rgba(0,0,0,0.3)', padding: '4px 6px', borderRadius: 4, border: `1px solid ${activeColor}44`, whiteSpace: 'nowrap' }}>
                             🔗 LINK
                           </a>
                         )}
-                        <button onClick={() => setViewingId(item.id)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 18, opacity: 0.7 }} title="Expand">⤢</button>
-                        <button onClick={() => openEditor(item.kind, item)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 14, opacity: 0.7 }} title="Edit">✎</button>
-                        <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', color: '#ff5fd2', cursor: 'pointer', fontSize: 16, opacity: 0.7 }} title="Delete">×</button>
+                        <button onClick={() => setViewingId(item.id)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 16, opacity: 0.7, padding: '2px 4px' }} title="Expand">⤢</button>
+                        {!isAppResource(item.source) && (
+                          <button onClick={() => openEditor(item.kind, item)} style={{ background: 'none', border: 'none', color: activeColor, cursor: 'pointer', fontSize: 13, opacity: 0.7, padding: '2px 4px' }} title="Edit">✎</button>
+                        )}
+                        <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', color: '#ff5fd2', cursor: 'pointer', fontSize: 14, opacity: 0.7, padding: '2px 4px' }} title="Delete">×</button>
                       </div>
                     </div>
                   );
