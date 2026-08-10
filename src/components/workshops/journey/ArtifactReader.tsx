@@ -7,6 +7,7 @@ import { getEntryMedia } from '@/app/actions/workshops/entry-media'
 import { uploadCreationImage, addEngagement } from '@/app/actions/workshops/engagement'
 import { getShowcaseItems } from '@/app/actions/workshops/showcase'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
+import RichTextEditor from '@/components/admin/RichTextEditor'
 
 interface ArtifactReaderProps {
   entry: WorkshopDayEntry & { sectionTitle: string; sectionKey: string; hour: string }
@@ -221,8 +222,13 @@ function CollapsibleBlock({ blk, readerAccent, isFirst, allowCollapse = true, co
       ) : blockType === 'mini_deliverable' ? (
         <div style={{ marginTop: isFirst ? 0 : 24, paddingTop: isFirst ? 0 : 20, borderTop: isFirst ? 'none' : '1px dashed var(--ln,#3d2668)' }}>
           {blockTitle && (
-            <div className="font-pixel" style={{ fontSize: 13, color: readerAccent, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 16 }}>
-              ◈ {blockTitle.toUpperCase()}
+            <div style={{ 
+              display: 'inline-block', background: `${readerAccent}18`, border: `1px solid ${readerAccent}40`,
+              borderRadius: 6, padding: '6px 14px', marginBottom: 16
+            }}>
+              <span className="font-pixel" style={{ fontSize: 10, color: readerAccent, letterSpacing: 1 }}>
+                ◈ {blockTitle.toUpperCase()}
+              </span>
             </div>
           )}
           {userRole === 'guest' ? (
@@ -259,13 +265,13 @@ function CollapsibleBlock({ blk, readerAccent, isFirst, allowCollapse = true, co
                   placeholder="Title *"
                   style={{ background: 'rgba(0,0,0,.35)', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, color: 'var(--tx,#efe6ff)', fontFamily: "'VT323', monospace", fontSize: 18, padding: '10px 14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
                 />
-                <textarea
-                  value={miniContent}
-                  onChange={e => setMiniContent(e.target.value)}
-                  placeholder="Describe your deliverable..."
-                  rows={4}
-                  style={{ background: 'rgba(0,0,0,.35)', border: '2px solid var(--ln,#3d2668)', borderRadius: 6, color: 'var(--tx,#efe6ff)', fontFamily: "'VT323', monospace", fontSize: 16, padding: '10px 14px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
-                />
+                <div style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 6, overflow: 'hidden' }}>
+                  <RichTextEditor
+                    content={miniContent}
+                    onChange={setMiniContent}
+                    theme="ailab"
+                  />
+                </div>
                 <input
                   value={miniUrl}
                   onChange={e => setMiniUrl(e.target.value)}
