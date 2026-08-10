@@ -94,26 +94,16 @@ export async function getAILabCurriculum(cohortId?: string) {
       const sortedEntries = [...(sec.entries || [])].sort((a, b) => a.sort_order - b.sort_order)
       
       const formattedEntries = sortedEntries.map(en => ({
+        ...en,
         type: en.entry_type,
-        title: en.title,
         sub: en.subtitle,
-        body: en.body,
-        items: en.items,
         modernTitle: en.modern_title,
         modernBody: en.modern_body,
         ancientTitle: en.ancient_title,
         ancientBody: en.ancient_body,
-        framework: en.framework,
-        note: en.note,
-        goal: en.goal,
-        applied: en.applied,
-        lab: en.lab,
         submitLabel: en.submit_label,
         media: ((en as any).media || []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((m: any) => ({
-          id: m.id,
-          kind: m.kind,
-          label: m.label,
-          url: m.url
+          ...m
         }))
       }))
 

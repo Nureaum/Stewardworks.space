@@ -1488,9 +1488,22 @@ export default function ClientProfile({
             <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.18em', color: '#8a5a2e' }}>ENGAGEMENT PROGRESS <span style={{ fontSize: '10px', letterSpacing: '.08em', color: '#6b4e2e' }}>(for Overall Progress, go to My Chia page)</span></span>
             <span style={{ fontSize: '20px', fontWeight: 700, color: '#356074' }}>{engagementProgress}% <span style={{ fontSize: '12px', fontWeight: 400, color: '#8a6a4a' }}>/ 25% cap</span></span>
           </div>
-          <div style={{ height: '12px', background: 'rgba(33,40,46,.08)', borderRadius: '8px', overflow: 'hidden', marginBottom: '18px' }}>
+          <div style={{ height: '12px', background: 'rgba(33,40,46,.08)', borderRadius: '8px', overflow: 'hidden', marginBottom: '12px' }}>
             <div style={{ width: `${Math.min((engagementProgress / 25) * 100, 100)}%`, height: '100%', background: 'linear-gradient(90deg,#417C98,#65a6c4)' }}></div>
           </div>
+
+          {/* Earn % info note */}
+          <div style={{ marginBottom: '18px', padding: '10px 14px', background: 'rgba(65,124,152,.06)', border: '1px dashed rgba(65,124,152,.3)', borderRadius: '8px', fontSize: '13px', color: '#6b4e2e', lineHeight: 1.9 }}>
+            <span style={{ fontWeight: 700, color: '#356074', marginRight: 6 }}>✦ Points after admin approves:</span>
+            <span>📌 Bookmark <b>+1%</b></span> &nbsp;·&nbsp;
+            <span>📝 Note <b>+1%</b></span> &nbsp;·&nbsp;
+            <span>🖼 Saved asset <b>+2%</b></span> &nbsp;·&nbsp;
+            <span>🌿 Suggested resource <b>+2%</b></span> &nbsp;·&nbsp;
+            <span>💬 Prompt <b>+3%</b></span> &nbsp;·&nbsp;
+            <span>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: '11px', color: '#8a6a4a' }}>(2 asset + 1 showcase)</span></span> &nbsp;·&nbsp;
+            <span>🏆 Mini deliverable <b>+4%</b></span>
+          </div>
+
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 24px' }}>
             {engagementCounts.bookmarks > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2084,22 +2097,24 @@ export default function ClientProfile({
         })()}
 
 
-        {/* PROMPT AND PATTERN LIBRARY */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#8a5a2e' }}>PROMPT AND PATTERN LIBRARY</span>
-            <span style={{ fontSize: '12px', color: '#8a6a4a', fontStyle: 'italic' }}>(save your prompts, notes, patterns, and mini-deliverables here)</span>
-            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{notes.length + prompts.length + miniDeliverables.length}</span>
-            <span style={{ fontSize: '12px', color: '#8a6a4a' }}>from workshops & the AI Lab</span>
-          </div>
-          <button onClick={() => setIsAddingNote(true)} style={{ background: '#3f5460', color: '#FEFAE0', border: 'none', borderRadius: '9px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px' }}>+ New note</button>
-        </div>
+        {/* PROMPT AND PATTERN LIBRARY WRAPPER */}
+        <div style={{ background: 'linear-gradient(135deg, #faf8f0 0%, #f5f1e8 100%)', borderRadius: '16px', padding: '24px', marginBottom: '32px', border: '1.5px solid rgba(162,117,50,.15)', boxShadow: '0 4px 12px rgba(162,117,50,.06)' }}>
+          
+          {/* NOTES SECTION */}
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#A27532' }}>✎ NOTES</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{notes.length}</span>
+              </div>
+              <button onClick={() => { setNoteType('note'); setIsMiniDeliverable(false); setIsAddingNote(true); }} style={{ background: '#A27532', color: '#fff', border: 'none', borderRadius: '9px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px' }}>+ New note</button>
+            </div>
         
         {isFetchingResources ? (
           <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading...</div>
-        ) : (notes.length === 0 && prompts.length === 0 && miniDeliverables.length === 0) ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#8a6a4a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px' }}>
-            No notes, prompts, or mini deliverables yet. Add them from the <Link href="/hub/pilot-workshops" style={{ color: '#417C98', textDecoration: 'underline' }}>Workshops</Link> or <Link href="/hub/ai-lab" style={{ color: '#417C98', textDecoration: 'underline' }}>AI Lab</Link>!
+        ) : notes.length === 0 ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px', fontSize: '13px' }}>
+            No notes yet. Add them from the <Link href="/hub/pilot-workshops" style={{ color: '#417C98', textDecoration: 'underline' }}>Workshops</Link> or <Link href="/hub/ai-lab" style={{ color: '#417C98', textDecoration: 'underline' }}>AI Lab</Link>!
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 280px), 1fr))', gap: '12px' }}>
@@ -2139,6 +2154,28 @@ export default function ClientProfile({
                 </div>
               );
             })}
+          </div>
+        )}
+        </div>
+
+        {/* PROMPTS SECTION */}
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#DB9B2F' }}>⌘ SAVED PROMPTS</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{prompts.length}</span>
+              </div>
+              <button onClick={() => { setNoteType('prompt'); setIsMiniDeliverable(false); setIsAddingNote(true); }} style={{ background: '#DB9B2F', color: '#fff', border: 'none', borderRadius: '9px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px' }}>+ New prompt</button>
+            </div>
+          
+          {isFetchingResources ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading...</div>
+          ) : prompts.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a', background: '#FEFAE0', border: '1.5px dashed rgba(33,40,46,.15)', borderRadius: '13px', fontSize: '13px' }}>
+              No prompts yet. Save them from the <Link href="/hub/pilot-workshops" style={{ color: '#417C98', textDecoration: 'underline' }}>Workshops</Link> or <Link href="/hub/ai-lab" style={{ color: '#417C98', textDecoration: 'underline' }}>AI Lab</Link>!
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 280px), 1fr))', gap: '12px' }}>
             
             {/* Prompts */}
             {prompts.map(p => {
@@ -2176,6 +2213,29 @@ export default function ClientProfile({
                 </div>
               );
             })}
+          </div>
+        )}
+        </div>
+
+        {/* MINI DELIVERABLES SECTION */}
+          <div style={{ marginBottom: '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.2em', color: '#7c5cbf' }}>🏆 MINI DELIVERABLES</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#b89050' }}>{miniDeliverables.length}</span>
+                <span style={{ fontSize: '12px', color: '#8a6a4a', fontStyle: 'italic' }}>(+4% engagement each)</span>
+              </div>
+              <button onClick={() => { setNoteType('note'); setIsMiniDeliverable(true); setIsAddingNote(true); }} style={{ background: '#7c5cbf', color: '#fff', border: 'none', borderRadius: '9px', padding: '9px 16px', cursor: 'pointer', fontFamily: '"DM Mono", monospace', fontSize: '12px' }}>+ New mini deliverable</button>
+            </div>
+          
+          {isFetchingResources ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a' }}>Loading...</div>
+          ) : miniDeliverables.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#8a6a4a', background: 'linear-gradient(135deg, #f3ebfc 0%, #FEFAE0 100%)', border: '1.5px dashed rgba(124,92,191,.3)', borderRadius: '13px', fontSize: '13px' }}>
+              No mini deliverables yet. Submit them from <Link href="/hub/pilot-workshops" style={{ color: '#7c5cbf', textDecoration: 'underline' }}>Workshops</Link> for bonus engagement!
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 280px), 1fr))', gap: '12px' }}>
 
             {/* Mini Deliverables */}
             {miniDeliverables.map(m => {
@@ -2232,6 +2292,10 @@ export default function ClientProfile({
             })}
           </div>
         )}
+        </div>
+        
+        </div>
+        {/* END PROMPT AND PATTERN LIBRARY WRAPPER */}
 
       </div>
       

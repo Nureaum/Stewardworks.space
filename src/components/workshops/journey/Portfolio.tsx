@@ -12,6 +12,7 @@ import { uploadCreationImage } from '@/app/actions/workshops/engagement'
 import { calculateGlobalEngagement } from '@/lib/progress/calculateGlobalEngagement'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 import RichTextEditor from '@/components/admin/RichTextEditor'
+import PathwayCardDownload from '@/components/shared/PathwayCardDownload'
 import type {
   WorkshopCharacter,
   DayWithSections,
@@ -76,6 +77,7 @@ const SHELF_COLS: { kind: string; icon: string; label: string; color: string }[]
   { kind: 'bookmark', icon: '☆', label: 'BOOKMARKS', color: 'var(--s,#45d6ff)' },
   { kind: 'note',     icon: '✎', label: 'NOTES',     color: 'var(--gold,#ffd23f)' },
   { kind: 'prompt',   icon: '⌘', label: 'SAVED PROMPTS', color: 'var(--p,#ff5fd2)' },
+  { kind: 'mini_deliverable', icon: '🏆', label: 'MINI DELIVERABLES', color: 'var(--v,#b06bff)' },
 ]
 
 const ASSET_GRADIENTS: Record<string, string> = {
@@ -174,6 +176,7 @@ export default function Portfolio({
   // Workforce Pathway Picks State
   const [workforcePicks, setWorkforcePicks] = useState<any[]>([])
   const [loadingWorkforcePicks, setLoadingWorkforcePicks] = useState(false)
+  const [expandedPathwayCard, setExpandedPathwayCard] = useState<string | null>(null)
 
   // Certificate State
   const [showCertPreview, setShowCertPreview] = useState(false)
@@ -392,17 +395,12 @@ export default function Portfolio({
 
   /* ── Engagement items per kind ── */
   const engByKind = useMemo(() => {
-    const map: Record<string, WorkshopEngagement[]> = { bookmark: [], note: [], prompt: [], generation: [] }
+    const map: Record<string, WorkshopEngagement[]> = { bookmark: [], note: [], prompt: [], mini_deliverable: [], generation: [] }
     engagements.forEach(e => {
       let bucket = e.kind
+      // Keep mini_deliverables in their own category
       if (e.kind === 'mini_deliverable') {
-        try {
-          const parsed = JSON.parse(e.content || '{}')
-          if (parsed.originalKind) bucket = parsed.originalKind
-          else bucket = 'note'
-        } catch {
-          bucket = 'note'
-        }
+        bucket = 'mini_deliverable'
       }
       if (map[bucket]) map[bucket].push(e)
       else map[bucket] = [e]
@@ -1170,6 +1168,18 @@ export default function Portfolio({
           Add items to grow your Chia Guardian. Bookmark +1% · Note +1% · Prompt +3% · Asset +2%
         </div>
 
+        {/* Earn % info note */}
+        <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(255,255,255,.04)', border: '1px dashed rgba(164,147,201,.35)', borderRadius: 8, fontSize: 14, color: 'var(--mu,#a493c9)', lineHeight: 1.8 }}>
+          <span style={{ color: 'var(--ok,#74f0a0)', fontWeight: 700, marginRight: 6 }}>✦ Points after admin approves:</span>
+          <span style={{ color: 'var(--tx,#efe6ff)' }}>📌 Bookmark <b>+1%</b></span> &nbsp;&middot;&nbsp;
+          <span style={{ color: 'var(--tx,#efe6ff)' }}>📝 Note <b>+1%</b></span> &nbsp;&middot;&nbsp;
+          <span style={{ color: 'var(--tx,#efe6ff)' }}>🖼 Saved asset <b>+2%</b></span> &nbsp;&middot;&nbsp;
+          <span style={{ color: 'var(--tx,#efe6ff)' }}>🌿 Suggested resource <b>+2%</b></span> &nbsp;&middot;&nbsp;
+          <span style={{ color: 'var(--tx,#efe6ff)' }}>💬 Prompt <b>+3%</b></span> &nbsp;&middot;&nbsp;
+          <span style={{ color: 'var(--tx,#efe6ff)' }}>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(2 asset + 1 showcase)</span></span> &nbsp;&middot;&nbsp;
+          <span style={{ color: 'var(--tx,#efe6ff)' }}>🏆 Mini deliverable <b>+4%</b></span>
+        </div>
+
         {/* Engagement progress bar */}
         <div
           style={{
@@ -1237,6 +1247,9 @@ export default function Portfolio({
                       } else if (col.kind === 'prompt') {
                         setIsPromptMiniDeliverable(false)
                         setShowPromptEditor(true)
+                      } else if (col.kind === 'mini_deliverable') {
+                        setIsNoteMiniDeliverable(true)
+                        setShowNoteEditor(true)
                       } else if (col.kind === 'bookmark') {
                         setShowBookmarkEditor(true)
                       }
@@ -1257,10 +1270,11 @@ export default function Portfolio({
                       alignItems: 'center',
                       gap: 8,
                       letterSpacing: 0.5,
+                      minHeight: '44px',
                     }}
                   >
-                    <span style={{ fontSize: 16 }}>{col.icon}</span>
-                    <span>CLICK TO ADD {col.kind === 'note' ? 'NOTE' : col.kind === 'prompt' ? 'PROMPT' : 'BOOKMARK'}</span>
+                    <span style={{ fontSize: 16, flexShrink: 0 }}>{col.icon}</span>
+                    <span style={{ flex: 1, lineHeight: 1.3, wordBreak: 'break-word' }}>CLICK TO ADD {col.kind === 'note' ? 'NOTE' : col.kind === 'prompt' ? 'PROMPT' : col.kind === 'mini_deliverable' ? 'MINI DELIVERABLE' : 'BOOKMARK'}</span>
                   </button>
                 </div>
 
@@ -1811,7 +1825,8 @@ export default function Portfolio({
             {/* For generation/assets and bookmarks: show preview if URL is media */}
             {viewingItem.url && (
               <div style={{ marginBottom: 18 }}>
-                {isImageUrl(viewingItem.url) ? (
+                {/* Only show image preview for: uploaded files (supabase), actual image URLs, or generation assets */}
+                {(isImageUrl(viewingItem.url) && (viewingItem.url.includes('supabase.co/storage') || viewingItem.kind === 'generation' || viewingItem.url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$)/i))) ? (
                   <img 
                     src={viewingItem.url} 
                     alt={viewingItem.title} 
@@ -2149,24 +2164,115 @@ export default function Portfolio({
             {PATHWAYS.map((pathway: any) => {
               const pathwayPicks = workforcePicks.filter((p: any) => p.pathway_id === pathway.id)
               if (pathwayPicks.length === 0) return null
-              
+
               const pathwayColor = pathway.id === 'creator' ? '#ff6a2e' : '#43e97b'
-              
+              const totalStops = pathway.stops?.length || 0
+              const isComplete = pathwayPicks.length >= totalStops && totalStops > 0
+              const isExpanded = expandedPathwayCard === pathway.id
+              const cardId = `portfolio-pathway-card-${pathway.id}`
+
+              // Build the class label like the arcade summit
+              const klassName = pathway.id === 'creator' ? 'CONTENT CREATOR' : 'ENVIRO STEWARD'
+
+              const STEP_COLORS = ['#ffdd2e','#ff6a2e','#ff2e8f','#a855f7','#45d4ff','#12f0c0','#43e97b']
+
               return (
-                <div key={pathway.id} style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: `${pathwayColor}15`, borderLeft: `4px solid ${pathwayColor}`, borderRadius: '0 8px 8px 0' }}>
+                <div key={pathway.id} style={{ marginBottom: 20 }}>
+                  {/* Pathway header bar with label + card controls */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: `${pathwayColor}15`, borderLeft: `4px solid ${pathwayColor}`, borderRadius: '0 8px 8px 0', flexWrap: 'wrap' }}>
                     <span className="font-pixel" style={{ fontSize: 9, letterSpacing: 1, color: pathwayColor, fontWeight: 700 }}>{pathway.name.toUpperCase()}</span>
-                    <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>· {pathwayPicks.length} answers</span>
+                    <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>· {pathwayPicks.length}/{totalStops} answers</span>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                      {isComplete && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedPathwayCard(isExpanded ? null : pathway.id)}
+                            style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '6px 12px', background: isExpanded ? '#1c1526' : '#21282E', color: pathwayColor, border: `2px solid ${pathwayColor}`, borderRadius: 8, fontFamily: "'Press Start 2P', monospace", fontSize: 8, letterSpacing: '.06em', fontWeight: 700 }}
+                          >
+                            {isExpanded ? '✕ HIDE CARD' : '🎮 VIEW PATHWAY CARD'}
+                          </button>
+                          {isExpanded && (
+                            <PathwayCardDownload
+                              cardElementId={cardId}
+                              fileName={`${pathway.id}-pathway-card`}
+                              accentColor={pathwayColor}
+                              size="sm"
+                              fontFamily="'Press Start 2P', monospace"
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                  
+
+                  {/* Arcade-style Pathway Card (collapsed by default, shown when complete + toggled) */}
+                  {isComplete && isExpanded && (
+                    <div
+                      id={cardId}
+                      className="run-card"
+                      style={{
+                        position: 'relative',
+                        marginBottom: 16,
+                        maxWidth: 770,
+                        background: '#f2f6ff',
+                        border: '5px solid #1c1526',
+                        boxShadow: '8px 8px 0 rgba(18,12,26,.42)',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {/* RUN COMPLETE stamp */}
+                      <div style={{ position: 'absolute', top: 78, right: 16, zIndex: 3, padding: '8px 13px', background: '#ff2e8f', color: '#fff', border: '4px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: 11, letterSpacing: '.5px', transform: 'rotate(-14deg)', boxShadow: '3px 3px 0 rgba(18,12,26,.4)' }}>RUN COMPLETE</div>
+
+                      {/* Card Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', background: pathwayColor, borderBottom: '5px solid #1c1526' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 15, color: '#10285e', textShadow: '2px 2px 0 rgba(255,255,255,.35)', lineHeight: 1.4 }}>{klassName}</div>
+                          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#10285e', opacity: .72, marginTop: 8, lineHeight: 1.6 }}>{pathway.name.toUpperCase()} · PATHWAY CARD</div>
+                        </div>
+                        <span style={{ width: 46, height: 46, flex: '0 0 auto', background: '#10285e', color: pathwayColor, border: '3px solid #1c1526', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Press Start 2P', monospace", fontSize: 15 }}>{pathwayPicks.length}</span>
+                      </div>
+
+                      {/* Card Body - Picks Grid */}
+                      <div style={{ padding: '20px 18px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {pathway.stops.map((stop: any, idx: number) => {
+                            const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id)
+                            const answerLabel = pick ? getAnswerLabel(pick, pathway.id, stop.id) : '—'
+                            const dotColor = STEP_COLORS[idx % STEP_COLORS.length]
+                            const qData = (QUIZZES as any)[pathway.id]?.[stop.id] || {}
+                            const resultLabel = qData.result || stop.name
+                            return (
+                              <div key={stop.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: '#fff', border: '3px solid #1c1526', borderRadius: 7 }}>
+                                <span style={{ width: 30, height: 30, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dotColor, color: '#10285e', border: '3px solid #1c1526', fontFamily: "'Press Start 2P', monospace", fontSize: 12 }}>{pick ? '✦' : '·'}</span>
+                                <span style={{ flex: 1, minWidth: 0 }}>
+                                  <span style={{ display: 'block', fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: '#5566a0', letterSpacing: '.4px', lineHeight: 1.5 }}>{resultLabel}</span>
+                                  <span style={{ display: 'block', fontFamily: "'VT323', monospace", fontSize: 22, lineHeight: 1.2, color: pick ? '#10285e' : '#8f88ad', marginTop: 2 }}>{answerLabel}</span>
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Card Footer */}
+                      <div style={{ padding: '15px 18px', background: '#10285e', borderTop: '5px solid #1c1526' }}>
+                        <div style={{ fontSize: 14, lineHeight: 1.45, color: '#f2f6ff' }}>Bring this card to AJCC El Centro or your MESA advisor. Ship your first portfolio piece this week.</div>
+                        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6.5, color: '#8f88ad', letterSpacing: '.4px', marginTop: 11, lineHeight: 1.7 }}>STEWARD OS · WORKFORCE DEVELOPMENT · {pathway.name.toUpperCase()} TRAIL</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Answers detail grid (always visible) */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 12 }}>
                     {pathway.stops.map((stop: any) => {
                       const pick = pathwayPicks.find((p: any) => p.stop_id === stop.id)
                       if (!pick) return null
-                      
+
                       const quizData = (QUIZZES as any)[pathway.id]?.[stop.id]
                       const answerLabel = getAnswerLabel(pick, pathway.id, stop.id)
-                      
+
                       return (
                         <div key={stop.id} style={{ background: 'rgba(0,0,0,.25)', border: '2px solid var(--ln,#3d2668)', borderRadius: 10, padding: '14px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -2175,11 +2281,11 @@ export default function Portfolio({
                               <span className="font-pixel" style={{ fontSize: 9, letterSpacing: 0.5, background: 'rgba(255,255,255,.1)', color: 'var(--mu,#a493c9)', padding: '2px 6px', borderRadius: 10 }}>OPTIONAL</span>
                             )}
                           </div>
-                          
+
                           <div style={{ fontSize: 17, color: 'var(--mu,#a493c9)', marginBottom: 8, lineHeight: 1.4 }}>
                             {quizData?.prompt || 'Your answer'}
                           </div>
-                          
+
                           <div style={{ fontWeight: 700, color: 'var(--tx,#efe6ff)', fontSize: 17, lineHeight: 1.3, padding: '10px 12px', background: 'rgba(255,255,255,.05)', borderRadius: 8, border: '1px solid var(--ln,#3d2668)' }}>
                             {answerLabel}
                           </div>
@@ -2410,28 +2516,6 @@ export default function Portfolio({
             </div>
             
             <div style={{ padding: '20px 24px' }}>
-              {/* Mini Deliverable Checkbox */}
-              <div 
-                style={{ 
-                  marginBottom: 18, 
-                  background: isNoteMiniDeliverable ? 'rgba(255,210,63,.15)' : 'rgba(0,0,0,.3)', 
-                  border: isNoteMiniDeliverable ? '2px solid var(--gold,#ffd23f)' : '2px solid var(--ln,#3d2668)', 
-                  borderRadius: 8, 
-                  padding: '12px 14px', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 12 
-                }} 
-                onClick={() => setIsNoteMiniDeliverable(!isNoteMiniDeliverable)}
-              >
-                <input type="checkbox" checked={isNoteMiniDeliverable} onChange={() => {}} style={{ width: 18, height: 18, accentColor: 'var(--gold,#ffd23f)', cursor: 'pointer' }} />
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--tx,#efe6ff)', fontSize: 16 }}>🏆 Submit as Mini Deliverable</div>
-                  {isNoteMiniDeliverable && <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 4 }}>Earn +4% engagement after approval</div>}
-                </div>
-              </div>
-              
               {/* Title Input */}
               <div style={{ marginBottom: 18 }}>
                 <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>TITLE *</label>
@@ -2501,7 +2585,7 @@ export default function Portfolio({
                     opacity: isSavingNote || !richNoteTitle.trim() || !richNoteContent.trim() ? 0.5 : 1
                   }}
                 >
-                  {isSavingNote ? 'SAVING...' : (isNoteMiniDeliverable ? 'SUBMIT MINI DELIVERABLE' : 'SAVE NOTE')}
+                  {isSavingNote ? 'SAVING...' : 'SAVE NOTE'}
                 </button>
               </div>
             </div>
@@ -2567,28 +2651,6 @@ export default function Portfolio({
             </div>
             
             <div style={{ padding: '20px 24px' }}>
-              {/* Mini Deliverable Checkbox */}
-              <div 
-                style={{ 
-                  marginBottom: 18, 
-                  background: isPromptMiniDeliverable ? 'rgba(255,95,210,.15)' : 'rgba(0,0,0,.3)', 
-                  border: isPromptMiniDeliverable ? '2px solid var(--p,#ff5fd2)' : '2px solid var(--ln,#3d2668)', 
-                  borderRadius: 8, 
-                  padding: '12px 14px', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 12 
-                }} 
-                onClick={() => setIsPromptMiniDeliverable(!isPromptMiniDeliverable)}
-              >
-                <input type="checkbox" checked={isPromptMiniDeliverable} onChange={() => {}} style={{ width: 18, height: 18, accentColor: 'var(--p,#ff5fd2)', cursor: 'pointer' }} />
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--tx,#efe6ff)', fontSize: 16 }}>🏆 Submit as Mini Deliverable</div>
-                  {isPromptMiniDeliverable && <div style={{ fontSize: 14, color: 'var(--mu,#a493c9)', marginTop: 4 }}>Earn +4% engagement after approval</div>}
-                </div>
-              </div>
-              
               {/* Title Input */}
               <div style={{ marginBottom: 18 }}>
                 <label className="font-pixel" style={{ display: 'block', fontSize: 11, color: 'var(--p,#ff5fd2)', marginBottom: 8 }}>TITLE *</label>
@@ -2658,7 +2720,7 @@ export default function Portfolio({
                     opacity: isSavingNote || !richPromptTitle.trim() || !richPromptContent.trim() ? 0.5 : 1
                   }}
                 >
-                  {isSavingNote ? 'SAVING...' : (isPromptMiniDeliverable ? 'SUBMIT MINI DELIVERABLE' : 'SAVE PROMPT')}
+                  {isSavingNote ? 'SAVING...' : 'SAVE PROMPT'}
                 </button>
               </div>
             </div>

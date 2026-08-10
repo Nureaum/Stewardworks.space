@@ -11,6 +11,8 @@ import GenerationSandbox from './GenerationSandbox';
 import SubmissionTracker from './SubmissionTracker';
 import SaveCreationPanel from './SaveCreationPanel';
 import Showcase from '../journey/Showcase';
+import ArtifactReader from '../journey/ArtifactReader';
+import AILabPortfolioTabs from './AILabPortfolioTabs';
 import { WorkshopDayEntry, WorkshopDay } from '@/types/workshops';
 
 export default function AILabClient({
@@ -51,7 +53,7 @@ export default function AILabClient({
   const router = useRouter();
   const [studentView, setStudentView] = useState<'lab' | 'portfolio' | 'showcase'>('lab');
   const [day, setDay] = useState(1);
-  const [activeEntry, setActiveEntry] = useState<string | null>(null);
+  const [activeEntry, setActiveEntry] = useState<any | null>(null);
   const [curriculumVisible, setCurriculumVisible] = useState(true);
   const [sandboxVisible, setSandboxVisible] = useState(true);
 
@@ -204,7 +206,7 @@ export default function AILabClient({
                         {curriculumVisible ? '◧ HIDE CURRICULUM' : '◱ SHOW CURRICULUM'}
                       </button>
                       <div className="font-pixel" style={{ fontSize: 11, color: '#ffd23f', lineHeight: 1.5, minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {initialCurriculum[day]?.title || `DAY 0${day}`}
+                        DAY 0{day} — {initialCurriculum[day]?.title?.replace(/^Day\s*\d+\s*[—\-:]\s*/i, '') || `Loading...`}
                       </div>
                       <button 
                         onClick={() => setSandboxVisible(!sandboxVisible)}
@@ -248,9 +250,12 @@ export default function AILabClient({
                           }}
                         />
                       )}
-                      {sandboxVisible && (
-                        <GenerationSandbox edenEmbedUrl={edenEmbedUrl} platforms={platforms} />
-                      )}
+                      <div style={{ flex: '1.45 1 440px', minWidth: 320, display: 'flex', flexDirection: 'column', gap: 15 }}>
+                        {sandboxVisible && (
+                          <GenerationSandbox edenEmbedUrl={edenEmbedUrl} platforms={platforms} />
+                        )}
+                        <AILabPortfolioTabs cohortId={cohortId} initialEngagements={initialEngagements} />
+                      </div>
                     </div>
 
                     {/* Save a Creation Panel */}
@@ -315,6 +320,38 @@ export default function AILabClient({
           </div>
         </div>
       </div>
+
+      {/* ── Artifact Reader modal ── */}
+      {activeEntry && (
+        <ArtifactReader
+          key={`lab-${day}-${activeEntry.id}`}
+          entry={activeEntry}
+          dayId={days.find(d => d.day_number === day)?.id || ''}
+          dayNumber={day}
+          scene={{ label: `ACT ${day}` }}
+          accent="#4dffa0"
+          onClose={() => setActiveEntry(null)}
+          cohortId={cohortId || ''}
+          progressRows={dashboard?.filter((d: any) => d.progress).map((d: any) => ({ ...d.progress, workshop_day_id: d.day_id || d.id })) || []}
+          principles={principles}
+          bankedPrincipleIds={bankedPrinciples.map((bp: any) => bp.principle_id)}
+          currentDayPrincipleId={null}
+          submissions={submissions}
+          allBankedPrinciples={bankedPrinciples}
+          onDeliverableSubmitted={() => {}}
+          userRole={userRole}
+          onBookmark={async (key: string, title: string, source: string, url?: string) => {
+            if (!cohortId) return;
+            try {
+              await addEngagement(cohortId, 'bookmark', title, source, url || '', key);
+              toast.success(`Bookmarked "${title}"`, { position: 'bottom-center' });
+            } catch (err) {
+              toast.error(`Failed to bookmark "${title}"`, { position: 'bottom-center' });
+            }
+          }}
+          isBookmarked={initialEngagements.some(e => e.kind === 'bookmark' && e.content === `${days.find(d => d.day_number === day)?.id}-${activeEntry.id}`)}
+        />
+      )}
     </div>
   );
 }
