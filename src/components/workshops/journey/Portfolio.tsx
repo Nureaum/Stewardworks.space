@@ -256,12 +256,12 @@ export default function Portfolio({
     const item = engagements.find(e => e.id === id)
     console.log('[Portfolio] Found item:', item)
     if (item) {
-      // Parse content if it's a note/prompt with version 2 format
-      let contentToEdit = item.content || item.title;
-      if (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable') {
+      // Parse content if it has version 2 format (notes, prompts, bookmarks with descriptions)
+      let contentToEdit = item.content || '';
+      if (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable' || item.kind === 'bookmark') {
         const parsed = parseNoteContent(item.content);
         // Use HTML for rich text editor
-        contentToEdit = parsed.html || parsed.text || item.content || item.title;
+        contentToEdit = parsed.html || parsed.text || item.content || '';
       }
       
       const draft = { title: item.title, content: contentToEdit, url: item.url || '' }
@@ -292,15 +292,15 @@ export default function Portfolio({
     }
     
     try {
-      // Get the original item to check if it's a note/prompt that needs version 2 format
+      // Get the original item to check if it needs version 2 format
       const item = engagements.find(e => e.id === editingId)
       let contentToSave = editDraft.content;
       
-      if (item && (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable')) {
+      if (item && (item.kind === 'note' || item.kind === 'prompt' || item.kind === 'mini_deliverable' || (item.kind === 'bookmark' && editDraft.content.trim()))) {
         // Content is already HTML from RichTextEditor, save in version 2 format
         const plainText = editDraft.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
         
-        // Save in version 2 format for notes/prompts
+        // Save in version 2 format
         contentToSave = JSON.stringify({
           version: 2,
           html: editDraft.content || `<p>${plainText}</p>`,
@@ -1990,14 +1990,26 @@ export default function Portfolio({
               <input 
                 value={editDraft.title}
                 onChange={e => setEditDraft(prev => ({ ...prev, title: e.target.value }))}
-                onKeyDown={e => { if (e.key === 'Enter' && editingItem.kind === 'bookmark') handleSaveEdit(e as any) }}
                 style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '2px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 8, fontSize: 17, outline: 'none' }}
               />
             </label>
+            
+            {editingItem.kind === 'bookmark' && editingItem.url && (
+              <label style={{ display: 'block', marginBottom: 18 }}>
+                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>URL</div>
+                <input 
+                  value={editDraft.url}
+                  onChange={e => setEditDraft(prev => ({ ...prev, url: e.target.value }))}
+                  style={{ width: '100%', background: 'rgba(0,0,0,0.5)', border: '2px solid var(--ln,#3d2668)', color: 'var(--tx,#efe6ff)', padding: '12px 14px', borderRadius: 8, fontSize: 17, outline: 'none' }}
+                />
+              </label>
+            )}
 
-            {editingItem.kind !== 'bookmark' && (
+            {(editingItem.kind !== 'bookmark' || editingItem.content) && (
               <div style={{ marginBottom: 24 }}>
-                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>CONTENT</div>
+                <div className="font-pixel" style={{ fontSize: 11, color: 'var(--gold,#ffd23f)', marginBottom: 8 }}>
+                  {editingItem.kind === 'bookmark' ? 'DESCRIPTION / NOTES (OPTIONAL)' : 'CONTENT'}
+                </div>
                 <div className="portfolio-edit-modal" style={{ border: '2px solid var(--ln,#3d2668)', borderRadius: 8, overflow: 'hidden' }}>
                   <RichTextEditor 
                     content={editDraft.content}
