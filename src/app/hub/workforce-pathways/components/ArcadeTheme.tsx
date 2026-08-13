@@ -470,7 +470,10 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
       padding: 4px 5px !important;
     }
     .arcade-nav-title {
-      display: none !important;
+      font-size: 5px !important;
+      max-width: 90px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
     }
     .arcade-nav-group button {
       font-size: 5px !important;
