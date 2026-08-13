@@ -2,6 +2,8 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/user-suggestions
  * Returns all resource suggestions submitted by the current user (env and workforce),
@@ -32,7 +34,7 @@ export async function GET() {
       .from('workshop_engagement')
       .select('id, title, url, source, status, content, kind, created_at')
       .eq('profile_id', profile.id)
-      .in('kind', ['env_suggestion', 'wf_suggestion', 'lib_suggestion'])
+      .in('kind', ['env_suggestion', 'wf_suggestion', 'lib_suggestion', 'job_quest_suggestion'])
       .order('created_at', { ascending: false })
 
     if (engError) {
@@ -53,7 +55,7 @@ export async function GET() {
         url: e.url || '',
         source: e.source || (e.kind === 'wf_suggestion' ? 'Workforce Pathways' : 'Environmental Literacy'),
         status: e.status || 'pending',
-        kind: e.kind,
+        kind: (e.kind === 'wf_suggestion' && parsedContent.type === 'job_quest') ? 'job_quest_suggestion' : e.kind,
         theme_id: parsedContent.theme_id || 'bioregion',
         library_item_id: parsedContent.library_item_id || null,
         created_at: e.created_at,

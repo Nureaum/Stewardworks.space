@@ -330,9 +330,22 @@ export default function ClientProfile({
             miniDeliverables: approved.filter((e: any) => e.kind === 'mini_deliverable').length,
             generations: normalGenerationCount,
             envSuggestions: approved.filter((e: any) => e.kind === 'env_suggestion').length,
-            wfSuggestions: approved.filter((e: any) => e.kind === 'wf_suggestion').length,
+            wfSuggestions: approved.filter((e: any) => {
+              if (e.kind !== 'wf_suggestion') return false;
+              let content = typeof e.content === 'string' ? {} : (e.content || {});
+              try { if (typeof e.content === 'string') content = JSON.parse(e.content); } catch (err) {}
+              return content.type !== 'job_quest';
+            }).length,
             libSuggestions: approved.filter((e: any) => e.kind === 'lib_suggestion').length,
-            jobQuestSuggestions: approved.filter((e: any) => e.kind === 'job_quest_suggestion').length,
+            jobQuestSuggestions: approved.filter((e: any) => {
+              if (e.kind === 'job_quest_suggestion') return true;
+              if (e.kind === 'wf_suggestion') {
+                let content = typeof e.content === 'string' ? {} : (e.content || {});
+                try { if (typeof e.content === 'string') content = JSON.parse(e.content); } catch (err) {}
+                return content.type === 'job_quest';
+              }
+              return false;
+            }).length,
             showcase: showcaseBonusCount,
             showcaseForm: studentShowcaseFormCount,
           });
@@ -510,7 +523,7 @@ export default function ClientProfile({
       // Fetch environmental & workforce suggestions from dedicated API
       try {
         console.log('[ClientProfile] Fetching /api/user-suggestions');
-        const envRes = await fetch('/api/user-suggestions');
+        const envRes = await fetch('/api/user-suggestions', { cache: 'no-store' });
         if (envRes.ok) {
           const envData = await envRes.json();
           console.log('[ClientProfile] User suggestions data:', envData);
@@ -2246,7 +2259,7 @@ export default function ClientProfile({
         )}
 
         {/* SUGGESTION ENGAGEMENTS */}
-        {(envSuggestions.length > 0 || wfSuggestions.length > 0 || libSuggestions.length > 0 || jobQuestSuggestions.length > 0) && (() => {
+        {(() => {
           const allSuggestions = [...envSuggestions, ...wfSuggestions, ...libSuggestions, ...jobQuestSuggestions].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
           
           return (
@@ -2254,7 +2267,10 @@ export default function ClientProfile({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
                   <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.15em', color: '#3a2412', margin: '0 0 6px 0', fontWeight: 700 }}>SUGGESTION ENGAGEMENTS</h2>
-                  <p style={{ fontSize: '13px', color: '#7a5a3a', margin: 0 }}>All your community submissions from across the StewardWorks hub. ({allSuggestions.length} total)</p>
+                  <p style={{ fontSize: '13px', color: '#7a5a3a', margin: '0 0 4px 0' }}>All your community submissions from across the StewardWorks hub. ({allSuggestions.length} total)</p>
+                  <p style={{ fontSize: '12px', color: '#a27532', margin: 0, fontStyle: 'italic' }}>
+                    You can suggest resources in: Workforce Pathways + Quest Board, Environmental Literacy, Steward Library, My Profile, and Portfolio pages.
+                  </p>
                 </div>
               </div>
               
@@ -2379,6 +2395,14 @@ export default function ClientProfile({
                   );
                 })}
               </div>
+
+              {allSuggestions.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '30px', background: 'rgba(255,255,255,0.4)', borderRadius: '12px', border: '1px dashed rgba(162,117,50,.3)', marginTop: '15px' }}>
+                  <p style={{ color: '#8a5a2e', fontSize: '13px', margin: 0, fontStyle: 'italic' }}>
+                    No suggested resources yet. Explore the hub and share your favorites!
+                  </p>
+                </div>
+              )}
             </div>
           );
         })()}

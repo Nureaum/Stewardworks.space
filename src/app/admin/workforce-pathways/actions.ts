@@ -727,8 +727,7 @@ export async function submitJobSuggestion(data: {
     contributor_name: data.contributor_name || 'anonymous',
     pathway_id: data.pathway_id || 'creator',
     job_type: data.job_type || 'Full-time',
-    status: 'pending',
-    submitter_profile_id: data.submitter_profile_id || null
+    status: 'pending'
   };
   
   if (data.organization) insertData.organization = data.organization;
@@ -740,7 +739,70 @@ export async function submitJobSuggestion(data: {
     .insert(insertData)
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    try {
+      const fs = require('fs');
+      fs.appendFileSync('C:/projects/education/db_err.txt', JSON.stringify(error) + '\\n');
+    } catch(e) {}
+    throw error;
+  }
+  
+  console.log('[Workforce submitJobSuggestion] received submitter_profile_id:', data.submitter_profile_id);
+  
+  if (data.submitter_profile_id && row) {
+    const profileId = data.submitter_profile_id;
+    const { data: anyReg } = await supabase
+      .from('workshop_registrations')
+      .select('cohort_id')
+      .eq('profile_id', profileId)
+      .eq('status', 'registered')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let cohortId = anyReg?.cohort_id;
+    
+    if (!cohortId) {
+      const { data: anyCohort } = await supabase
+        .from('cohorts')
+        .select('id')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      cohortId = anyCohort?.id;
+    }
+    
+    console.log('[Workforce submitJobSuggestion] resolved cohortId:', cohortId);
+
+    if (cohortId) {
+      const { error: engErr } = await supabase
+        .from('workshop_engagement')
+        .insert({
+          cohort_id: cohortId,
+          profile_id: profileId,
+          kind: 'wf_suggestion',
+          title: data.title,
+          source: 'Workforce Pathways',
+          url: data.apply_url || '',
+          content: JSON.stringify({
+            suggestion_id: row.id,
+            pathway_id: data.pathway_id,
+            job_type: data.job_type,
+            type: 'job_quest'
+          }),
+          status: 'pending',
+        });
+        
+      if (engErr) {
+        console.error('[Workforce submitJobSuggestion] failed to insert engagement:', engErr);
+      } else {
+        console.log('[Workforce submitJobSuggestion] successfully created engagement');
+      }
+    }
+  } else {
+    console.log('[Workforce submitJobSuggestion] Skipping engagement creation because submitter_profile_id is missing or row is null');
+  }
+  
   return row;
 }
 
@@ -810,19 +872,51 @@ export async function approveJobSuggestion(id: string) {
     .eq('id', id);
   if (updErr) throw updErr;
 
-  // If there's a submitter_profile_id, create an engagement entry for +2%
-  if (sug.submitter_profile_id) {
-    const { error: engErr } = await supabase
-      .from('engagement_entries')
-      .insert({
-        profile_id: sug.submitter_profile_id,
-        kind: 'job_quest_suggestion',
-        title: `Job suggestion: ${sug.title}`,
-        status: 'approved'
+  // Find the pending engagement record and reward the user
+  const { data: engRecords } = await supabase
+    .from('workshop_engagement')
+    .select('*')
+    .eq('kind', 'wf_suggestion')
+    .eq('status', 'pending');
+    
+  const pendingEng = engRecords?.find(r => {
+    try {
+      const content = typeof r.content === 'string' ? JSON.parse(r.content) : r.content;
+      return content?.suggestion_id === id;
+    } catch(e) { return false; }
+  });
+
+  if (pendingEng) {
+    // 1. Update workshop_engagement to approved (no points_awarded column)
+    const { error: updEngErr } = await supabase
+      .from('workshop_engagement')
+      .update({ status: 'approved' })
+      .eq('id', pendingEng.id);
+      
+    if (updEngErr) console.error("Error updating workshop_engagement:", updEngErr);
+    
+    // 2. Insert the 2% points into engagement_entries
+    if (pendingEng.profile_id && pendingEng.cohort_id) {
+      const { error: engErr } = await supabase
+        .from('engagement_entries')
+        .insert({
+          profile_id: pendingEng.profile_id,
+          cohort_id: pendingEng.cohort_id,
+          kind: 'job_quest_suggestion',
+          points: 2,
+          description: `Approved job suggestion: ${sug.title}`
+        });
+      if (engErr) console.error("Error creating engagement entry:", engErr);
+    }
+    
+    // 3. Notify the user
+    if (pendingEng.profile_id) {
+      await supabase.from('helpdesk_notifications').insert({
+        user_id: pendingEng.profile_id,
+        title: 'Job Suggestion Approved',
+        message: `Your job suggestion "${sug.title}" has been approved and added to the Quest Board!`,
+        is_read: false
       });
-    if (engErr) {
-      console.error("Error creating engagement entry:", engErr);
-      // Don't throw here - job was still approved successfully
     }
   }
 }
