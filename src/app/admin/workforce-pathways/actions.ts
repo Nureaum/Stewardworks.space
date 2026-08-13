@@ -721,20 +721,23 @@ export async function submitJobSuggestion(data: {
   note?: string;
   submitter_profile_id?: string;
 }) {
+  const insertData: any = {
+    title: data.title,
+    apply_url: data.apply_url || '',
+    contributor_name: data.contributor_name || 'anonymous',
+    pathway_id: data.pathway_id || 'creator',
+    job_type: data.job_type || 'Full-time',
+    status: 'pending',
+    submitter_profile_id: data.submitter_profile_id || null
+  };
+  
+  if (data.organization) insertData.organization = data.organization;
+  if (data.location) insertData.location = data.location;
+  if (data.note) insertData.note = data.note;
+
   const { data: row, error } = await supabase
     .from('workforce_job_suggestions')
-    .insert({
-      title: data.title,
-      apply_url: data.apply_url || '',
-      contributor_name: data.contributor_name || 'anonymous',
-      pathway_id: data.pathway_id || 'creator',
-      job_type: data.job_type || 'Full-time',
-      organization: data.organization || '',
-      location: data.location || '',
-      note: data.note || '',
-      status: 'pending',
-      submitter_profile_id: data.submitter_profile_id || null
-    })
+    .insert(insertData)
     .select()
     .single();
   if (error) throw error;

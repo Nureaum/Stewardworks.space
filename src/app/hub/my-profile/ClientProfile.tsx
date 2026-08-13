@@ -1565,7 +1565,7 @@ export default function ClientProfile({
               <span>📌 Bookmark <b>+1%</b></span> &nbsp;·&nbsp;
               <span>📝 Note <b>+1%</b></span> &nbsp;·&nbsp;
               <span>🖼 Saved asset <b>+2%</b></span> &nbsp;·&nbsp;
-              <span>🌿 Suggested resource <b>+2%</b></span> &nbsp;·&nbsp;
+              <span>🌿 Suggested resource (workforce pathways + quest board, environmental literacy, steward library, my profile and portfolio pages) <b>+2%</b></span> &nbsp;·&nbsp;
               <span>💼 Approved job to quest board <b>+2%</b></span> &nbsp;·&nbsp;
               <span>💬 Prompt <b>+3%</b></span> &nbsp;·&nbsp;
               <span>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: '11px', color: '#8a6a4a' }}>(2% for asset + 1% for showcase)</span></span> &nbsp;·&nbsp;

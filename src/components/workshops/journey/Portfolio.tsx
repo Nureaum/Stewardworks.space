@@ -1230,7 +1230,7 @@ export default function Portfolio({
             <span style={{ color: 'var(--tx,#efe6ff)' }}>📌 Bookmark <b>+1%</b></span> &nbsp;&middot;&nbsp;
             <span style={{ color: 'var(--tx,#efe6ff)' }}>📝 Note <b>+1%</b></span> &nbsp;&middot;&nbsp;
             <span style={{ color: 'var(--tx,#efe6ff)' }}>🖼 Saved asset <b>+2%</b></span> &nbsp;&middot;&nbsp;
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>🌿 Suggested resource <b>+2%</b></span> &nbsp;&middot;&nbsp;
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>🌿 Suggested resource (workforce pathways + quest board, environmental literacy, steward library, my profile and portfolio pages) <b>+2%</b></span> &nbsp;&middot;&nbsp;
             <span style={{ color: 'var(--tx,#efe6ff)' }}>💼 Approved job to quest board <b>+2%</b></span> &nbsp;&middot;&nbsp;
             <span style={{ color: 'var(--tx,#efe6ff)' }}>💬 Prompt <b>+3%</b></span> &nbsp;&middot;&nbsp;
             <span style={{ color: 'var(--tx,#efe6ff)' }}>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(2% for asset + 1% for showcase)</span></span> &nbsp;&middot;&nbsp;
