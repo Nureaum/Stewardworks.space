@@ -16,6 +16,7 @@ export const ENGAGEMENT_POINT_VALUES: Record<EngagementKind, number> = {
   env_suggestion: 2,
   wf_suggestion: 2,
   lib_suggestion: 2,
+  job_quest_suggestion: 2,
 };
 
 /**

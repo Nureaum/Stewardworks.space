@@ -1193,21 +1193,54 @@ export default function Portfolio({
           </div>
         </div>
 
-        {/* Description */}
-        <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginTop: 6 }}>
-          Add items to grow your Chia Guardian. Bookmark +1% · Note +1% · Prompt +3% · Asset +2%
+        {/* Earn % info note - Collapsible */}
+        <div style={{ marginTop: 10, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(164,147,201,.25)' }}>
+          <button
+            onClick={() => {
+              const content = document.getElementById('points-details-portfolio');
+              const icon = document.getElementById('points-toggle-icon-portfolio');
+              if (content && icon) {
+                const isHidden = content.style.display === 'none';
+                content.style.display = isHidden ? 'block' : 'none';
+                icon.textContent = isHidden ? '▼' : '▶';
+              }
+            }}
+            style={{
+              all: 'unset',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 14px',
+              background: 'rgba(116,240,160,.1)',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(116,240,160,.15)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(116,240,160,.1)'}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span id="points-toggle-icon-portfolio" style={{ color: 'var(--ok,#74f0a0)', fontSize: 12, fontFamily: 'monospace', fontWeight: 700 }}>▶</span>
+              <span style={{ color: 'var(--ok,#74f0a0)', fontWeight: 700, fontSize: 14 }}>✦ Points after admin approves</span>
+              <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(Click to show/hide)</span>
+            </div>
+          </button>
+          
+          <div id="points-details-portfolio" style={{ display: 'none', padding: '10px 14px', background: 'rgba(255,255,255,.04)', fontSize: 14, color: 'var(--mu,#a493c9)', lineHeight: 1.8 }}>
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>📌 Bookmark <b>+1%</b></span> &nbsp;&middot;&nbsp;
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>📝 Note <b>+1%</b></span> &nbsp;&middot;&nbsp;
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>🖼 Saved asset <b>+2%</b></span> &nbsp;&middot;&nbsp;
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>🌿 Suggested resource <b>+2%</b></span> &nbsp;&middot;&nbsp;
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>💼 Approved job to quest board <b>+2%</b></span> &nbsp;&middot;&nbsp;
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>💬 Prompt <b>+3%</b></span> &nbsp;&middot;&nbsp;
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(2% for asset + 1% for showcase)</span></span> &nbsp;&middot;&nbsp;
+            <span style={{ color: 'var(--tx,#efe6ff)' }}>🏆 Mini deliverable <b>+4%</b></span>
+          </div>
         </div>
 
-        {/* Earn % info note */}
-        <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(255,255,255,.04)', border: '1px dashed rgba(164,147,201,.35)', borderRadius: 8, fontSize: 14, color: 'var(--mu,#a493c9)', lineHeight: 1.8 }}>
-          <span style={{ color: 'var(--ok,#74f0a0)', fontWeight: 700, marginRight: 6 }}>✦ Points after admin approves:</span>
-          <span style={{ color: 'var(--tx,#efe6ff)' }}>📌 Bookmark <b>+1%</b></span> &nbsp;&middot;&nbsp;
-          <span style={{ color: 'var(--tx,#efe6ff)' }}>📝 Note <b>+1%</b></span> &nbsp;&middot;&nbsp;
-          <span style={{ color: 'var(--tx,#efe6ff)' }}>🖼 Saved asset <b>+2%</b></span> &nbsp;&middot;&nbsp;
-          <span style={{ color: 'var(--tx,#efe6ff)' }}>🌿 Suggested resource <b>+2%</b></span> &nbsp;&middot;&nbsp;
-          <span style={{ color: 'var(--tx,#efe6ff)' }}>💬 Prompt <b>+3%</b></span> &nbsp;&middot;&nbsp;
-          <span style={{ color: 'var(--tx,#efe6ff)' }}>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(2 asset + 1 showcase)</span></span> &nbsp;&middot;&nbsp;
-          <span style={{ color: 'var(--tx,#efe6ff)' }}>🏆 Mini deliverable <b>+4%</b></span>
+        {/* Description */}
+        <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginTop: 10 }}>
+          Add items to grow your Chia Guardian. Bookmark +1% · Note +1% · Prompt +3% · Asset +2%
         </div>
 
         {/* Engagement progress bar */}
@@ -2274,14 +2307,14 @@ export default function Portfolio({
                   {/* Pathway header bar with label + card controls */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: `${pathwayColor}15`, borderLeft: `4px solid ${pathwayColor}`, borderRadius: '0 8px 8px 0', flexWrap: 'wrap' }}>
                     <span className="font-pixel" style={{ fontSize: 9, letterSpacing: 1, color: pathwayColor, fontWeight: 700 }}>{pathway.name.toUpperCase()}</span>
-                    <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>· {pathwayPicks.length}/{totalStops} answers</span>
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)', whiteSpace: 'nowrap' }}>· {pathwayPicks.length}/{totalStops} answers</span>
+                    <div style={{ flex: '1 1 auto', display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
                       {isComplete && (
                         <>
                           <button
                             type="button"
                             onClick={() => setExpandedPathwayCard(isExpanded ? null : pathway.id)}
-                            style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '6px 12px', background: isExpanded ? '#1c1526' : '#21282E', color: pathwayColor, border: `2px solid ${pathwayColor}`, borderRadius: 8, fontFamily: "'Press Start 2P', monospace", fontSize: 8, letterSpacing: '.06em', fontWeight: 700 }}
+                            style={{ all: 'unset', cursor: 'pointer', boxSizing: 'border-box', padding: '6px 12px', background: isExpanded ? '#1c1526' : '#21282E', color: pathwayColor, border: `2px solid ${pathwayColor}`, borderRadius: 8, fontFamily: "'Press Start 2P', monospace", fontSize: 8, letterSpacing: '.06em', fontWeight: 700, whiteSpace: 'nowrap' }}
                           >
                             {isExpanded ? '✕ HIDE CARD' : '🎮 VIEW PATHWAY CARD'}
                           </button>

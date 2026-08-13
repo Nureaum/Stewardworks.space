@@ -417,6 +417,85 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
   .arc-hud::-webkit-scrollbar{height:7px}
   .arc-hud::-webkit-scrollbar-thumb{background:#4a4468;border-radius:4px}
   .arc-hud::-webkit-scrollbar-track{background:#10285e}
+  
+  /* Responsive navbar styles */
+  @media (max-width: 1024px) {
+    .arcade-navbar {
+      gap: 4px !important;
+      padding: 9px 10px !important;
+    }
+    .arcade-nav-btn {
+      font-size: 6px !important;
+      padding: 6px 7px !important;
+      gap: 3px !important;
+    }
+    .arcade-nav-title {
+      font-size: 7px !important;
+    }
+    .arcade-nav-group button {
+      font-size: 6px !important;
+      padding: 6px 9px !important;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .arcade-navbar {
+      gap: 3px !important;
+      padding: 8px !important;
+      flex-wrap: wrap !important;
+    }
+    .arcade-nav-btn {
+      font-size: 5px !important;
+      padding: 5px 6px !important;
+      letter-spacing: .2px !important;
+    }
+    .arcade-nav-title {
+      font-size: 6px !important;
+      max-width: 120px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .arcade-nav-group button {
+      font-size: 5px !important;
+      padding: 5px 7px !important;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .arcade-navbar {
+      padding: 7px !important;
+    }
+    .arcade-nav-btn {
+      font-size: 5px !important;
+      padding: 4px 5px !important;
+    }
+    .arcade-nav-title {
+      display: none !important;
+    }
+    .arcade-nav-group button {
+      font-size: 5px !important;
+      padding: 4px 6px !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .arcade-navbar {
+      gap: 2px !important;
+      padding: 6px !important;
+    }
+    .arcade-nav-btn {
+      font-size: 4px !important;
+      padding: 4px !important;
+      gap: 2px !important;
+    }
+    .arcade-nav-group {
+      border-width: 2px !important;
+    }
+    .arcade-nav-group button {
+      font-size: 4px !important;
+      padding: 4px 5px !important;
+    }
+  }
   .ar-rte a{color:#45d4ff}
   .ar-rte ul,.ar-rte ol{margin:12px 0;padding-left:24px}
   .ar-rte li{margin:5px 0}
@@ -515,33 +594,33 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
     </>)}
 
     {/* HUD */}
-    <div className="arc-hud" style={{position: "sticky", top: "0", zIndex: "40", display: "flex", alignItems: "center", gap: "6px", flexWrap: "nowrap", overflowX: "auto", padding: "11px 14px", background: "#10285e", borderBottom: "4px solid #1c1526"}}>
-      <a href="/hub" style={{flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#2656a4", color: "var(--paper)", textDecoration: "none", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>⌂ Hub</a>
+    <div className="arc-hud arcade-navbar" style={{position: "sticky", top: "0", zIndex: "40", display: "flex", alignItems: "center", gap: "6px", flexWrap: "nowrap", overflowX: "auto", padding: "11px 14px", background: "#10285e", borderBottom: "4px solid #1c1526", WebkitOverflowScrolling: "touch"}}>
+      <a href="/hub" className="arcade-nav-btn" style={{flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#2656a4", color: "var(--paper)", textDecoration: "none", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", whiteSpace: "nowrap"}}>⌂ Hub</a>
       <div style={{display: "flex", alignItems: "center", gap: "8px", flex: "0 0 auto"}}>
         <span style={{width: "18px", height: "18px", background: "#ffdd2e", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "6px", flex: "0 0 auto"}}></span>
-        <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "var(--paper)", letterSpacing: ".5px", textShadow: "0 0 9px rgba(255,138,61,.75),2px 2px 0 rgba(255,77,125,.45)", lineHeight: "1.5", whiteSpace: "nowrap"}}>WORKFORCE ADVENTURE</span>
+        <span className="arcade-nav-title" style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: "var(--paper)", letterSpacing: ".5px", textShadow: "0 0 9px rgba(255,138,61,.75),2px 2px 0 rgba(255,77,125,.45)", lineHeight: "1.5", whiteSpace: "nowrap"}}>WORKFORCE ADVENTURE</span>
       </div>
       <div style={{flex: "1 1 0", minWidth: "6px"}}></div>
 
       {isAdminUser && (<>
-      <div role="group" aria-label="Player view" style={{flex: "0 0 auto", display: "inline-flex", gap: "0", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>
+      <div role="group" aria-label="Player view" className="arcade-nav-group" style={{flex: "0 0 auto", display: "inline-flex", gap: "0", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>
         <button onClick={onRoleExplorer} style={roleExplorerStyle}>Explorer</button>
         <button onClick={onRoleSteward} style={roleStewardStyle}>Admin</button>
       </div>
       </>)}
       {showMapToggle && (<>
-      <div role="group" aria-label="Map view" style={{flex: "0 0 auto", display: "inline-flex", gap: "0", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>
+      <div role="group" aria-label="Map view" className="arcade-nav-group" style={{flex: "0 0 auto", display: "inline-flex", gap: "0", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>
         <button onClick={onMapMode} style={mapModeStyle}>Map</button>
         <button onClick={onListMode} style={listModeStyle}>List</button>
       </div>
       </>)}
       {isExplorer && (<>
-      <button type="button" onClick={onOpenLibrary} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#d24dff", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>≡ Vault</button>
-      <button type="button" onClick={onOpenShelf} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>★ My Jobs Shelf · {shelfCount}</button>
-      <button type="button" onClick={onOpenSuggest} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ff6a2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>＋ Suggest</button>
+      <button type="button" onClick={onOpenLibrary} className="arcade-nav-btn" style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#d24dff", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", whiteSpace: "nowrap"}}>≡ Vault</button>
+      <button type="button" onClick={onOpenShelf} className="arcade-nav-btn" style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ffdd2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", whiteSpace: "nowrap"}}>★ My Jobs Shelf · {shelfCount}</button>
+      <button type="button" onClick={onOpenSuggest} className="arcade-nav-btn" style={{all: "unset", cursor: "pointer", boxSizing: "border-box", flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#ff6a2e", color: "#10285e", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", whiteSpace: "nowrap"}}>＋ Suggest</button>
       </>)}
       {isSteward && (<>
-      <a href="/admin/workforce-pathways" style={{flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#45d4ff", color: "#10285e", textDecoration: "none", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px"}}>Console ▶</a>
+      <a href="/admin/workforce-pathways" className="arcade-nav-btn" style={{flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: "#45d4ff", color: "#10285e", textDecoration: "none", fontFamily: "'Press Start 2P',monospace", fontSize: "7px", letterSpacing: ".4px", textTransform: "uppercase", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", whiteSpace: "nowrap"}}>Console ▶</a>
       </>)}
     </div>
 

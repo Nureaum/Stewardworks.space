@@ -105,7 +105,7 @@ export default function ClientProfile({
   const [selectedResourceItem, setSelectedResourceItem] = useState<any | null>(null);
   
   // Engagement counts
-  const [engagementCounts, setEngagementCounts] = useState({ bookmarks: 0, notes: 0, prompts: 0, miniDeliverables: 0, generations: 0, envSuggestions: 0, wfSuggestions: 0, libSuggestions: 0, showcase: 0, showcaseForm: 0 });
+  const [engagementCounts, setEngagementCounts] = useState({ bookmarks: 0, notes: 0, prompts: 0, miniDeliverables: 0, generations: 0, envSuggestions: 0, wfSuggestions: 0, libSuggestions: 0, jobQuestSuggestions: 0, showcase: 0, showcaseForm: 0 });
   
   // Generations State
   const [generations, setGenerations] = useState<any[]>([]);
@@ -115,6 +115,7 @@ export default function ClientProfile({
   // Workforce Suggestions State
   const [wfSuggestions, setWfSuggestions] = useState<any[]>([]);
   const [libSuggestions, setLibSuggestions] = useState<any[]>([]);
+  const [jobQuestSuggestions, setJobQuestSuggestions] = useState<any[]>([]);
   
   // Notes & Prompts State
   const [notes, setNotes] = useState<any[]>([]);
@@ -331,6 +332,7 @@ export default function ClientProfile({
             envSuggestions: approved.filter((e: any) => e.kind === 'env_suggestion').length,
             wfSuggestions: approved.filter((e: any) => e.kind === 'wf_suggestion').length,
             libSuggestions: approved.filter((e: any) => e.kind === 'lib_suggestion').length,
+            jobQuestSuggestions: approved.filter((e: any) => e.kind === 'job_quest_suggestion').length,
             showcase: showcaseBonusCount,
             showcaseForm: studentShowcaseFormCount,
           });
@@ -515,6 +517,7 @@ export default function ClientProfile({
           setEnvSuggestions((envData.suggestions || []).filter((s: any) => s.kind === 'env_suggestion'));
           setWfSuggestions((envData.suggestions || []).filter((s: any) => s.kind === 'wf_suggestion'));
           setLibSuggestions((envData.suggestions || []).filter((s: any) => s.kind === 'lib_suggestion'));
+          setJobQuestSuggestions((envData.suggestions || []).filter((s: any) => s.kind === 'job_quest_suggestion'));
         } else {
           console.error('[ClientProfile] /api/user-suggestions failed:', envRes.statusText);
         }
@@ -791,6 +794,7 @@ export default function ClientProfile({
       setEnvSuggestions(prev => prev.filter(s => s.id !== id));
       setWfSuggestions(prev => prev.filter(s => s.id !== id));
       setLibSuggestions(prev => prev.filter(s => s.id !== id));
+      setJobQuestSuggestions(prev => prev.filter(s => s.id !== id));
       // Close popups
       setSelectedNoteItem(null);
       setSelectedResourceItem(null);
@@ -1519,24 +1523,58 @@ export default function ClientProfile({
 
         {/* ENGAGEMENT COUNTER */}
         <div style={{ background: '#FEFAE0', border: '1.5px solid rgba(33,40,46,.12)', borderRadius: '18px', padding: '20px 22px', boxShadow: '0 12px 26px rgba(0,0,0,.08)', marginBottom: '26px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', letterSpacing: '.18em', color: '#8a5a2e' }}>ENGAGEMENT PROGRESS <span style={{ fontSize: '10px', letterSpacing: '.08em', color: '#6b4e2e' }}>(for Overall Progress, go to My Chia page)</span></span>
             <span style={{ fontSize: '20px', fontWeight: 700, color: '#356074' }}>{engagementProgress}% <span style={{ fontSize: '12px', fontWeight: 400, color: '#8a6a4a' }}>/ 25% cap</span></span>
           </div>
-          <div style={{ height: '12px', background: 'rgba(33,40,46,.08)', borderRadius: '8px', overflow: 'hidden', marginBottom: '12px' }}>
-            <div style={{ width: `${Math.min((engagementProgress / 25) * 100, 100)}%`, height: '100%', background: 'linear-gradient(90deg,#417C98,#65a6c4)' }}></div>
+
+          {/* Earn % info note - Collapsible */}
+          <div style={{ marginBottom: '12px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(65,124,152,.25)' }}>
+            <button
+              onClick={() => {
+                const content = document.getElementById('points-details-profile');
+                const icon = document.getElementById('points-toggle-icon-profile');
+                if (content && icon) {
+                  const isHidden = content.style.display === 'none';
+                  content.style.display = isHidden ? 'block' : 'none';
+                  icon.textContent = isHidden ? '▼' : '▶';
+                }
+              }}
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '10px 14px',
+                background: 'rgba(65,124,152,.1)',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(65,124,152,.15)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(65,124,152,.1)'}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span id="points-toggle-icon-profile" style={{ color: '#356074', fontSize: 11, fontFamily: 'monospace', fontWeight: 700 }}>▶</span>
+                <span style={{ fontWeight: 700, color: '#356074', fontSize: 13 }}>✦ Points after admin approves</span>
+                <span style={{ fontSize: 11, color: '#6b4e2e' }}>(Click to show/hide)</span>
+              </div>
+            </button>
+            
+            <div id="points-details-profile" style={{ display: 'none', padding: '10px 14px', background: 'rgba(65,124,152,.06)', fontSize: 13, color: '#6b4e2e', lineHeight: 1.9 }}>
+              <span>📌 Bookmark <b>+1%</b></span> &nbsp;·&nbsp;
+              <span>📝 Note <b>+1%</b></span> &nbsp;·&nbsp;
+              <span>🖼 Saved asset <b>+2%</b></span> &nbsp;·&nbsp;
+              <span>🌿 Suggested resource <b>+2%</b></span> &nbsp;·&nbsp;
+              <span>💼 Approved job to quest board <b>+2%</b></span> &nbsp;·&nbsp;
+              <span>💬 Prompt <b>+3%</b></span> &nbsp;·&nbsp;
+              <span>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: '11px', color: '#8a6a4a' }}>(2% for asset + 1% for showcase)</span></span> &nbsp;·&nbsp;
+              <span>🏆 Mini deliverable <b>+4%</b></span>
+            </div>
           </div>
 
-          {/* Earn % info note */}
-          <div style={{ marginBottom: '18px', padding: '10px 14px', background: 'rgba(65,124,152,.06)', border: '1px dashed rgba(65,124,152,.3)', borderRadius: '8px', fontSize: '13px', color: '#6b4e2e', lineHeight: 1.9 }}>
-            <span style={{ fontWeight: 700, color: '#356074', marginRight: 6 }}>✦ Points after admin approves:</span>
-            <span>📌 Bookmark <b>+1%</b></span> &nbsp;·&nbsp;
-            <span>📝 Note <b>+1%</b></span> &nbsp;·&nbsp;
-            <span>🖼 Saved asset <b>+2%</b></span> &nbsp;·&nbsp;
-            <span>🌿 Suggested resource <b>+2%</b></span> &nbsp;·&nbsp;
-            <span>💬 Prompt <b>+3%</b></span> &nbsp;·&nbsp;
-            <span>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: '11px', color: '#8a6a4a' }}>(2 asset + 1 showcase)</span></span> &nbsp;·&nbsp;
-            <span>🏆 Mini deliverable <b>+4%</b></span>
+          <div style={{ height: '12px', background: 'rgba(33,40,46,.08)', borderRadius: '8px', overflow: 'hidden', marginBottom: '12px' }}>
+            <div style={{ width: `${Math.min((engagementProgress / 25) * 100, 100)}%`, height: '100%', background: 'linear-gradient(90deg,#417C98,#65a6c4)' }}></div>
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 24px' }}>
@@ -1604,6 +1642,14 @@ export default function ClientProfile({
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.libSuggestions * 2}%</span>
               </div>
             )}
+            {engagementCounts.jobQuestSuggestions > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#DB9B2F' }}></span>
+                <span style={{ fontSize: '13px', color: '#3a2412' }}>Job quest approved</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '11px', color: '#7a5a3a', marginLeft: '4px' }}>x{engagementCounts.jobQuestSuggestions}</span>
+                <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.jobQuestSuggestions * 2}%</span>
+              </div>
+            )}
             {engagementCounts.showcase > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '3px', flex: 'none', background: '#65a6c4' }}></span>
@@ -1620,7 +1666,7 @@ export default function ClientProfile({
                 <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#2E5534' }}>+{engagementCounts.showcaseForm * 3}%</span>
               </div>
             )}
-            {engagementCounts.bookmarks === 0 && engagementCounts.notes === 0 && engagementCounts.prompts === 0 && engagementCounts.miniDeliverables === 0 && engagementCounts.generations === 0 && engagementCounts.envSuggestions === 0 && engagementCounts.wfSuggestions === 0 && engagementCounts.libSuggestions === 0 && engagementCounts.showcase === 0 && engagementCounts.showcaseForm === 0 && (
+            {engagementCounts.bookmarks === 0 && engagementCounts.notes === 0 && engagementCounts.prompts === 0 && engagementCounts.miniDeliverables === 0 && engagementCounts.generations === 0 && engagementCounts.envSuggestions === 0 && engagementCounts.wfSuggestions === 0 && engagementCounts.libSuggestions === 0 && engagementCounts.jobQuestSuggestions === 0 && engagementCounts.showcase === 0 && engagementCounts.showcaseForm === 0 && (
               <div style={{ padding: '20px', width: '100%', textAlign: 'center', color: '#8a6a4a', fontSize: '13px' }}>
                 No approved engagements yet. Submit work in the Portfolio to earn rewards!
               </div>
@@ -2200,8 +2246,8 @@ export default function ClientProfile({
         )}
 
         {/* SUGGESTION ENGAGEMENTS */}
-        {(envSuggestions.length > 0 || wfSuggestions.length > 0 || libSuggestions.length > 0) && (() => {
-          const allSuggestions = [...envSuggestions, ...wfSuggestions, ...libSuggestions].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        {(envSuggestions.length > 0 || wfSuggestions.length > 0 || libSuggestions.length > 0 || jobQuestSuggestions.length > 0) && (() => {
+          const allSuggestions = [...envSuggestions, ...wfSuggestions, ...libSuggestions, ...jobQuestSuggestions].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
           
           return (
             <div style={{ background: '#F5ECE3', border: '1.5px solid rgba(138,90,46,.15)', borderRadius: '16px', padding: '24px', marginBottom: '40px' }}>
@@ -2217,9 +2263,10 @@ export default function ClientProfile({
                   const isEnv = s.kind === 'env_suggestion';
                   const isWf = s.kind === 'wf_suggestion';
                   const isLib = s.kind === 'lib_suggestion';
+                  const isJobQuest = s.kind === 'job_quest_suggestion';
                   
-                  const badgeText = isEnv ? 'ENV. LITERACY' : isWf ? 'PATHWAYS' : 'LIBRARY';
-                  const badgeBg = isEnv ? '#4B8B9B' : isWf ? '#417C98' : '#A27532';
+                  const badgeText = isEnv ? 'ENV. LITERACY' : isWf ? 'PATHWAYS' : isLib ? 'LIBRARY' : 'JOB QUEST';
+                  const badgeBg = isEnv ? '#4B8B9B' : isWf ? '#417C98' : isLib ? '#A27532' : '#DB9B2F';
                   
                   return (
                     <div key={s.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{
@@ -2489,11 +2536,6 @@ export default function ClientProfile({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                     <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#7c5cbf', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>🏆 MINI DELIVERABLE</span>
-                    {(() => {
-                      const t = parsed.noteType || parsed.subType || parsed.originalKind || 'note';
-                      if (t === 'prompt') return <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#fad0e9', color: '#7a2955', padding: '3px 8px', borderRadius: '20px' }}>⌘ PROMPT</span>;
-                      return <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#e8dbb0', color: '#5a4a3a', padding: '3px 8px', borderRadius: '20px' }}>✎ NOTE</span>;
-                    })()}
                     {m.status === 'pending' && (
                       <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>
                     )}

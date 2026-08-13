@@ -191,32 +191,27 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
     }}>
       {/* Tabs Header */}
       <div style={{ display: 'flex', borderBottom: '2px solid var(--ln,#28432f)', background: 'rgba(0,0,0,.3)' }}>
-        {tabs.map(tab => (
+        {tabs.map((tab, idx) => (
           <button
             key={tab.id}
             onClick={() => { setActiveTab(tab.id as any); closeEditor(); }}
             className="font-pixel"
             style={{
               flex: 1,
-              padding: '14px 10px',
-              background: activeTab === tab.id ? `${tab.color}15` : 'transparent',
+              padding: '12px 2px',
+              background: activeTab === tab.id ? tab.color : 'transparent',
               border: 'none',
-              borderBottom: activeTab === tab.id ? `3px solid ${tab.color}` : '3px solid transparent',
-              color: activeTab === tab.id ? tab.color : 'var(--mu,#77b78d)',
+              borderRight: idx < tabs.length - 1 ? '1px solid var(--ln,#28432f)' : 'none',
+              color: activeTab === tab.id ? '#08120d' : 'var(--mu,#77b78d)',
               cursor: 'pointer',
-              fontSize: 9,
+              fontSize: 'clamp(7px, 1.2vw, 9px)',
               letterSpacing: 1,
               transition: 'all 0.2s',
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 8,
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              textAlign: 'center'
             }}
           >
-            <div>{tab.icon} {tab.label}</div>
-            <div style={{ fontSize: 13, color: activeTab === tab.id ? '#fff' : 'var(--mu,#77b78d)', fontFamily: "'VT323', monospace", background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: 4 }}>{tab.count}</div>
+            {tab.label}
           </button>
         ))}
       </div>

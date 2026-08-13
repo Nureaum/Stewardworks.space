@@ -719,6 +719,7 @@ export async function submitJobSuggestion(data: {
   organization?: string;
   location?: string;
   note?: string;
+  submitter_profile_id?: string;
 }) {
   const { data: row, error } = await supabase
     .from('workforce_job_suggestions')
@@ -731,7 +732,8 @@ export async function submitJobSuggestion(data: {
       organization: data.organization || '',
       location: data.location || '',
       note: data.note || '',
-      status: 'pending'
+      status: 'pending',
+      submitter_profile_id: data.submitter_profile_id || null
     })
     .select()
     .single();
@@ -804,6 +806,22 @@ export async function approveJobSuggestion(id: string) {
     .update({ status: 'approved' })
     .eq('id', id);
   if (updErr) throw updErr;
+
+  // If there's a submitter_profile_id, create an engagement entry for +2%
+  if (sug.submitter_profile_id) {
+    const { error: engErr } = await supabase
+      .from('engagement_entries')
+      .insert({
+        profile_id: sug.submitter_profile_id,
+        kind: 'job_quest_suggestion',
+        title: `Job suggestion: ${sug.title}`,
+        status: 'approved'
+      });
+    if (engErr) {
+      console.error("Error creating engagement entry:", engErr);
+      // Don't throw here - job was still approved successfully
+    }
+  }
 }
 
 export async function rejectJobSuggestion(id: string) {

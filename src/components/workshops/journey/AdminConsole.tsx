@@ -125,20 +125,20 @@ function SortableBlockItem({ id, idx, blockRawContent, blockType, blockTitle, li
 
   return (
     <div ref={setNodeRef} style={{ ...style, marginBottom: 14, position: 'relative', border: '1px solid var(--ln,#3d2668)', borderRadius: 8, padding: 12, background: isDragging ? 'var(--bg,#14101f)' : 'transparent' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isExpanded ? 6 : 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isExpanded ? 6 : 0, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--mu,#a493c9)', display: 'flex', alignItems: 'center' }}>
             <GripVertical size={16} />
           </div>
           <button onClick={() => setIsExpanded(!isExpanded)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ color: 'var(--gold,#ffd23f)', fontSize: 12, marginTop: 1 }}>{isExpanded ? '▼' : '▶'}</span>
-            <span className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)' }}>◈ BLOCK {idx + 1}</span>
+            <span className="font-pixel" style={{ fontSize: 9, color: 'var(--gold,#ffd23f)', whiteSpace: 'nowrap' }}>◈ BLOCK {idx + 1}</span>
             {!isExpanded && blockTitle && (
-              <span style={{ color: 'var(--tx,#efe6ff)', fontSize: 14, marginLeft: 8, opacity: 0.8, fontFamily: 'inherit' }}>{blockTitle}</span>
+              <span style={{ color: 'var(--tx,#efe6ff)', fontSize: 14, marginLeft: 8, opacity: 0.8, fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 150 }}>{blockTitle}</span>
             )}
           </button>
           {isExpanded && (
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button
                 onClick={() => {
                   if (blockType === 'list') {
@@ -178,7 +178,7 @@ function SortableBlockItem({ id, idx, blockRawContent, blockType, blockTitle, li
           className="font-pixel"
           style={{
             fontSize: 7, cursor: 'pointer', color: 'var(--warn,#ff7a7a)', background: 'transparent',
-            border: '2px solid var(--ln,#3d2668)', borderRadius: 4, padding: '6px 9px'
+            border: '2px solid var(--ln,#3d2668)', borderRadius: 4, padding: '6px 9px', whiteSpace: 'nowrap'
           }}
         >✕ REMOVE</button>
       </div>
@@ -3977,6 +3977,7 @@ export default function AdminConsole({
               padding: '14px 18px',
               borderBottom: '2px solid var(--ln,#3d2668)',
               background: 'linear-gradient(180deg,rgba(255,255,255,.05),transparent)',
+              flexWrap: 'wrap'
             }}>
               <select
                 className="font-pixel admin-entry-type-select"
@@ -4003,7 +4004,7 @@ export default function AdminConsole({
                 <option value="featured" style={{ fontSize: '9px' }}>FEATURED</option>
                 <option value="deliverable" style={{ fontSize: '9px' }}>DELIVERABLE</option>
               </select>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: 150 }}>
                 <div className="font-pixel" style={{ fontSize: 9, color: 'var(--mu,#a493c9)', letterSpacing: 1 }}>
                   SESSION {selEntry.num}
                 </div>
@@ -4017,14 +4018,14 @@ export default function AdminConsole({
               <button
                 onClick={() => setEditorOpen(false)}
                 className="font-pixel"
-                style={{ fontSize: 9, color: 'var(--tx,#efe6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 5, padding: '7px 10px', cursor: 'pointer', flex: 'none' }}
+                style={{ fontSize: 9, color: 'var(--tx,#efe6ff)', background: 'none', border: '2px solid var(--ln,#3d2668)', borderRadius: 5, padding: '7px 10px', cursor: 'pointer', flex: 'none', whiteSpace: 'nowrap' }}
               >✓ SAVE & CLOSE</button>
             </div>
 
             {/* Modal body */}
-            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexWrap: 'wrap' }}>
               {/* LEFT: text content */}
-              <div style={{ flex: '3 1 460px', minWidth: 300, padding: 'clamp(18px,2.4vw,28px)', overflow: 'auto' }}>
+              <div style={{ flex: '3 1 460px', minWidth: 300, padding: 'clamp(18px,2.4vw,28px)' }}>
                 <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>TOPIC TITLE</div>
                 <input defaultValue={selEntry.title} onBlur={e => handleEntryFieldBlur(selEntry.id, 'title', e.target.value)} style={{ ...inputStyle, fontSize: 20, marginBottom: 16, padding: '12px 14px' }} />
                 <div className="font-vt323" style={{ fontSize: 22, color: 'var(--mu,#a493c9)', marginBottom: 6 }}>SUBTITLE / SIDEBAR LABEL</div>
@@ -4230,7 +4231,6 @@ export default function AdminConsole({
                 borderLeft: '2px solid var(--ln,#3d2668)',
                 background: 'rgba(0,0,0,.18)',
                 padding: 'clamp(16px,2vw,24px)',
-                overflow: 'auto',
               }}>
                 <div className="font-pixel" style={{ fontSize: 8, color: 'var(--gold,#ffd23f)', letterSpacing: 1, marginBottom: 10 }}>
                   ◈ PHOTOS · VIDEO · LINKS

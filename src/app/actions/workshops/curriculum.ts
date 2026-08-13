@@ -64,6 +64,7 @@ export async function getAILabCurriculum(cohortId?: string) {
           lab,
           submit_label,
           sort_order,
+          contrib_id,
           media:workshop_entry_media (
             id,
             kind,
