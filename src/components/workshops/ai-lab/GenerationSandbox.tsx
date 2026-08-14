@@ -21,7 +21,7 @@ export default function GenerationSandbox({ edenEmbedUrl, platforms = [] }: { ed
       <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="font-pixel" style={{ fontSize: 10, color: '#ff5fd2', letterSpacing: 1 }}>⚡ GENERATION SANDBOX</div>
         
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
           {allPlatforms.map((platform, idx) => {
             // Cycle through vibrant colors for the buttons
             const colors = ['#ff5fd2', '#45d6ff', '#ffd23f', '#4dffa0', '#c98bad', '#84a9c4'];

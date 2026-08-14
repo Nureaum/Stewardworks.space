@@ -1569,20 +1569,55 @@ export default function ClientProfile({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span id="points-toggle-icon-profile" style={{ color: '#356074', fontSize: 11, fontFamily: 'monospace', fontWeight: 700 }}>▶</span>
-                <span style={{ fontWeight: 700, color: '#356074', fontSize: 13 }}>✦ Points after admin approves</span>
-                <span style={{ fontSize: 11, color: '#6b4e2e' }}>(Click to show/hide)</span>
+                <span style={{ fontWeight: 700, color: '#356074', fontSize: 13 }}>✦ Engagement & Contribution Rewards</span>
+                <span style={{ fontSize: 11, color: '#6b4e2e' }}>(percentage points added after admin approves)</span>
               </div>
             </button>
             
-            <div id="points-details-profile" style={{ display: 'none', padding: '10px 14px', background: 'rgba(65,124,152,.06)', fontSize: 13, color: '#6b4e2e', lineHeight: 1.9 }}>
-              <span>📌 Bookmark <b>+1%</b></span> &nbsp;·&nbsp;
-              <span>📝 Note <b>+1%</b></span> &nbsp;·&nbsp;
-              <span>🖼 Saved asset <b>+2%</b></span> &nbsp;·&nbsp;
-              <span>🌿 Suggested resource (workforce pathways + quest board, environmental literacy, steward library) <b>+2%</b></span> &nbsp;·&nbsp;
-              <span>💼 Approved job to quest board <b>+2%</b></span> &nbsp;·&nbsp;
-              <span>💬 Prompt <b>+3%</b></span> &nbsp;·&nbsp;
-              <span>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: '11px', color: '#8a6a4a' }}>(2% for asset + 1% for showcase)</span></span> &nbsp;·&nbsp;
-              <span>🏆 Mini deliverable <b>+4%</b></span>
+            <div id="points-details-profile" style={{ display: 'none', padding: '16px 20px', background: 'rgba(65,124,152,.06)', fontSize: 15, color: '#3a2412', lineHeight: 2 }}>
+              {/* Basic Engagement */}
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontWeight: 700, marginBottom: '10px', color: '#356074', fontSize: '16px' }}>
+                  ◦ <span style={{ fontSize: '17px' }}>+1%</span> — <span style={{ fontStyle: 'italic', color: '#6b4e2e' }}>Basic Engagement</span>
+                </div>
+                <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
+                  <div>◦ 📌 Saved Bookmark</div>
+                  <div>◦ 📝 Saved Note</div>
+                </div>
+              </div>
+
+              {/* Content & Resource Creation */}
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontWeight: 700, marginBottom: '10px', color: '#356074', fontSize: '16px' }}>
+                  ◦ <span style={{ fontSize: '17px' }}>+2%</span> — <span style={{ fontStyle: 'italic', color: '#6b4e2e' }}>Content & Resource Creation</span>
+                </div>
+                <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
+                  <div>◦ 🖼 Saved Generated Asset</div>
+                  <div>◦ 🌿 Suggested Resource Submission <span style={{ fontSize: '12px', color: '#8a6a4a' }}>(Workforce Development, Environmental Literacy, or Steward Library)</span></div>
+                  <div>◦ 💼 Approved Job Post to Quest Board</div>
+                </div>
+              </div>
+
+              {/* Prompts & Community Highlights */}
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontWeight: 700, marginBottom: '10px', color: '#356074', fontSize: '16px' }}>
+                  ◦ <span style={{ fontSize: '17px' }}>+3%</span> — <span style={{ fontStyle: 'italic', color: '#6b4e2e' }}>Prompts & Community Highlights</span>
+                </div>
+                <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
+                  <div>◦ 💬 Saved Prompt</div>
+                  <div>◦ 🌟 Approved Asset in Showcase <span style={{ fontSize: '12px', color: '#8a6a4a' }}>(2% for asset + 1% for showcase bonus)</span></div>
+                </div>
+              </div>
+
+              {/* Milestones & Deliverables */}
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: '10px', color: '#356074', fontSize: '16px' }}>
+                  ◦ <span style={{ fontSize: '17px' }}>+4%</span> — <span style={{ fontStyle: 'italic', color: '#6b4e2e' }}>Milestones & Deliverables</span>
+                </div>
+                <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
+                  <div>◦ 🏆 Submitted Mini Deliverable</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2269,7 +2304,7 @@ export default function ClientProfile({
                   <h2 style={{ fontFamily: '"DM Mono", monospace', fontSize: '16px', letterSpacing: '.15em', color: '#3a2412', margin: '0 0 6px 0', fontWeight: 700 }}>SUGGESTION ENGAGEMENTS</h2>
                   <p style={{ fontSize: '13px', color: '#7a5a3a', margin: '0 0 4px 0' }}>All your community submissions from across the StewardWorks hub. ({allSuggestions.length} total)</p>
                   <p style={{ fontSize: '12px', color: '#a27532', margin: 0, fontStyle: 'italic' }}>
-                    You can suggest resources in: Workforce Pathways + Quest Board, Environmental Literacy, Steward Library, My Profile, and Portfolio pages.
+                    You can suggest resources in: Workforce Pathways + Quest Board, Environmental Literacy, Steward Library.
                   </p>
                 </div>
               </div>

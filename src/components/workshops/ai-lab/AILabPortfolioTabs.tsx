@@ -198,17 +198,23 @@ export default function AILabPortfolioTabs({ cohortId, initialEngagements }: AIL
             className="font-pixel"
             style={{
               flex: 1,
-              padding: '12px 2px',
+              padding: '14px 8px',
               background: activeTab === tab.id ? tab.color : 'transparent',
               border: 'none',
               borderRight: idx < tabs.length - 1 ? '1px solid var(--ln,#28432f)' : 'none',
               color: activeTab === tab.id ? '#08120d' : 'var(--mu,#77b78d)',
               cursor: 'pointer',
-              fontSize: 'clamp(7px, 1.2vw, 9px)',
-              letterSpacing: 1,
+              fontSize: 'clamp(9px, 1.5vw, 11px)',
+              letterSpacing: 0.5,
               transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
-              textAlign: 'center'
+              whiteSpace: 'normal',
+              textAlign: 'center',
+              lineHeight: 1.3,
+              wordBreak: 'break-word',
+              minHeight: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             {tab.label}

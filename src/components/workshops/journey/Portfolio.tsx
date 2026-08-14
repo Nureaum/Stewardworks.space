@@ -1221,26 +1221,56 @@ export default function Portfolio({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span id="points-toggle-icon-portfolio" style={{ color: 'var(--ok,#74f0a0)', fontSize: 12, fontFamily: 'monospace', fontWeight: 700 }}>▶</span>
-              <span style={{ color: 'var(--ok,#74f0a0)', fontWeight: 700, fontSize: 14 }}>✦ Points after admin approves</span>
-              <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(Click to show/hide)</span>
+              <span style={{ color: 'var(--ok,#74f0a0)', fontWeight: 700, fontSize: 14 }}>✦ Engagement & Contribution Rewards</span>
+              <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(percentage points added after admin approves)</span>
             </div>
           </button>
           
-          <div id="points-details-portfolio" style={{ display: 'none', padding: '10px 14px', background: 'rgba(255,255,255,.04)', fontSize: 14, color: 'var(--mu,#a493c9)', lineHeight: 1.8 }}>
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>📌 Bookmark <b>+1%</b></span> &nbsp;&middot;&nbsp;
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>📝 Note <b>+1%</b></span> &nbsp;&middot;&nbsp;
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>🖼 Saved asset <b>+2%</b></span> &nbsp;&middot;&nbsp;
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>🌿 Suggested resource (workforce pathways + quest board, environmental literacy, steward library) <b>+2%</b></span> &nbsp;&middot;&nbsp;
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>💼 Approved job to quest board <b>+2%</b></span> &nbsp;&middot;&nbsp;
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>💬 Prompt <b>+3%</b></span> &nbsp;&middot;&nbsp;
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>🌟 Asset in showcase <b>+3%</b> <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(2% for asset + 1% for showcase)</span></span> &nbsp;&middot;&nbsp;
-            <span style={{ color: 'var(--tx,#efe6ff)' }}>🏆 Mini deliverable <b>+4%</b></span>
-          </div>
-        </div>
+          <div id="points-details-portfolio" style={{ display: 'none', padding: '16px 20px', background: 'rgba(255,255,255,.04)', fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 2 }}>
+            {/* Basic Engagement */}
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '17px' }}>
+                ◦ <span style={{ fontSize: '18px' }}>+1%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Basic Engagement</span>
+              </div>
+              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
+                <div>◦ 📌 Saved Bookmark</div>
+                <div>◦ 📝 Saved Note</div>
+              </div>
+            </div>
 
-        {/* Description */}
-        <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)', marginTop: 10 }}>
-          Add items to grow your Chia Guardian. Bookmark +1% · Note +1% · Prompt +3% · Asset +2%
+            {/* Content & Resource Creation */}
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '17px' }}>
+                ◦ <span style={{ fontSize: '18px' }}>+2%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Content & Resource Creation</span>
+              </div>
+              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
+                <div>◦ 🖼 Saved Generated Asset</div>
+                <div>◦ 🌿 Suggested Resource Submission <span style={{ fontSize: '13px', color: 'var(--mu,#a493c9)' }}>(Workforce Development, Environmental Literacy, or Steward Library)</span></div>
+                <div>◦ 💼 Approved Job Post to Quest Board</div>
+              </div>
+            </div>
+
+            {/* Prompts & Community Highlights */}
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '17px' }}>
+                ◦ <span style={{ fontSize: '18px' }}>+3%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Prompts & Community Highlights</span>
+              </div>
+              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
+                <div>◦ 💬 Saved Prompt</div>
+                <div>◦ 🌟 Approved Asset in Showcase <span style={{ fontSize: '13px', color: 'var(--mu,#a493c9)' }}>(2% for asset + 1% for showcase bonus)</span></div>
+              </div>
+            </div>
+
+            {/* Milestones & Deliverables */}
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '17px' }}>
+                ◦ <span style={{ fontSize: '18px' }}>+4%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Milestones & Deliverables</span>
+              </div>
+              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
+                <div>◦ 🏆 Submitted Mini Deliverable</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Engagement progress bar */}
@@ -1269,7 +1299,7 @@ export default function Portfolio({
           className="portfolio-shelf-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))',
+            gridTemplateColumns: 'repeat(2, 1fr)',
             gap: 12,
             marginTop: 16,
           }}
@@ -1345,8 +1375,8 @@ export default function Portfolio({
                   </button>
                 </div>
 
-                {/* Scrollable items list */}
-                <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 240, overflowY: 'auto' }}>
+                {/* Scrollable items list - Dynamic height based on content */}
+                <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '400px', overflowY: 'auto', minHeight: items.length === 0 ? 'auto' : '150px' }}>
                   {items.length === 0 && (
                     <div style={{ fontSize: 16, color: 'var(--mu,#a493c9)', textAlign: 'center', padding: '9px 0' }}>
                       No {col.label.toLowerCase()} yet
