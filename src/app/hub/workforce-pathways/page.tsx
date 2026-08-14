@@ -77,25 +77,6 @@ function WorkforcePathwaysContent() {
   }, [nodeParam, jobsParam]);
 
   useEffect(() => {
-    if (entryParam) {
-      for (const p of INITIAL_PATHWAYS) {
-        for (const s of p.stops) {
-          const entries = s.entries || s.modules || [];
-          const idx = entries.findIndex((e: any) => e.id === entryParam);
-          if (idx >= 0) {
-            setRole(p.id === 'enviro' ? 'steward' : 'explorer');
-            setPathway(p.id);
-            setStopId(s.id);
-            setEntryIdx(idx);
-            setInitialScreen('main');
-            return;
-          }
-        }
-      }
-    }
-  }, [entryParam]);
-
-  useEffect(() => {
     if (pathParam) {
       setPathway(pathParam);
     }
@@ -245,6 +226,25 @@ function WorkforcePathwaysContent() {
       setAllEntries(entries || []);
       setDbQuizzes(quizzes || []);
       setDbSummits(summits || []);
+
+      if (entryParam && entries) {
+        const target = entries.find((e: any) => e.id === entryParam);
+        if (target) {
+          const p = INITIAL_PATHWAYS.find((pw: any) => pw.id === target.pathway_id);
+          if (p) {
+             const stopList = entries.filter((e: any) => e.pathway_id === target.pathway_id && e.stop_id === target.stop_id && (e.status === 'published' || !e.status));
+             const idx = stopList.findIndex((e: any) => e.id === entryParam);
+             const sp = p.stops.find((s: any) => (s.slug || s.id) === target.stop_id);
+             if (sp) {
+               setRole(p.id === 'enviro' ? 'steward' : 'explorer');
+               setPathway(p.id);
+               setStopId(sp.id);
+               if (idx >= 0) setEntryIdx(idx);
+               setInitialScreen('main');
+             }
+          }
+        }
+      }
     });
   }, []);
 
