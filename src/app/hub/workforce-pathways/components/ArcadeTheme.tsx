@@ -1461,20 +1461,37 @@ const { pathway, onBackTrailhead, pwColor, pwMark, pwName, pwShelf, showJobs, pw
             {popEntryList.map((e: any, i: number) => {
               const isActive = e.t === popTitle;
               const bStyle = {
-                all: "unset", cursor: "pointer", boxSizing: "border-box", display: "block", width: "100%", padding: "11px 12px", fontSize: "18px", lineHeight: 1.2, border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px",
+                all: "unset", cursor: "pointer", boxSizing: "border-box", display: "flex", alignItems: "center", width: "100%", padding: "11px 12px", fontSize: "18px", lineHeight: 1.2, border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px",
                 background: isActive ? popColor : "#f2f6ff",
                 color: "#10285e"
               } as any;
               return (<React.Fragment key={i}>
-                <button onClick={e.onPick} style={bStyle}><span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", marginRight: "8px"}}>{e.num}</span>{e.t}</button>
+                <div style={{display: "flex", gap: "6px", alignItems: "stretch"}}>
+                  <button onClick={e.onPick} style={{...bStyle, flex: "1", minWidth: 0}}>
+                    <span style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", marginRight: "8px", flex: "0 0 auto"}}>{e.num}</span>
+                    <span style={{flex: "1", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical"}}>{e.t}</span>
+                  </button>
+                  <button onClick={(ev) => { ev.stopPropagation(); e.onToggleBookmark(); }} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", width: "42px", flex: "0 0 auto", border: "3px solid #1c1526", boxShadow: "3px 3px 0 rgba(18,12,26,.4)", borderRadius: "7px", background: e.isBookmarked ? "#ffdd2e" : (isActive ? popColor : "#f2f6ff"), color: e.isBookmarked ? "#10285e" : "rgba(16, 40, 94, 0.4)", fontSize: "18px"}} title={e.isBookmarked ? "Remove bookmark" : "Bookmark this note"}>
+                    ★
+                  </button>
+                </div>
               </React.Fragment>);
             })}
           </div>
         </div>
         <div className="arc-scroll" style={{flex: "1", minWidth: "0", overflowY: "auto", padding: "22px 26px 34px"}}>
-          <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: popColor, letterSpacing: ".5px"}}>{popType}</div>
-          <div style={{display: "inline-block", marginTop: "10px", padding: "5px 10px", background: "#0f2a60", border: "3px solid #1c1526", fontSize: "17px", color: "#a9c8ff"}}>{popSub}</div>
-          <h2 style={{fontFamily: "'Press Start 2P',monospace", fontSize: "19px", lineHeight: "1.5", color: "var(--paper)", margin: "14px 0 0", textShadow: "2px 2px 0 rgba(0,0,0,.5)"}}>{popTitle}</h2>
+          <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px"}}>
+            <div>
+              <div style={{fontFamily: "'Press Start 2P',monospace", fontSize: "8px", color: popColor, letterSpacing: ".5px"}}>{popType}</div>
+              <div style={{display: "inline-block", marginTop: "10px", padding: "5px 10px", background: "#0f2a60", border: "3px solid #1c1526", fontSize: "17px", color: "#a9c8ff"}}>{popSub}</div>
+            </div>
+            {popEntry && popEntry.onToggleBookmark && (
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); popEntry.onToggleBookmark(); }} style={{all: "unset", cursor: "pointer", boxSizing: "border-box", display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", background: popEntry.isBookmarked ? "#ffdd2e" : "transparent", color: popEntry.isBookmarked ? "#10285e" : popColor, border: `3px solid ${popEntry.isBookmarked ? "#1c1526" : popColor}`, borderRadius: "8px", fontFamily: "'Press Start 2P',monospace", fontSize: "10px", boxShadow: popEntry.isBookmarked ? "3px 3px 0 rgba(18,12,26,.4)" : "none", transition: "all 0.1s"}} title={popEntry.isBookmarked ? "Remove bookmark" : "Bookmark this session"}>
+                <span style={{fontSize: "14px"}}>{popEntry.isBookmarked ? "★" : "☆"}</span> {popEntry.isBookmarked ? "SAVED" : "SAVE"}
+              </button>
+            )}
+          </div>
+          <h2 style={{fontFamily: "'Press Start 2P',monospace", fontSize: "19px", lineHeight: "1.5", color: "var(--paper)", margin: "0", textShadow: "2px 2px 0 rgba(0,0,0,.5)"}}>{popTitle}</h2>
           {popImages && popImages.length > 0 && (<>
           <div style={{margin: "18px 0 4px", display: "flex", flexDirection: "column", gap: "10px"}}>
             {popImages.map((img: any, idx: number) => (

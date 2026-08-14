@@ -2314,7 +2314,11 @@ export default function Portfolio({
               if (pathwayPicks.length === 0) return null
 
               const pathwayColor = pathway.id === 'creator' ? '#ff6a2e' : '#43e97b'
-              const totalStops = pathway.stops?.length || 0
+              
+              // Count only required stops (mesa: true), excluding optional ones
+              const requiredStops = pathway.stops?.filter((stop: any) => stop.mesa !== false) || []
+              const totalStops = requiredStops.length
+              
               const isComplete = pathwayPicks.length >= totalStops && totalStops > 0
               const isExpanded = expandedPathwayCard === pathway.id
               const cardId = `portfolio-pathway-card-${pathway.id}`

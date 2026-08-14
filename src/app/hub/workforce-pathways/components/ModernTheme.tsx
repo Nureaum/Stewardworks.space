@@ -551,17 +551,29 @@ export default function ModernTheme(props: any) {
           <div style={{display:"flex",flexDirection:"column",gap:"9px"}}>
             {popEntryList.map((e, i) => (
 <React.Fragment key={i}>
-              <button type="button" onClick={e.onPick} style={e.style}>
-                <span style={{display:"flex",alignItems:"baseline",gap:"8px"}}><span style={{font:"700 11px/1 'Courier New',monospace",color:"var(--gold)"}}>{e.num}</span><span style={{flex:1,fontFamily:"'Baloo 2',cursive",fontWeight:700,fontSize:"14.5px",lineHeight:1.2,color:"var(--ink)"}}>{e.t}</span><span style={{color:"var(--ink2)"}}>›</span></span>
-                <span style={{display:"block",marginTop:"5px",paddingLeft:"22px",font:"700 9px/1.4 'Courier New',monospace",letterSpacing:".1em",textTransform:"uppercase",color:"var(--ink2)"}}>{e.s}</span>
-              </button>
+              <div style={{display: "flex", gap: "6px", alignItems: "stretch"}}>
+                <button type="button" onClick={e.onPick} style={{...e.style, flex: 1, minWidth: 0}}>
+                  <span style={{display:"flex",alignItems:"baseline",gap:"8px"}}><span style={{font:"700 11px/1 'Courier New',monospace",color:"var(--gold)"}}>{e.num}</span><span style={{flex:1,fontFamily:"'Baloo 2',cursive",fontWeight:700,fontSize:"14.5px",lineHeight:1.2,color:"var(--ink)"}}>{e.t}</span><span style={{color:"var(--ink2)"}}>›</span></span>
+                  <span style={{display:"block",marginTop:"5px",paddingLeft:"22px",font:"700 9px/1.4 'Courier New',monospace",letterSpacing:".1em",textTransform:"uppercase",color:"var(--ink2)"}}>{e.s}</span>
+                </button>
+                <button type="button" onClick={(ev) => { ev.stopPropagation(); e.onToggleBookmark(); }} style={{all:"unset",cursor:"pointer",boxSizing:"border-box",width:"42px",flex:"0 0 auto",border:"1.5px solid rgba(60,42,24,.16)",borderRadius:"11px",background:e.isBookmarked ? "var(--gold)" : "rgba(255,255,255,.45)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px",color:e.isBookmarked ? "#fff" : "rgba(60,42,24,.3)",transition:"all 0.1s"}} title={e.isBookmarked ? "Remove bookmark" : "Bookmark this session"}>★</button>
+              </div>
             </React.Fragment>
 ))}
           </div>
         </div>
         <div className="wf-scroll" style={{flex:1,minWidth:0,overflowY:"auto",padding:"26px 32px 40px"}}>
-          <div style={{font:"700 10px/1 'Courier New',monospace",letterSpacing:".2em",textTransform:"uppercase",color:"var(--gold)"}}>{popShelf} · {popCall} · {popType}</div>
-          <div style={{display:"inline-block",marginTop:"12px",padding:"6px 12px",borderRadius:"8px",background:"rgba(65,124,152,.12)",font:"700 10px/1 'Courier New',monospace",letterSpacing:".16em",textTransform:"uppercase",color:"var(--blue)"}}>{popSub}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"6px"}}>
+            <div>
+              <div style={{font:"700 10px/1 'Courier New',monospace",letterSpacing:".2em",textTransform:"uppercase",color:"var(--gold)"}}>{popShelf} · {popCall} · {popType}</div>
+              <div style={{display:"inline-block",marginTop:"12px",padding:"6px 12px",borderRadius:"8px",background:"rgba(65,124,152,.12)",font:"700 10px/1 'Courier New',monospace",letterSpacing:".16em",textTransform:"uppercase",color:"var(--blue)"}}>{popSub}</div>
+            </div>
+            {popEntry && popEntry.onToggleBookmark && (
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); popEntry.onToggleBookmark(); }} style={{all:"unset",cursor:"pointer",boxSizing:"border-box",display:"flex",alignItems:"center",gap:"8px",padding:"8px 14px",border:`1.5px solid ${popEntry.isBookmarked ? "var(--gold)" : "rgba(60,42,24,.2)"}`,borderRadius:"20px",background:popEntry.isBookmarked ? "rgba(226,166,60,.1)" : "transparent",font:"700 10px/1 'Courier New',monospace",letterSpacing:".1em",color:popEntry.isBookmarked ? "var(--gold)" : "var(--ink2)",transition:"all 0.1s"}} title={popEntry.isBookmarked ? "Remove bookmark" : "Bookmark this session"}>
+                <span style={{fontSize:"14px"}}>{popEntry.isBookmarked ? "★" : "☆"}</span> {popEntry.isBookmarked ? "SAVED" : "SAVE"}
+              </button>
+            )}
+          </div>
           <h2 style={{fontFamily:"'Baloo 2',cursive",fontWeight:800,fontSize:"34px",lineHeight:1.05,color:"var(--ink)",margin:"10px 0 0"}}>{popTitle}</h2>
           {popImages && popImages.length > 0 ? (
             <div style={{margin:"18px 0 4px", display:"flex", flexDirection:"column", gap:"12px"}}>

@@ -1976,12 +1976,16 @@ export default function ClientProfile({
                     {bookmarkedWorkforce.map(b => (
                       <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKFORCE', _color: '#2E5534', _bg: '#EAF2EB', _url: b.url, _vaultUrl: b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, _status: b.bookmarkStatus, _source: b.source || domain(b.url) })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                          <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#2E5534', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>VAULT</span>
+                          {b.title?.startsWith('Workforce Session:') ? (
+                            <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#e2a63c', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>SESSION</span>
+                          ) : (
+                            <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#2E5534', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>VAULT</span>
+                          )}
                           {b.bookmarkStatus === 'pending' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ffd23f', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>PENDING</span>}
                           {b.bookmarkStatus === 'approved' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#74f0a0', color: '#1a3a1e', padding: '3px 8px', borderRadius: '20px' }}>✓ APPROVED</span>}
                           {b.bookmarkStatus === 'rejected' && <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#ff8a4a', color: '#fff', padding: '3px 8px', borderRadius: '20px' }}>✕ REJECTED</span>}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#1a2a1a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title}</div>
+                        <div style={{ fontWeight: 700, color: '#1a2a1a', fontSize: '15px', lineHeight: 1.3, wordBreak: 'break-all' }}>{b.title?.replace('Workforce Session: ', '')}</div>
                         <div style={{ fontSize: '12px', color: '#3a5a4a', marginTop: '7px' }}>{b.source || domain(b.url)}</div>
                         {/* User bookmark note display */}
                         {getBookmarkNote(b.content) && bookmarkNoteId !== b.id && (

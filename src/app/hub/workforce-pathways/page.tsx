@@ -105,9 +105,11 @@ function WorkforcePathwaysContent() {
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
   const [jobBookmarks, setJobBookmarks] = useState<Record<string, boolean>>({});
   const [boardBookmarks, setBoardBookmarks] = useState<Record<string, boolean>>({});
+  const [fieldNoteBookmarks, setFieldNoteBookmarks] = useState<Record<string, boolean>>({});
   const [isSubmittingJobBookmark, setIsSubmittingJobBookmark] = useState<string | null>(null);
   const [isSubmittingBookmark, setIsSubmittingBookmark] = useState<string | null>(null);
   const [isSubmittingBoardBookmark, setIsSubmittingBoardBookmark] = useState<string | null>(null);
+  const [isSubmittingFieldNoteBookmark, setIsSubmittingFieldNoteBookmark] = useState<string | null>(null);
   const [initialAvatar, setInitialAvatar] = useState<any>(null);
 
   const [dbQuizzes, setDbQuizzes] = useState<any[]>([]);
@@ -139,6 +141,7 @@ function WorkforcePathwaysContent() {
         const bm: Record<string, boolean> = {};
         const jbm: Record<string, boolean> = {};
         const bbm: Record<string, boolean> = {};
+        const fbm: Record<string, boolean> = {};
         bmData.forEach((b: any) => {
           if (b.item_id) {
             // Separate job bookmarks from resource bookmarks by title prefix
@@ -146,6 +149,8 @@ function WorkforcePathwaysContent() {
               jbm[b.item_id] = true;
             } else if (b.title && b.title.startsWith('Board:')) {
               bbm[b.item_id] = true;
+            } else if (b.title && b.title.startsWith('Workforce Session:')) {
+              fbm[b.item_id] = true;
             } else {
               bm[b.item_id] = true;
             }
@@ -154,6 +159,7 @@ function WorkforcePathwaysContent() {
         setBookmarks(bm);
         setJobBookmarks(jbm);
         setBoardBookmarks(bbm);
+        setFieldNoteBookmarks(fbm);
         setDbUserPicks(picksData || []);
         setDataLoaded(true);
       });
@@ -234,7 +240,12 @@ function WorkforcePathwaysContent() {
   const pw = catalog.find(p => p.id === pathway) || null;
   const otherPw = pw ? catalog.find(p => p.id !== pw.id) : null;
   const popStop = pw && stopId ? pw.stops.find(sp => sp.id === stopId) : null;
-  const popEntry = publishedEntries[Math.min(entryIdx, Math.max(0, publishedEntries.length - 1))] || null;
+  const _popEntry = publishedEntries[Math.min(entryIdx, Math.max(0, publishedEntries.length - 1))] || null;
+  const popEntry = _popEntry ? {
+    ..._popEntry,
+    isBookmarked: !!fieldNoteBookmarks[`/hub/workforce-pathways?entry=${_popEntry.id}`],
+    onToggleBookmark: () => toggleFieldNoteBookmark(_popEntry)
+  } : null;
 
   const countNotes = (p: any) => {
      if (!p) return 0;
@@ -406,11 +417,17 @@ function WorkforcePathwaysContent() {
   const popStopName = popStop ? popStop.name : "";
   const popBlurb = popStop ? popStop.blurb : "";
   const popEntryCount = publishedEntries.length;
-  const popEntryList = publishedEntries.map((e, i) => ({
+  const popEntryList = publishedEntries.map((e, i) => {
+    const isBookmarked = !!fieldNoteBookmarks[`/hub/workforce-pathways?entry=${e.id}`];
+    return {
+      id: e.id,
       t: e.title, s: e.subtitle, num: (i + 1 < 10 ? "0" : "") + (i + 1),
+      isBookmarked,
+      onToggleBookmark: () => toggleFieldNoteBookmark(e),
       onPick: () => setEntryIdx(i),
       style: { all: 'unset' as any, cursor: 'pointer', boxSizing: 'border-box' as any, display: 'block', width: '100%', padding: '12px 14px', borderRadius: '11px', border: '1.5px solid ' + (i === entryIdx ? popColor : 'rgba(60,42,24,.16)'), background: i === entryIdx ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.45)', boxShadow: i === entryIdx ? '0 6px 16px -10px rgba(36,31,23,.5)' : 'none' }
-  }));
+    };
+  });
 
   const popCall = popEntry ? popEntry.call_no : "";
   const popType = popEntry ? popEntry.type : "";
@@ -630,6 +647,59 @@ function WorkforcePathwaysContent() {
       });
     } finally {
       setIsSubmittingBoardBookmark(null);
+    }
+  };
+
+  const toggleFieldNoteBookmark = async (entry: any) => {
+    const url = `/hub/workforce-pathways?entry=${entry.id}`;
+    
+    if (isSubmittingFieldNoteBookmark === url) return;
+    setIsSubmittingFieldNoteBookmark(url);
+    
+    const isBookmarked = !!fieldNoteBookmarks[url];
+    
+    // Optimistic update
+    setFieldNoteBookmarks(prev => {
+      const next = { ...prev };
+      if (next[url]) delete next[url];
+      else next[url] = true;
+      return next;
+    });
+
+    try {
+      await toggleDbBookmark(
+        url,
+        'workforce',
+        `Workforce Session: ${entry.title}`,
+        url
+      );
+      
+      // Refetch to sync
+      const bmData = await fetchUserBookmarks('workforce');
+      const fbm: Record<string, boolean> = {};
+      bmData.forEach((b: any) => {
+        if (b.item_id && b.title && b.title.startsWith('Workforce Session:')) {
+          fbm[b.item_id] = true;
+        }
+      });
+      setFieldNoteBookmarks(fbm);
+      
+      if (!isBookmarked) {
+        toast.success('Session bookmarked!', { id: `session-bm-${url}`, position: 'bottom-center' });
+      } else {
+        toast.success('Session bookmark removed.', { id: `session-bm-${url}`, position: 'bottom-center' });
+      }
+    } catch (err) {
+      toast.error('Failed to save session bookmark.', { id: `session-bm-error-${url}`, position: 'bottom-center' });
+      // Revert
+      setFieldNoteBookmarks(prev => {
+        const next = { ...prev };
+        if (isBookmarked) next[url] = true;
+        else delete next[url];
+        return next;
+      });
+    } finally {
+      setIsSubmittingFieldNoteBookmark(null);
     }
   };
 
