@@ -18,6 +18,7 @@ function WorkforcePathwaysContent() {
   const nodeParam = searchParams.get('node');
   const jobsParam = searchParams.get('jobs');
   const pathParam = searchParams.get('path');
+  const entryParam = searchParams.get('entry');
 
   const { user, isLoaded } = useUser();
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -74,6 +75,25 @@ function WorkforcePathwaysContent() {
       setRole('steward');
     }
   }, [nodeParam, jobsParam]);
+
+  useEffect(() => {
+    if (entryParam) {
+      for (const p of INITIAL_PATHWAYS) {
+        for (const s of p.stops) {
+          const entries = s.entries || s.modules || [];
+          const idx = entries.findIndex((e: any) => e.id === entryParam);
+          if (idx >= 0) {
+            setRole(p.id === 'enviro' ? 'steward' : 'explorer');
+            setPathway(p.id);
+            setStopId(s.id);
+            setEntryIdx(idx);
+            setInitialScreen('main');
+            return;
+          }
+        }
+      }
+    }
+  }, [entryParam]);
 
   useEffect(() => {
     if (pathParam) {

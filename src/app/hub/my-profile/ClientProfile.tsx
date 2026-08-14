@@ -1974,7 +1974,7 @@ export default function ClientProfile({
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%, 220px), 1fr))', gap: '12px' }}>
                     {bookmarkedWorkforce.map(b => (
-                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKFORCE', _color: '#2E5534', _bg: '#EAF2EB', _url: b.url, _vaultUrl: b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, _status: b.bookmarkStatus, _source: b.source || domain(b.url) })}>
+                      <div key={b.id} className="hover:-translate-y-1 hover:shadow-lg transition-all" style={{ background: '#EAF2EB', border: '1.5px solid rgba(46,85,52,.2)', borderRadius: '13px', padding: '15px 16px', boxShadow: '0 4px 12px rgba(0,0,0,.04)', cursor: 'pointer' }} onClick={() => setSelectedResourceItem({ ...b, _kind: 'WORKFORCE', _isSession: b.title?.startsWith('Workforce Session:'), _color: '#2E5534', _bg: '#EAF2EB', _url: b.url, _vaultUrl: b.nodeId ? `/hub/workforce-pathways?node=${b.nodeId}` : `/hub/workforce-pathways`, _status: b.bookmarkStatus, _source: b.source || domain(b.url) })}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                           {b.title?.startsWith('Workforce Session:') ? (
                             <span style={{ display: 'inline-block', fontFamily: '"DM Mono", monospace', fontSize: '9px', letterSpacing: '.14em', background: '#e2a63c', color: '#3a2412', padding: '3px 8px', borderRadius: '20px' }}>SESSION</span>
@@ -2970,7 +2970,7 @@ export default function ClientProfile({
 
                 {/* Action buttons */}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '22px', flexWrap: 'wrap' }}>
-                  {r._kind === 'WORKFORCE' && r._url && (
+                  {r._kind === 'WORKFORCE' && r._url && !r._isSession && (
                     <button
                       onClick={() => window.open(r._url, '_blank')}
                       style={{
@@ -2987,7 +2987,7 @@ export default function ClientProfile({
                       Open Link ↗
                     </button>
                   )}
-                  {r._kind === 'WORKFORCE' && r._vaultUrl && (
+                  {r._kind === 'WORKFORCE' && r._vaultUrl && !r._isSession && (
                     <button
                       onClick={() => window.location.href = r._vaultUrl}
                       style={{
@@ -3002,6 +3002,23 @@ export default function ClientProfile({
                       onMouseLeave={e => (e.currentTarget.style.background = 'rgba(46,85,52,.12)')}
                     >
                       Open Resources →
+                    </button>
+                  )}
+                  {r._kind === 'WORKFORCE' && r._isSession && r._url && (
+                    <button
+                      onClick={() => window.open(r._url, '_blank')}
+                      style={{
+                        padding: '12px 22px',
+                        background: '#2E5534', color: '#fff', border: 'none',
+                        borderRadius: '8px', fontFamily: '"Exo", sans-serif',
+                        fontSize: '14px', fontWeight: 700,
+                        cursor: 'pointer', 
+                        transition: 'opacity .15s'
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    >
+                      Open Resource ↗
                     </button>
                   )}
                   {r._kind !== 'WORKFORCE' && r._url && (
