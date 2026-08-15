@@ -1189,12 +1189,39 @@ export default function Portfolio({
             ✦ MY ENGAGEMENT
           </div>
           <div style={{ fontSize: 18, color: 'var(--mu,#a493c9)' }}>
-            {approvedCount} approved · {pendingCount} pending · {engPct}%/25%
+            {approvedCount} approved · {pendingCount} pending
+          </div>
+        </div>
+
+        {/* Engagement Progress Section */}
+        <div style={{ marginTop: 16, background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: 8, border: '1px solid rgba(116,240,160,0.2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 15, color: 'var(--tx,#efe6ff)', fontWeight: 600 }}>Total Engagement Progress</span>
+            <span className="font-pixel" style={{ fontSize: 14, color: 'var(--ok,#74f0a0)', fontWeight: 700 }}>{engPct}% / 25%</span>
+          </div>
+          <div
+            style={{
+              height: 14,
+              borderRadius: 20,
+              background: '#1a0e2e',
+              overflow: 'hidden',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.min((engPct / 25) * 100, 100)}%`,
+                height: '100%',
+                borderRadius: 20,
+                background: 'linear-gradient(90deg,var(--ok,#74f0a0),var(--s,#45d6ff))',
+                transition: 'width .4s ease',
+              }}
+            />
           </div>
         </div>
 
         {/* Earn % info note - Collapsible */}
-        <div style={{ marginTop: 10, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(164,147,201,.25)' }}>
+        <div style={{ marginTop: 16, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(164,147,201,.25)' }}>
           <button
             onClick={() => {
               const content = document.getElementById('points-details-portfolio');
@@ -1273,26 +1300,6 @@ export default function Portfolio({
           </div>
         </div>
 
-        {/* Engagement progress bar */}
-        <div
-          style={{
-            height: 12,
-            borderRadius: 20,
-            background: '#1a0e2e',
-            marginTop: 12,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: `${Math.min((engPct / 25) * 100, 100)}%`,
-              height: '100%',
-              borderRadius: 20,
-              background: 'linear-gradient(90deg,var(--ok,#74f0a0),var(--s,#45d6ff))',
-              transition: 'width .4s ease',
-            }}
-          />
-        </div>
 
         {/* ── Section C.1: Shelf Columns ── */}
         <div
