@@ -1220,19 +1220,19 @@ export default function Portfolio({
             onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(116,240,160,.1)'}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span id="points-toggle-icon-portfolio" style={{ color: 'var(--ok,#74f0a0)', fontSize: 12, fontFamily: 'monospace', fontWeight: 700 }}>▶</span>
-              <span style={{ color: 'var(--ok,#74f0a0)', fontWeight: 700, fontSize: 14 }}>✦ Engagement & Contribution Rewards</span>
-              <span style={{ fontSize: 12, color: 'var(--mu,#a493c9)' }}>(percentage points added after admin approves)</span>
+              <span id="points-toggle-icon-portfolio" style={{ color: 'var(--ok,#74f0a0)', fontSize: 13, fontFamily: 'monospace', fontWeight: 700 }}>▶</span>
+              <span style={{ color: 'var(--ok,#74f0a0)', fontWeight: 700, fontSize: 16 }}>✦ Engagement & Contribution Rewards</span>
+              <span style={{ fontSize: 14, color: 'var(--mu,#a493c9)' }}>(percentage points added after admin approves)</span>
             </div>
           </button>
           
-          <div id="points-details-portfolio" style={{ display: 'none', padding: '16px 20px', background: 'rgba(255,255,255,.04)', fontSize: 16, color: 'var(--tx,#efe6ff)', lineHeight: 2 }}>
+          <div id="points-details-portfolio" style={{ display: 'none', padding: '16px 20px', background: 'rgba(255,255,255,.04)', fontSize: 18, color: 'var(--tx,#efe6ff)', lineHeight: 2 }}>
             {/* Basic Engagement */}
             <div style={{ marginBottom: '18px' }}>
-              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '17px' }}>
-                ◦ <span style={{ fontSize: '18px' }}>+1%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Basic Engagement</span>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '19px' }}>
+                ◦ <span style={{ fontSize: '20px' }}>+1%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Basic Engagement</span>
               </div>
-              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
+              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '17px' }}>
                 <div>◦ 📌 Saved Bookmark</div>
                 <div>◦ 📝 Saved Note</div>
               </div>
@@ -1240,33 +1240,33 @@ export default function Portfolio({
 
             {/* Content & Resource Creation */}
             <div style={{ marginBottom: '18px' }}>
-              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '17px' }}>
-                ◦ <span style={{ fontSize: '18px' }}>+2%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Content & Resource Creation</span>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '19px' }}>
+                ◦ <span style={{ fontSize: '20px' }}>+2%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Content & Resource Creation</span>
               </div>
-              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
+              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '17px' }}>
                 <div>◦ 🖼 Saved Generated Asset</div>
-                <div>◦ 🌿 Suggested Resource Submission <span style={{ fontSize: '13px', color: 'var(--mu,#a493c9)' }}>(Workforce Development, Environmental Literacy, or Steward Library)</span></div>
+                <div>◦ 🌿 Suggested Resource Submission <span style={{ fontSize: '15px', color: 'var(--mu,#a493c9)' }}>(Workforce Development, Environmental Literacy, or Steward Library)</span></div>
                 <div>◦ 💼 Approved Job Post to Quest Board</div>
               </div>
             </div>
 
             {/* Prompts & Community Highlights */}
             <div style={{ marginBottom: '18px' }}>
-              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '17px' }}>
-                ◦ <span style={{ fontSize: '18px' }}>+3%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Prompts & Community Highlights</span>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '19px' }}>
+                ◦ <span style={{ fontSize: '20px' }}>+3%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Prompts & Community Highlights</span>
               </div>
-              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
+              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '17px' }}>
                 <div>◦ 💬 Saved Prompt</div>
-                <div>◦ 🌟 Approved Asset in Showcase <span style={{ fontSize: '13px', color: 'var(--mu,#a493c9)' }}>(2% for asset + 1% for showcase bonus)</span></div>
+                <div>◦ 🌟 Approved Asset in Showcase <span style={{ fontSize: '15px', color: 'var(--mu,#a493c9)' }}>(2% for asset + 1% for showcase bonus)</span></div>
               </div>
             </div>
 
             {/* Milestones & Deliverables */}
             <div>
-              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '17px' }}>
-                ◦ <span style={{ fontSize: '18px' }}>+4%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Milestones & Deliverables</span>
+              <div style={{ fontWeight: 700, marginBottom: '10px', color: 'var(--ok,#74f0a0)', fontSize: '19px' }}>
+                ◦ <span style={{ fontSize: '20px' }}>+4%</span> — <span style={{ fontStyle: 'italic', color: 'var(--mu,#a493c9)' }}>Milestones & Deliverables</span>
               </div>
-              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
+              <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '17px' }}>
                 <div>◦ 🏆 Submitted Mini Deliverable</div>
               </div>
             </div>
@@ -2317,9 +2317,10 @@ export default function Portfolio({
               
               // Count only required stops (mesa: true), excluding optional ones
               const requiredStops = pathway.stops?.filter((stop: any) => stop.mesa !== false) || []
-              const totalStops = requiredStops.length
+              const requiredCount = requiredStops.length
+              const totalStops = pathway.stops?.length || 0
               
-              const isComplete = pathwayPicks.length >= totalStops && totalStops > 0
+              const isComplete = pathwayPicks.length >= requiredCount && requiredCount > 0
               const isExpanded = expandedPathwayCard === pathway.id
               const cardId = `portfolio-pathway-card-${pathway.id}`
 
