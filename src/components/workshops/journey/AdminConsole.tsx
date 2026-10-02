@@ -24,6 +24,7 @@ import {
 import { PixelSprite } from '@/components/workshops/journey'
 import { updateWorkshopDay, createWorkshopDay } from '@/app/actions/workshops/workshop-days'
 import { updateCohort, uploadCohortThumbnail, getCohorts } from '@/app/actions/workshops/cohorts'
+import { duplicateDay, getCohortsForDuplicate, getDaysForCohort } from '@/app/actions/workshops/duplicate'
 import { createSection, updateSection, deleteSection } from '@/app/actions/workshops/sections'
 import { createEntry, updateEntry, deleteEntry, reorderEntries } from '@/app/actions/workshops/entries'
 import { SortableList } from '@/components/admin/SortableList'
@@ -432,6 +433,17 @@ export default function AdminConsole({
   const [isSaving, setIsSaving] = useState(false)
   const [daysData, setDaysData] = useState(days)
 
+  // ── Import Day modal state ─────────────────────────────────────────────────
+  const [importDayModal, setImportDayModal] = useState(false)
+  const [importCohorts, setImportCohorts] = useState<any[]>([])
+  const [importCohortsLoading, setImportCohortsLoading] = useState(false)
+  const [importSourceCohortId, setImportSourceCohortId] = useState('')
+  const [importSourceDays, setImportSourceDays] = useState<any[]>([])
+  const [importSourceDaysLoading, setImportSourceDaysLoading] = useState(false)
+  const [importSourceDayId, setImportSourceDayId] = useState('')
+  const [importTargetSlot, setImportTargetSlot] = useState<number>(0) // Step 3: which slot to import as
+  const [isImporting, setIsImporting] = useState(false)
+
   // Principles state
   const [principlesList, setPrinciplesList] = useState(principles)
   const [openPrinciple, setOpenPrinciple] = useState<string | null>(null)
@@ -815,6 +827,74 @@ export default function AdminConsole({
         setSelectedEntry(null)
       }
     })
+  }
+
+  // ── Import Day handlers ────────────────────────────────────────────────────
+  const handleOpenImportModal = async () => {
+    setImportDayModal(true)
+    setImportSourceCohortId('')
+    setImportSourceDayId('')
+    setImportSourceDays([])
+    setImportTargetSlot(0)
+    if (importCohorts.length === 0) {
+      setImportCohortsLoading(true)
+      try {
+        const cohorts = await getCohortsForDuplicate()
+        setImportCohorts(cohorts)
+      } catch {
+        // silent – error shown in modal
+      } finally {
+        setImportCohortsLoading(false)
+      }
+    }
+  }
+
+  const handleImportCohortChange = async (cId: string) => {
+    setImportSourceCohortId(cId)
+    setImportSourceDayId('')
+    setImportSourceDays([])
+    setImportTargetSlot(0)
+    if (!cId) return
+    setImportSourceDaysLoading(true)
+    try {
+      const days = await getDaysForCohort(cId)
+      setImportSourceDays(days)
+    } catch {
+      // silent
+    } finally {
+      setImportSourceDaysLoading(false)
+    }
+  }
+
+  const handleConfirmImportDay = async () => {
+    if (!importSourceDayId || !importTargetSlot) return
+    setIsImporting(true)
+    try {
+      const newDay = await duplicateDay(importSourceDayId, cohortId, importTargetSlot)
+      if (newDay) {
+        setDaysData(prev => {
+          // Check if a day with this day_number already exists (empty slot that was filled)
+          const existingIdx = prev.findIndex((d: any) => d.day_number === newDay.day_number)
+          if (existingIdx >= 0) {
+            // Replace the existing empty day with the filled one
+            const updated = [...prev]
+            updated[existingIdx] = newDay as any
+            return updated
+          }
+          // No existing day — append
+          return [...prev, newDay as any]
+        })
+        // Switch to the imported day
+        const targetIdx = daysData.findIndex((d: any) => d.day_number === newDay.day_number)
+        setActiveDayIdx(targetIdx >= 0 ? targetIdx : daysData.length)
+        setSelectedEntry(null)
+      }
+      setImportDayModal(false)
+    } catch (err: any) {
+      alert(`Import failed: ${err.message}`)
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   const handleEntryFieldBlur = (entryId: string, field: string, value: any) => {
@@ -1743,7 +1823,8 @@ export default function AdminConsole({
                   );
                 })}
                 
-                {/* ADD DAY BUTTON */}
+                {/* ADD DAY BUTTON — hidden once all 3 day slots are filled */}
+                {daysData.length < 3 && (
                 <button
                   onClick={handleAddDay}
                   className="font-pixel"
@@ -1760,7 +1841,215 @@ export default function AdminConsole({
                 >
                   + ADD DAY
                 </button>
+                )}
+
+                {/* IMPORT DAY BUTTON */}
+                <button
+                  onClick={handleOpenImportModal}
+                  className="font-pixel"
+                  style={{
+                    fontSize: 9,
+                    padding: '9px 14px',
+                    border: '2px dashed #c9a85f',
+                    borderRadius: 4,
+                    background: 'transparent',
+                    color: '#c9a85f',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  ↓ IMPORT DAY
+                </button>
               </div>
+
+              {/* ── IMPORT DAY MODAL ───────────────────────────────────────── */}
+              {importDayModal && (
+                <div style={{
+                  position: 'fixed', inset: 0, zIndex: 9999,
+                  background: 'rgba(6,4,12,0.85)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 20,
+                }}>
+                  <div style={{
+                    background: '#12081e',
+                    border: '2px solid #c9a85f',
+                    borderRadius: 14,
+                    padding: 32,
+                    width: '100%',
+                    maxWidth: 600,
+                    boxShadow: '0 0 40px rgba(201,168,95,0.25)',
+                  }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                      <span className="font-pixel" style={{ fontSize: 11, color: '#c9a85f', letterSpacing: 1 }}>
+                        ↓ IMPORT DAY
+                      </span>
+                      <button
+                        onClick={() => setImportDayModal(false)}
+                        style={{ background: 'transparent', border: 'none', color: '#a493c9', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}
+                      >✕</button>
+                    </div>
+
+                    {/* Step 1 — Select Cohort */}
+                    <div style={{ marginBottom: 20 }}>
+                      <label className="font-pixel" style={{ fontSize: 8, color: '#8aa6c4', letterSpacing: 1, display: 'block', marginBottom: 10 }}>
+                        STEP 1 — SELECT SOURCE COHORT
+                      </label>
+                      {importCohortsLoading ? (
+                        <p style={{ color: '#c9a85f', fontSize: 13, fontFamily: "'Inter', sans-serif" }}>Loading cohorts…</p>
+                      ) : (
+                        <select
+                          value={importSourceCohortId}
+                          onChange={e => handleImportCohortChange(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0,0,0,.5)',
+                            border: '2px solid #3d2668',
+                            borderRadius: 6,
+                            color: '#efe6ff',
+                            fontSize: 14,
+                            padding: '10px 12px',
+                            fontFamily: "'Inter', sans-serif",
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <option value="">— Choose a cohort —</option>
+                          {importCohorts.map((c: any) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} ({c.status.toUpperCase()})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Step 2 — Select Day */}
+                    <div style={{ marginBottom: 20 }}>
+                      <label className="font-pixel" style={{ fontSize: 8, color: '#8aa6c4', letterSpacing: 1, display: 'block', marginBottom: 10 }}>
+                        STEP 2 — SELECT DAY TO IMPORT
+                      </label>
+                      {importSourceDaysLoading ? (
+                        <p style={{ color: '#c9a85f', fontSize: 13, fontFamily: "'Inter', sans-serif" }}>Loading days…</p>
+                      ) : (
+                        <select
+                          value={importSourceDayId}
+                          onChange={e => { setImportSourceDayId(e.target.value); setImportTargetSlot(0) }}
+                          disabled={!importSourceCohortId || importSourceDays.length === 0}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0,0,0,.5)',
+                            border: '2px solid #3d2668',
+                            borderRadius: 6,
+                            color: importSourceCohortId ? '#efe6ff' : '#6a5e80',
+                            fontSize: 14,
+                            padding: '10px 12px',
+                            fontFamily: "'Inter', sans-serif",
+                            opacity: importSourceCohortId ? 1 : 0.5,
+                          }}
+                        >
+                          <option value="">
+                            {!importSourceCohortId
+                              ? '— Select a cohort first —'
+                              : importSourceDays.length === 0
+                                ? '— No days found —'
+                                : '— Choose a day —'}
+                          </option>
+                          {importSourceDays.map((d: any) => (
+                            <option key={d.id} value={d.id}>
+                              Day {d.day_number} — {d.title}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Step 3 — Import As (target slot) */}
+                    {importSourceDayId && (
+                    <div style={{ marginBottom: 28 }}>
+                      <label className="font-pixel" style={{ fontSize: 8, color: '#8aa6c4', letterSpacing: 1, display: 'block', marginBottom: 10 }}>
+                        STEP 3 — IMPORT AS (TARGET SLOT)
+                      </label>
+                      <select
+                        value={importTargetSlot}
+                        onChange={e => setImportTargetSlot(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0,0,0,.5)',
+                          border: '2px solid #3d2668',
+                          borderRadius: 6,
+                          color: '#efe6ff',
+                          fontSize: 14,
+                          padding: '10px 12px',
+                          fontFamily: "'Inter', sans-serif",
+                        }}
+                      >
+                        <option value={0}>— Choose target slot —</option>
+                        {[1, 2, 3].map(num => {
+                          const existing = daysData.find((d: any) => d.day_number === num)
+                          const hasContent = existing && (existing.sections?.length ?? 0) > 0
+                          if (hasContent) return null // hide slots with content
+                          return (
+                            <option key={num} value={num}>
+                              Day {num}{existing ? ' (empty — will be filled)' : ' (free slot)'}
+                            </option>
+                          )
+                        })}
+                      </select>
+                    </div>
+                    )}
+
+                    {/* Info note */}
+                    {importSourceDayId && importTargetSlot > 0 && (() => {
+                      const existing = daysData.find((d: any) => d.day_number === importTargetSlot)
+                      if (existing) {
+                        return (
+                          <p style={{ fontSize: 12, color: '#ffd23f', fontFamily: "'Inter', sans-serif", marginBottom: 20 }}>
+                            ◆ Day {importTargetSlot} exists but is empty — imported content will fill this day.
+                          </p>
+                        )
+                      }
+                      return (
+                        <p style={{ fontSize: 12, color: '#74f0a0', fontFamily: "'Inter', sans-serif", marginBottom: 20 }}>
+                          ✓ Source content will be imported as Day {importTargetSlot} of this cohort.
+                        </p>
+                      )
+                    })()}
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                      <button
+                        onClick={() => setImportDayModal(false)}
+                        disabled={isImporting}
+                        className="font-pixel"
+                        style={{
+                          padding: '11px 18px', fontSize: 9,
+                          background: 'transparent', color: '#a493c9',
+                          border: '2px solid #3d2668', borderRadius: 6, cursor: 'pointer',
+                        }}
+                      >
+                        CANCEL
+                      </button>
+                      <button
+                        onClick={handleConfirmImportDay}
+                        disabled={!importSourceDayId || !importTargetSlot || isImporting}
+                        className="font-pixel"
+                        style={{
+                          padding: '11px 18px', fontSize: 9,
+                          background: importSourceDayId && importTargetSlot && !isImporting ? '#c9a85f' : 'rgba(201,168,95,0.3)',
+                          color: '#06040c',
+                          border: 'none', borderRadius: 6,
+                          cursor: importSourceDayId && importTargetSlot && !isImporting ? 'pointer' : 'not-allowed',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        {isImporting ? 'IMPORTING…' : '↓ IMPORT DAY'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {activeDay && (
                 <div key={activeDay.id} style={{

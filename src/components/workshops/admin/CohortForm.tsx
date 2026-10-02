@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { CohortFormProps, CreateCohortParams, UpdateCohortParams } from '@/types/workshops'
 import toast from 'react-hot-toast'
-import { X } from 'lucide-react'
+import { X, Copy, ChevronDown, ChevronUp } from 'lucide-react'
 import { uploadCohortThumbnail } from '@/app/actions/workshops/cohorts'
+import { duplicateCohort, getCohortsForDuplicate } from '@/app/actions/workshops/duplicate'
 
+type CohortSummary = { id: string; name: string; status: string; start_date: string }
 
 export default function CohortForm({
   initialData,
@@ -22,6 +24,14 @@ export default function CohortForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [isExpanded, setIsExpanded] = useState(!initialData)
+
+  // ── Duplicate panel state (only shown when creating a new cohort) ──
+  const [dupPanelOpen, setDupPanelOpen] = useState(false)
+  const [allCohorts, setAllCohorts] = useState<CohortSummary[]>([])
+  const [loadingCohorts, setLoadingCohorts] = useState(false)
+  const [duplicateSourceId, setDuplicateSourceId] = useState('')
+
+  const isCreateMode = !initialData
 
   const extractThumbnail = (desc: string) => {
     const match = desc.match(/<div data-thumbnail="(.*?)" style="display:none;"><\/div>/)
@@ -52,6 +62,16 @@ export default function CohortForm({
       }
     }
   }, [initialData])
+
+  // Load cohorts when the duplicate panel is opened
+  useEffect(() => {
+    if (!dupPanelOpen || allCohorts.length > 0) return
+    setLoadingCohorts(true)
+    getCohortsForDuplicate()
+      .then(setAllCohorts)
+      .catch(() => toast.error('Failed to load cohorts'))
+      .finally(() => setLoadingCohorts(false))
+  }, [dupPanelOpen])
 
   // Helper function to format date for date input
   const formatDate = (date: Date): string => {
@@ -90,6 +110,18 @@ export default function CohortForm({
         status,
       }
 
+      // ── Duplicate path ──────────────────────────────────────────────────────
+      if (isCreateMode && duplicateSourceId) {
+        toast.loading('Duplicating cohort curriculum…', { id: 'dup-cohort' })
+        const newCohort = await duplicateCohort(duplicateSourceId, payload as CreateCohortParams)
+        toast.success('Cohort duplicated! Redirecting…', { id: 'dup-cohort' })
+        // onSubmit is used by the page to redirect — pass a fake cohort-like object
+        // so the page's redirect logic still fires correctly.
+        await onSubmit({ ...payload, _duplicatedCohortId: newCohort.id } as any)
+        return
+      }
+
+      // ── Normal create / edit path ───────────────────────────────────────────
       // Add id for update mode
       if (initialData) {
         (payload as UpdateCohortParams).id = initialData.id
@@ -181,6 +213,106 @@ export default function CohortForm({
               fontFamily: "'Press Start 2P', monospace"
             }}>
               {error}
+            </div>
+          )}
+
+          {/* ── DUPLICATE PANEL (create mode only) ───────────────────────────── */}
+          {isCreateMode && (
+            <div style={{
+              border: `2px solid ${dupPanelOpen ? '#c9a85f' : '#3d2668'}`,
+              borderRadius: 10,
+              overflow: 'hidden',
+              transition: 'border-color 0.2s',
+            }}>
+              {/* Panel header — always visible */}
+              <button
+                type="button"
+                onClick={() => setDupPanelOpen(p => !p)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '14px 18px',
+                  background: dupPanelOpen ? 'rgba(201,168,95,0.08)' : 'rgba(0,0,0,0.25)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <Copy size={14} color="#c9a85f" />
+                <span className="font-pixel" style={{ fontSize: 9, color: '#c9a85f', letterSpacing: 1, flex: 1 }}>
+                  DUPLICATE FROM PAST COHORT
+                </span>
+                <span style={{ 
+                  fontSize: 12, 
+                  color: '#9990ab', 
+                  fontFamily: "'Inter', sans-serif", 
+                  marginRight: 8,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '40%',
+                  textAlign: 'right'
+                }}>
+                  {duplicateSourceId
+                    ? allCohorts.find(c => c.id === duplicateSourceId)?.name ?? 'Selected'
+                    : 'Optional — skip to start fresh'}
+                </span>
+                {dupPanelOpen
+                  ? <ChevronUp size={14} color="#9990ab" />
+                  : <ChevronDown size={14} color="#9990ab" />
+                }
+              </button>
+
+              {/* Panel body */}
+              {dupPanelOpen && (
+                <div style={{ padding: '20px 18px 18px', borderTop: '1px solid #3d2668', background: 'rgba(0,0,0,0.2)' }}>
+                  <label style={labelStyle}>SELECT SOURCE COHORT</label>
+
+                  {loadingCohorts ? (
+                    <p style={{ ...helperStyle, color: '#c9a85f' }}>Loading cohorts…</p>
+                  ) : (
+                    <select
+                      value={duplicateSourceId}
+                      onChange={e => setDuplicateSourceId(e.target.value)}
+                      style={{
+                        ...inputStyle,
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <option value="">— Start fresh (no template) —</option>
+                      {allCohorts.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({c.status.toUpperCase()}) — {new Date(c.start_date).toLocaleDateString()}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {duplicateSourceId && (
+                    <div style={{
+                      marginTop: 12,
+                      padding: '10px 14px',
+                      background: 'rgba(69,214,255,0.06)',
+                      border: '1px solid rgba(69,214,255,0.2)',
+                      borderRadius: 6,
+                    }}>
+                      <p style={{ ...helperStyle, marginTop: 0, color: '#45d6ff' }}>
+                        ✓ Will copy: days, sessions, all content, principles, images &amp; media URLs
+                      </p>
+                      <p style={{ ...helperStyle, marginTop: 4 }}>
+                        ✗ Will not copy: student registrations, progress, submissions
+                      </p>
+                      <p style={{ ...helperStyle, marginTop: 4 }}>
+                        New cohort is always created as <strong>Draft</strong>.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -287,7 +419,7 @@ export default function CohortForm({
               <option value="closed">Closed</option>
               <option value="completed">Completed</option>
             </select>
-            <p style={helperStyle}>Only cohorts with "Open" status are visible to participants on the public page.</p>
+            <p style={helperStyle}>Only cohorts with &quot;Open&quot; status are visible to participants on the public page.</p>
           </div>
 
           {/* Form Actions */}
@@ -317,17 +449,26 @@ export default function CohortForm({
               style={{
                 padding: '14px 24px',
                 fontSize: 10,
-                background: '#45d6ff',
+                background: duplicateSourceId ? '#c9a85f' : '#45d6ff',
                 color: '#06040c',
                 border: 'none',
                 borderRadius: 8,
                 cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 opacity: isSubmitting ? 0.7 : 1,
                 fontWeight: 'bold',
-                boxShadow: '0 0 16px rgba(69,214,255,0.2)'
+                boxShadow: duplicateSourceId
+                  ? '0 0 16px rgba(201,168,95,0.3)'
+                  : '0 0 16px rgba(69,214,255,0.2)'
               }}
             >
-              {isSubmitting ? 'SAVING...' : initialData ? 'UPDATE COHORT' : 'CREATE COHORT'}
+              {isSubmitting
+                ? (duplicateSourceId ? 'DUPLICATING…' : 'SAVING…')
+                : initialData
+                  ? 'UPDATE COHORT'
+                  : duplicateSourceId
+                    ? '⧉ DUPLICATE COHORT'
+                    : 'CREATE COHORT'
+              }
             </button>
           </div>
         </form>

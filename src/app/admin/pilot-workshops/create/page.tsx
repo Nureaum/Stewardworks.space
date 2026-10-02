@@ -26,8 +26,12 @@ export default async function CreateCohortPage() {
     redirect('/hub/pilot-workshops')
   }
 
-  async function handleCreateCohort(data: CreateCohortParams) {
+  async function handleCreateCohort(data: CreateCohortParams & { _duplicatedCohortId?: string }) {
     'use server'
+    // When a cohort is duplicated, the form passes the new cohort's ID directly
+    if (data._duplicatedCohortId) {
+      redirect(`/hub/pilot-workshops/${data._duplicatedCohortId}/journey?mode=admin`)
+    }
     const cohort = await createCohort(data)
     redirect(`/hub/pilot-workshops/${cohort.id}/journey?mode=admin`)
   }
