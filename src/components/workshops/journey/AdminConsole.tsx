@@ -1989,7 +1989,13 @@ export default function AdminConsole({
                         {[1, 2, 3].map(num => {
                           const existing = daysData.find((d: any) => d.day_number === num)
                           const hasContent = existing && (existing.sections?.length ?? 0) > 0
-                          if (hasContent) return null // hide slots with content
+                          if (hasContent) {
+                            return (
+                              <option key={num} value={num}>
+                                ⚠ Day {num} (has content — will be replaced)
+                              </option>
+                            )
+                          }
                           return (
                             <option key={num} value={num}>
                               Day {num}{existing ? ' (empty — will be filled)' : ' (free slot)'}
@@ -2003,6 +2009,14 @@ export default function AdminConsole({
                     {/* Info note */}
                     {importSourceDayId && importTargetSlot > 0 && (() => {
                       const existing = daysData.find((d: any) => d.day_number === importTargetSlot)
+                      const hasContent = existing && (existing.sections?.length ?? 0) > 0
+                      if (hasContent) {
+                        return (
+                          <p style={{ fontSize: 12, color: '#ff7070', fontFamily: "'Inter', sans-serif", marginBottom: 20, background: 'rgba(255,80,80,0.08)', padding: '10px 14px', borderRadius: 6, border: '1px solid rgba(255,80,80,0.25)' }}>
+                            ⚠ Warning: Day {importTargetSlot} already has content. All existing sessions, entries and media in this day will be permanently deleted and replaced with the imported content.
+                          </p>
+                        )
+                      }
                       if (existing) {
                         return (
                           <p style={{ fontSize: 12, color: '#ffd23f', fontFamily: "'Inter', sans-serif", marginBottom: 20 }}>

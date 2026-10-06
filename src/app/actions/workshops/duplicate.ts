@@ -288,20 +288,34 @@ export async function duplicateDay(
     .maybeSingle()
 
   if (existingDay) {
-    // Check if the existing day has any sections (i.e. has real content)
-    const { count: sectionCount } = await supabase
+    // Day exists — wipe all existing content first (override mode), then fill with source
+    // Step A: delete entry_media for all entries in this day
+    const { data: existingSections } = await supabase
       .from('workshop_day_sections')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('workshop_day_id', existingDay.id)
 
-    if ((sectionCount ?? 0) > 0) {
-      throw new Error(
-        `Day ${dayNum} already has content in this cohort. ` +
-        `Please select a day whose slot is empty.`
-      )
+    if (existingSections && existingSections.length > 0) {
+      const sectionIds = existingSections.map((s: any) => s.id)
+
+      const { data: existingEntries } = await supabase
+        .from('workshop_day_entries')
+        .select('id')
+        .in('section_id', sectionIds)
+
+      if (existingEntries && existingEntries.length > 0) {
+        const entryIds = existingEntries.map((e: any) => e.id)
+        await supabase.from('workshop_entry_media').delete().in('entry_id', entryIds)
+        await supabase.from('workshop_day_entries').delete().in('id', entryIds)
+      }
+
+      await supabase.from('workshop_day_sections').delete().in('id', sectionIds)
     }
 
-    // Day exists but is empty — update it with the source content
+    // Step B: delete day-level media
+    await supabase.from('workshop_day_media').delete().eq('workshop_day_id', existingDay.id)
+
+    // Step C: update the day row with source metadata
     const { data: updatedDay, error: updateError } = await supabase
       .from('workshop_days')
       .update({
@@ -320,7 +334,7 @@ export async function duplicateDay(
       .single()
 
     if (updateError || !updatedDay)
-      throw new Error(`Failed to update empty day: ${updateError?.message}`)
+      throw new Error(`Failed to update day: ${updateError?.message}`)
 
     newDay = updatedDay
   } else {
