@@ -191,7 +191,7 @@ export async function getCohorts() {
         creator:profiles!cohorts_created_by_fkey(id, first_name, last_name, full_name),
         updater:profiles!cohorts_updated_by_fkey(id, first_name, last_name, full_name)
       `)
-      .order('start_date', { ascending: false })
+      .order('created_at', { ascending: false })
 
     // Removed restriction so all admins can view all cohorts
 

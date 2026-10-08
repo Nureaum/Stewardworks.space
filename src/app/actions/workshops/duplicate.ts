@@ -111,7 +111,7 @@ export async function duplicateCohort(
       .order('day_number')
 
     if (sourceDays && sourceDays.length > 0) {
-      for (const sourceDay of sourceDays) {
+      await Promise.all(sourceDays.map(async (sourceDay) => {
         // 4a. Insert new day
         const { data: newDay, error: dayError } = await supabase
           .from('workshop_days')
@@ -157,7 +157,7 @@ export async function duplicateCohort(
           (a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999)
         )
 
-        for (const sourceSection of sortedSections) {
+        await Promise.all(sortedSections.map(async (sourceSection) => {
           const { data: newSection, error: secError } = await supabase
             .from('workshop_day_sections')
             .insert({
@@ -179,7 +179,7 @@ export async function duplicateCohort(
             (a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999)
           )
 
-          for (const sourceEntry of sortedEntries) {
+          await Promise.all(sortedEntries.map(async (sourceEntry) => {
             const { data: newEntry, error: entryError } = await supabase
               .from('workshop_day_entries')
               .insert({
@@ -225,9 +225,9 @@ export async function duplicateCohort(
               if (emError)
                 throw new Error(`Failed to copy media for entry "${sourceEntry.title}": ${emError.message}`)
             }
-          }
-        }
-      }
+          }))
+        }))
+      }))
     }
   } catch (err) {
     // If anything fails mid-way, clean up the partially-created cohort
@@ -287,7 +287,28 @@ export async function duplicateDay(
     .eq('day_number', dayNum)
     .maybeSingle()
 
+  let backupSnapshot = null
+
   if (existingDay) {
+    // Take a snapshot of the existing day before wiping it
+    const { data: snapshotData } = await supabase
+      .from('workshop_days')
+      .select(`
+        *,
+        sections:workshop_day_sections (
+          *,
+          entries:workshop_day_entries (
+            *,
+            entry_media:workshop_entry_media (*)
+          )
+        ),
+        day_media:workshop_day_media (*)
+      `)
+      .eq('id', existingDay.id)
+      .single()
+      
+    backupSnapshot = snapshotData
+
     // Day exists — wipe all existing content first (override mode), then fill with source
     // Step A: delete entry_media for all entries in this day
     const { data: existingSections } = await supabase
@@ -382,85 +403,91 @@ export async function duplicateDay(
     (a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999)
   )
 
-  const newSectionsWithEntries: any[] = []
-
-  for (const sourceSection of sortedSections) {
-    const { data: newSection, error: secError } = await supabase
-      .from('workshop_day_sections')
-      .insert({
-        workshop_day_id: newDay.id,
-        section_key: sourceSection.section_key,
-        hour: sourceSection.hour ?? null,
-        title: sourceSection.title,
-        duration: sourceSection.duration ?? null,
-        sort_order: sourceSection.sort_order,
-      })
-      .select()
-      .single()
-
-    if (secError || !newSection)
-      throw new Error(`Failed to copy section: ${secError?.message}`)
-
-    const newEntriesForSection: any[] = []
-    const sortedEntries = [...(sourceSection.entries || [])].sort(
-      (a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999)
-    )
-
-    for (const sourceEntry of sortedEntries) {
-      const { data: newEntry, error: entryError } = await supabase
-        .from('workshop_day_entries')
+  const newSectionsWithEntries = await Promise.all(
+    sortedSections.map(async (sourceSection) => {
+      const { data: newSection, error: secError } = await supabase
+        .from('workshop_day_sections')
         .insert({
-          section_id: newSection.id,
-          entry_type: sourceEntry.entry_type,
-          title: sourceEntry.title,
-          subtitle: sourceEntry.subtitle ?? null,
-          body: sourceEntry.body ?? null,
-          items: sourceEntry.items ?? [],
-          modern_title: sourceEntry.modern_title ?? null,
-          modern_body: sourceEntry.modern_body ?? null,
-          ancient_title: sourceEntry.ancient_title ?? null,
-          ancient_body: sourceEntry.ancient_body ?? null,
-          framework: sourceEntry.framework ?? null,
-          contrib_id: sourceEntry.contrib_id ?? null,
-          note: sourceEntry.note ?? null,
-          goal: sourceEntry.goal ?? null,
-          applied: sourceEntry.applied ?? null,
-          lab: sourceEntry.lab ?? null,
-          submit_label: sourceEntry.submit_label ?? null,
-          sort_order: sourceEntry.sort_order,
+          workshop_day_id: newDay.id,
+          section_key: sourceSection.section_key,
+          hour: sourceSection.hour ?? null,
+          title: sourceSection.title,
+          duration: sourceSection.duration ?? null,
+          sort_order: sourceSection.sort_order,
         })
         .select()
         .single()
 
-      if (entryError || !newEntry)
-        throw new Error(`Failed to copy entry: ${entryError?.message}`)
+      if (secError || !newSection)
+        throw new Error(`Failed to copy section: ${secError?.message}`)
 
-      const entryMediaRows = (sourceEntry.entry_media || []).map((em: any) => ({
-        entry_id: newEntry.id,
-        kind: em.kind,
-        label: em.label ?? null,
-        url: em.url ?? null,
-        file_name: em.file_name ?? null,
-        storage_path: em.storage_path ?? null,
-        sort_order: em.sort_order,
-      }))
-      if (entryMediaRows.length > 0) {
-        await supabase.from('workshop_entry_media').insert(entryMediaRows)
-      }
+      const sortedEntries = [...(sourceSection.entries || [])].sort(
+        (a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999)
+      )
 
-      newEntriesForSection.push({ ...newEntry, entry_media: entryMediaRows })
-    }
+      const newEntriesForSection = await Promise.all(
+        sortedEntries.map(async (sourceEntry) => {
+          const { data: newEntry, error: entryError } = await supabase
+            .from('workshop_day_entries')
+            .insert({
+              section_id: newSection.id,
+              entry_type: sourceEntry.entry_type,
+              title: sourceEntry.title,
+              subtitle: sourceEntry.subtitle ?? null,
+              body: sourceEntry.body ?? null,
+              items: sourceEntry.items ?? [],
+              modern_title: sourceEntry.modern_title ?? null,
+              modern_body: sourceEntry.modern_body ?? null,
+              ancient_title: sourceEntry.ancient_title ?? null,
+              ancient_body: sourceEntry.ancient_body ?? null,
+              framework: sourceEntry.framework ?? null,
+              contrib_id: sourceEntry.contrib_id ?? null,
+              note: sourceEntry.note ?? null,
+              goal: sourceEntry.goal ?? null,
+              applied: sourceEntry.applied ?? null,
+              lab: sourceEntry.lab ?? null,
+              submit_label: sourceEntry.submit_label ?? null,
+              sort_order: sourceEntry.sort_order,
+            })
+            .select()
+            .single()
 
-    newSectionsWithEntries.push({ ...newSection, entries: newEntriesForSection })
-  }
+          if (entryError || !newEntry)
+            throw new Error(`Failed to copy entry: ${entryError?.message}`)
+
+          const entryMediaRows = (sourceEntry.entry_media || []).map((em: any) => ({
+            entry_id: newEntry.id,
+            kind: em.kind,
+            label: em.label ?? null,
+            url: em.url ?? null,
+            file_name: em.file_name ?? null,
+            storage_path: em.storage_path ?? null,
+            sort_order: em.sort_order,
+          }))
+          
+          if (entryMediaRows.length > 0) {
+            await supabase.from('workshop_entry_media').insert(entryMediaRows)
+          }
+
+          return { ...newEntry, entry_media: entryMediaRows }
+        })
+      )
+
+      return { ...newSection, entries: newEntriesForSection }
+    })
+  )
 
   revalidatePath(`/hub/pilot-workshops/${targetCohortId}/journey`)
   revalidatePath('/admin/pilot-workshops')
 
-  // Return the full new day object so AdminConsole can optimistically add it
+  // Return the full new day object along with the backup snapshot
   return {
-    ...newDay,
-    sections: newSectionsWithEntries,
+    newDay: {
+      ...newDay,
+      sections: newSectionsWithEntries,
+      day_media: dayMediaRows,
+    },
+    backupSnapshot,
   }
 }
 
@@ -474,7 +501,7 @@ export async function getCohortsForDuplicate() {
   const { data, error } = await supabase
     .from('cohorts')
     .select('id, name, status, start_date, description')
-    .order('start_date', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) throw new Error(`Failed to fetch cohorts: ${error.message}`)
   return data ?? []
@@ -496,4 +523,134 @@ export async function getDaysForCohort(cohortId: string) {
 
   if (error) throw new Error(`Failed to fetch days: ${error.message}`)
   return data ?? []
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// undoDuplicateDay
+// Undoes an import day operation. If backupSnapshot is null, it just deletes the day.
+// If backupSnapshot exists, it wipes the day's current contents and reinserts the backup.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function undoDuplicateDay(cohortId: string, dayNumber: number, backupSnapshot: any | null) {
+  const { supabase, profile } = await getAdminProfile()
+
+  const { data: existingDay } = await supabase
+    .from('workshop_days')
+    .select('id')
+    .eq('cohort_id', cohortId)
+    .eq('day_number', dayNumber)
+    .single()
+
+  if (!existingDay) throw new Error('Day not found for undo')
+
+  if (!backupSnapshot) {
+    // It was imported into an empty slot - just delete the day completely
+    await supabase.from('workshop_days').delete().eq('id', existingDay.id)
+  } else {
+    // It was an override - wipe current contents and restore the snapshot
+    const { data: existingSections } = await supabase
+      .from('workshop_day_sections')
+      .select('id')
+      .eq('workshop_day_id', existingDay.id)
+
+    if (existingSections && existingSections.length > 0) {
+      const sectionIds = existingSections.map((s: any) => s.id)
+      const { data: existingEntries } = await supabase
+        .from('workshop_day_entries')
+        .select('id')
+        .in('section_id', sectionIds)
+
+      if (existingEntries && existingEntries.length > 0) {
+        const entryIds = existingEntries.map((e: any) => e.id)
+        await supabase.from('workshop_entry_media').delete().in('entry_id', entryIds)
+        await supabase.from('workshop_day_entries').delete().in('id', entryIds)
+      }
+      await supabase.from('workshop_day_sections').delete().in('id', sectionIds)
+    }
+
+    await supabase.from('workshop_day_media').delete().eq('workshop_day_id', existingDay.id)
+
+    // Restore day text properties
+    await supabase.from('workshop_days').update({
+      title: backupSnapshot.title,
+      content_body: backupSnapshot.content_body,
+      deliverable_instructions: backupSnapshot.deliverable_instructions,
+      deliverable_type: backupSnapshot.deliverable_type,
+      requires_admin_approval: backupSnapshot.requires_admin_approval,
+      intro: backupSnapshot.intro,
+      blurb: backupSnapshot.blurb,
+      scene_config: backupSnapshot.scene_config,
+      updated_by: profile.id
+    }).eq('id', existingDay.id)
+
+    // Restore day media
+    const dayMediaRows = (backupSnapshot.day_media || []).map((m: any) => ({
+      workshop_day_id: existingDay.id,
+      media_type: m.media_type,
+      url: m.url,
+      storage_path: m.storage_path,
+      label: m.label,
+      sort_order: m.sort_order,
+    }))
+    if (dayMediaRows.length > 0) {
+      await supabase.from('workshop_day_media').insert(dayMediaRows)
+    }
+
+    // Restore sections and entries concurrently
+    const sortedSections = [...(backupSnapshot.sections || [])].sort((a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999))
+    
+    await Promise.all(sortedSections.map(async (sec: any) => {
+      const { data: restoredSection } = await supabase.from('workshop_day_sections').insert({
+        workshop_day_id: existingDay.id,
+        section_key: sec.section_key,
+        hour: sec.hour,
+        title: sec.title,
+        duration: sec.duration,
+        sort_order: sec.sort_order,
+      }).select().single()
+
+      if (!restoredSection) return
+
+      const sortedEntries = [...(sec.entries || [])].sort((a: any, b: any) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999))
+      await Promise.all(sortedEntries.map(async (ent: any) => {
+        const { data: restoredEntry } = await supabase.from('workshop_day_entries').insert({
+          section_id: restoredSection.id,
+          entry_type: ent.entry_type,
+          title: ent.title,
+          subtitle: ent.subtitle,
+          body: ent.body,
+          items: ent.items,
+          modern_title: ent.modern_title,
+          modern_body: ent.modern_body,
+          ancient_title: ent.ancient_title,
+          ancient_body: ent.ancient_body,
+          framework: ent.framework,
+          contrib_id: ent.contrib_id,
+          note: ent.note,
+          goal: ent.goal,
+          applied: ent.applied,
+          lab: ent.lab,
+          submit_label: ent.submit_label,
+          sort_order: ent.sort_order,
+        }).select().single()
+
+        if (!restoredEntry) return
+
+        const entryMediaRows = (ent.entry_media || []).map((em: any) => ({
+          entry_id: restoredEntry.id,
+          kind: em.kind,
+          label: em.label,
+          url: em.url,
+          file_name: em.file_name,
+          storage_path: em.storage_path,
+          sort_order: em.sort_order,
+        }))
+        if (entryMediaRows.length > 0) {
+          await supabase.from('workshop_entry_media').insert(entryMediaRows)
+        }
+      }))
+    }))
+  }
+
+  revalidatePath(`/hub/pilot-workshops/${cohortId}/journey`)
+  revalidatePath('/admin/pilot-workshops')
 }

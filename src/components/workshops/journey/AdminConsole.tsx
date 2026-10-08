@@ -24,7 +24,7 @@ import {
 import { PixelSprite } from '@/components/workshops/journey'
 import { updateWorkshopDay, createWorkshopDay } from '@/app/actions/workshops/workshop-days'
 import { updateCohort, uploadCohortThumbnail, getCohorts, deleteCohort } from '@/app/actions/workshops/cohorts'
-import { duplicateDay, getCohortsForDuplicate, getDaysForCohort } from '@/app/actions/workshops/duplicate'
+import { duplicateDay, getCohortsForDuplicate, getDaysForCohort, undoDuplicateDay } from '@/app/actions/workshops/duplicate'
 import { createSection, updateSection, deleteSection } from '@/app/actions/workshops/sections'
 import { createEntry, updateEntry, deleteEntry, reorderEntries } from '@/app/actions/workshops/entries'
 import { SortableList } from '@/components/admin/SortableList'
@@ -447,6 +447,20 @@ export default function AdminConsole({
   const [importSourceDayId, setImportSourceDayId] = useState('')
   const [importTargetSlot, setImportTargetSlot] = useState<number>(0) // Step 3: which slot to import as
   const [isImporting, setIsImporting] = useState(false)
+  const [dayUndoData, setDayUndoData] = useState<{ targetSlot: number; backupSnapshot: any | null } | null>(null)
+  const [isUndoingDay, setIsUndoingDay] = useState(false)
+
+  // Restore undo data from session storage after page reload
+  useEffect(() => {
+    const backup = sessionStorage.getItem('dayUndoBackup')
+    if (backup) {
+      try {
+        setDayUndoData(JSON.parse(backup))
+        sessionStorage.removeItem('dayUndoBackup')
+      } catch (e) {}
+    }
+  }, [])
+
 
   // Principles state
   const [principlesList, setPrinciplesList] = useState(principles)
@@ -629,17 +643,22 @@ export default function AdminConsole({
     }
   }, [selectedCohortId, section])
 
-  const handleUndoDuplicate = async () => {
-    if (!confirm('Are you sure you want to undo? This will permanently delete this newly duplicated cohort.')) return
-    setIsUndoing(true)
-    try {
-      await deleteCohort(cohortId)
-      // Note: We use window.location.href here because router.push caches the layout and we want a fresh reload on the dashboard
-      window.location.href = '/admin/pilot-workshops'
-    } catch (err: any) {
-      alert(err.message || 'Failed to undo duplication')
-      setIsUndoing(false)
-    }
+  const handleUndoDuplicate = () => {
+    setConfirmDialog({
+      message: 'Are you sure you want to undo? This will permanently delete this newly duplicated cohort.',
+      onConfirm: async () => {
+        setConfirmDialog(null)
+        setIsUndoing(true)
+        try {
+          await deleteCohort(cohortId)
+          // Note: We use window.location.href here because router.push caches the layout and we want a fresh reload on the dashboard
+          window.location.href = '/admin/pilot-workshops'
+        } catch (err: any) {
+          setToast(err.message || 'Failed to undo duplication')
+          setIsUndoing(false)
+        }
+      }
+    })
   }
 
   const handleReview = async (progressId: string, status: 'approved' | 'rejected', note?: string, isEngagement?: boolean) => {
@@ -887,31 +906,44 @@ export default function AdminConsole({
     if (!importSourceDayId || !importTargetSlot) return
     setIsImporting(true)
     try {
-      const newDay = await duplicateDay(importSourceDayId, cohortId, importTargetSlot)
-      if (newDay) {
-        setDaysData(prev => {
-          // Check if a day with this day_number already exists (empty slot that was filled)
-          const existingIdx = prev.findIndex((d: any) => d.day_number === newDay.day_number)
-          if (existingIdx >= 0) {
-            // Replace the existing empty day with the filled one
-            const updated = [...prev]
-            updated[existingIdx] = newDay as any
-            return updated
-          }
-          // No existing day — append
-          return [...prev, newDay as any]
-        })
-        // Switch to the imported day
-        const targetIdx = daysData.findIndex((d: any) => d.day_number === newDay.day_number)
-        setActiveDayIdx(targetIdx >= 0 ? targetIdx : daysData.length)
-        setSelectedEntry(null)
-      }
-      setImportDayModal(false)
+      const result = await duplicateDay(importSourceDayId, cohortId, importTargetSlot)
+      
+      // Save undo data to session storage so it survives the reload
+      sessionStorage.setItem('dayUndoBackup', JSON.stringify({
+        targetSlot: importTargetSlot,
+        backupSnapshot: result.backupSnapshot
+      }))
+      
+      // We do NOT set isImporting(false) or close the modal here,
+      // so the loading spinner stays visible while the page reloads.
+      window.location.reload()
     } catch (err: any) {
       alert(`Import failed: ${err.message}`)
-    } finally {
       setIsImporting(false)
     }
+  }
+
+  const handleUndoDayImport = () => {
+    if (!dayUndoData) return
+    setConfirmDialog({
+      message: dayUndoData.backupSnapshot 
+        ? 'Are you sure you want to undo? This will delete the newly imported day and restore your old content.'
+        : 'Are you sure you want to undo? This will completely delete the newly imported day.',
+      onConfirm: async () => {
+        setConfirmDialog(null)
+        setIsUndoingDay(true)
+        try {
+          await undoDuplicateDay(cohortId, dayUndoData.targetSlot, dayUndoData.backupSnapshot)
+          setToast('Day import undone successfully.')
+          setDayUndoData(null)
+          // Hard refresh to fully sync all complex local nested states
+          window.location.reload()
+        } catch (err: any) {
+          setToast(`Undo failed: ${err.message}`)
+          setIsUndoingDay(false)
+        }
+      }
+    })
   }
 
   const handleEntryFieldBlur = (entryId: string, field: string, value: any) => {
@@ -1853,6 +1885,50 @@ export default function AdminConsole({
           {/* ═══════════════ CURRICULUM ═══════════════ */}
           {section === 'curriculum' && (
             <>
+              {dayUndoData && (
+                <div style={{
+                  background: 'rgba(134,184,154,.15)',
+                  border: '2px solid var(--ok,#86b89a)',
+                  borderRadius: 12,
+                  padding: '16px 20px',
+                  marginBottom: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 16
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 24 }}>✨</span>
+                    <div>
+                      <div className="font-pixel" style={{ fontSize: 11, color: 'var(--ok,#86b89a)', marginBottom: 6 }}>DAY IMPORTED SUCCESSFULLY</div>
+                      <div style={{ fontSize: 16, color: 'var(--tx,#e4e0ee)' }}>
+                        {dayUndoData.backupSnapshot 
+                          ? 'You overwrote this day. You can undo to restore its previous content.'
+                          : 'You added a new day. You can undo to completely remove it.'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleUndoDayImport}
+                    disabled={isUndoingDay}
+                    style={{
+                      padding: '10px 16px',
+                      background: 'transparent',
+                      border: '2px solid var(--s,#8aa6c4)',
+                      color: 'var(--tx,#e4e0ee)',
+                      borderRadius: 6,
+                      cursor: isUndoingDay ? 'wait' : 'pointer',
+                      fontFamily: "'Press Start 2P', monospace",
+                      fontSize: 9,
+                      opacity: isUndoingDay ? 0.6 : 1
+                    }}
+                  >
+                    {isUndoingDay ? 'UNDOING...' : '↺ UNDO DAY IMPORT'}
+                  </button>
+                </div>
+              )}
+
               {/* Day tabs */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
                 {daysData.map((d: any, i: number) => {
