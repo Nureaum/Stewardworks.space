@@ -7,7 +7,7 @@ import { X, Copy, ChevronDown, ChevronUp } from 'lucide-react'
 import { uploadCohortThumbnail } from '@/app/actions/workshops/cohorts'
 import { duplicateCohort, getCohortsForDuplicate } from '@/app/actions/workshops/duplicate'
 
-type CohortSummary = { id: string; name: string; status: string; start_date: string }
+type CohortSummary = { id: string; name: string; status: any; start_date: string; description?: string | null }
 
 export default function CohortForm({
   initialData,
@@ -62,6 +62,26 @@ export default function CohortForm({
       }
     }
   }, [initialData])
+
+  // Auto-fill form fields when a duplicate source cohort is selected
+  useEffect(() => {
+    if (duplicateSourceId && isCreateMode) {
+      const sourceCohort = allCohorts.find(c => c.id === duplicateSourceId)
+      if (sourceCohort) {
+        setName(sourceCohort.name)
+        setStatus(sourceCohort.status)
+        
+        const { thumbnail, description: cleanDesc } = extractThumbnail(sourceCohort.description || '')
+        setDescription(cleanDesc)
+        setThumbnailUrl(thumbnail)
+
+        if (sourceCohort.start_date) {
+          const date = new Date(sourceCohort.start_date)
+          setStartDate(formatDate(date))
+        }
+      }
+    }
+  }, [duplicateSourceId, allCohorts, isCreateMode])
 
   // Load cohorts when the duplicate panel is opened
   useEffect(() => {

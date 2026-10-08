@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import '@/app/hub/pilot-workshops/retro-theme.css'
 import DeliverableMediaPreview, { isImageUrl } from '@/components/workshops/DeliverableMediaPreview'
 import { uploadCreationImage, getAllGenerations } from '@/app/actions/workshops/engagement'
@@ -23,7 +23,7 @@ import {
 } from '@/app/actions/workshops/admin-reviews'
 import { PixelSprite } from '@/components/workshops/journey'
 import { updateWorkshopDay, createWorkshopDay } from '@/app/actions/workshops/workshop-days'
-import { updateCohort, uploadCohortThumbnail, getCohorts } from '@/app/actions/workshops/cohorts'
+import { updateCohort, uploadCohortThumbnail, getCohorts, deleteCohort } from '@/app/actions/workshops/cohorts'
 import { duplicateDay, getCohortsForDuplicate, getDaysForCohort } from '@/app/actions/workshops/duplicate'
 import { createSection, updateSection, deleteSection } from '@/app/actions/workshops/sections'
 import { createEntry, updateEntry, deleteEntry, reorderEntries } from '@/app/actions/workshops/entries'
@@ -418,6 +418,10 @@ export default function AdminConsole({
   }
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const justDuplicated = searchParams.get('justDuplicated') === 'true'
+  const [isUndoing, setIsUndoing] = useState(false)
+
   const [section, setSection] = useState<AdminSection>((initialSectionProp as AdminSection) || 'cohort')
   const [cohortThumb, setCohortThumb] = useState(initialThumb)
   const descRef = useRef<HTMLTextAreaElement>(null)
@@ -624,6 +628,19 @@ export default function AdminConsole({
       loadProgressData()
     }
   }, [selectedCohortId, section])
+
+  const handleUndoDuplicate = async () => {
+    if (!confirm('Are you sure you want to undo? This will permanently delete this newly duplicated cohort.')) return
+    setIsUndoing(true)
+    try {
+      await deleteCohort(cohortId)
+      // Note: We use window.location.href here because router.push caches the layout and we want a fresh reload on the dashboard
+      window.location.href = '/admin/pilot-workshops'
+    } catch (err: any) {
+      alert(err.message || 'Failed to undo duplication')
+      setIsUndoing(false)
+    }
+  }
 
   const handleReview = async (progressId: string, status: 'approved' | 'rejected', note?: string, isEngagement?: boolean) => {
     setReviewingIds(prev => ({ ...prev, [progressId]: status === 'approved' ? 'approving' : 'rejecting' }))
@@ -1433,6 +1450,45 @@ export default function AdminConsole({
 
   return (
     <div className="font-vt323" style={rootStyle}>
+      {justDuplicated && (
+        <div style={{
+          background: 'rgba(134,184,154,.15)',
+          border: '2px solid var(--ok,#86b89a)',
+          borderRadius: 12,
+          padding: '16px 20px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 24 }}>✨</span>
+            <div>
+              <div className="font-pixel" style={{ fontSize: 11, color: 'var(--ok,#86b89a)', marginBottom: 6 }}>COHORT DUPLICATED SUCCESSFULLY</div>
+              <div style={{ fontSize: 16, color: 'var(--tx,#e4e0ee)' }}>You are now viewing the new copy. You can undo this action to permanently delete it.</div>
+            </div>
+          </div>
+          <button
+            onClick={handleUndoDuplicate}
+            disabled={isUndoing}
+            style={{
+              padding: '10px 16px',
+              background: 'transparent',
+              border: '2px solid var(--s,#8aa6c4)',
+              color: 'var(--tx,#e4e0ee)',
+              borderRadius: 6,
+              cursor: isUndoing ? 'wait' : 'pointer',
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: 9,
+              opacity: isUndoing ? 0.6 : 1
+            }}
+          >
+            {isUndoing ? 'UNDOING...' : '↺ UNDO DUPLICATION'}
+          </button>
+        </div>
+      )}
 
       {/* ═══ Console Header ═══ */}
       <div style={{

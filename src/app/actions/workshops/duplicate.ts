@@ -473,7 +473,7 @@ export async function getCohortsForDuplicate() {
 
   const { data, error } = await supabase
     .from('cohorts')
-    .select('id, name, status, start_date')
+    .select('id, name, status, start_date, description')
     .order('start_date', { ascending: false })
 
   if (error) throw new Error(`Failed to fetch cohorts: ${error.message}`)
