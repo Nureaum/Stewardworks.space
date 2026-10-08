@@ -455,10 +455,36 @@ export default function AdminConsole({
     const backup = sessionStorage.getItem('dayUndoBackup')
     if (backup) {
       try {
-        setDayUndoData(JSON.parse(backup))
+        const parsed = JSON.parse(backup)
+        setDayUndoData(parsed)
+        setSection('curriculum') // Auto-switch to Curriculum tab
+        
+        // Auto-select the newly imported day tab
+        const targetIdx = days.findIndex((d: any) => d.day_number === parsed.targetSlot)
+        if (targetIdx >= 0) {
+          setActiveDayIdx(targetIdx)
+        } else {
+          setActiveDayIdx(days.length - 1)
+        }
+        
         sessionStorage.removeItem('dayUndoBackup')
       } catch (e) {}
     }
+
+    const undid = sessionStorage.getItem('justUndidDay')
+    if (undid) {
+      try {
+        const parsed = JSON.parse(undid)
+        setSection('curriculum') // Auto-switch to Curriculum tab
+        const targetIdx = days.findIndex((d: any) => d.day_number === parsed.targetSlot)
+        if (targetIdx >= 0) {
+          setActiveDayIdx(targetIdx)
+        }
+        setToast('Day import undone successfully.')
+        sessionStorage.removeItem('justUndidDay')
+      } catch (e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
 
@@ -876,7 +902,7 @@ export default function AdminConsole({
       setImportCohortsLoading(true)
       try {
         const cohorts = await getCohortsForDuplicate()
-        setImportCohorts(cohorts)
+        setImportCohorts(cohorts.filter((c: any) => c.id !== cohortId))
       } catch {
         // silent – error shown in modal
       } finally {
@@ -934,7 +960,7 @@ export default function AdminConsole({
         setIsUndoingDay(true)
         try {
           await undoDuplicateDay(cohortId, dayUndoData.targetSlot, dayUndoData.backupSnapshot)
-          setToast('Day import undone successfully.')
+          sessionStorage.setItem('justUndidDay', JSON.stringify({ targetSlot: dayUndoData.targetSlot }))
           setDayUndoData(null)
           // Hard refresh to fully sync all complex local nested states
           window.location.reload()
